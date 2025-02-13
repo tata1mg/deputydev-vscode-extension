@@ -1,0 +1,177 @@
+// File: src/extension.ts
+
+import * as vscode from 'vscode';
+import { DiffViewManager } from './diff/DiffManager';
+import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff manager
+import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager 
+import FileListManager from './file/fileListManager';
+import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
+import { SidebarProvider } from './panels/SidebarProvider';
+import { WorkspaceManager } from './embedding/WorkspaceManager';
+
+let outputChannel: vscode.LogOutputChannel;
+
+
+export function activate(context: vscode.ExtensionContext) {
+
+  outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
+  outputChannel.info('Extension "DeputyDev" is now active!');
+
+
+  //  2) Choose & Initialize a Diff View Manager 
+  const inlineDiffEnable = vscode.workspace
+    .getConfiguration('deputydev')
+    .get('inlineDiff.enable');
+
+  let diffViewManager: DiffViewManager;
+  if (inlineDiffEnable) {
+    // inline diff view manager
+    const inlineDiffViewManager = new InlineDiffViewManager(
+      context,
+      outputChannel,
+    );
+    context.subscriptions.push(inlineDiffViewManager);
+    diffViewManager = inlineDiffViewManager;
+  } else {
+    // diff editor diff manager
+    const diffEditorDiffManager = new DiffEditorViewManager(
+      context,
+      outputChannel,
+    );
+    context.subscriptions.push(diffEditorDiffManager);
+    diffViewManager = diffEditorDiffManager;
+  }
+
+  const workspaceManager = new WorkspaceManager(context);
+  const relevantPaths = workspaceManager.getRelevantPaths();
+  vscode.window.showInformationMessage(
+    `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
+  );
+  // file list manager
+  const fileListManager = new FileListManager();
+  context.subscriptions.push(fileListManager);
+
+
+  // //  * 3) Register Custom TextDocumentContentProvider
+  // const diffContentProvider = new DiffContentProvider();
+  // const providerReg = vscode.workspace.registerTextDocumentContentProvider(
+  //   'my-diff-scheme',
+  //   diffContentProvider
+  // );
+  // context.subscriptions.push(providerReg);
+
+  //  4) Register the Sidebar (webview) 
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, fileListManager);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider)
+  );
+
+  //  * 5) Example: Register a code editor context command  (might remove it)
+  registerCodeEditorMenuCommand(context, sidebarProvider);
+
+  //  6) Register "closeApp" command  
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.closeApp', () => {
+      vscode.commands.executeCommand('workbench.action.closeWindow');
+    })
+  );
+
+  //   7) Register commands for Accept/Reject etc
+
+  // Accept changes in the active file
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active editor to accept changes for.');
+        return;
+      }
+      const fileUri = editor.document.uri;
+      await diffViewManager.acceptFile(fileUri.fsPath);
+      vscode.window.showInformationMessage('Changes accepted successfully.');
+    })
+  );
+
+  // Reject changes in the active file
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active editor to reject changes for.');
+        return;
+      }
+      const fileUri = editor.document.uri;
+      await diffViewManager.rejectFile(fileUri.fsPath);
+      vscode.window.showInformationMessage('Changes rejected successfully.');
+    })
+  );
+
+  // If you want commands for accepting or rejecting ALL tracked files:
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
+      await diffViewManager.acceptAllFile();
+      vscode.window.showInformationMessage('All changes accepted.');
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
+      await diffViewManager.rejectAllFile();
+      vscode.window.showInformationMessage('All changes rejected.');
+    })
+  );
+
+  // Command to open a diff view for any file path + new content
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.openDiffView', async (path: string, content: string) => {
+      if (!diffViewManager) {
+        vscode.window.showErrorMessage('Diff view manager is not initialized.');
+        return;
+      }
+      try {
+        await diffViewManager.openDiffView({ path, content });
+        vscode.window.showInformationMessage(`Diff view opened for ${path}`);
+      } catch (error) {
+        outputChannel.error(`Failed to open diff view: ${error}`);
+        vscode.window.showErrorMessage('Failed to open diff view.');
+      }
+    })
+  );
+
+
+
+  // add button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
+      outputChannel.info('Add button clicked!');
+      sidebarProvider.newChat();
+    }),
+  );
+
+  // setting button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.SettingButtonClick', () => {
+      outputChannel.info('Setting button clicked!');
+      sidebarProvider.setViewType('setting');
+    }),
+  );
+
+  // history button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.HistoryButtonClick', () => {
+      outputChannel.info('History button clicked!');
+      sidebarProvider.setViewType('history');
+    }),
+  );
+
+
+
+
+  //  8) Show the output channel if needed
+  outputChannel.show();
+}
+
+export function deactivate() {
+  outputChannel?.info('Extension "DeputyDev" is now deactivated!');
+}
+
+

@@ -1,0 +1,1 @@
+{"root":["./src/extension.ts","./src/panels/codeeditormenu.ts","./src/panels/inlineoptions.ts","./src/panels/sidebarprovider.ts","./src/utilities/get-nonce.ts","./src/utilities/geturi.ts","./src/utilities/require-config.ts"],"version":"5.7.3"}

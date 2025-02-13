@@ -1,0 +1,430 @@
+
+import * as vscode from 'vscode';
+import { nanoid } from 'nanoid';
+import { DiffViewManager } from '../diff/DiffManager';
+import { getUri } from '../utilities/getUri';
+import { requireModule } from '../utilities/require-config';
+import FileListManager from '../file/fileListManager';
+import * as path from "path";
+
+export class SidebarProvider implements vscode.WebviewViewProvider {
+  private _view?: vscode.WebviewView;
+
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly _extensionUri: vscode.Uri,
+    private readonly diffViewManager: DiffViewManager,
+    private readonly outputChannel: vscode.LogOutputChannel,
+    private fileListManager: FileListManager,
+
+  ) { }
+
+
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context?: vscode.WebviewViewResolveContext,
+    _token?: vscode.CancellationToken,
+  ): void {
+    this._view = webviewView;
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this._extensionUri],
+    };
+    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
+    // Listen for messages from the webview
+    webviewView.webview.onDidReceiveMessage(async (message: any) => {
+      let promise: Promise<any> | any;
+      const command = message.command;
+      const data = message.data;
+      // Depending on `command`, handle each command
+      switch (command) {
+        // File Operations
+        case 'accept-file':
+          promise = this.acceptFile(data.path);
+          break;
+        case 'reject-file':
+          promise = this.rejectFile(data.path);
+          break;
+        case 'apply-changes':
+          promise = this.writeFile(data);
+          break;
+        case 'get-opened-files':
+          promise = this.getOpenedFiles();
+          break;
+        case 'search-file':
+          promise = this.searchFile(data);
+          break;
+
+        // Logging and Messages
+        case 'log-to-output':
+          promise = this.logToOutput(data);
+          break;
+        case 'show-error-message':
+          promise = this.showErrorMessage(data);
+          break;
+        case 'show-info-message':
+          promise = this.showInfoMessage(data);
+          break;
+
+        // Global State Management
+        case 'set-global-state':
+          promise = this.setGlobalState(data);
+          break;
+        case 'get-global-state':
+          promise = this.getGlobalState(data);
+          break;
+        case 'delete-global-state':
+          promise = this.deleteGlobalState(data);
+          break;
+
+        // Workspace State Management
+        case 'set-workspace-state':
+          promise = this.setWorkspaceState(data);
+          break;
+        case 'get-workspace-state':
+          promise = this.getWorkspaceState(data);
+          break;
+        case 'delete-workspace-state':
+          promise = this.deleteWorkspaceState(data);
+          break;
+
+        // Secret State Management
+        case 'set-secret-state':
+          promise = this.setSecretState(data);
+          break;
+        case 'get-secret-state':
+          promise = this.getSecretState(data);
+          break;
+        case 'delete-secret-state':
+          promise = this.deleteSecretState(data);
+          break;
+      }
+
+
+      if (promise) {
+        try {
+          await promise;
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            'Error handling sidebar message: ' + String(err),
+          );
+        }
+      }
+    });
+  }
+
+
+  // File Operations
+
+  private async acceptFile(path: string) {
+    return this.diffViewManager.acceptFile(path);
+  }
+
+  private async rejectFile(path: string) {
+    return this.diffViewManager.rejectFile(path);
+  }
+
+  /**
+   * Example of applying changes (like "openDiffView" in your other code)
+   */
+  private async writeFile(data: { type: string; value: string; filePath: string }) {
+    const mappedData = {
+      path: data.filePath,
+      content: data.value,
+    };
+    // Debug logs
+    console.log('Mapped Data:', mappedData);
+    console.log('command write file:', mappedData.path);
+
+    return this.diffViewManager.openDiffView(mappedData);
+  }
+
+  private async getOpenedFiles() {
+    const basePathSet = new Set<string>();
+    const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
+
+    return allTabs
+      .filter((tab) => {
+        const uri = (tab.input as any)?.uri;
+        return uri?.scheme === 'file';
+      })
+      .map((tab) => {
+        const uri = (tab.input as any).uri as vscode.Uri;
+        let basePath;
+        for (const path of basePathSet) {
+          if (uri.fsPath.startsWith(path)) {
+            basePath = path;
+            break;
+          }
+        }
+
+        if (!basePath) {
+          basePath = this.getFileBasePath(uri);
+          basePathSet.add(basePath);
+        }
+
+        return {
+          id: uri.fsPath,
+          type: 'file',
+          name: path.basename(uri.fsPath),
+          basePath: basePath,
+          path: path.relative(basePath, uri.fsPath),
+          fsPath: uri.fsPath,
+        };
+      });
+  }
+
+
+  private getFileBasePath(fileUri: vscode.Uri) {
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
+    return workspaceFolder?.uri.fsPath ?? '';
+  }
+
+  private async searchFile(data: { query: string; limit?: number }) {
+    if (this.fileListManager.canSearch) {
+      const res = await this.fileListManager.searchFiles(
+        data.query,
+        data.limit,
+      );
+      return res.map((item) => {
+        return {
+          id: item.fsPath,
+          type: 'file',
+          name: path.basename(item.fsPath),
+          basePath: item.basePath,
+          path: item.path,
+          fsPath: item.fsPath,
+        };
+      });
+    }
+    return this.fallbackSearchFile(data);
+  }
+
+  private fallbackSearchFile(data: { query: string; limit?: number }) {
+    const { query, limit = 20 } = data;
+
+    const basePathSet = new Set<string>();
+
+    const ignore = ['**/{node_modules,__pycache__}'];
+    return vscode.workspace
+      .findFiles(`**/*${query}*`, ignore.join(','), limit)
+      .then((files) => {
+        return files.map((item) => {
+          let basePath;
+          for (const path in basePathSet) {
+            if (item.fsPath.startsWith(path)) {
+              basePath = path;
+              break;
+            }
+          }
+          if (!basePath) {
+            basePath = this.getFileBasePath(item);
+            basePathSet.add(basePath);
+          }
+
+          const relativePath = basePath
+            ? path.relative(basePath, item.fsPath)
+            : item.fsPath;
+          return {
+            id: item.fsPath,
+            type: 'file',
+            name: path.basename(item.fsPath),
+            basePath,
+            path: relativePath,
+            fsPath: item.fsPath,
+          };
+        });
+      });
+  }
+
+
+
+  // Logging and Messages
+
+  private async logToOutput(data: { type: 'info' | 'warn' | 'error'; message: string }) {
+    // For example: this.outputChannel.info(`From Webview: ${data.message}`);
+    this.outputChannel[data.type](`From Webview: ${data.message}`);
+
+  }
+
+  private async showErrorMessage(data: { message: string }) {
+    vscode.window.showErrorMessage(data.message);
+  }
+
+  private async showInfoMessage(data: { message: string }) {
+    vscode.window.showInformationMessage(data.message);
+  }
+
+
+  // Global State Management
+
+  private async setGlobalState(data: { key: string; value: any }) {
+    return this.context.globalState.update(data.key, data.value);
+  }
+
+  private async getGlobalState(data: { key: string }) {
+    return this.context.globalState.get(data.key);
+  }
+
+  private async deleteGlobalState(data: { key: string }) {
+    return this.context.globalState.update(data.key, undefined);
+  }
+
+
+  // Workspace State Management
+
+  private async setWorkspaceState(data: { key: string; value: any }) {
+    return this.context.workspaceState.update(data.key, data.value);
+  }
+
+
+  private async getWorkspaceState(data: { key: string }) {
+    return this.context.workspaceState.get(data.key);
+  }
+
+  private async deleteWorkspaceState(data: { key: string }) {
+    return this.context.workspaceState.update(data.key, undefined);
+  }
+
+  // Secret State Management
+
+  private async setSecretState(data: { key: string; value: string }) {
+    return this.context.secrets.store(data.key, data.value);
+  }
+
+  private async getSecretState(data: { key: string }) {
+    return this.context.secrets.get(data.key);
+  }
+
+  private async deleteSecretState(data: { key: string }) {
+    return this.context.secrets.delete(data.key);
+  }
+
+
+
+
+  setViewType(viewType: 'chat' | 'setting' | 'history') { //add auth view
+    this.sendMessageToSidebar({
+      id: nanoid(),
+      command: 'set-view-type',
+      data: viewType,
+    });
+  }
+
+  newChat() {
+    this.sendMessageToSidebar({
+      id: nanoid(),
+      command: 'new-chat',
+    });
+  }
+
+  currentEditorChanged(editor: vscode.TextEditor) {
+    if (editor.document.uri.scheme !== 'file') {
+      return;
+    }
+
+    const uri = editor.document.uri;
+    const basePath = this.getFileBasePath(uri);
+    this.sendMessageToSidebar({
+      id: nanoid(),
+      command: 'current-editor-changed',
+      data: {
+        id: uri.fsPath,
+        type: 'file',
+        name: path.basename(uri.fsPath),
+        basePath,
+        path: path.relative(basePath, uri.fsPath),
+        fsPath: uri.fsPath,
+      },
+    });
+  }
+
+
+
+
+
+
+  /**
+   * Renders the HTML/JS/CSS for the webview.
+   * Adjust paths depending on your project structure.
+   */
+  private _getHtmlForWebview(webview: vscode.Webview): string {
+    // The CSS file from the React build output
+    const stylesUri = getUri(webview, this._extensionUri, [
+      'webview-ui',
+      'build',
+      'assets',
+      'index.css',
+    ]);
+    // The JS file from the React build output
+    const scriptUri = getUri(webview, this._extensionUri, [
+      'webview-ui',
+      'build',
+      'assets',
+      'index.js',
+    ]);
+
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    const workspaceUri = workspaceFolder?.uri;
+    const configPath = workspaceUri
+      ? vscode.Uri.joinPath(workspaceUri, 'myext.config.ts').fsPath
+      : null;
+    let config: any;
+
+    // Attempt to load the config if present
+    if (configPath) {
+      try {
+        config = requireModule(configPath);
+      } catch (error) {
+        // no-op if not found
+      }
+    }
+
+    // Watch for config changes
+    if (workspaceFolder) {
+      const watcher = vscode.workspace.createFileSystemWatcher(
+        new vscode.RelativePattern(workspaceFolder, 'myext.config.ts')
+      );
+      watcher.onDidChange((uri) => {
+        const newConfig = requireModule(uri.path);
+        this.sendMessageToSidebar({
+          type: 'onConfigChange',
+          value: newConfig,
+        });
+      });
+    }
+
+    return /*html*/ `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link rel="stylesheet" type="text/css" href="${stylesUri}">
+          <title>AI Code Assist</title>
+        </head>
+        <body>
+          <div id="root"></div>
+          <script>
+            // Pass any config we found to the webview
+            window.config = ${JSON.stringify(config || {})};
+          </script>
+          <script type="module" src="${scriptUri}"></script>
+        </body>
+      </html>
+    `;
+  }
+
+  /**
+   * Helper to send messages from extension to webview.
+   */
+  public sendMessageToSidebar(message: any) {
+    if (this._view) {
+      this._view.webview.postMessage(message);
+    } else {
+      console.log('Sidebar is not initialized. Cannot send message.');
+    }
+  }
+
+}

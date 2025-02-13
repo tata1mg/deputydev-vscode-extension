@@ -1,0 +1,208 @@
+{
+  "name": "deputydev",
+  "displayName": "DeputyDev",
+  "description": "DeputyDev",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.46.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:deputydev.editThisCode",
+    "onCommand:deputydev.acceptChanges",
+    "onCommand:deputydev.rejectChanges",
+    "onCommand:deputydev.acceptAllChanges",
+    "onCommand:deputydev.rejectAllChanges",
+    "onCommand:deputydev.AcceptChange",
+    "onCommand:deputydev.RejectChange",
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "deputydev.editThisCode",
+        "category": "DeputyDev",
+        "title": "Edit this code"
+      },
+      {
+        "command": "deputydev.chatWithDeputy",
+        "category": "DeputyDev",
+        "title": "Chat with Deputy"
+      },
+      {
+        "command": "deputydev.closeApp",
+        "category": "DeputyDev",
+        "title": "Close Application"
+      },
+      {
+        "command": "deputydev.acceptChanges",
+        "category": "DeputyDev",
+        "title": "Accept Changes"
+      },
+      {
+        "command": "deputydev.rejectChanges",
+        "category": "DeputyDev",
+        "title": "Reject Changes"
+      },
+      {
+        "command": "deputydev.acceptAllChanges",
+        "category": "DeputyDev",
+        "title": "Accept All Changes",
+        "icon": "$(check-all)"
+      },
+      {
+        "command": "deputydev.rejectAllChanges",
+        "category": "DeputyDev",
+        "title": "Reject All Changes",
+        "icon": "$(close-all)"
+      },
+      {
+        "command": "deputydev.AcceptChange",
+        "category": "DeputyDev",
+        "title": "Accept Single Change",
+        "icon": "$(check)"
+      },
+      {
+        "command": "deputydev.RejectChange",
+        "category": "DeputyDev",
+        "title": "Reject Single Change",
+        "icon": "$(x)"
+      },
+      {
+        "command": "deputydev.SettingButtonClick",
+        "title": "Settings",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "deputydev.HistoryButtonClick",
+        "title": "History",
+        "icon": "$(history)"
+      },
+      {
+        "command": "deputydev.AddButtonClick",
+        "title": "New",
+        "icon": "$(add)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "deputydev.AddButtonClick",
+          "when": "view == deputydev-sidebar",
+          "group": "navigation@1"
+        },
+        {
+          "command": "deputydev.HistoryButtonClick",
+          "when": "view == deputydev-sidebar",
+          "group": "navigation@2"
+        },
+        {
+          "command": "deputydev.SettingButtonClick",
+          "when": "view == deputydev-sidebar",
+          "group": "navigation@3"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "deputydev.editThisCode",
+          "when": "editorHasSelection && !editorReadonly",
+          "group": "my_group@1"
+        },
+        {
+          "command": "deputydev.chatWithDeputy",
+          "when": "editorHasSelection",
+          "group": "my_group@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "deputydev.acceptChanges",
+          "when": "deputydev.hasChanges",
+          "group": "navigation@1"
+        },
+        {
+          "command": "deputydev.rejectChanges",
+          "when": "deputydev.hasChanges",
+          "group": "navigation@2"
+        },
+        {
+          "command": "deputydev.acceptAllChanges",
+          "when": "deputydev.hasChanges",
+          "group": "navigation@3"
+        },
+        {
+          "command": "deputydev.rejectAllChanges",
+          "when": "deputydev.hasChanges",
+          "group": "navigation@4"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "deputydev-sidebar-view",
+          "title": "DeputyDev Extension",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "deputydev-sidebar-view": [
+        {
+          "type": "webview",
+          "id": "deputydev-sidebar",
+          "name": "AI Assistant",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Deputydev",
+      "properties": {
+        "deputydev.inlineDiff.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline diff in the editor(preview), restart vscode after changing"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "install:all": "yarn install && yarn --cwd ./webview-ui install",
+    "start:ui": "yarn --cwd ./webview-ui run start",
+    "build:ui": "yarn --cwd ./webview-ui run build",
+    "watch:ui": "yarn --cwd ./webview-ui run watch",
+    "vscode:prepublish": "yarn run compile",
+    "compile": "tsc -p ./",
+    "watch:extension": "tsc -watch -p ./",
+    "watch:all": "concurrently \"yarn watch:ui\" \"yarn watch:extension\"",
+    "watch": "yarn watch:extension",
+    "pretest": "yarn run compile && yarn run lint",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/glob": "^8.1.0",
+    "@types/node": "^22.10.7",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.21.0",
+    "@typescript-eslint/parser": "^8.21.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "glob": "^11.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "vscode-test": "^1.6.1"
+  },
+  "dependencies": {
+    "@types/diff": "^7.0.0",
+    "diff": "^7.0.0",
+    "fuse.js": "^7.1.0",
+    "globby": "11",
+    "nanoid": "3",
+    "path": "^0.12.7",
+    "ts-import": "4.0.0-beta.6"
+  }
+}
