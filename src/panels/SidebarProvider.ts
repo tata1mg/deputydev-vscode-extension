@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
-import FileListManager from '../file/fileListManager';
+import { AuthenticationManager } from '../auth/AuthenticationManager';
 import * as path from "path";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
@@ -15,7 +15,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly _extensionUri: vscode.Uri,
     private readonly diffViewManager: DiffViewManager,
     private readonly outputChannel: vscode.LogOutputChannel,
-    private fileListManager: FileListManager,
 
   ) { }
 
@@ -53,7 +52,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.getOpenedFiles();
           break;
         case 'search-file':
-          promise = this.searchFile(data);
           break;
 
         // Logging and Messages
@@ -99,6 +97,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'delete-secret-state':
           promise = this.deleteSecretState(data);
           break;
+        case 'initiate-login':
+          promise = this.initiateLogin(data);
+          break;
       }
 
 
@@ -112,6 +113,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
       }
     });
+  }
+  // For authentication
+  private async initiateLogin(data: any) {
+    const authenticationManager = new AuthenticationManager();
+    const status = await authenticationManager.initiateAuthentication();
+    this.sendMessageToSidebar(status);
   }
 
 
@@ -181,64 +188,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return workspaceFolder?.uri.fsPath ?? '';
   }
 
-  private async searchFile(data: { query: string; limit?: number }) {
-    if (this.fileListManager.canSearch) {
-      const res = await this.fileListManager.searchFiles(
-        data.query,
-        data.limit,
-      );
-      return res.map((item) => {
-        return {
-          id: item.fsPath,
-          type: 'file',
-          name: path.basename(item.fsPath),
-          basePath: item.basePath,
-          path: item.path,
-          fsPath: item.fsPath,
-        };
-      });
-    }
-    return this.fallbackSearchFile(data);
-  }
-
-  private fallbackSearchFile(data: { query: string; limit?: number }) {
-    const { query, limit = 20 } = data;
-
-    const basePathSet = new Set<string>();
-
-    const ignore = ['**/{node_modules,__pycache__}'];
-    return vscode.workspace
-      .findFiles(`**/*${query}*`, ignore.join(','), limit)
-      .then((files) => {
-        return files.map((item) => {
-          let basePath;
-          for (const path in basePathSet) {
-            if (item.fsPath.startsWith(path)) {
-              basePath = path;
-              break;
-            }
-          }
-          if (!basePath) {
-            basePath = this.getFileBasePath(item);
-            basePathSet.add(basePath);
-          }
-
-          const relativePath = basePath
-            ? path.relative(basePath, item.fsPath)
-            : item.fsPath;
-          return {
-            id: item.fsPath,
-            type: 'file',
-            name: path.basename(item.fsPath),
-            basePath,
-            path: relativePath,
-            fsPath: item.fsPath,
-          };
-        });
-      });
-  }
-
-
 
   // Logging and Messages
 
@@ -304,7 +253,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
 
 
-  setViewType(viewType: 'chat' | 'setting' | 'history') { //add auth view
+  setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth') { //add auth view
     this.sendMessageToSidebar({
       id: nanoid(),
       command: 'set-view-type',

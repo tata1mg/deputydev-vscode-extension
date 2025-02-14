@@ -119,3 +119,7 @@ export function getSecretState(data: { key: string }) {
 export function deleteSecretState(data: { key: string }) {
   return callCommand('delete-secret-state', data);
 }
+
+export function initiateLogin() {
+  return callCommand('initiate-login', {})
+}
