@@ -1,26 +1,6 @@
-import useExtensionStore from "@/stores/useExtensionStore";
 import { initiateLogin } from "@/commandApi";
-import { useEffect } from "react";
 
 export default function Auth() {
-
-    useEffect(() => {
-        function handleMessage(event: MessageEvent) {
-            const response = event.data || {};
-            console.log("message", response)
-
-            if (response === "AUTHENTICATED") {
-                nextPage()
-            }
-        }
-
-        window.addEventListener('message', handleMessage); // Listen for messages
-        return () => window.removeEventListener('message', handleMessage);
-    }, [])
-
-    const nextPage = () => {
-        useExtensionStore.setState({ viewType: 'chat' });
-    };
 
     const handleLogin = () => {
         initiateLogin()
