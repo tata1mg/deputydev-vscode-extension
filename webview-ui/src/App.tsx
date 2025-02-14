@@ -10,30 +10,45 @@ import Auth from './views/auth';
 
 function App() {
   const extensionState = useExtensionStore();
-  // call getGlobalState to get the global state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   let view;
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const response = event.data || {};
+      console.log("message", response)
+
+      if (response === "AUTHENTICATED") {
+        extensionState.setViewType("chat")
+        setIsAuthenticated(true);
+      }
+    }
+
+    window.addEventListener('message', handleMessage); // Listen for messages
+    return () => window.removeEventListener('message', handleMessage);
+  }, [])
 
   switch (extensionState.viewType) {
     case 'auth':
       view = <Auth />
       break;
     case 'chat':
-      view = <Chat />;
+      view = isAuthenticated ? <Chat /> : <Auth />;
       break;
     case 'setting':
-      view = <Setting />;
+      view = isAuthenticated ? <Setting /> : <Auth />;
       break;
     case 'welcome':
       view = <Welcome />;
       break;
     case 'history':
-      view = <History />;
+      view = isAuthenticated ? <History /> : <Auth />;
       break;
     default:
       view = null;
   }
-// use background color tailwind white
+  // use background color tailwind white
 
   return <> <div className=' '>  {view}</div></>;
 }

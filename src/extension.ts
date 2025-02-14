@@ -23,13 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel.info(`Authentication result: ${status}`);
     if (status) {
       outputChannel.info('User is authenticated.');
-      // sidebarProvider.sendMessageToSidebar('AUTHENTICATED')
-      context.globalState.update("AuthenticationStatus", true)
+      sidebarProvider.sendMessageToSidebar('AUTHENTICATED')
       sidebarProvider.setViewType("chat")
     } else {
       outputChannel.info('User is not authenticated.');
-      // sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
-      context.globalState.update("AuthenticationStatus", false)
+      sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
       sidebarProvider.setViewType("auth")
     }
   }).catch((error) => {
