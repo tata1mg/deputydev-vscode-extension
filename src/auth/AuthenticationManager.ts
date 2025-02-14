@@ -42,13 +42,13 @@ export class AuthenticationManager {
             const response = await this.authService.verifyAuthToken(authToken)
             console.log("response", response)
             if (response.data.status === 'VERIFIED') {
-                // return true;
-                return false;
+                return true;
+                // return false;
             } else if (response.data.status === 'EXPIRED') {
                 const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                 if (result === 'success') {
-                    // return true;
-                    return false;
+                    return true;
+                    // return false;
                 }
             } else {
                 return false;
