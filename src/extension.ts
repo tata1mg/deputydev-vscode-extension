@@ -77,7 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider)
+    vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
 
   //  * 5) Example: Register a code editor context command  (might remove it)
