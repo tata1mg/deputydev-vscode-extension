@@ -6,14 +6,18 @@ import { Chat } from './views/chat';
 import Setting from './views/setting';
 import Welcome from './views/welcome';
 import History from './views/history';
+import Auth from './views/auth';
 
 function App() {
   const extensionState = useExtensionStore();
   // call getGlobalState to get the global state
-  
+
   let view;
 
   switch (extensionState.viewType) {
+    case 'auth':
+      view = <Auth />
+      break;
     case 'chat':
       view = <Chat />;
       break;

@@ -3,11 +3,11 @@
 import * as vscode from 'vscode';
 import { DiffViewManager } from './diff/DiffManager';
 import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff manager
-import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager 
-import FileListManager from './file/fileListManager';
+import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager
 import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
+import { AuthenticationManager } from './auth/AuthenticationManager';
 
 let outputChannel: vscode.LogOutputChannel;
 
@@ -17,8 +17,27 @@ export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
   outputChannel.info('Extension "DeputyDev" is now active!');
 
+  // 1) Authentication Flow
+  const authenticationManager = new AuthenticationManager();
+  authenticationManager.validateCurrentSession().then((status) => {
+    outputChannel.info(`Authentication result: ${status}`);
+    if (status) {
+      outputChannel.info('User is authenticated.');
+      // sidebarProvider.sendMessageToSidebar('AUTHENTICATED')
+      context.globalState.update("AuthenticationStatus", true)
+      sidebarProvider.setViewType("chat")
+    } else {
+      outputChannel.info('User is not authenticated.');
+      // sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
+      context.globalState.update("AuthenticationStatus", false)
+      sidebarProvider.setViewType("auth")
+    }
+  }).catch((error) => {
+    outputChannel.error(`Authentication failed: ${error}`);
+  })
 
-  //  2) Choose & Initialize a Diff View Manager 
+
+  //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
     .getConfiguration('deputydev')
     .get('inlineDiff.enable');
@@ -47,9 +66,6 @@ export function activate(context: vscode.ExtensionContext) {
   vscode.window.showInformationMessage(
     `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
   );
-  // file list manager
-  const fileListManager = new FileListManager();
-  context.subscriptions.push(fileListManager);
 
 
   // //  * 3) Register Custom TextDocumentContentProvider
@@ -60,8 +76,8 @@ export function activate(context: vscode.ExtensionContext) {
   // );
   // context.subscriptions.push(providerReg);
 
-  //  4) Register the Sidebar (webview) 
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, fileListManager);
+  //  4) Register the Sidebar (webview)
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider)
   );
@@ -69,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
   //  * 5) Example: Register a code editor context command  (might remove it)
   registerCodeEditorMenuCommand(context, sidebarProvider);
 
-  //  6) Register "closeApp" command  
+  //  6) Register "closeApp" command
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.closeApp', () => {
       vscode.commands.executeCommand('workbench.action.closeWindow');
