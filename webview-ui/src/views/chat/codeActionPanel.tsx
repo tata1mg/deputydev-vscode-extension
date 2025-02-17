@@ -1,6 +1,6 @@
 // webview-ui/src/views/chat/codeActionPanel.tsx
 import React from 'react';
-import { useAnthropicChatStore } from '../../stores/anthropicChatStore';
+import { useChatStore } from '../../stores/chatStore';
 import { SnippetReference } from './snippetReference';
 
 export interface CodeActionPanelProps {
@@ -9,7 +9,7 @@ export interface CodeActionPanelProps {
 }
 
 export function CodeActionPanel({ inline = false, snippetId }: CodeActionPanelProps) {
-  const snippet = useAnthropicChatStore(
+  const snippet = useChatStore(
     (state) => state.detectedSnippets[snippetId]
   );
 

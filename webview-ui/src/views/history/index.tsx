@@ -1,7 +1,7 @@
 import { VSCodeButton } from '@vscode/webview-ui-toolkit/react';
 import { Trash2 } from 'lucide-react';
 import { List, ListItem } from '../../components/list';
-import { setChatSession, useChatSessionStore } from '../../stores/anthropicChatStore';
+import { setChatSession, useChatSessionStore } from '../../stores/chatStore';
 import ScrollArea from '../../components/scrollArea';
 import useExtensionStore from '../../stores/useExtensionStore';
 import { css } from '@emotion/css';

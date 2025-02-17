@@ -4,11 +4,11 @@
 // here we just use style code.
 // import './codeTheme.scss';
 import { CodeActionPanel } from './codeActionPanel';
-import { AnthropicChat } from './AnthropicChat';
+import { ChatUI } from './chat';
 export function Chat() {
   return (
     <div className='pt-2' style={{ height: "calc(100vh - 0.5rem)" }}>
-      <AnthropicChat />
+      <ChatUI />
       {/* <ChatMessageList /> */}
       {/* <ChatTextArea /> */}
     </div>

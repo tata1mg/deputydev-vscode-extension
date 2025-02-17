@@ -34,10 +34,10 @@ function App() {
       view = <Auth />
       break;
     case 'chat':
-      view = isAuthenticated ? <Chat /> : <Auth />;
+      view =  <Chat />;
       break;
     case 'setting':
-      view = isAuthenticated ? <Setting /> : <Auth />;
+      view =  <Setting /> ;
       break;
     case 'welcome':
       view = <Welcome />;

@@ -8,9 +8,10 @@ import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
+import ChatService from './chat/ChatManager';
 
 let outputChannel: vscode.LogOutputChannel;
-
+let chatService: ChatService  | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -65,6 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
     `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
   );
 
+  const chatService = new ChatService(context, outputChannel);
+
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -75,7 +78,7 @@ export function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
@@ -178,9 +181,9 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
 
+  //  8) Show the output channel if needed & start server
 
-
-  //  8) Show the output channel if needed
+  chatService.start();
   outputChannel.show();
 }
 

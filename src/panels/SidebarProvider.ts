@@ -5,7 +5,10 @@ import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
+import ChatManager from '../chat/ChatManager';
 import * as path from "path";
+
+import axios from 'axios';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -15,6 +18,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly _extensionUri: vscode.Uri,
     private readonly diffViewManager: DiffViewManager,
     private readonly outputChannel: vscode.LogOutputChannel,
+    private chatService: ChatManager,
+
 
   ) { }
 
@@ -36,8 +41,40 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       let promise: Promise<any> | any;
       const command = message.command;
       const data = message.data;
-      // Depending on `command`, handle each command
+      // Define the expected structure for the chunk callback
+      interface ChunkType {
+        name?: string;
+        data: { chunk: string };
+      }
+
+      const chunkCallback = (chunkData: unknown) => {
+        this.sendMessageToSidebar({
+          // Use the same ID so that the front-end resolver knows which generator to push data into.
+          id: message.id,
+          command: 'chunk',
+          data: chunkData,
+        });
+      };
+
+      // Depending on `command`, handle each case
       switch (command) {
+
+        case 'api-chat':
+          console.log('api-chat data:', data);
+          promise = this.chatService.apiChat(data, chunkCallback);
+          break;
+
+        case 'api-clear-chat':
+          promise = this.chatService.apiClearChat();
+          break;
+        case 'api-save-session':
+          promise = this.chatService.apiSaveSession(data);
+          break;
+        case 'api-chat-setting':
+          promise = this.chatService.apiChatSetting(data);
+          break;
+
+
         // File Operations
         case 'accept-file':
           promise = this.acceptFile(data.path);
@@ -119,9 +156,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const authenticationManager = new AuthenticationManager();
     const status = await authenticationManager.initiateAuthentication();
     this.sendMessageToSidebar(status);
-  }
+}
 
-
+  
   // File Operations
 
   private async acceptFile(path: string) {
