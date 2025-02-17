@@ -11,22 +11,29 @@ export class AuthenticationManager {
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);
-                console.log("response", response, response.data.status)
 
                 if (response.data.status === 'AUTHENTICATED') {
-                    return response.data.status;
-                } else {
-                    console.log('User is not authenticated, polling again...');
+                    if (response.data.encrypted_session_data) {
+                        const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
+                        if (result === "success") {
+                            return response.data.status;
+                        } else {
+                            return 'NOT_AUTHENTICATED';
+                        }
+                    } else {
+                        return 'NOT_AUTHENTICATED';
+                    }
                 }
             } catch (error) {
-                console.error('Error checking session:', error);
+                console.error('Error while polling session:', error);
+                return 'NOT_AUTHENTICATED';
             }
 
             // Wait for 3 seconds before the next attempt
             await new Promise(resolve => setTimeout(resolve, 3000));
         }
 
-        console.log('Max attempts reached, authentication failed. stopping polling.');
+        console.error("Authentication failed, please try again later.");
         return 'NOT_AUTHENTICATED';
     };
 
@@ -40,20 +47,24 @@ export class AuthenticationManager {
 
         try {
             const response = await this.authService.verifyAuthToken(authToken)
-            console.log("response", response)
             if (response.data.status === 'VERIFIED') {
                 return true;
                 // return false;
             } else if (response.data.status === 'EXPIRED') {
-                const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
-                if (result === 'success') {
-                    return true;
-                    // return false;
+                if (response.data.encrypted_session_data) {
+                    const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
+                    if (result === "success") {
+                        return true;
+                        // return false;
+                    }
+                } else {
+                    return false;
                 }
             } else {
                 return false;
             }
         } catch (error) {
+            console.error("Authentication failed, please try again later.")
             return false;
         }
     }
@@ -65,6 +76,6 @@ export class AuthenticationManager {
         this.browserClient.initiateExtensionLogin(supabaseSessionId)
 
         // Poll Session
-        return this.pollSession(supabaseSessionId)
+        return await this.pollSession(supabaseSessionId)
     }
 }
