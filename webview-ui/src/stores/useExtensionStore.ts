@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
 
-export type ViewType = 'chat' | 'setting' | 'welcome' | 'history' | 'auth';
+export type ViewType = 'chat' | 'setting' | 'loader' | 'history' | 'auth';
 
 const useExtensionStore = create(
   combine(
     {
       isStarted: false,
-      viewType: 'welcome' as ViewType, // changed welcome to chat  as default
+      viewType: 'loader' as ViewType,
       serverUrl:
         import.meta.env.NODE_ENV === 'development'
           ? 'http://localhost:5000'

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
-import Welcome from './views/welcome';
+import Loader from './views/loader';
 import History from './views/history';
 import Auth from './views/auth';
 
@@ -39,8 +39,8 @@ function App() {
     case 'setting':
       view = isAuthenticated ? <Setting /> : <Auth />;
       break;
-    case 'welcome':
-      view = <Welcome />;
+    case 'loader':
+      view = <Loader />;
       break;
     case 'history':
       view = isAuthenticated ? <History /> : <Auth />;
