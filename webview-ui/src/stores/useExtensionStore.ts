@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { combine } from 'zustand/middleware';
 
-export type ViewType = 'chat' | 'setting' | 'welcome' | 'history' | 'auth';
+export type ViewType = 'chat' | 'setting' | 'loader' | 'history' | 'auth';
 
 const useExtensionStore = create(
   combine(
