@@ -8,4 +8,12 @@ const api = axios.create({
     withCredentials: false
 });
 
-export default api;
+const binaryApi = axios.create({
+    baseURL: 'http://localhost:9000',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    withCredentials: false
+});
+
+export { api, binaryApi };

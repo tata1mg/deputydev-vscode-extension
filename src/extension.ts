@@ -32,6 +32,8 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }).catch((error) => {
     outputChannel.error(`Authentication failed: ${error}`);
+    sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
+    sidebarProvider.setViewType("auth")
   })
 
 
