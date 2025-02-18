@@ -1,8 +1,9 @@
 // file: webview-ui/src/stores/chatStore.ts
 import { create } from 'zustand';
-import { nanoid } from 'nanoid';
 import { combine, persist } from 'zustand/middleware';
 import { SSE } from 'sse.js';
+import { v4 as uuidv4 } from 'uuid';
+
 
 import {
   apiChat,
@@ -105,7 +106,7 @@ export const useChatStore = create(
   combine(
     {
       // sessionId represents a unique session maintained throughout the session
-      sessionId: nanoid(),
+      sessionId: uuidv4(),
       history: [] as ChatMessage[],
       // The current assistant message being streamed
       current: undefined as ChatAssistantMessage | undefined,
@@ -122,7 +123,7 @@ export const useChatStore = create(
       async clearChat() {
         // Clear current session and start a new one by generating a new sessionId.
         set({
-          sessionId: nanoid(),
+          sessionId: uuidv4(),
           history: [],
           current: undefined,
           detectedSnippets: {},
@@ -139,7 +140,7 @@ export const useChatStore = create(
         const { history } = get();
 
         // Generate a unique ID for the user message.
-        const userMessageId = nanoid();
+        const userMessageId = uuidv4();
 
         // Append the user message to the UI history and create a placeholder for the assistant.
         set({
@@ -153,7 +154,7 @@ export const useChatStore = create(
               referenceList: [],
             } as ChatUserMessage,
           ],
-          current: { id: nanoid(), type: 'assistant', text: '' },
+          current: { id: uuidv4(), type: 'assistant', text: '' },
           isLoading: true,
           detectedSnippets: {},
           currentSnippetId: null,
@@ -196,7 +197,7 @@ export const useChatStore = create(
                         const markerPos = combinedText.indexOf(startMatch[0], pos);
                         currentText += combinedText.substring(pos, markerPos);
                         isInSnippet = true;
-                        const snippetId = nanoid();
+                        const snippetId = uuidv4();
                         currentSnippetId = snippetId;
                         const language = startMatch[1];
 

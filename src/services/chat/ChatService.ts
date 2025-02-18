@@ -1,6 +1,6 @@
 // file: webview-ui/src/services/querySolverService.ts
 import { createParser, type EventSourceMessage } from 'eventsource-parser';
-import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
 import api from '../api/axios';
 
@@ -13,7 +13,7 @@ public async querySolver(payload: unknown): Promise<AsyncIterableIterator<{ cont
           method: 'get',
           headers: {
             'Content-Type': 'application/json',
-            'X-REQUEST-ID': nanoid(),
+            'X-REQUEST-ID': uuidv4(),
             'Accept': 'text/event-stream',
           },
           data: payload,
