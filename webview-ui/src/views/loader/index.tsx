@@ -6,7 +6,7 @@ export default function Loader() {
     useEffect(() => {
         const timer = setTimeout(() => {
             setLoading(false);
-        }, 3000);
+        }, 10000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -20,6 +20,6 @@ export default function Loader() {
             <div className="mt-4 text-lg text-white dark:text-white">Loading...</div>
         </div>
     ) : (
-        <div>Taking too long to load. Please be with us!</div>
+        <div>Something went wrong. Please try again later</div>
     );
 }
