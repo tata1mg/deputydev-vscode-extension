@@ -3,7 +3,7 @@ import * as fsPromise from 'node:fs/promises';
 import * as path from 'node:path';
 import * as readline from 'node:readline';
 import * as vscode from 'vscode';
-import { fetchRelevantChunks, updateVectorStore } from "../services/websockets/websocketService";
+import { fetchRelevantChunks, updateVectorStore } from "../services/websockets/websocketHandlers";
 import { QuerySolverService } from "../services/chat/ChatService"; 
 
 // Define the expected payload interface for an API chat request.
@@ -15,7 +15,7 @@ export interface ChatApiPayload {
   chat_type: 'ask' | 'write';
 }
 
-export default class ChatManager {
+export class ChatManager {
   private querySolverService = new QuerySolverService();
   private aiderChatProcess: ChildProcess | undefined;
   private isDev = false;

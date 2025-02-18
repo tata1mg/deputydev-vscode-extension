@@ -8,10 +8,9 @@ import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
-import ChatService from './chat/ChatManager';
-
+import { ChatManager } from './chat/ChatManager';
+import { FileWatcher } from './embedding/FileWatcher';
 let outputChannel: vscode.LogOutputChannel;
-let chatService: ChatService  | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -60,13 +59,19 @@ export function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const workspaceManager = new WorkspaceManager(context);
-  const relevantPaths = workspaceManager.getRelevantPaths();
-  vscode.window.showInformationMessage(
-    `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
-  );
+  // const workspaceManager = new WorkspaceManager(context);
+  // const relevantPaths = workspaceManager.getRelevantPaths();
+  // vscode.window.showInformationMessage(
+  //   `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
+  // );
 
-  const chatService = new ChatService(context, outputChannel);
+
+  const fileWatcher = new FileWatcher(outputChannel);
+  context.subscriptions.push(fileWatcher);
+
+
+
+  const chatService = new ChatManager(context, outputChannel);
 
 
   // //  * 3) Register Custom TextDocumentContentProvider

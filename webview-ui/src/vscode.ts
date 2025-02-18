@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
 import { useChatStore  } from './stores/chatStore';
 import {
@@ -67,7 +67,7 @@ export function callCommand(
   data: unknown,
   options?: { stream: boolean },
 ): Promise<any> | AsyncIterableIterator<any> {
-  const id = nanoid();
+  const id = uuidv4();
   vscode.postMessage({
     id,
     command,

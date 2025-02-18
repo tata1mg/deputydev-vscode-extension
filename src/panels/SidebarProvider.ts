@@ -1,14 +1,12 @@
 
+import * as path from "path";
+import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
-import { nanoid } from 'nanoid';
+import { AuthenticationManager } from '../auth/AuthenticationManager';
+import { ChatManager } from '../chat/ChatManager';
 import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
-import { AuthenticationManager } from '../auth/AuthenticationManager';
-import ChatManager from '../chat/ChatManager';
-import * as path from "path";
-
-import axios from 'axios';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -156,9 +154,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const authenticationManager = new AuthenticationManager();
     const status = await authenticationManager.initiateAuthentication();
     this.sendMessageToSidebar(status);
-}
+  }
 
-  
+
   // File Operations
 
   private async acceptFile(path: string) {
@@ -246,10 +244,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // Global State Management
 
   private async setGlobalState(data: { key: string; value: any }) {
+    console.log('setGlobalState:', data);
     return this.context.globalState.update(data.key, data.value);
   }
 
   private async getGlobalState(data: { key: string }) {
+    console.log('this is the saved', this.context.globalState.get(data.key))
     return this.context.globalState.get(data.key);
   }
 
@@ -292,7 +292,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth') { //add auth view
     this.sendMessageToSidebar({
-      id: nanoid(),
+      id: uuidv4(),
       command: 'set-view-type',
       data: viewType,
     });
@@ -300,7 +300,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   newChat() {
     this.sendMessageToSidebar({
-      id: nanoid(),
+      id: uuidv4(),
       command: 'new-chat',
     });
   }
@@ -313,7 +313,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const uri = editor.document.uri;
     const basePath = this.getFileBasePath(uri);
     this.sendMessageToSidebar({
-      id: nanoid(),
+      id: uuidv4(),
       command: 'current-editor-changed',
       data: {
         id: uri.fsPath,
