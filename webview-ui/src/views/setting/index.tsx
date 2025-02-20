@@ -3,7 +3,7 @@ import {
   setGlobalState,
   getGlobalState,
   deleteGlobalState,
-} from '../../commandApi';
+} from '@/commandApi';
 import { Button } from "@/components/ui/button";
 
 export default function Setting() {

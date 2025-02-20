@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   outputChannel.info('Extension "DeputyDev" is now active!');
 
   // 1) Authentication Flow
-  const authenticationManager = new AuthenticationManager();
+  const authenticationManager = new AuthenticationManager(context);
   authenticationManager.validateCurrentSession().then((status) => {
     outputChannel.info(`Authentication result: ${status}`);
     if (status) {
@@ -61,11 +61,13 @@ export function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  // const workspaceManager = new WorkspaceManager(context);
-  // const relevantPaths = workspaceManager.getRelevantPaths();
-  // vscode.window.showInformationMessage(
-  //   `Relevant Paths: ${relevantPaths.join(', ') || 'None'}`
-  // );
+  const workspaceManager = new WorkspaceManager(context);
+  const relevantPaths = workspaceManager.getWorkspaceRepos();
+  vscode.window.showInformationMessage(
+    // relevantPaths is an object map
+    `Relevant paths: ${Object.keys(relevantPaths).join(', ') || 'None'}`
+
+  );
 
 
   const fileWatcher = new FileWatcher(outputChannel);

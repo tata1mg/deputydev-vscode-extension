@@ -9,7 +9,7 @@ import {
   setGlobalState,
   setSecretState,
   setWorkspaceState,
-} from '../commandApi';
+} from '@/commandApi';
 
 const vscodeStorage: StateStorage = {
   getItem: (key: string) => {

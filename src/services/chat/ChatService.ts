@@ -2,14 +2,14 @@
 import { createParser, type EventSourceMessage } from 'eventsource-parser';
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
-import api from '../api/axios';
+import {api} from '../api/axios';
 
 export class QuerySolverService {
 public async querySolver(payload: unknown): Promise<AsyncIterableIterator<{ content: string }>> {
     return new Promise(async (resolve, reject) => {
       try {
         const response = await api({
-          url: API_ENDPOINTS.QUERYSOLVER,
+          url: API_ENDPOINTS.QUERY_SOLVER,
           method: 'get',
           headers: {
             'Content-Type': 'application/json',

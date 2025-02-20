@@ -4,7 +4,7 @@ import {
 } from './websocketClient';
 import * as vscode from 'vscode';
 
-const authToken = vscode.ExtensionContext.context.globalState.get(data.key);
+// const authToken = vscode.ExtensionContext.context.globalState.get(data.key);
 
 export interface RelevantChunksParams {
   repo_path: string;

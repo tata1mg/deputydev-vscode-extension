@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-// import { vscode } from './utilities/vscode';
+import { sendWebviewFocusState } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -25,7 +25,19 @@ function App() {
       }
     }
 
+    function handleFocus() {
+      sendWebviewFocusState(true);
+    }
+
+    function handleBlur() {
+      sendWebviewFocusState(false); // Send "blurred" state to VS Code
+    }
+
     window.addEventListener('message', handleMessage); // Listen for messages
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+
     return () => window.removeEventListener('message', handleMessage);
   }, [])
 

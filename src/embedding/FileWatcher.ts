@@ -5,32 +5,19 @@ import { updateVectorStore, subscribeToVectorStoreUpdates } from "../services/we
 export class FileWatcher {
     private outputChannel: vscode.LogOutputChannel;
     private fileWatcher: vscode.FileSystemWatcher;
+    private pendingFileChanges: Set<string> = new Set();
+    private changeTimeout: NodeJS.Timeout | null = null;
 
     constructor(outputChannel: vscode.LogOutputChannel) {
         this.outputChannel = outputChannel;
-
-        // Initialize file watcher for all files
         this.fileWatcher = vscode.workspace.createFileSystemWatcher("**/*");
 
-        // Listen for file changes
-        this.fileWatcher.onDidChange(uri => {
-            this.outputChannel.info(`File changed: ${uri.fsPath}`);
-            vscode.window.showInformationMessage(`File changed: ${uri.fsPath}`);
-        });
+        // File change listeners with batching
+        this.fileWatcher.onDidChange(uri => this.scheduleFileUpdate(uri.fsPath));
+        this.fileWatcher.onDidCreate(uri => this.scheduleFileUpdate(uri.fsPath));
+        this.fileWatcher.onDidDelete(uri => this.scheduleFileUpdate(uri.fsPath));
 
-        // Listen for file creations
-        this.fileWatcher.onDidCreate(uri => {
-            this.outputChannel.info(`File created: ${uri.fsPath}`);
-            vscode.window.showInformationMessage(`File created: ${uri.fsPath}`);
-        });
-
-        // Listen for file deletions
-        this.fileWatcher.onDidDelete(uri => {
-            this.outputChannel.info(`File deleted: ${uri.fsPath}`);
-            vscode.window.showInformationMessage(`File deleted: ${uri.fsPath}`);
-        });
-
-        // Listen for workspace folder changes
+        // Workspace folder change listener
         vscode.workspace.onDidChangeWorkspaceFolders(event => {
             event.added.forEach(folder => {
                 this.outputChannel.info(`Workspace folder added: ${folder.uri.fsPath}`);
@@ -44,8 +31,38 @@ export class FileWatcher {
         });
     }
 
-    // Dispose the watcher when extension is deactivated
+    /**
+     * Schedules a batch update instead of handling each file change separately.
+     */
+    private scheduleFileUpdate(filePath: string) {
+        this.pendingFileChanges.add(filePath);
+
+        if (this.changeTimeout) {
+            clearTimeout(this.changeTimeout);
+        }
+
+        this.changeTimeout = setTimeout(() => this.processFileUpdates(), 500);
+    }
+
+    /**
+     * Processes all collected file changes after a delay.
+     */
+    private processFileUpdates() {
+        if (this.pendingFileChanges.size > 0) {
+            const fileList = Array.from(this.pendingFileChanges).join(', ');
+            this.outputChannel.info(`Batch file update: ${fileList}`);
+            vscode.window.showInformationMessage(`Files updated: ${fileList}`);
+            this.pendingFileChanges.clear();
+        }
+    }
+
+    /**
+     * Dispose the watcher when extension is deactivated.
+     */
     public dispose() {
         this.fileWatcher.dispose();
+        if (this.changeTimeout) {
+            clearTimeout(this.changeTimeout);
+        }
     }
 }
