@@ -123,3 +123,7 @@ export function deleteSecretState(data: { key: string }) {
 export function initiateLogin() {
   return callCommand('initiate-login', {})
 }
+
+export function sendWebviewFocusState(isFocused: boolean) {
+  return callCommand('webview-focus-state', { focused: isFocused });
+}

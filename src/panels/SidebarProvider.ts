@@ -53,10 +53,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data: chunkData,
         });
       };
-
       // Depending on `command`, handle each case
       switch (command) {
-
         case 'api-chat':
           console.log('api-chat data:', data);
           promise = this.chatService.apiChat(data, chunkCallback);
@@ -135,6 +133,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'initiate-login':
           promise = this.initiateLogin(data);
           break;
+
+        // Extention's focus state
+        case "webview-focus-state":
+          if (data.focused) {
+              vscode.window.showInformationMessage("Webview is focused yayayay!");
+          }
+          break;
       }
 
 
@@ -147,11 +152,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           );
         }
       }
+
+   
+
     });
   }
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager();
+    const authenticationManager = new AuthenticationManager(this.context);
     const status = await authenticationManager.initiateAuthentication();
     this.sendMessageToSidebar(status);
   }

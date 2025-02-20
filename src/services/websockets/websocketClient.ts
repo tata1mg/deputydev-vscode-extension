@@ -81,9 +81,9 @@ class WebSocketClient {
 // Persistent WebSocket instances
 export const relevantChunksSocket = new WebSocketClient(
     BASE_URL,
-    API_ENDPOINTS.RELEVANTCHUNKS
+    API_ENDPOINTS.RELEVANT_CHUNKS
 );
 export const updateVectorStoreSocket = new WebSocketClient(
     BASE_URL,
-    API_ENDPOINTS.UPDATEVECTORDB
+    API_ENDPOINTS.UPDATE_VECTOR_DB
 );

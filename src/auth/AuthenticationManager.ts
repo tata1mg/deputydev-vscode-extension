@@ -1,10 +1,14 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { v4 as uuidv4 } from 'uuid';
+import * as vscode from 'vscode';
 
 export class AuthenticationManager {
     authService = new AuthService();
     browserClient = new BrowserClient();
+    constructor(
+        private context: vscode.ExtensionContext, 
+    ) {}
 
     public async pollSession(supabaseSessionId: string) {
         const maxAttempts: number = 10;
@@ -16,6 +20,7 @@ export class AuthenticationManager {
                     if (response.data.encrypted_session_data) {
                         const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                         if (result === "success") {
+                            this.context.globalState.update("authToken", response.data.encrypted_session_data);
                             return response.data.status;
                         } else {
                             return 'NOT_AUTHENTICATED';
@@ -54,6 +59,7 @@ export class AuthenticationManager {
                 if (response.data.encrypted_session_data) {
                     const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                     if (result === "success") {
+                        this.context.globalState.update("authToken", response.data.encrypted_session_data);
                         return true;
                         // return false;
                     }

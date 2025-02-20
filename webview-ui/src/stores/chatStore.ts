@@ -14,7 +14,7 @@ import {
   showErrorMessage,
   showInfoMessage,
   writeFile,
-} from '../commandApi';
+} from '@/commandApi';
 
 import { persistStorage } from './lib';
 import pick from 'lodash/pick';
