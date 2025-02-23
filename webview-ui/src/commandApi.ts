@@ -127,3 +127,7 @@ export function initiateLogin() {
 export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand('webview-focus-state', { focused: isFocused });
 }
+
+export function sendWorkspaceRepoChange(data : {repoPath: string}) {
+  return callCommand('workspace-repo-change', data)
+}

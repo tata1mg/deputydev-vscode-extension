@@ -2,32 +2,50 @@ import {
   relevantChunksSocket,
   updateVectorStoreSocket,
 } from './websocketClient';
-import * as vscode from 'vscode';
+import { getAuthToken } from '../../utilities/contextManager';
 
-// const authToken = vscode.ExtensionContext.context.globalState.get(data.key);
+
 
 export interface RelevantChunksParams {
   repo_path: string;
-  auth_token: string;
   query: string;
 }
 
 export interface UpdateVectorStoreParams {
   repo_path: string;
-  auth_token: string;
+  files_updated? : string[];
 }
 
-export const fetchRelevantChunks = (params: RelevantChunksParams, authToken: string) => {
+const fetchAuthToken = (): string | null => {
+  const authToken = getAuthToken();
+  if (!authToken) {
+    console.error('[WebSocket] Missing auth token. Ensure user is logged in.');
+    return null;
+  }
+  return authToken;
+};
+
+
+/**
+ * Helper function to safely send a message via WebSocket
+ */
+
+
+export const fetchRelevantChunks = (params: RelevantChunksParams) => {
+  const authToken = fetchAuthToken();
+  
   relevantChunksSocket.send({
     ...params,
-    auth_token: authToken, // Attach auth token manually
+    auth_token: authToken,
   });
 };
 
-export const updateVectorStore = (params: UpdateVectorStoreParams, authToken: string) => {
+export const updateVectorStore = (params: UpdateVectorStoreParams) => {
+  const authToken = fetchAuthToken();
+  console.log('updateVectorStore is there: ', params);
   updateVectorStoreSocket.send({
     ...params,
-    auth_token: authToken, // Attach auth token manually
+    auth_token: authToken,
   });
 };
 
@@ -35,8 +53,6 @@ export const subscribeToRelevantChunks = (callback: (data: any) => void) => {
   relevantChunksSocket.addEventListener('response', callback);
 };
 
-export const subscribeToVectorStoreUpdates = (
-  callback: (data: any) => void
-) => {
+export const subscribeToVectorStoreUpdates = (callback: (data: any) => void) => {
   updateVectorStoreSocket.addEventListener('response', callback);
 };
