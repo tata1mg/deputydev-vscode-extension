@@ -9,14 +9,16 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
-import { FileWatcher } from './embedding/FileWatcher';
+import   ConfigManager   from './utilities/ConfigManager';
+import { setExtensionContext } from './utilities/contextManager';
+
 let outputChannel: vscode.LogOutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
-
+  setExtensionContext(context);
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
   outputChannel.info('Extension "DeputyDev" is now active!');
-
+  const configManager = ConfigManager;
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(context);
   authenticationManager.validateCurrentSession().then((status) => {
@@ -35,7 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
     sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
     sidebarProvider.setViewType("auth")
   })
-
+console.log("workspaceManager before");
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -61,18 +63,8 @@ export function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const workspaceManager = new WorkspaceManager(context);
-  const relevantPaths = workspaceManager.getWorkspaceRepos();
-  vscode.window.showInformationMessage(
-    // relevantPaths is an object map
-    `Relevant paths: ${Object.keys(relevantPaths).join(', ') || 'None'}`
 
-  );
-
-
-  const fileWatcher = new FileWatcher(outputChannel);
-  context.subscriptions.push(fileWatcher);
-
+  
 
 
   const chatService = new ChatManager(context, outputChannel);
@@ -95,12 +87,47 @@ export function activate(context: vscode.ExtensionContext) {
   //  * 5) Example: Register a code editor context command  (might remove it)
   registerCodeEditorMenuCommand(context, sidebarProvider);
 
+
+
+
+  // const fileWatcher = new FileWatcher(outputChannel);
+  // context.subscriptions.push(fileWatcher);
+
+
+
   //  6) Register "closeApp" command
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.closeApp', () => {
       vscode.commands.executeCommand('workbench.action.closeWindow');
     })
   );
+
+
+  console.log("workspaceManager before");
+  
+let workspaceManager: WorkspaceManager | null = null; // ✅ Explicitly typed
+
+function initializeWorkspaceManager() {
+  if (!workspaceManager && sidebarProvider) {
+    workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
+  }
+}
+
+initializeWorkspaceManager();
+
+console.log("workspaceManager after");
+
+// ✅ Ensure workspaceManager is not null before using it
+if (workspaceManager) {
+  // const relevantPaths = workspaceManager.getWorkspaceRepos();
+  console.log("Relevant Paths:", workspaceManager);
+} else {
+  console.error("workspaceManager is still null! SidebarProvider might not be initialized.");
+}
+
+
+  // const relevantPaths = workspaceManager.getWorkspaceRepos();
+  
 
   //   7) Register commands for Accept/Reject etc
 

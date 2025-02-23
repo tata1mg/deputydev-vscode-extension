@@ -2,6 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
 import { useChatStore  } from './stores/chatStore';
+import {useWorkspaceStore} from './stores/workspaceStore';
 import {
   ChatReferenceFileItem,
   ChatReferenceSnippetItem,
@@ -13,6 +14,16 @@ type Resolver = {
   reject: (error: unknown) => void;
   chunk?: (data: unknown) => void;
 };
+
+interface WorkspaceRepo {
+  repoPath: string;
+  repoName: string;
+}
+
+interface SetWorkspaceReposData {
+  repos: WorkspaceRepo[];
+  activeRepo: string | null;
+}
 
 type EventListener = (data: {
   id: string;
@@ -162,6 +173,28 @@ addCommandEventListener('new-chat', async () => {
 addCommandEventListener('set-view-type', ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
+
+
+addCommandEventListener('set-workspace-repos', ({ data }) => {
+  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+
+  // Log entire repos array
+  console.log('Received Repositories:', repos);
+
+  // Log each repo individually for better readability
+  repos.forEach((repo, index) => {
+    console.log(`Repo ${index + 1}:`, repo);
+  });
+
+  // Log activeRepo
+  console.log('Active Repo:', activeRepo);
+
+  useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
+});
+
+
+
+
 
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;

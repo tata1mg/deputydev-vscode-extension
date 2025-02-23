@@ -57,14 +57,14 @@ export class ChatManager {
     // }
     const folders = vscode.workspace.workspaceFolders;
     if (!folders) {
-      this.outputChannel.warn('No workspace folders found, skip starting aider-chat service.');
-      vscode.window.showWarningMessage('No workspace folders found, skip starting aider-chat service.');
+      // this.outputChannel.warn('No workspace folders found, skip starting aider-chat service.');
+      // vscode.window.showWarningMessage('No workspace folders found, skip starting aider-chat service.');
       return Promise.reject();
     }
 
     if (folders.length > 1) {
-      this.outputChannel.warn('Multiple workspace folders found, skip starting aider-chat service.');
-      vscode.window.showWarningMessage('Current only supports a single workspace folder.');
+      // this.outputChannel.warn('Multiple workspace folders found, skip starting aider-chat service.');
+      // vscode.window.showWarningMessage('Current only supports a single workspace folder.');
       return Promise.reject();
     }
     // Additional initialization logic can be added here.

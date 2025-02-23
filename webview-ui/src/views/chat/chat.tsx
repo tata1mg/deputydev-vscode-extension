@@ -6,6 +6,7 @@ import { CircleUserRound } from 'lucide-react';
 import { EnterIcon } from '../../components/ui/enterIcon';
 import Markdown from 'react-markdown';
 import { AnalyzedCodeItem, SearchedCodebase } from './AnalysisChips';
+import  RepoSelector  from './Seacher';
 
 export function ChatUI() {
   // Get chat messages and functions from the chat store.
@@ -108,6 +109,9 @@ export function ChatUI() {
       */}
       <div className="pt-2 border-gray-300">
         <div className="space-y-2 py-2">
+        
+        {/* the selector */}
+       <RepoSelector />
           {/* Analyzed Code Item */}
           <AnalyzedCodeItem
             fileName="chunk.py:Span"
