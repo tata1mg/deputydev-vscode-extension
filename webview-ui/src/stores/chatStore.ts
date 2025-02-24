@@ -118,6 +118,9 @@ export const useChatStore = create(
       isInSnippet: false,
       buffer: '',
       isLoading: false,
+      showSessionsBox: true,
+      showAllSessions: false,
+      selectedSession: 0,
     },
     (set, get) => ({
       async clearChat() {
@@ -132,6 +135,9 @@ export const useChatStore = create(
           buffer: '',
           currentChatRequest: undefined,
           isLoading: false,
+          showSessionsBox: true,
+          showAllSessions: false,
+          selectedSession: 0,
         });
       },
 
