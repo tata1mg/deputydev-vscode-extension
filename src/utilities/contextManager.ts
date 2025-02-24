@@ -7,6 +7,6 @@ export function setExtensionContext(context: vscode.ExtensionContext) {
 }
 
 export function getAuthToken(): string | undefined {
-  return  "replace with below or use own token";
+  return  "replace with below or use";
   return extensionContext?.globalState.get<string>('authToken');
 }
