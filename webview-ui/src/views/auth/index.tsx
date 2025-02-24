@@ -1,4 +1,5 @@
 import { initiateLogin } from "@/commandApi";
+import { BotMessageSquare } from 'lucide-react';
 
 export default function Auth() {
 
@@ -7,18 +8,20 @@ export default function Auth() {
     }
 
     return (
-        <div className="container flex h-screen w-screen flex-col items-center justify-center bg-black p-8">
-            <div className="mx-auto flex w-full flex-col justify-between border rounded-xl p-6 shadow-lg bg-white">
-                <h1 className="text-3xl font-bold mb-6 text-black">Login to DeputyDev Extension</h1>
-                <p className="text-lg text-black text-center">
-                    Please login by clicking the button below.
+        <div className="mt-36">
+            <div className="mx-auto flex w-full flex-col justify-between p-2 border rounded-xl bg-white">
+                <BotMessageSquare className="text-black w-20 h-20" />
+                <h1 className="text-2xl font-bold text-black ml-2">Welcome to DeputyDev</h1>
+                <span className="text-lg text-gray-400 ml-2">AI Powered Assistant</span>
+                <p className="text-sm text-gray-500 ml-2">
+                    Please login first...
                 </p>
-                <hr className="border-gray-300 mt-3" />
+                <hr className="border-black mt-2 mb-2" />
                 <button
                     onClick={handleLogin}
-                    className="px-4 py-2 bg-black text-white rounded hover:bg-gray-700 transition duration-200"
+                    className="text-lg text-center bg-black border rounded-xl p-2 text-white w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
                 >
-                    OPEN BROWSER FOR AUTHENTICATION
+                    LOGIN USING BROWSER
                 </button>
             </div>
         </div>

@@ -156,10 +156,6 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener('new-chat', async () => {
-  const isInChat = Boolean(useChatStore.getState().current);
-  if (isInChat) {
-    return;
-  }
 
   const currentViewType = useExtensionStore.getState().viewType;
   if (currentViewType !== 'chat') {
