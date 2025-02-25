@@ -95,6 +95,29 @@ export interface ChatSessionHistory {
   data: ChatMessage[];
 }
 
+export interface Session {
+  id: number;
+  summary: string;
+  age: string;
+}
+
+export interface SessionChatContent {
+  text: string;
+  language: string;
+  code: string;
+  filePath: string;
+  toolName: string;
+  toolUseId: string;
+  inputParamsJson: JSON;
+  resultJson: JSON;
+  user: string; // TODO: need to change this
+}
+
+export interface sessionChats {
+  type: string;
+  content: SessionChatContent;
+}
+
 // Regular expression to detect the start of a code snippet (e.g. "```language")
 const CODE_SNIPPET_START_REGEX = /```([a-zA-Z0-9_-]+)\s*/;
 
@@ -121,6 +144,8 @@ export const useChatStore = create(
       showSessionsBox: true,
       showAllSessions: false,
       selectedSession: 0,
+      sessions: [] as Session[],
+      sessionChats: [] as sessionChats[],
     },
     (set, get) => ({
       async clearChat() {

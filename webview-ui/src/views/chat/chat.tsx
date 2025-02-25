@@ -1,6 +1,6 @@
 // file: webview-ui/src/components/Chat.tsx
 import React, { useRef, useState, useEffect } from 'react';
-import { useChatStore, useChatSettingStore } from '../../stores/chatStore';
+import { useChatStore, useChatSettingStore, Session } from '../../stores/chatStore';
 import { CodeActionPanel } from './codeActionPanel';
 import { CircleUserRound } from 'lucide-react';
 import { EnterIcon } from '../../components/ui/enterIcon';
@@ -8,193 +8,11 @@ import Markdown from 'react-markdown';
 import { AnalyzedCodeItem, SearchedCodebase } from './AnalysisChips';
 import { ParserUI } from './parser';
 import { BotMessageSquare } from 'lucide-react';
-
-const data = {
-  sessions: [
-    { sessionId: 1, sessionTitle: 'How to implement this code?', time: "4m" },
-    { sessionId: 2, sessionTitle: 'Advanced TypeScript Concepts', time: "10m" },
-    { sessionId: 3, sessionTitle: 'React with TypeScript', time: "20m" },
-    { sessionId: 4, sessionTitle: 'TypeScript Best Practices', time: "30m" },
-    { sessionId: 5, sessionTitle: 'Building Applications with TypeScript', time: "45m" },
-    { sessionId: 6, sessionTitle: 'Introduction to TypeScript', time: "4m" },
-    { sessionId: 7, sessionTitle: 'Advanced TypeScript Concepts', time: "10m" },
-    { sessionId: 8, sessionTitle: 'React with TypeScript', time: "20m" },
-    { sessionId: 9, sessionTitle: 'TypeScript Best Practices', time: "30m" },
-    { sessionId: 10, sessionTitle: 'Building Applications with TypeScript', time: "45m" }
-  ]
-}
-
-const sessionChats = [
-  {
-    "type": "USER",
-    "content": {
-      "user": "How to implement this code?"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Let me analyze the query and the provided code context to create a plan for implementation."
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Based on the provided code snippet and the user's query, I can explain some aspects and provide some code examples. However, I'll need to gather more information to give a comprehensive answer. Let's start with what we derive from the given context:"
-    }
-  },
-  {
-    "type": "CODE_BLOCK",
-    "content": {
-      "language": "python",
-      "code": "@query_solver.route(\"/solve-user-query\")\nasync def solve_user_query(request: Request, **kwargs: Any):\n    response = await _request.respond()\n    response.content_type = \"text/event-stream\"\n    data = await QuerySolver().solve_query(payload=QuerySolverInput(**request.json))\n    async for data_block in data.raw_llm_response:\n        await response.send(\"data: \" + str(data_block.model_dump(mode=\"json\")) + \"\\r\\n\")\n    await response.eof()"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "\n\nThis code snippet demonstrates the use of Server-Sent Events (SSE) for streaming data from the server to the client. Here's what we can explain:\n\n1. SSE (Server-Sent Events) is a technology that allows a server to push data to a client over HTTP connection. It's particularly useful for real-time updates and streaming data.\n\n2. The function `solve_user_query` is an asynchronous route handler that implements SSE:\n   - It sets the content type to \"text/event-stream\", which is the MIME type for SSE.\n   - It calls a `QuerySolver().solve_query()` method to get data.\n   - It then iterates over the response data and sends each block to the client using the SSE format.\n\n3. The benefits of SSE for solving streaming include:\n   - Real-time data push from server to client\n   - Uses standard HTTP protocol\n   - Automatic reconnection in case of dropped connections\n   - Simpler to implement compared to WebSockets for unidirectional communication\n\nTo provide a more comprehensive answer and sample code for generic SSE implementation, I'll need to gather some additional information. Let me use the code searcher tool to find more relevant code snippets."
-    }
-  },
-  {
-    "type": "USER",
-    "content": {
-      "user": "How to implement this code?"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Let me analyze the query and the provided code context to create a plan for implementation."
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Based on the provided code snippet and the user's query, I can explain some aspects and provide some code examples. However, I'll need to gather more information to give a comprehensive answer. Let's start with what we derive from the given context:"
-    }
-  },
-  {
-    "type": "CODE_BLOCK",
-    "content": {
-      "language": "python",
-      "code": "@query_solver.route(\"/solve-user-query\")\nasync def solve_user_query(request: Request, **kwargs: Any):\n    response = await _request.respond()\n    response.content_type = \"text/event-stream\"\n    data = await QuerySolver().solve_query(payload=QuerySolverInput(**request.json))\n    async for data_block in data.raw_llm_response:\n        await response.send(\"data: \" + str(data_block.model_dump(mode=\"json\")) + \"\\r\\n\")\n    await response.eof()"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "\n\nThis code snippet demonstrates the use of Server-Sent Events (SSE) for streaming data from the server to the client. Here's what we can explain:\n\n1. SSE (Server-Sent Events) is a technology that allows a server to push data to a client over HTTP connection. It's particularly useful for real-time updates and streaming data.\n\n2. The function `solve_user_query` is an asynchronous route handler that implements SSE:\n   - It sets the content type to \"text/event-stream\", which is the MIME type for SSE.\n   - It calls a `QuerySolver().solve_query()` method to get data.\n   - It then iterates over the response data and sends each block to the client using the SSE format.\n\n3. The benefits of SSE for solving streaming include:\n   - Real-time data push from server to client\n   - Uses standard HTTP protocol\n   - Automatic reconnection in case of dropped connections\n   - Simpler to implement compared to WebSockets for unidirectional communication\n\nTo provide a more comprehensive answer and sample code for generic SSE implementation, I'll need to gather some additional information. Let me use the code searcher tool to find more relevant code snippets."
-    }
-  },
-  {
-    "type": "USER",
-    "content": {
-      "user": "How to implement this code?"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Let me analyze the query and the provided code context to create a plan for implementation."
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Based on the provided code snippet and the user's query, I can explain some aspects and provide some code examples. However, I'll need to gather more information to give a comprehensive answer. Let's start with what we derive from the given context:"
-    }
-  },
-  {
-    "type": "CODE_BLOCK",
-    "content": {
-      "language": "python",
-      "code": "@query_solver.route(\"/solve-user-query\")\nasync def solve_user_query(request: Request, **kwargs: Any):\n    response = await _request.respond()\n    response.content_type = \"text/event-stream\"\n    data = await QuerySolver().solve_query(payload=QuerySolverInput(**request.json))\n    async for data_block in data.raw_llm_response:\n        await response.send(\"data: \" + str(data_block.model_dump(mode=\"json\")) + \"\\r\\n\")\n    await response.eof()"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "\n\nThis code snippet demonstrates the use of Server-Sent Events (SSE) for streaming data from the server to the client. Here's what we can explain:\n\n1. SSE (Server-Sent Events) is a technology that allows a server to push data to a client over HTTP connection. It's particularly useful for real-time updates and streaming data.\n\n2. The function `solve_user_query` is an asynchronous route handler that implements SSE:\n   - It sets the content type to \"text/event-stream\", which is the MIME type for SSE.\n   - It calls a `QuerySolver().solve_query()` method to get data.\n   - It then iterates over the response data and sends each block to the client using the SSE format.\n\n3. The benefits of SSE for solving streaming include:\n   - Real-time data push from server to client\n   - Uses standard HTTP protocol\n   - Automatic reconnection in case of dropped connections\n   - Simpler to implement compared to WebSockets for unidirectional communication\n\nTo provide a more comprehensive answer and sample code for generic SSE implementation, I'll need to gather some additional information. Let me use the code searcher tool to find more relevant code snippets."
-    }
-  },
-  {
-    "type": "USER",
-    "content": {
-      "user": "How to implement this code?"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Let me analyze the query and the provided code context to create a plan for implementation."
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Based on the provided code snippet and the user's query, I can explain some aspects and provide some code examples. However, I'll need to gather more information to give a comprehensive answer. Let's start with what we derive from the given context:"
-    }
-  },
-  {
-    "type": "CODE_BLOCK",
-    "content": {
-      "language": "python",
-      "filpath": "webview-ui/src/views/chat/chat.tsx",
-      "code": "@query_solver.route(\"/solve-user-query\")\nasync def solve_user_query(request: Request, **kwargs: Any):\n    response = await _request.respond()\n    response.content_type = \"text/event-stream\"\n    data = await QuerySolver().solve_query(payload=QuerySolverInput(**request.json))\n    async for data_block in data.raw_llm_response:\n        await response.send(\"data: \" + str(data_block.model_dump(mode=\"json\")) + \"\\r\\n\")\n    await response.eof()"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "\n\nThis code snippet demonstrates the use of Server-Sent Events (SSE) for streaming data from the server to the client. Here's what we can explain:\n\n1. SSE (Server-Sent Events) is a technology that allows a server to push data to a client over HTTP connection. It's particularly useful for real-time updates and streaming data.\n\n2. The function `solve_user_query` is an asynchronous route handler that implements SSE:\n   - It sets the content type to \"text/event-stream\", which is the MIME type for SSE.\n   - It calls a `QuerySolver().solve_query()` method to get data.\n   - It then iterates over the response data and sends each block to the client using the SSE format.\n\n3. The benefits of SSE for solving streaming include:\n   - Real-time data push from server to client\n   - Uses standard HTTP protocol\n   - Automatic reconnection in case of dropped connections\n   - Simpler to implement compared to WebSockets for unidirectional communication\n\nTo provide a more comprehensive answer and sample code for generic SSE implementation, I'll need to gather some additional information. Let me use the code searcher tool to find more relevant code snippets."
-    }
-  },
-  {
-    "type": "USER",
-    "content": {
-      "user": "How to implement this code?"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Let me analyze the query and the provided code context to create a plan for implementation."
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "Based on the provided code snippet and the user's query, I can explain some aspects and provide some code examples. However, I'll need to gather more information to give a comprehensive answer. Let's start with what we derive from the given context:"
-    }
-  },
-  {
-    "type": "CODE_BLOCK",
-    "content": {
-      "language": "python",
-      "code": "@query_solver.route(\"/solve-user-query\")\nasync def solve_user_query(request: Request, **kwargs: Any):\n    response = await _request.respond()\n    response.content_type = \"text/event-stream\"\n    data = await QuerySolver().solve_query(payload=QuerySolverInput(**request.json))\n    async for data_block in data.raw_llm_response:\n        await response.send(\"data: \" + str(data_block.model_dump(mode=\"json\")) + \"\\r\\n\")\n    await response.eof()"
-    }
-  },
-  {
-    "type": "TEXT",
-    "content": {
-      "text": "\n\nThis code snippet demonstrates the use of Server-Sent Events (SSE) for streaming data from the server to the client. Here's what we can explain:\n\n1. SSE (Server-Sent Events) is a technology that allows a server to push data to a client over HTTP connection. It's particularly useful for real-time updates and streaming data.\n\n2. The function `solve_user_query` is an asynchronous route handler that implements SSE:\n   - It sets the content type to \"text/event-stream\", which is the MIME type for SSE.\n   - It calls a `QuerySolver().solve_query()` method to get data.\n   - It then iterates over the response data and sends each block to the client using the SSE format.\n\n3. The benefits of SSE for solving streaming include:\n   - Real-time data push from server to client\n   - Uses standard HTTP protocol\n   - Automatic reconnection in case of dropped connections\n   - Simpler to implement compared to WebSockets for unidirectional communication\n\nTo provide a more comprehensive answer and sample code for generic SSE implementation, I'll need to gather some additional information. Let me use the code searcher tool to find more relevant code snippets."
-    }
-  },
-  {
-    "type": "TOOL_USE_REQUEST",
-    "content": {
-      "tool_name": "xyz",
-      "tool_use_id": "sdckjsndc",
-      "input_params_json": "{}",
-      "result_json": "{}"
-    }
-  },
-];
+import { getSessionChats, getSessions } from '@/commandApi';
 
 export function ChatUI() {
   // Get chat messages and functions from the chat store.
-  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession } = useChatStore();
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
   // Get the current chat type and its setter from the chat setting store.
   const { chatType, setChatType } = useChatSettingStore();
   const [visibleSessions, setVisibleSessions] = useState(3); // initial sessions
@@ -232,6 +50,14 @@ export function ChatUI() {
     }
   };
 
+  useEffect(() => {
+    getSessions()
+  }, [])
+
+
+  useEffect(() => {
+    getSessionChats()
+  }, [])
 
   // Scroll to bottom when new messages arrive.
   useEffect(() => {
@@ -261,29 +87,29 @@ export function ChatUI() {
             </div>
             <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
             <div className="session-box p-4 h-36 overflow-y-auto">
-              {showAllSessions ? data.sessions.map(session => (
+              {showAllSessions ? sessions.map(session => (
                 <button
-                  key={session.sessionId}
-                  onClick={() => useChatStore.setState({ selectedSession: session.sessionId })}
+                  key={session.id}
+                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
                   className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
                 >
-                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.sessionTitle}</div>
-                  <span className="text-sm text-gray-400">{session.time}</span>
+                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                  <span className="text-sm text-gray-400">{session.age}</span>
                 </button>
-              )) : data.sessions.slice(0, visibleSessions).map(session => (
+              )) : sessions.slice(0, visibleSessions).map(session => (
                 <div className="session-box">
                   <button
-                    key={session.sessionId}
-                    onClick={() => useChatStore.setState({ selectedSession: session.sessionId })}
+                    key={session.id}
+                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
                     className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
                   >
-                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.sessionTitle}</div>
-                    <span className="text-sm text-gray-400">{session.time}</span>
+                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                    <span className="text-sm text-gray-400">{session.age}</span>
                   </button>
                 </div>
               ))}
             </div>
-            {!showAllSessions && visibleSessions < data.sessions.length && (
+            {!showAllSessions && visibleSessions < sessions.length && (
               <button onClick={handleShowMore} className="text-white mt-2 px-4">
                 Show More...
               </button>

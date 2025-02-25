@@ -10,6 +10,7 @@ import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import { FileWatcher } from './embedding/FileWatcher';
+import { HistoryService } from './services/history/HistoryService';
 let outputChannel: vscode.LogOutputChannel;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -76,6 +77,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
   const chatService = new ChatManager(context, outputChannel);
+  const historyService = new HistoryService();
 
 
   // //  * 3) Register Custom TextDocumentContentProvider
@@ -87,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
