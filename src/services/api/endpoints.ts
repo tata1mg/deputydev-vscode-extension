@@ -5,5 +5,7 @@ export const API_ENDPOINTS = {
     STORE_AUTH_TOKEN: "/v1/auth/store_token",
     LOAD_AUTH_TOKEN: "/v1/auth/load_token",
     RELEVANT_CHUNKS: "/v1/relevant_chunks",
-    UPDATE_VECTOR_DB: "/v1/update_chunks"
+    UPDATE_VECTOR_DB: "/v1/update_chunks",
+    PAST_SESSIONS: "/end_user/history/v1/sessions",
+    PAST_CHATS: "/end_user/history/v1/chats",
 } as const;

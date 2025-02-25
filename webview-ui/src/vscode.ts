@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
-import { useChatStore  } from './stores/chatStore';
+import { Session, sessionChats, useChatStore  } from './stores/chatStore';
 import {
   ChatReferenceFileItem,
   ChatReferenceSnippetItem,
@@ -159,6 +159,13 @@ addCommandEventListener('set-view-type', ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
+addCommandEventListener('sessions-history', ({ data }) => {
+  useChatStore.setState({ sessions: data as Session[] });
+});
+
+addCommandEventListener('session-chats-history', ({ data }) => {
+  useChatStore.setState({ sessionChats: data as sessionChats[] });
+});
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });
