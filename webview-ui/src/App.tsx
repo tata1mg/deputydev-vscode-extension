@@ -17,7 +17,6 @@ function App() {
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       const response = event.data || {};
-      console.log("message", response)
 
       if (response === "AUTHENTICATED") {
         extensionState.setViewType("chat")
