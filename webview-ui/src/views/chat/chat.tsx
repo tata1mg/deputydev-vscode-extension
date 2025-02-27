@@ -2,13 +2,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useChatStore, useChatSettingStore, Session } from '../../stores/chatStore';
 import { CodeActionPanel } from './codeActionPanel';
-import { CircleUserRound } from 'lucide-react';
+import { CircleUserRound, Trash2 } from 'lucide-react';
 import { EnterIcon } from '../../components/ui/enterIcon';
 import Markdown from 'react-markdown';
 import { AnalyzedCodeItem, SearchedCodebase } from './AnalysisChips';
 import { ParserUI } from './parser';
 import { BotMessageSquare } from 'lucide-react';
-import { getSessionChats, getSessions } from '@/commandApi';
+import { deleteSession, getSessionChats, getSessions } from '@/commandApi';
 
 export function ChatUI() {
   // Get chat messages and functions from the chat store.
@@ -50,6 +50,13 @@ export function ChatUI() {
     }
   };
 
+  const handleDeleteSession = async (sessionId: number) => {
+    useChatStore.setState({
+      sessions: useChatStore.getState().sessions.filter((session) => session.id !== sessionId)
+    })
+    await deleteSession(sessionId)
+    console.log(`Delete session ${sessionId}`);
+  }
   useEffect(() => {
     getSessions()
   }, [])
@@ -86,26 +93,58 @@ export function ChatUI() {
               <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
             </div>
             <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
-            <div className="session-box p-4 h-36 overflow-y-auto">
+            <div className="session-box p-4 h-36 overflow-y-auto w-full">
               {showAllSessions ? sessions.map(session => (
-                <button
-                  key={session.id}
-                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
-                  className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
-                >
-                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-                  <span className="text-sm text-gray-400">{session.age}</span>
-                </button>
-              )) : sessions.slice(0, visibleSessions).map(session => (
-                <div className="session-box">
-                  <button
+                <div className='flex gap-2'>
+                  <div
                     key={session.id}
                     onClick={() => useChatStore.setState({ selectedSession: session.id })}
-                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
                   >
                     <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-                    <span className="text-sm text-gray-400">{session.age}</span>
-                  </button>
+
+                    {/* Age */}
+                    <span className="text-sm text-gray-400">
+                      {session.age}
+                    </span>
+
+                  </div>
+
+                  {/* Trash Icon */}
+                  <div>
+                    <Trash2
+                      className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                      onClick={(e) => {
+                        handleDeleteSession(session.id);
+                      }}
+                    />
+                  </div>
+                </div>
+              )) : sessions.slice(0, visibleSessions).map(session => (
+                <div className='flex gap-2'>
+                  <div
+                    key={session.id}
+                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
+                  >
+                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+
+                    {/* Age */}
+                    <span className="text-sm text-gray-400">
+                      {session.age}
+                    </span>
+
+                  </div>
+
+                  {/* Trash Icon */}
+                  <div>
+                    <Trash2
+                      className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                      onClick={(e) => {
+                        handleDeleteSession(session.id);
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

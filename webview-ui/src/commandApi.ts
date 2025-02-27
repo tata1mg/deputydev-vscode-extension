@@ -135,3 +135,7 @@ export function getSessions() {
 export function getSessionChats() {
   return callCommand('get-session-chats', {});
 }
+
+export function deleteSession(sessionId: number) {
+  return callCommand('delete-session', {sessionId})
+}
