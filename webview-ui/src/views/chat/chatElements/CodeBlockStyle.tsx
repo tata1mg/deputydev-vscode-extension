@@ -2,9 +2,11 @@
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+
 export type ChatReferenceSnippetItem = {
   content: string;
-  language: string; 
+  language?: string;
+  file_path?: string;
 };
 
 export function SnippetReference({ snippet }: { snippet: ChatReferenceSnippetItem }) {

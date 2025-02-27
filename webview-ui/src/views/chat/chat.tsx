@@ -38,6 +38,7 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
+    useChatStore.setState({ showSessionsBox: false })
     if (!userInput.trim()) return;
     let message = userInput.trim();
     setUserInput('');
@@ -78,13 +79,15 @@ export function ChatUI() {
     <div className='flex flex-col justify-between h-full relative'>
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
-        {showSessionsBox && selectedSession === 0 && (
+        {showSessionsBox && selectedSession === 0   && (
           <div>
             <div className='mb-24 mt-10'>
               <BotMessageSquare className='px-4 h-20 w-20 text-white' />
               <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
             </div>
+            {sessions.length > 0   && (
             <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
+            )}
             <div className="session-box p-4 h-36 overflow-y-auto">
               {showAllSessions ? sessions.map(session => (
                 <button
@@ -121,7 +124,7 @@ export function ChatUI() {
         )} */}
 
 
-        
+
         {/* Invisible div just to instant scroll to bottom for session chats */}
         <div ref={chatContainerEndRef} />
 
