@@ -1,6 +1,3 @@
-// here we just use style code.
-// import './codeTheme.scss';
-import { CodeActionPanel } from './codeActionPanel';
 import { ChatUI } from './chat';
 export function Chat() {
   return (

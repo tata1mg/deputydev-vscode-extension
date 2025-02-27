@@ -1,4 +1,4 @@
-import { useWorkspaceStore } from '../../stores/workspaceStore';
+import { useWorkspaceStore } from '../../../stores/workspaceStore';
 import { sendWorkspaceRepoChange } from '@/commandApi';
 
 const RepoSelector = () => {
@@ -16,9 +16,9 @@ const RepoSelector = () => {
   };
 
   return (
-    <div className="inline-flex items-center gap-2 px-2 py-2 border border-neutral-600 rounded w-full text-white text-sm cursor-pointer">
+    <div className="inline-flex items-center gap-1 px-1 py-1 border rounded w-full text-white text-sm  cursor-pointer hover:bg-neutral-700">
       <select
-        className="bg-transparent text-white w-full cursor-pointer outline-none"
+        className="bg-transparent text-white w-full cursor-pointer outline-none text-xs"
         value={activeRepo || ''}
         onChange={handleChange}
       >
@@ -26,7 +26,7 @@ const RepoSelector = () => {
           <option value="" disabled>No repositories available</option>
         ) : (
           workspaceRepos.map(repo => (
-            <option key={repo.repoPath} value={repo.repoPath}>
+            <option  key={repo.repoPath} value={repo.repoPath}>
               {repo.repoName}
             </option>
           ))

@@ -3,11 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
 import { useChatStore  } from './stores/chatStore';
 import {useWorkspaceStore} from './stores/workspaceStore';
-import {
-  ChatReferenceFileItem,
-  ChatReferenceSnippetItem,
-  DiffViewChange,
-} from './types';
+import { useRepoSelectorStore } from './stores/repoSelectorStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -169,6 +165,12 @@ addCommandEventListener('new-chat', async () => {
 addCommandEventListener('set-view-type', ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
+
+
+addCommandEventListener('repo-selector-state', ({ data }) => {
+  useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
+});
+
 
 
 addCommandEventListener('set-workspace-repos', ({ data }) => {

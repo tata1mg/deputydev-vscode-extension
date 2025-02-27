@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import ignore from 'ignore';
 
 import ConfigManager from '../utilities/ConfigManager'; // Your singleton config manager
-import { updateVectorStore, subscribeToVectorStoreUpdates , UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
 
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;
@@ -139,7 +139,6 @@ export class WorkspaceFileWatcher {
 
   private scheduleFileUpdate(uri: vscode.Uri): void {
     if (this.shouldIgnore(uri)) {
-      this.outputChannel.info(`Ignored changed file: ${uri.fsPath}`);
       return;
     }
 
@@ -151,6 +150,9 @@ export class WorkspaceFileWatcher {
     }, 500);
   }
 
+
+
+
   /**
    * Processes all collected file changes after a delay.
    */
@@ -158,22 +160,23 @@ export class WorkspaceFileWatcher {
     if (this.pendingFileChanges.size > 0) {
       const fileListArray = Array.from(this.pendingFileChanges);
       const fileList = fileListArray.join(', '); // Convert to string
-
       // Construct request payload
       const params: UpdateVectorStoreParams = {
         repo_path: this.activeRepoPath, // Send active repository path
-        files_updated: fileListArray, // Send updated file list
+        chunkable_files: fileListArray,  // Send updated file list
       };
       this.outputChannel.info(`Sending update to WebSocket: ${JSON.stringify(params)}`);
-      // Send update to WebSocket
+      
+      // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
       updateVectorStore(params);
-
+  
       this.outputChannel.info('done with websockets ..');
-
+  
       vscode.window.showInformationMessage(`Files updated: ${fileList}`);
       this.pendingFileChanges.clear();
     }
   }
+  
 
 
   /**

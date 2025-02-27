@@ -13,7 +13,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private pendingMessages: any[] = []
   private _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
-
+  private _onWebviewFocused = new vscode.EventEmitter<void>();
+  public readonly onWebviewFocused = this._onWebviewFocused.event;
+  
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
@@ -79,6 +81,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'api-chat-setting':
           promise = this.chatService.apiChatSetting(data);
           break;
+        
 
 
         // File Operations
@@ -147,9 +150,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // Extention's focus state
         case "webview-focus-state":
           if (data.focused) {
-              vscode.window.showInformationMessage("Webview is focused yayayay!");
+            this._onWebviewFocused.fire();
           }
           break;
+        
 
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);

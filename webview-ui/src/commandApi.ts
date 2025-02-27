@@ -1,6 +1,5 @@
 // // from aider composer, will need same/similar commands in our extension
 
-import { ChatReferenceFileItem } from './types';
 import { callCommand } from './vscode';
 
 // export function webviewReady() {
