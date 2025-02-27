@@ -13,7 +13,7 @@ export type ChatReferenceSnippetItem = {
   name: string;
   content: string;
   language?: string;
-  path: string;
+  file_path?: string;
 };
 
 export type ChatReferenceItem =
