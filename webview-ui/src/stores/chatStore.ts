@@ -192,6 +192,9 @@ export const useChatStore = create(
             current: undefined,
             currentChatRequest: undefined,
             isLoading: false,
+            showSessionsBox: true,
+            showAllSessions: false,
+            selectedSession: 0,
           });
         },
 
