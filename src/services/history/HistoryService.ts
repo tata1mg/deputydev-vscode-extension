@@ -23,4 +23,16 @@ export class HistoryService {
             throw error; // Throw the error to be handled by the caller
         }
     }
+
+    public async deleteSession(sessionId: number): Promise<any> {
+        try {
+            const response = await api.put(API_ENDPOINTS.DELETE_SESSION, {
+                sessionId : sessionId
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error while deleting session:', error);
+            throw error; // Throw the error to be handled by the caller
+        }
+    }
 }

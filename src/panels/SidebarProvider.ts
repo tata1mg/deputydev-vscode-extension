@@ -139,6 +139,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'get-session-chats':
           promise = this.getSessionChats();
           break;
+        case 'delete-session':
+          promise = this.deleteSession(data);
+          break;
 
         // Extention's focus state
         case "webview-focus-state":
@@ -337,6 +340,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  async deleteSession(data: { sessionId: number }) {
+    try {
+      await this.historyService.deleteSession(data.sessionId)
+    } catch (error) {
+      console.error('Error while deleting session:', error);
+    }
+  }
 
   setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth') { //add auth view
     this.sendMessageToSidebar({
