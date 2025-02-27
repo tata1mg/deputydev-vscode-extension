@@ -71,7 +71,7 @@ export function ChatUI() {
   useEffect(() => {
     // Scroll to the bottom when a new session is selected
     if (chatContainerEndRef.current) {
-      chatContainerEndRef.current.scrollIntoView({ behavior: 'instant' });
+      chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [selectedSession]);
 

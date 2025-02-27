@@ -15,6 +15,7 @@ public async querySolver(payload: unknown): Promise<AsyncIterableIterator<{ cont
             'Content-Type': 'application/json',
             'X-REQUEST-ID': uuidv4(),
             'Accept': 'text/event-stream',
+            'X-Session-ID': 1,
           },
           data: payload,
           responseType: 'stream',

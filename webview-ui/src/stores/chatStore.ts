@@ -115,6 +115,7 @@ export interface SessionChatContent {
 
 export interface sessionChats {
   type: string;
+  actor: string;
   content: SessionChatContent;
 }
 
@@ -195,7 +196,7 @@ export const useChatStore = create(
 
         // Prepare the payload for the API.
         const payload = {
-          session_id: get().sessionId,
+          // session_id: get().sessionId,
           message_id: userMessageId,
           query: message,
           relevant_chunks: [] as string[],

@@ -4,11 +4,10 @@ import * as path from 'node:path';
 import * as readline from 'node:readline';
 import * as vscode from 'vscode';
 import { fetchRelevantChunks, updateVectorStore } from "../services/websockets/websocketHandlers";
-import { QuerySolverService } from "../services/chat/ChatService"; 
+import { QuerySolverService } from "../services/chat/ChatService";
 
 // Define the expected payload interface for an API chat request.
 export interface ChatApiPayload {
-  session_id: string;
   message_id: string;
   query: string;
   relevant_chunks: string[];
@@ -93,9 +92,9 @@ export class ChatManager {
     chunkCallback: (data: { name?: string; data: unknown }) => void,
   ) {
     try {
-      this.outputChannel.info(
-        `Starting chat session. Session ID: ${payload.session_id}, Message ID: ${payload.message_id}`
-      );
+      // this.outputChannel.info(
+      //   `Starting chat session. Session ID: ${payload.session_id}, Message ID: ${payload.message_id}`
+      // );
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       for await (const event of querySolverIterator) {
         chunkCallback({ name: 'data', data: { chunk: event.content } });
