@@ -5,7 +5,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import ConfigManager from '../utilities/ConfigManager';
 import { WorkspaceFileWatcher } from './FileWatcher';
-import { updateVectorStore, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { updateVectorStoreWithResponse, updateVectorStore, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+
+
+
+
+
 
 export class WorkspaceManager {
   private workspaceRepos: Map<string, string> = new Map();
@@ -16,6 +21,9 @@ export class WorkspaceManager {
   private outputChannel: vscode.LogOutputChannel;
   private fileWatcher?: WorkspaceFileWatcher;
   private readonly activeRepoKey = 'activeRepo';
+
+
+
 
   constructor(
     context: vscode.ExtensionContext,
@@ -96,7 +104,7 @@ export class WorkspaceManager {
       this.sendWebSocketUpdate();
     }
 
-    this.outputChannel.info('Done with WebSockets.');
+    // this.outputChannel.info('Done with WebSockets.');
 
     // After updating active repo, inform the sidebar.
     this.sendReposToSidebar();
@@ -181,12 +189,25 @@ export class WorkspaceManager {
   /**
    * Sends WebSocket request with the active repo path.
    */
-  private sendWebSocketUpdate(): void {
+  private async sendWebSocketUpdate(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
-    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
-    updateVectorStore(params);
+    this.sidebarProvider.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'repo-selector-state',
+      data: true
+    });
+    this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
+    await updateVectorStoreWithResponse(params).then((response) => {
+      this.sidebarProvider.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'repo-selector-state',
+        data: false
+      });
+      this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
+    }
+    );
   }
 
   /**

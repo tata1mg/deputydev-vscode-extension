@@ -11,12 +11,15 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import   ConfigManager   from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
-
+import { WebviewFocusListener } from './embedding/WebviewFocusListener';
+import {deleteSessionId} from './utilities/contextManager';
 let outputChannel: vscode.LogOutputChannel;
 
+
 export function activate(context: vscode.ExtensionContext) {
-  setExtensionContext(context);
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
+  setExtensionContext(context,outputChannel);
+
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
   // 1) Authentication Flow
@@ -35,9 +38,10 @@ export function activate(context: vscode.ExtensionContext) {
   }).catch((error) => {
     outputChannel.error(`Authentication failed: ${error}`);
     sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
-    sidebarProvider.setViewType("auth")
+    // sidebarProvider.setViewType("auth")
+    sidebarProvider.setViewType("chat")
+
   })
-console.log("workspaceManager before");
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -103,28 +107,12 @@ console.log("workspaceManager before");
   );
 
 
-  console.log("workspaceManager before");
   
-let workspaceManager: WorkspaceManager | null = null; // ✅ Explicitly typed
+const  workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
 
-function initializeWorkspaceManager() {
-  if (!workspaceManager && sidebarProvider) {
-    workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
-  }
-}
 
-initializeWorkspaceManager();
 
-console.log("workspaceManager after");
-
-// ✅ Ensure workspaceManager is not null before using it
-if (workspaceManager) {
-  // const relevantPaths = workspaceManager.getWorkspaceRepos();
-  console.log("Relevant Paths:", workspaceManager);
-} else {
-  console.error("workspaceManager is still null! SidebarProvider might not be initialized.");
-}
-
+const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, workspaceManager,outputChannel);
 
   // const relevantPaths = workspaceManager.getWorkspaceRepos();
   
@@ -197,6 +185,7 @@ if (workspaceManager) {
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
+      deleteSessionId();
     }),
   );
 

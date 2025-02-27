@@ -1,104 +1,115 @@
-import { WebSocket, RawData } from 'ws'; // ✅ Use `ws` for Node.js WebSocket support
+import { WebSocket, RawData } from 'ws';
 
-const BASE_URL = "ws://localhost:9000";
-import { API_ENDPOINTS } from "../api/endpoints";
+const BASE_URL = "ws://localhost:8000";
 
-//  WebSocket Client: Singleton class for persistent WebSocket connections.
-class WebSocketClient {
-    private socket!: WebSocket;
+export class WebSocketClient {
+    private socket: WebSocket;
     private url: string;
-    private eventListeners: { [key: string]: ((data: any) => void)[] } = {};
-    private reconnectAttempts: number = 0;
-    private maxReconnectAttempts: number = 10;
-    private reconnectDelay: number = 5000; // Start with 5 sec delay
+    private responsePromise: Promise<any>;
+    private resolveResponse!: (value: any) => void;
+    private rejectResponse!: (reason: any) => void;
+    private timeout: NodeJS.Timeout | null = null;
+    private timeoutDuration: number = 30000; // 30 seconds timeout
 
     constructor(baseUrl: string, endpoint: string) {
         this.url = `${baseUrl}${endpoint}`;
-        this.connect();
+        this.socket = new WebSocket(this.url);
+        
+        // Create a promise that will be resolved when we get a response
+        this.responsePromise = new Promise((resolve, reject) => {
+            this.resolveResponse = resolve;
+            this.rejectResponse = reject;
+        });
+
+        this.setupEventListeners();
+        this.setupTimeout();
     }
 
-    private connect() {
-        console.log(`🔄 Connecting to WebSocket: ${this.url}`);
-
-        this.socket = new WebSocket(this.url);
-
+    private setupEventListeners() {
         this.socket.on('open', () => {
             console.log(`✅ Connected to WebSocket: ${this.url}`);
-            this.reconnectAttempts = 0; // Reset attempts after successful connection
         });
 
-        this.socket.on('message', (event) => this.handleMessage(event));
-
-        this.socket.on('error', (error) =>
-            console.error("❌ WebSocket Error:", error)
-        );
+        this.socket.on('message', (event: RawData) => {
+            try {
+              const messageData = JSON.parse(event.toString());
+              console.log("Received WebSocket message:", messageData);
+              // Check if the response is an array (relevant chunks)
+              if (Array.isArray(messageData)) {
+                this.resolveResponse(messageData);
+                this.close();
+              } 
+              // Check if the response is an object (update vector store)
+              else if (messageData.status === 'Completed')  
+                { 
+                this.resolveResponse(messageData.status);
+                this.close();
+              } else {
+                console.warn("Received unknown message format:", messageData);
+              }
+            } catch (error) {
+              console.error("❌ Error parsing WebSocket message:", error);
+              this.rejectResponse(error);
+              this.close();
+            }
+          });
+          
 
         this.socket.on('close', (code, reason) => {
-            console.warn(`⚠️ WebSocket disconnected from ${this.url} (Code: ${code}, Reason: ${reason})`);
-            this.reconnect();
+            console.log(`⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`);
+            // Only reject if we haven't resolved yet
+            if (this.timeout !== null) {
+                this.rejectResponse(new Error(`WebSocket closed unexpectedly: ${reason}`));
+            }
         });
     }
 
-    private reconnect() {
-        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error("❌ Max reconnect attempts reached. Stopping reconnection.");
-            return;
-        }
-
-        const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000); // Exponential backoff (max 30 sec)
-        console.warn(`⚠️ Attempting reconnect in ${delay / 1000}s...`);
-
-        setTimeout(() => {
-            this.reconnectAttempts++;
-            this.connect();
-            this.reattachEventListeners();
-        }, delay);
+    private setupTimeout() {
+        this.timeout = setTimeout(() => {
+            this.rejectResponse(new Error("WebSocket request timed out"));
+            this.close();
+        }, this.timeoutDuration);
     }
 
-    send(data: object) {
-        if (this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(JSON.stringify(data));
-        } else {
-            console.warn("⚠️ WebSocket is not open yet. Cannot send message.");
-        }
-    }
-
-    private handleMessage(event: RawData) {
-        const messageData = JSON.parse(event.toString());
-        if (this.eventListeners[messageData.type]) {
-            this.eventListeners[messageData.type].forEach((callback) =>
-                callback(messageData.payload)
-            );
-        }
-    }
-
-    addEventListener(eventType: string, callback: (data: any) => void) {
-        if (!this.eventListeners[eventType]) {
-            this.eventListeners[eventType] = [];
-        }
-        this.eventListeners[eventType].push(callback);
-    }
-
-    removeEventListener(eventType: string, callback: (data: any) => void) {
-        this.eventListeners[eventType] =
-            this.eventListeners[eventType]?.filter((cb) => cb !== callback) || [];
-    }
-
-    private reattachEventListeners() {
-        Object.keys(this.eventListeners).forEach((eventType) => {
-            this.eventListeners[eventType].forEach((callback) => {
-                this.addEventListener(eventType, callback);
+    async send(data: object): Promise<any> {
+        // Wait for the socket to be ready
+        if (this.socket.readyState !== WebSocket.OPEN) {
+            await new Promise<void>((resolve, reject) => {
+                const checkReadyState = () => {
+                    if (this.socket.readyState === WebSocket.OPEN) {
+                        resolve();
+                    } else if (this.socket.readyState === WebSocket.CLOSED || this.socket.readyState === WebSocket.CLOSING) {
+                        reject(new Error("WebSocket closed before sending message"));
+                    } else {
+                        setTimeout(checkReadyState, 100);
+                    }
+                };
+                
+                this.socket.on('open', () => resolve());
+                this.socket.on('error', (error) => reject(error));
+                
+                // Check immediately in case it's already open
+                checkReadyState();
             });
-        });
+        }
+
+        // Send the data
+        this.socket.send(JSON.stringify(data));
+        
+        // Return the promise that will resolve when we get a response
+        return this.responsePromise;
+    }
+
+    close() {
+        if (this.timeout) {
+            clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        
+        if (this.socket.readyState !== WebSocket.CLOSED && this.socket.readyState !== WebSocket.CLOSING) {
+            this.socket.close();
+        }
     }
 }
 
-// ✅ Use `ws`-based WebSocket instances
-export const relevantChunksSocket = new WebSocketClient(
-    BASE_URL,
-    API_ENDPOINTS.RELEVANT_CHUNKS
-);
-export const updateVectorStoreSocket = new WebSocketClient(
-    BASE_URL,
-    API_ENDPOINTS.UPDATE_VECTOR_DB
-);
+export { BASE_URL };

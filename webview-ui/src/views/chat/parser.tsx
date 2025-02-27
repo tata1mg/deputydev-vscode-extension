@@ -1,6 +1,6 @@
 import React from 'react';
 import { CircleUserRound } from 'lucide-react';
-import { CodeBlock } from './codeBlock';
+// import { CodeBlock } from './codeBlock';
 
 interface ChatContent {
     type: string;
@@ -33,12 +33,12 @@ export function ParserUI({ sessionChats }: ParserUIProps) {
                         return <span key={index} className='text-white mb-2 p-2'>{chat.content.text}</span>;
                     case "TEXT_DELTA":
                         return <span key={index} className='text-white mb-2 p-2'>{chat.content.text}</span>;
-                    case 'CODE_BLOCK':
-                        return (
-                            <div className='mb-2'>
-                                <CodeBlock language={chat.content.language || ""} code={chat.content.code || ""} />
-                            </div>
-                        );
+                    // case 'CODE_BLOCK':
+                    //     return (
+                    //         <div className='mb-2'>
+                    //             <CodeBlock language={chat.content.language || ""} code={chat.content.code || ""} />
+                    //         </div>
+                    //     );
                     default:
                         return null;
                 }

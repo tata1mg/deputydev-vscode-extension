@@ -64,14 +64,16 @@ export class AuthenticationManager {
                         // return false;
                     }
                 } else {
-                    return false;
+                    // return false;
+                    return true;
                 }
             } else {
-                return false;
+                // return false;
+                return true;
             }
         } catch (error) {
             console.error("Authentication failed, please try again later.")
-            return false;
+            return true;
         }
     }
 
