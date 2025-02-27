@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
-import { useChatStore  } from './stores/chatStore';
+import { Session, sessionChats, useChatStore  } from './stores/chatStore';
 import {useWorkspaceStore} from './stores/workspaceStore';
 import { useRepoSelectorStore } from './stores/repoSelectorStore';
 
@@ -194,6 +194,41 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
 
 
+
+addCommandEventListener('repo-selector-state', ({ data }) => {
+  useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
+});
+
+
+
+addCommandEventListener('set-workspace-repos', ({ data }) => {
+  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+
+  // Log entire repos array
+  console.log('Received Repositories:', repos);
+
+  // Log each repo individually for better readability
+  repos.forEach((repo, index) => {
+    console.log(`Repo ${index + 1}:`, repo);
+  });
+
+  // Log activeRepo
+  console.log('Active Repo:', activeRepo);
+
+  useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
+});
+
+
+
+
+
+addCommandEventListener('sessions-history', ({ data }) => {
+  useChatStore.setState({ sessions: data as Session[] });
+});
+
+addCommandEventListener('session-chats-history', ({ data }) => {
+  useChatStore.setState({ sessionChats: data as sessionChats[] });
+});
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

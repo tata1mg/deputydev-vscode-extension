@@ -8,6 +8,7 @@ import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
 import { WorkspaceManager } from '../embedding/WorkspaceManager';
+import { HistoryService } from "../services/history/HistoryService";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = []
@@ -22,9 +23,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly diffViewManager: DiffViewManager,
     private readonly outputChannel: vscode.LogOutputChannel,
     private chatService: ChatManager,
-
-
-
+    private historyService: HistoryService,
   ) { }
 
 
@@ -146,6 +145,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'initiate-login':
           promise = this.initiateLogin(data);
           break;
+        case 'get-sessions':
+          promise = this.getSessions();
+          break;
+        case 'get-session-chats':
+          promise = this.getSessionChats();
+          break;
 
         // Extention's focus state
         case "webview-focus-state":
@@ -171,7 +176,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
       }
 
-   
+
 
     });
   }
@@ -321,7 +326,41 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
+  async getSessions() {
+    try {
+      const data = await this.historyService.getPastSessions()
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'sessions-history',
+        data: data
+      });
+    } catch (error) {
+      const data: any[] = []
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'sessions-history',
+        data: data
+      });
+    }
+  }
 
+  async getSessionChats() {
+    try {
+      const data = await this.historyService.getPastSessionChats()
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'session-chats-history',
+        data: data
+      });
+    } catch (error) {
+      const data: any[] = []
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'session-chats-history',
+        data: data
+      });
+    }
+  }
 
 
   setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth') { //add auth view

@@ -131,19 +131,7 @@ export class ChatManager {
 
   async apiChat(payload: payload, chunkCallback: (data: { name: string; data: unknown }) => void) {
     try {
-      this.outputChannel.info('Starting chat session. the payload is: ', payload);
-
-      // Process relevant chunks only if a query is provided in the payload.
-      if (payload.query) {
-
-        const relevantChunks = await this.processRelevantChunks(payload);
-
-        // // Optionally, invoke the callback with the relevant chunks.
-        // chunkCallback({ name: 'relevantChunks', data: relevantChunks }); 
-        payload.relevant_chunks = relevantChunks;
-      }
-
-      delete payload.referenceList;
+      
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
 

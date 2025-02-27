@@ -136,6 +136,30 @@ export interface ChatSessionHistory {
   data: ChatMessage[];
 }
 
+export interface Session {
+  id: number;
+  summary: string;
+  age: string;
+}
+
+export interface SessionChatContent {
+  text: string;
+  language: string;
+  code: string;
+  filePath: string;
+  toolName: string;
+  toolUseId: string;
+  inputParamsJson: JSON;
+  resultJson: JSON;
+  user: string; // TODO: need to change this
+}
+
+export interface sessionChats {
+  type: string;
+  actor: string;
+  content: SessionChatContent;
+}
+
 export type ChatChunkMessage = {
   chunk: string;
   error: string;
@@ -152,6 +176,11 @@ export const useChatStore = create(
       current: undefined as ChatAssistantMessage | undefined,
       currentChatRequest: undefined as any,
       isLoading: false,
+      showSessionsBox: true,
+      showAllSessions: false,
+      selectedSession: 0,
+      sessions: [] as Session[],
+      sessionChats: [] as sessionChats[],
     },
     (set, get) => {
       // Helper to generate an incremental message ID.

@@ -1,25 +1,33 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useRef, useState } from 'react';
 import { EnterIcon } from '../../components/enterIcon';
-import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
+import { useChatSettingStore, useChatStore,Session } from '../../stores/chatStore';
 // import Markdown from 'react-markdown';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css'; // Import CSS for styling
 import { ChatArea } from './chatMessagesArea';
 import RepoSelector from './chatElements/RepoSelector';
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-
+import { getSessionChats, getSessions } from '@/commandApi';
+import { BotMessageSquare } from 'lucide-react';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
-  const { history: messages, current, isLoading, sendChatMessage, cancelChat } = useChatStore();
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
-
+  const visibleSessions = 3;
   // const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
   const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
+
+
+   // Function to handle showing all sessions
+   const handleShowMore = () => {
+    useChatStore.setState({ showAllSessions: true })
+  };
 
   // Auto-resize the textarea.
   const autoResize = () => {
@@ -40,25 +48,94 @@ export function ChatUI() {
     }
   };
 
-  // Auto-scroll to bottom when messages update.
+  useEffect(() => {
+    getSessions()
+  }, [])
+
+
+  useEffect(() => {
+    getSessionChats()
+  }, [])
+
+  // Scroll to bottom when new messages arrive.
   useEffect(() => {
     console.log('messages updated:', messages);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, current?.content?.text]);
 
-  return (
-    <div className="flex flex-col h-full">
-      {/* Message Display Area */}
-      <div className="flex-grow space-y-4 py-2 overflow-auto">
-        <ChatArea />
+  useEffect(() => {
+    console.log("SelectedSession", selectedSession)
+  }, [selectedSession])
 
-        {/*  Streaming messages  */}
-        {current && current.content?.text && (   
+  useEffect(() => {
+    // Scroll to the bottom when a new session is selected
+    if (chatContainerEndRef.current) {
+      chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedSession]);
+
+  return (
+    <div className='flex flex-col justify-between h-full relative'>
+      <div className="flex-grow overflow-y-auto">
+        {/* Past Sessions */}
+        {showSessionsBox && selectedSession === 0 && (
+          <div>
+            <div className='mb-24 mt-10'>
+              <BotMessageSquare className='px-4 h-20 w-20 text-white' />
+              <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
+            </div>
+            <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
+            <div className="session-box p-4 h-36 overflow-y-auto">
+              {showAllSessions ? sessions.map(session => (
+                <button
+                  key={session.id}
+                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                  className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+                >
+                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                  <span className="text-sm text-gray-400">{session.age}</span>
+                </button>
+              )) : sessions.slice(0, visibleSessions).map(session => (
+                <div className="session-box">
+                  <button
+                    key={session.id}
+                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+                  >
+                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                    <span className="text-sm text-gray-400">{session.age}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            {!showAllSessions && visibleSessions < sessions.length && (
+              <button onClick={handleShowMore} className="text-white mt-2 px-4">
+                Show More...
+              </button>
+            )}
+          </div>
+        )}
+
+{/* {selectedSession !== 0 && (
+          <ParserUI sessionChats={sessionChats} />
+        )} */}
+
+
+        
+        {/* Invisible div just to instant scroll to bottom for session chats */}
+        <div ref={chatContainerEndRef} />
+
+        <div className="flex-grow space-y-4 py-2 overflow-auto">
+
+          <ChatArea />
+
+          {current && current.content?.text && (   
           <div key="streaming" className="text-white">
             {current.content.text}
           </div>
         )}
 
+        </div>    
         <div ref={messagesEndRef} />
       </div>
 
