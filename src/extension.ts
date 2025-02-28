@@ -20,6 +20,7 @@ let outputChannel: vscode.LogOutputChannel;
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
   setExtensionContext(context,outputChannel);
+  deleteSessionId();
 
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
@@ -69,9 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
 
+
+
   
-
-
   const chatService = new ChatManager(context, outputChannel);
   const historyService = new HistoryService();
 
@@ -92,6 +93,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   //  * 5) Example: Register a code editor context command  (might remove it)
   registerCodeEditorMenuCommand(context, sidebarProvider);
+
+  chatService.setSidebarProvider(sidebarProvider);
 
 
 

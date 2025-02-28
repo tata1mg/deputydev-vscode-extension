@@ -24,8 +24,8 @@ export function ChatArea() {
 
             if (msg.actor === 'ASSISTANT') {
               return (
-                <div key={index} className='text-white'>
-                  <Markdown>{msg.content?.text}</Markdown>
+                <div key={index} className="text-white">
+                  <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
             }

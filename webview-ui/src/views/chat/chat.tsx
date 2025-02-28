@@ -12,22 +12,24 @@ import RepoSelector from './chatElements/RepoSelector';
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
 import { deleteSession, getSessionChats, getSessions } from '@/commandApi';
 import { BotMessageSquare } from 'lucide-react';
+import Markdown from 'react-markdown';
+import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
   const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  // const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
-  const [repoSelectorDisabled] = useState(false);
+  const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
+  // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
 
 
-   // Function to handle showing all sessions
-   const handleShowMore = () => {
+  // Function to handle showing all sessions
+  const handleShowMore = () => {
     useChatStore.setState({ showAllSessions: true })
   };
 
@@ -89,8 +91,8 @@ export function ChatUI() {
               <BotMessageSquare className='px-4 h-20 w-20 text-white' />
               <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
             </div>
-            {sessions.length > 0   && (
-            <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
+            {sessions.length > 0 && (
+              <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
             )}
             <div className="session-box p-4 h-36 overflow-y-auto w-full">
               {showAllSessions ? sessions.map(session => (
@@ -168,11 +170,12 @@ export function ChatUI() {
 
           <ChatArea />
 
-          {current && current.content?.text && (
-          <div key="streaming" className="text-white">
-            {current.content.text}
-          </div>
-        )}
+          {current && typeof current.content?.text === "string" && (
+            <div key="streaming" className="text-white">
+              <Markdown>{current.content.text}</Markdown>
+            </div>
+          )}
+
 
         </div>
         <div ref={messagesEndRef} />
