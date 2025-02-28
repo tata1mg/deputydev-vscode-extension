@@ -13,9 +13,14 @@ export class HistoryService {
         }
     }
 
-    public async getPastSessionChats(): Promise<any> {
+    public async getPastSessionChats(sessionId: number): Promise<any> {
+        const headers = {
+            "X-Session-Id" : sessionId
+        };
         try {
-            const response = await api.get(API_ENDPOINTS.PAST_CHATS);
+            const response = await api.get(API_ENDPOINTS.PAST_CHATS, {
+                headers
+            });
             // console.log("past sessions response", response.data.data)
             return response.data.data;
         } catch (error) {
