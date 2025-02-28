@@ -131,8 +131,8 @@ export function getSessions() {
   return callCommand('get-sessions', {});
 }
 
-export function getSessionChats() {
-  return callCommand('get-session-chats', {});
+export function getSessionChats(sessionId: number) {
+  return callCommand('get-session-chats', {sessionId});
 }
 
 export function deleteSession(sessionId: number) {
