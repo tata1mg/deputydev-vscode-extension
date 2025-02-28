@@ -227,6 +227,17 @@ export const useChatStore = create(
             referenceList: userMessage.referenceList,
           };
 
+
+          const ask_user_input_payload = {
+            query: message,
+            relevant_chunks: [] as string[],
+            write_mode: useChatSettingStore.getState().chatType === 'write',
+            referenceList: userMessage.referenceList,
+            response : {
+              query: message
+            }
+          }
+
           const stream = apiChat(payload);
           console.log('stream received in FE : ', stream);
 
