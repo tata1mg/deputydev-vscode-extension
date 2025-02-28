@@ -144,7 +144,6 @@ export const useChatStore = create(
       isLoading: false,
       showSessionsBox: true,
       showAllSessions: false,
-      selectedSession: 0,
       sessions: [] as Session[],
       sessionChats: [] as sessionChats[],
     },
@@ -163,7 +162,7 @@ export const useChatStore = create(
           isLoading: false,
           showSessionsBox: true,
           showAllSessions: false,
-          selectedSession: 0,
+          sessionChats: []
         });
       },
 

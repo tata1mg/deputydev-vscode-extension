@@ -12,7 +12,7 @@ import { deleteSession, getSessionChats, getSessions } from '@/commandApi';
 
 export function ChatUI() {
   // Get chat messages and functions from the chat store.
-  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, sessions, sessionChats } = useChatStore();
   // Get the current chat type and its setter from the chat setting store.
   const { chatType, setChatType } = useChatSettingStore();
   const [visibleSessions, setVisibleSessions] = useState(3); // initial sessions
@@ -61,10 +61,9 @@ export function ChatUI() {
     getSessions()
   }, [])
 
-
-  useEffect(() => {
-    getSessionChats()
-  }, [])
+  const handleGetSessionChats = async (sessionId: number) => {
+    getSessionChats(sessionId)
+  }
 
   // Scroll to bottom when new messages arrive.
   useEffect(() => {
@@ -72,21 +71,17 @@ export function ChatUI() {
   }, [messages, current?.text]); // 🟢 Also scroll on current message update
 
   useEffect(() => {
-    console.log("SelectedSession", selectedSession)
-  }, [selectedSession])
-
-  useEffect(() => {
     // Scroll to the bottom when a new session is selected
     if (chatContainerEndRef.current) {
       chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [selectedSession]);
+  }, [sessionChats]);
 
   return (
     <div className='flex flex-col justify-between h-full relative'>
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
-        {showSessionsBox && selectedSession === 0 && (
+        {showSessionsBox && sessionChats.length === 0 && (
           <div>
             <div className='mb-24 mt-10'>
               <BotMessageSquare className='px-4 h-20 w-20 text-white' />
@@ -98,7 +93,7 @@ export function ChatUI() {
                 <div className='flex gap-2'>
                   <div
                     key={session.id}
-                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                    onClick={() => handleGetSessionChats(session.id)}
                     className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
                   >
                     <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
@@ -124,7 +119,7 @@ export function ChatUI() {
                 <div className='flex gap-2'>
                   <div
                     key={session.id}
-                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                    onClick={() => handleGetSessionChats(session.id)}
                     className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
                   >
                     <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
@@ -156,7 +151,7 @@ export function ChatUI() {
           </div>
         )}
 
-        {selectedSession !== 0 && (
+        {sessionChats.length > 0 && (
           <ParserUI sessionChats={sessionChats} />
         )}
         {/* Invisible div just to instant scroll to bottom for session chats */}

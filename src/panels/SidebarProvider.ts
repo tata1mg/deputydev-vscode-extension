@@ -137,7 +137,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.getSessions();
           break;
         case 'get-session-chats':
-          promise = this.getSessionChats();
+          promise = this.getSessionChats(data);
           break;
         case 'delete-session':
           promise = this.deleteSession(data);
@@ -322,9 +322,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async getSessionChats() {
+  async getSessionChats(sessionData: { sessionId: number }) {
     try {
-      const data = await this.historyService.getPastSessionChats()
+      const data = await this.historyService.getPastSessionChats(sessionData.sessionId)
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'session-chats-history',
