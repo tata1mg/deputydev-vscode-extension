@@ -1,17 +1,12 @@
 // webview-ui/src/views/chat/snippetReference.tsx
-
-import React from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { atomDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
+
 export type ChatReferenceSnippetItem = {
-  id: string;
-  type: 'snippet';
-  name: string;
   content: string;
-  language?: string; // Optional language
-  path?: string;
+  language?: string;
+  file_path?: string;
 };
 
 export function SnippetReference({ snippet }: { snippet: ChatReferenceSnippetItem }) {

@@ -28,13 +28,13 @@ function App() {
       sendWebviewFocusState(true);
     }
 
-    function handleBlur() {
-      sendWebviewFocusState(false); // Send "blurred" state to VS Code
-    }
+    // function handleBlur() {
+    //   sendWebviewFocusState(false); // Send "blurred" state to VS Code
+    // }
 
     window.addEventListener('message', handleMessage); // Listen for messages
     window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
+    // window.addEventListener('blur', handleBlur);
 
 
     return () => window.removeEventListener('message', handleMessage);

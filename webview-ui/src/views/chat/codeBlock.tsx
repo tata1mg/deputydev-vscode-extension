@@ -1,8 +1,7 @@
 // webview-ui/src/views/chat/codeActionPanel.tsx
 import React from 'react';
 import { useChatStore } from '../../stores/chatStore';
-import { SnippetReference } from './snippetReference';
-import { ChatReferenceSnippetItem } from '@/types';
+import { SnippetReference } from './chatElements/CodeBlockStyle';
 
 export interface CodeBlockProps {
     language: string;
@@ -10,12 +9,19 @@ export interface CodeBlockProps {
     file_path: string;
 }
 
+
+export type ChatReferenceSnippetItem = {
+    content: string;
+    language?: string;
+    file_path?: string;
+  };
+  
+  
+
+  
 export function CodeBlock({ language, code, file_path }: CodeBlockProps) {
 
     const snippet: ChatReferenceSnippetItem = {
-        id: 'unique-id',
-        type: 'snippet',
-        name: 'Snippet Name',
         file_path: file_path,
         content: code,
         language: language,

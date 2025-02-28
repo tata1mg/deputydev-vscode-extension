@@ -9,15 +9,20 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
-import { FileWatcher } from './embedding/FileWatcher';
+import   ConfigManager   from './utilities/ConfigManager';
+import { setExtensionContext } from './utilities/contextManager';
+import { WebviewFocusListener } from './embedding/WebviewFocusListener';
+import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 let outputChannel: vscode.LogOutputChannel;
 
+
 export function activate(context: vscode.ExtensionContext) {
-
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
-  outputChannel.info('Extension "DeputyDev" is now active!');
+  setExtensionContext(context,outputChannel);
 
+  outputChannel.info('Extension "DeputyDev" is now active!');
+  const configManager = ConfigManager;
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(context);
   authenticationManager.validateCurrentSession().then((status) => {
@@ -34,9 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
   }).catch((error) => {
     outputChannel.error(`Authentication failed: ${error}`);
     sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
-    sidebarProvider.setViewType("auth")
-  })
+    // sidebarProvider.setViewType("auth")
+    sidebarProvider.setViewType("chat")
 
+  })
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -62,18 +68,8 @@ export function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const workspaceManager = new WorkspaceManager(context);
-  const relevantPaths = workspaceManager.getWorkspaceRepos();
-  vscode.window.showInformationMessage(
-    // relevantPaths is an object map
-    `Relevant paths: ${Object.keys(relevantPaths).join(', ') || 'None'}`
 
-  );
-
-
-  const fileWatcher = new FileWatcher(outputChannel);
-  context.subscriptions.push(fileWatcher);
-
+  
 
 
   const chatService = new ChatManager(context, outputChannel);
@@ -97,12 +93,31 @@ export function activate(context: vscode.ExtensionContext) {
   //  * 5) Example: Register a code editor context command  (might remove it)
   registerCodeEditorMenuCommand(context, sidebarProvider);
 
+
+
+
+  // const fileWatcher = new FileWatcher(outputChannel);
+  // context.subscriptions.push(fileWatcher);
+
+
+
   //  6) Register "closeApp" command
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.closeApp', () => {
       vscode.commands.executeCommand('workbench.action.closeWindow');
     })
   );
+
+
+  
+const  workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
+
+
+
+const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, workspaceManager,outputChannel);
+
+  // const relevantPaths = workspaceManager.getWorkspaceRepos();
+  
 
   //   7) Register commands for Accept/Reject etc
 
@@ -172,6 +187,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
+      deleteSessionId();
     }),
   );
 
