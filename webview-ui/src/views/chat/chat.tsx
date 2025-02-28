@@ -1,8 +1,8 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useRef, useState } from 'react';
 import { EnterIcon } from '../../components/enterIcon';
-import { useChatSettingStore, useChatStore, Session } from '../../stores/chatStore';
-import { CircleUserRound, Trash2 } from 'lucide-react';
+import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
+import { Trash2 } from 'lucide-react';
 // import Markdown from 'react-markdown';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css'; // Import CSS for styling
