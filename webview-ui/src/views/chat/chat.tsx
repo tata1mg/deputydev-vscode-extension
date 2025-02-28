@@ -15,7 +15,7 @@ import { BotMessageSquare } from 'lucide-react';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
-  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
   // const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
@@ -71,10 +71,6 @@ export function ChatUI() {
     console.log('messages updated:', messages);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, current?.content?.text]);
-
-  useEffect(() => {
-    console.log("SelectedSession", selectedSession)
-  }, [selectedSession])
 
   useEffect(() => {
     // Scroll to the bottom when a new session is selected
