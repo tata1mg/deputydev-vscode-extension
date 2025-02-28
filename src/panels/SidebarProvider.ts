@@ -68,6 +68,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       switch (command) {
         case 'api-chat':
           console.log('api-chat data:', data);
+          data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
 

@@ -6,12 +6,18 @@ import * as vscode from 'vscode';
 import { fetchRelevantChunks, updateVectorStore } from "../services/websockets/websocketHandlers";
 import { QuerySolverService } from "../services/chat/ChatService";
 import { setSessionId , getSessionId  , setQueryId, getQueryId, deleteQueryId} from '../utilities/contextManager';
-
+import { SidebarProvider } from '../panels/SidebarProvider';
 interface payload {
+  message_id?: string;
   query?: string;
   relevant_chunks?: string[];
   write_mode?: boolean;
   referenceList?: string[];
+  tool_use_response ?: {
+    tool_name: string;
+    tool_use_id?: string;
+    response: any;
+  };
 }
 
 interface ToolRequest {
@@ -24,15 +30,22 @@ interface ToolRequest {
 export class ChatManager {
   private querySolverService = new QuerySolverService();
   private aiderChatProcess: ChildProcess | undefined;
+  private sidebarProvider?: SidebarProvider; // Optional at first
+
   private isDev = false;
 
   onStarted: () => void = () => { };
   onError: (error: Error) => void = () => { };
-
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
   ) { }
+
+
+  // Method to set the sidebar provider later
+  setSidebarProvider(sidebarProvider: SidebarProvider) {
+    this.sidebarProvider = sidebarProvider;
+  }
 
   async start() {
     this.outputChannel.info('Starting deputydev binary service...');
@@ -95,6 +108,7 @@ export class ChatManager {
    * the provided chunkCallback.
    */
 
+
   private async processRelevantChunks(data: payload): Promise<string[]> {
     try {
       // If data contains a referenceList, process it as needed.
@@ -129,12 +143,25 @@ export class ChatManager {
     }
   }
 
-  async apiChat(payload: payload, chunkCallback: (data: { name: string; data: unknown }) => void) {
+  async apiChat(payload: payload,  chunkCallback: (data: { name: string; data: unknown }) => void) {
     try {
-      
+      this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
+      if (payload.query) {
+        const relevant_chunks = await this.processRelevantChunks(payload);
+        payload.relevant_chunks = relevant_chunks;
+      }
+      let message_id = undefined;
+
+      if (payload.message_id) {
+        this.outputChannel.info(`Message ID: ${payload.message_id}`);
+        message_id = payload.message_id;
+        delete payload.message_id;
+      }
+
+
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
-
+      
       for await (const event of querySolverIterator) {
         switch (event.type) {
           case 'RESPONSE_METADATA': {
@@ -184,7 +211,7 @@ export class ChatManager {
                 },
               });
               // Run the tool (placeholder) and send a result.
-              const toolResult = this.runTool(currentToolRequest);
+              const toolResult =  await this.runTool(currentToolRequest, message_id);
               chunkCallback({
                 name: 'TOOL_USE_RESULT',
                 data: {
@@ -213,43 +240,65 @@ export class ChatManager {
 
     }
   }
-  runTool(toolRequest: ToolRequest) {
+
+
+  
+
+   async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
     this.outputChannel.info(`Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`);
-    
+    this.outputChannel.info(`message id ${message_id}`);
     switch (toolRequest.tool_name) {
       case 'code_searcher':
-        this.outputChannel.info( "the tool use request ", JSON.stringify(toolRequest));
-        const active_repo = this.context.workspaceState.get<string>('activeRepo');
-        if (!active_repo) {
-          throw new Error('Active repository is not defined.');
-        }
-        // Parse accumulatedContent to extract the search query and paths (used as focus_files).
-        const parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        const searchQuery: string = parsedContent.search_query || '';
-        const focusFiles: string[] = parsedContent.paths || [];
+        this.outputChannel.info("The tool use request:", JSON.stringify(toolRequest));
+      const active_repo = this.context.workspaceState.get<string>('activeRepo');
+      if (!active_repo) {
+        throw new Error('Active repository is not defined.');
+      }
+      
+      // Parse accumulatedContent to extract the search query and paths (used as focus_files).
+      const parsedContent = JSON.parse(toolRequest.accumulatedContent);
+      const searchQuery: string = parsedContent.search_query || '';
+      const focusFiles: string[] = parsedContent.paths || [];
+  
+      this.outputChannel.info("Running code_searcher tool with query");
+      // Call the external function to fetch relevant chunks.
+      const result = await fetchRelevantChunks({
+        repo_path: active_repo,
+        query: searchQuery,
+        // Uncomment and use focusFiles if needed:
+        // focus_files: focusFiles,
+      });
+  
+      // Define the callback to send chunk data.
+      const chunkCallback = (chunkData: unknown) => {
+        this.sidebarProvider?.sendMessageToSidebar({
+          // Use the same ID so that the front-end resolver knows which generator to push data into.
+          id: message_id,
+          command: 'chunk',
+          data: chunkData,
+        });
+      };
+  
+      if (result) {
+        const payloadData = {
+          message_id: message_id,
+          tool_use_response: {
+            tool_name: toolRequest.tool_name,
+            tool_use_id: toolRequest.tool_use_id,
+            response: {
+              RELEVANT_CHUNKS: result
+            }
+          }
+        };
 
-
-        this.outputChannel.info ("Running code_searcher tool with query");
-        // Call the external function to fetch relevant chunks.
-        // const tes = await fetchRelevantChunks({
-        //   repo_path: active_repo,
-        //   query: searchQuery,
-        //   focus_files: focusFiles,
-        // });
-
-        // this.outputChannel.info(Relevant chunks: ${JSON.stringify(result.slice(0, 1))});
-        // return JSON.stringify(result);
-        return JSON.stringify({ result: 'User input requested' });
-
-      // } catch (error: any) {
-      //   this.outputChannel.error(Error in code_searcher tool: ${error});
-      //   return JSON.stringify({ error: error.message });
-      // }
-    
-
-
-
-        return JSON.stringify({ result: 'Code search executed successfully' });
+        this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
+        await this.apiChat(payloadData, chunkCallback);
+        return JSON.stringify({ result: 'Completed Tool use ' });
+      }
+  
+      this.outputChannel.info(`Code searcher result: ${JSON.stringify(result)}`);
+  
+      return JSON.stringify({ result: 'Tool Failed' });
 
       case 'ask_user_input':
         return JSON.stringify({ result: 'User input requested' });
