@@ -1,68 +1,190 @@
-// File: src/utils/FileWatcher.ts
+// File: src/embedding/WorkspaceFileWatcher.ts
+
 import * as vscode from 'vscode';
-import { updateVectorStore, subscribeToVectorStoreUpdates } from "../services/websockets/websocketHandlers";
+import * as path from 'path';
+import * as fs from 'fs';
+import ignore from 'ignore';
 
-export class FileWatcher {
-    private outputChannel: vscode.LogOutputChannel;
-    private fileWatcher: vscode.FileSystemWatcher;
-    private pendingFileChanges: Set<string> = new Set();
-    private changeTimeout: NodeJS.Timeout | null = null;
+import ConfigManager from '../utilities/ConfigManager'; // Your singleton config manager
+import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
 
-    constructor(outputChannel: vscode.LogOutputChannel) {
-        this.outputChannel = outputChannel;
-        this.fileWatcher = vscode.workspace.createFileSystemWatcher("**/*");
+export class WorkspaceFileWatcher {
+  private watcher: vscode.FileSystemWatcher | undefined;
+  private activeRepoPath: string;
+  private ignoreMatcher: ReturnType<typeof ignore>;
+  private configManager: typeof ConfigManager;
+  private outputChannel: vscode.LogOutputChannel;
+  private pendingFileChanges: Set<string> = new Set();
+  private changeTimeout: NodeJS.Timeout | null = null;
+  /**
+   * Constructs a new WorkspaceFileWatcher.
+   * @param activeRepoPath The current active repository path.
+   * @param configManager The configuration manager instance.
+   * @param outputChannel The log output channel for logging.
+   */
+  constructor(
+    activeRepoPath: string,
+    configManager: typeof ConfigManager,
+    outputChannel: vscode.LogOutputChannel
+  ) {
+    this.activeRepoPath = activeRepoPath;
+    this.configManager = configManager;
+    this.outputChannel = outputChannel;
+    this.ignoreMatcher = ignore();
 
-        // File change listeners with batching
-        this.fileWatcher.onDidChange(uri => this.scheduleFileUpdate(uri.fsPath));
-        this.fileWatcher.onDidCreate(uri => this.scheduleFileUpdate(uri.fsPath));
-        this.fileWatcher.onDidDelete(uri => this.scheduleFileUpdate(uri.fsPath));
+    // Load ignore patterns from .gitignore files and configuration.
+    this.loadIgnorePatterns();
 
-        // Workspace folder change listener
-        vscode.workspace.onDidChangeWorkspaceFolders(event => {
-            event.added.forEach(folder => {
-                this.outputChannel.info(`Workspace folder added: ${folder.uri.fsPath}`);
-                vscode.window.showInformationMessage(`Workspace folder added: ${folder.uri.fsPath}`);
-            });
+    // Create a file watcher for all files under the active repository.
+    const pattern = new vscode.RelativePattern(this.activeRepoPath, '**/*');
+    this.watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-            event.removed.forEach(folder => {
-                this.outputChannel.info(`Workspace folder removed: ${folder.uri.fsPath}`);
-                vscode.window.showInformationMessage(`Workspace folder removed: ${folder.uri.fsPath}`);
-            });
+    // Subscribe to file system events.
+    this.watcher.onDidCreate(uri => this.scheduleFileUpdate(uri));
+    this.watcher.onDidChange(uri => this.scheduleFileUpdate(uri));
+    this.watcher.onDidDelete(uri => this.scheduleFileUpdate(uri));
+  }
+
+  /**
+   * Loads ignore patterns from:
+   *   1. All .gitignore files (recursively) in the active repo,
+   *   2. Additional ignore patterns from the config,
+   *   3. Exclude directories and file extensions from the config.
+   */
+  private loadIgnorePatterns(): void {
+    let patterns: string[] = [];
+
+    // Load patterns from .gitignore files recursively.
+    patterns = patterns.concat(this.loadGitignorePatternsRecursive(this.activeRepoPath, ''));
+    patterns.push('.git/');  // Ignore Git index lock file
+
+    // Additional ignore patterns from configuration.
+    const additionalIgnore: string[] =
+      this.configManager.get<string[]>('additionalIgnorePatterns', []) || [];
+    patterns = patterns.concat(additionalIgnore);
+
+    // Exclude directories from configuration.
+    const excludeDirs: string[] = this.configManager.get<string[]>('exclude_dirs', []) || [];
+    const dirPatterns = excludeDirs.map(dir => `${dir.replace(/\\/g, '/')}/**`);
+    patterns = patterns.concat(dirPatterns);
+
+    // Exclude file extensions or specific filenames from configuration.
+    const excludeExts: string[] = this.configManager.get<string[]>('exclude_exts', []) || [];
+    const extPatterns = excludeExts.map(ext => {
+      // If it starts with a dot, assume it's an extension.
+      return ext.startsWith('.') ? `**/*${ext}` : `**/${ext}`;
+    });
+    patterns = patterns.concat(extPatterns);
+
+    // Add all gathered patterns to the ignore matcher.
+    this.ignoreMatcher.add(patterns);
+    this.outputChannel.info(`Ignore patterns loaded: ${patterns.join(', ')}`);
+  }
+
+  /**
+   * Recursively loads patterns from all .gitignore files under a given directory.
+   *
+   * @param dir The directory to search.
+   * @param base The relative base path from the active repository root.
+   * @returns An array of ignore patterns adjusted relative to the active repo.
+   */
+  private loadGitignorePatternsRecursive(dir: string, base: string): string[] {
+    let patterns: string[] = [];
+    const gitignorePath = path.join(dir, '.gitignore');
+    if (fs.existsSync(gitignorePath)) {
+      try {
+        const content = fs.readFileSync(gitignorePath, 'utf-8');
+        const filePatterns = content
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.startsWith('#'));
+        const adjusted = filePatterns.map(pattern => {
+          // Remove leading '/' (indicating repo-root relative) and adjust with base if needed.
+          if (pattern.startsWith('/')) {
+            pattern = pattern.substring(1);
+          }
+          return base ? path.join(base, pattern).replace(/\\/g, '/') : pattern;
         });
+        patterns = patterns.concat(adjusted);
+      } catch (error) {
+        this.outputChannel.error(`Error reading ${gitignorePath}: ${error}`);
+      }
     }
 
-    /**
-     * Schedules a batch update instead of handling each file change separately.
-     */
-    private scheduleFileUpdate(filePath: string) {
-        this.pendingFileChanges.add(filePath);
-
-        if (this.changeTimeout) {
-            clearTimeout(this.changeTimeout);
+    // Recurse into subdirectories (skip the .git folder).
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name !== '.git') {
+          const subDir = path.join(dir, entry.name);
+          const subBase = base ? path.join(base, entry.name) : entry.name;
+          patterns = patterns.concat(this.loadGitignorePatternsRecursive(subDir, subBase));
         }
+      }
+    } catch (error) {
+      this.outputChannel.error(`Error reading directory ${dir}: ${error}`);
+    }
+    return patterns;
+  }
 
-        this.changeTimeout = setTimeout(() => this.processFileUpdates(), 500);
+  /**
+   * Determines whether a given file URI should be ignored.
+   * @param uri The file URI.
+   * @returns True if the file should be ignored, false otherwise.
+   */
+  private shouldIgnore(uri: vscode.Uri): boolean {
+    const relativePath = path.relative(this.activeRepoPath, uri.fsPath).replace(/\\/g, '/');
+    return this.ignoreMatcher.ignores(relativePath);
+  }
+
+  private scheduleFileUpdate(uri: vscode.Uri): void {
+    if (this.shouldIgnore(uri)) {
+      return;
     }
 
-    /**
-     * Processes all collected file changes after a delay.
-     */
-    private processFileUpdates() {
-        if (this.pendingFileChanges.size > 0) {
-            const fileList = Array.from(this.pendingFileChanges).join(', ');
-            this.outputChannel.info(`Batch file update: ${fileList}`);
-            vscode.window.showInformationMessage(`Files updated: ${fileList}`);
-            this.pendingFileChanges.clear();
-        }
-    }
+    this.pendingFileChanges.add(uri.fsPath);
 
-    /**
-     * Dispose the watcher when extension is deactivated.
-     */
-    public dispose() {
-        this.fileWatcher.dispose();
-        if (this.changeTimeout) {
-            clearTimeout(this.changeTimeout);
-        }
+    this.changeTimeout = setTimeout(() => {
+      this.processFileUpdates();
+      this.changeTimeout = null;
+    }, 500);
+  }
+
+
+
+
+  /**
+   * Processes all collected file changes after a delay.
+   */
+  private processFileUpdates(): void {
+    if (this.pendingFileChanges.size > 0) {
+      const fileListArray = Array.from(this.pendingFileChanges);
+      const fileList = fileListArray.join(', '); // Convert to string
+      // Construct request payload
+      const params: UpdateVectorStoreParams = {
+        repo_path: this.activeRepoPath, // Send active repository path
+        chunkable_files: fileListArray,  // Send updated file list
+      };
+      this.outputChannel.info(`Sending update to WebSocket: ${JSON.stringify(params)}`);
+      
+      // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
+      updateVectorStore(params);
+  
+      this.outputChannel.info('done with websockets ..');
+  
+      vscode.window.showInformationMessage(`Files updated: ${fileList}`);
+      this.pendingFileChanges.clear();
     }
+  }
+  
+
+
+  /**
+   * Disposes the file watcher.
+   */
+  public dispose(): void {
+    if (this.watcher) {
+      this.watcher.dispose();
+    }
+  }
 }

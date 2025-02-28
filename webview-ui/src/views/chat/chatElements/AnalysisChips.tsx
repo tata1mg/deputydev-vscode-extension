@@ -16,6 +16,15 @@ interface CommonProps {
   autoFetchChunks?: boolean;
 }
 
+
+/**
+ * Props for the ThinkingChip component.
+ */
+interface ThinkingChipProps {
+  completed?: boolean;
+}
+
+
 /**
  * Status Icon Component - Prevents duplication of status icon logic.
  */
@@ -107,6 +116,44 @@ export function SearchedCodebase({ status, onClick }: CommonProps) {
         </span>
       </div>
       <div className="text-gray-300">{fileCount !== null ? `${fileCount} results` : ''}</div>
+    </div>
+  );
+}
+
+
+
+/**
+ * Function component for ThinkingChip - Displays a chip representing a thinking state.
+ */
+
+
+export function ThinkingChip({ completed }: ThinkingChipProps) {
+  const [dots, setDots] = useState(".");
+
+  useEffect(() => {
+    if (completed) return;
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length < 3 ? prev + "." : "."));
+    }, 500);
+    return () => clearInterval(interval);
+  }, [completed]);
+
+  return (
+    <div
+      className="flex items-center gap-2 px-2 py-1 border border-neutral-600 rounded w-fit text-white text-sm"
+      title={completed ? "Completed" : "Thinking..."}
+    >
+      {!completed ? (
+        <>
+          <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+          <span>Thinking{dots}</span>
+        </>
+      ) : (
+        <>
+          <CheckCircle className="w-4 h-4 text-green-400" />
+          <span>Completed</span>
+        </>
+      )}
     </div>
   );
 }

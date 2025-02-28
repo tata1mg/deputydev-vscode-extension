@@ -3,8 +3,9 @@
   "displayName": "DeputyDev",
   "description": "DeputyDev",
   "version": "0.0.1",
+  "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.46.0"
+    "vscode": "^1.93.0"
   },
   "categories": [
     "Other"
@@ -202,16 +203,20 @@
   },
   "dependencies": {
     "@types/diff": "^7.0.0",
+    "@types/lodash": "^4.17.15",
     "axios": "^1.7.9",
+    "deepmerge": "^4.3.1",
     "diff": "^7.0.0",
     "eventsource-parser": "^3.0.0",
     "fuse.js": "^7.1.0",
     "globby": "11",
+    "lodash": "^4.17.21",
     "markdown-it": "^14.1.0",
     "nanoid": "3",
     "path": "^0.12.7",
     "sse.js": "^2.6.0",
     "ts-import": "4.0.0-beta.6",
-    "uuid": "^11.0.5"
+    "uuid": "^11.0.5",
+    "ws": "^8.18.1"
   }
 }

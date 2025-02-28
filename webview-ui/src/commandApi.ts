@@ -1,6 +1,5 @@
 // // from aider composer, will need same/similar commands in our extension
 
-import { ChatReferenceFileItem } from './types';
 import { callCommand } from './vscode';
 
 // export function webviewReady() {
@@ -132,10 +131,14 @@ export function getSessions() {
   return callCommand('get-sessions', {});
 }
 
-export function getSessionChats(sessionId: number) {
-  return callCommand('get-session-chats', {sessionId});
+export function getSessionChats() {
+  return callCommand('get-session-chats', {});
 }
 
 export function deleteSession(sessionId: number) {
   return callCommand('delete-session', {sessionId})
+}
+
+export function sendWorkspaceRepoChange(data : {repoPath: string}) {
+  return callCommand('workspace-repo-change', data)
 }

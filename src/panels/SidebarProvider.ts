@@ -7,11 +7,16 @@ import { ChatManager } from '../chat/ChatManager';
 import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
+import { WorkspaceManager } from '../embedding/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
-
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
-
+  private pendingMessages: any[] = []
+  private _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
+  public readonly onDidChangeRepo = this._onDidChangeRepo.event;
+  private _onWebviewFocused = new vscode.EventEmitter<void>();
+  public readonly onWebviewFocused = this._onWebviewFocused.event;
+  
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
@@ -26,6 +31,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView: vscode.WebviewView,
     _context?: vscode.WebviewViewResolveContext,
     _token?: vscode.CancellationToken,
+    
   ): void {
     this._view = webviewView;
     webviewView.webview.options = {
@@ -33,6 +39,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this._extensionUri],
     };
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+    // Flush any pending messages now that the view is initialized
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      this._view.webview.postMessage(message);
+    }
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message: any) => {
@@ -69,6 +80,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'api-chat-setting':
           promise = this.chatService.apiChatSetting(data);
           break;
+        
 
 
         // File Operations
@@ -146,8 +158,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // Extention's focus state
         case "webview-focus-state":
           if (data.focused) {
-            vscode.window.showInformationMessage("Webview is focused yayayay!");
+            this._onWebviewFocused.fire();
           }
+          break;
+        
+
+        case "workspace-repo-change":
+          promise = this.setWorkspaceRepo(data);
           break;
       }
 
@@ -171,6 +188,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const authenticationManager = new AuthenticationManager(this.context);
     const status = await authenticationManager.initiateAuthentication();
     this.sendMessageToSidebar(status);
+  }
+
+  private async setWorkspaceRepo(data: any) {
+    this.outputChannel.info(`Setting active repo to via frotnend ${data.repoPath}`);
+    this._onDidChangeRepo.fire(data.repoPath);
+    return this.setWorkspaceState({key: 'activeRepo', value: data.repoPath});
   }
 
 
@@ -264,6 +287,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     console.log('setGlobalState:', data);
     return this.context.globalState.update(data.key, data.value);
   }
+
+  
 
   private async getGlobalState(data: { key: string }) {
     console.log('this is the saved', this.context.globalState.get(data.key))
@@ -468,7 +493,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this._view.webview.postMessage(message);
     } else {
       console.log('Sidebar is not initialized. Cannot send message.');
+      this.pendingMessages.push(message);
+
     }
   }
+
+
+  
+    
 
 }
