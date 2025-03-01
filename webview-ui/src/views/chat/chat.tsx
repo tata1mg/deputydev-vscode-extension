@@ -56,6 +56,14 @@ export function ChatUI() {
     setShowAutocomplete(false);
   };
 
+  const handleChipClose = () => {
+    setChipText(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+    setShowAutocomplete(false);
+  };
+
   return (
     <div className="flex flex-col justify-between h-full relative">
       <div className="flex-grow overflow-y-auto">
@@ -89,7 +97,7 @@ export function ChatUI() {
                     }
                   }}
                 />
-                <button className="ml-2 text-red-400" onClick={() => setChipText(null)}>×</button>
+                <button className="ml-2 text-red-400" onClick={handleChipClose}>×</button>
               </div>
             )}
           </div>
@@ -101,7 +109,8 @@ export function ChatUI() {
             value={userInput}
             onChange={(e) => {
               const newValue = e.target.value;
-              if (newValue.endsWith("@") && chipText === null) {
+
+              if (newValue.endsWith("@")) {
                 setChipText("");
                 setShowAutocomplete(true);
               } else {
