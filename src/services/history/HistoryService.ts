@@ -2,23 +2,13 @@ import { api } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 
 export class HistoryService {
-    public async getPastSessions(): Promise<any> {
-        try {
-            const response = await api.get(API_ENDPOINTS.PAST_SESSIONS);
-            // console.log("past sessions response", response.data.data)
-            return response.data.data;
-        } catch (error) {
-            console.error('Error while fetching session:', error);
-            throw error; // Throw the error to be handled by the caller
-        }
-    }
-
-    public async getPastSessionChats(sessionId: number): Promise<any> {
+    public async getPastSessions(limit: number, offset: number): Promise<any> {
         const headers = {
-            "X-Session-Id" : sessionId
-        };
+            "X-Limit" : limit,
+            "X-Offset" : offset,
+        }
         try {
-            const response = await api.get(API_ENDPOINTS.PAST_CHATS, {
+            const response = await api.get(API_ENDPOINTS.PAST_SESSIONS, {
                 headers
             });
             // console.log("past sessions response", response.data.data)
@@ -29,10 +19,28 @@ export class HistoryService {
         }
     }
 
+    public async getPastSessionChats(sessionId: number): Promise<any> {
+        const headers = {
+            "X-Session-ID" : sessionId
+        };
+        try {
+            const response = await api.get(API_ENDPOINTS.PAST_CHATS, {
+                headers
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error('Error while fetching session:', error);
+            throw error; // Throw the error to be handled by the caller
+        }
+    }
+
     public async deleteSession(sessionId: number): Promise<any> {
+        const headers = {
+            "X-Session-ID" : sessionId
+        };
         try {
             const response = await api.put(API_ENDPOINTS.DELETE_SESSION, {
-                sessionId : sessionId
+                headers
             });
             return response.data;
         } catch (error) {
