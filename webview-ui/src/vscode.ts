@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
-import { Session, sessionChats, useChatStore  } from './stores/chatStore';
-import {useWorkspaceStore} from './stores/workspaceStore';
+import { Session, sessionChats, useChatStore } from './stores/chatStore';
+import { useWorkspaceStore } from './stores/workspaceStore';
 import { useRepoSelectorStore } from './stores/repoSelectorStore';
+import { ChatReferenceFileItem } from './stores/chatStore';
+import { SearchResponseItem } from './types';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -174,7 +176,7 @@ addCommandEventListener('repo-selector-state', ({ data }) => {
 
 
 addCommandEventListener('set-workspace-repos', ({ data }) => {
-  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+  const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
   console.log('Received Repositories:', repos);
@@ -202,7 +204,7 @@ addCommandEventListener('repo-selector-state', ({ data }) => {
 
 
 addCommandEventListener('set-workspace-repos', ({ data }) => {
-  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+  const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
   console.log('Received Repositories:', repos);
@@ -226,9 +228,22 @@ addCommandEventListener('sessions-history', ({ data }) => {
   useChatStore.setState({ sessions: data as Session[] });
 });
 
-addCommandEventListener('keyword-search=response', ({ data }) => {
-  console.log('keyword-search=response', data);
+addCommandEventListener('keyword-search-response', ({ data }) => {
+  if (!Array.isArray(data)) {
+    console.error("Invalid data format for 'keyword-search-response'", data);
+    return;
+  }
+
+  const editorReference: ChatReferenceFileItem[] = (data as SearchResponseItem[]).map((item) => ({
+    id: item.value,
+    type: 'file',
+    name: item.path.split('/').pop() || item.path,
+    fsPath: item.path,
+  }));
+
+  useChatStore.setState({ currentEditorReference: editorReference });
 });
+
 
 addCommandEventListener('session-chats-history', ({ data }) => {
   useChatStore.setState({ sessionChats: data as sessionChats[] });
