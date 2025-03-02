@@ -9,21 +9,61 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
-import   ConfigManager   from './utilities/ConfigManager';
+import ConfigManager from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
 import { WebviewFocusListener } from './embedding/WebviewFocusListener';
-import {deleteSessionId} from './utilities/contextManager';
+import { deleteSessionId } from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 let outputChannel: vscode.LogOutputChannel;
 
 
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
-  setExtensionContext(context,outputChannel);
+  setExtensionContext(context, outputChannel);
   deleteSessionId();
 
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
+
+  // Vscode comment box for inline edit UI.
+  vscode.commands.registerCommand('deputydev.editThisCode', () => {
+    outputChannel.info('Edit command triggered');
+
+    const commentController = vscode.comments.createCommentController('DeputyDevAI', 'DeputyDevAI Inline Edit');
+
+    const editor = vscode.window.activeTextEditor
+    if (!editor) {
+      return
+    }
+    const position = vscode.window.activeTextEditor?.selection.active
+    if (!position) {
+      return
+    }
+    const range = new vscode.Range(position, position);
+
+    const thread = commentController.createCommentThread(
+      editor.document.uri,
+      range,
+      []
+    );
+
+    commentController.options = {
+      prompt: "Ask DeputyDev AI To Edit Your Code..."
+    };
+
+    thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+  });
+
+  context.subscriptions.push(vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
+    vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: "Generating AI response...",
+      cancellable: true
+    }, async () => {
+      outputChannel.info(`USER QUERY: ${reply.text}`)
+    });
+  }));
+
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(context);
   authenticationManager.validateCurrentSession().then((status) => {
@@ -72,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 
-  
+
   const chatService = new ChatManager(context, outputChannel);
   const historyService = new HistoryService();
 
@@ -112,15 +152,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
 
-  
-const  workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
+
+  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
 
 
 
-const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, workspaceManager,outputChannel);
+  const webviewFocusListener = new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   // const relevantPaths = workspaceManager.getWorkspaceRepos();
-  
+
 
   //   7) Register commands for Accept/Reject etc
 
