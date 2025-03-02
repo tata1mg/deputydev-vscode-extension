@@ -226,6 +226,10 @@ addCommandEventListener('sessions-history', ({ data }) => {
   useChatStore.setState({ sessions: data as Session[] });
 });
 
+addCommandEventListener('keyword-search=response', ({ data }) => {
+  console.log('keyword-search=response', data);
+});
+
 addCommandEventListener('session-chats-history', ({ data }) => {
   useChatStore.setState({ sessionChats: data as sessionChats[] });
 });
