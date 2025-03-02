@@ -26,6 +26,9 @@ export function ChatUI() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
+  const sessionsPerPage = 5;
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
 
 
   // Function to handle showing all sessions
@@ -60,9 +63,26 @@ export function ChatUI() {
     await deleteSession(sessionId)
     console.log(`Delete session ${sessionId}`);
   }
+
+  const fetchSessions = async (pageNumber: number) => {
+    setSessionsLoading(true);
+    const limit = sessionsPerPage;
+    const offset = (pageNumber - 1) * sessionsPerPage;
+    getSessions(limit, offset)
+    setSessionsLoading(false);
+  }
   useEffect(() => {
-    getSessions()
-  }, [])
+    fetchSessions(currentSessionsPage);
+  }, [currentSessionsPage]);
+
+  // Scroll handler for past sessions
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    if (scrollTop + clientHeight >= scrollHeight - 5 && !sessionsLoading) {
+      setCurrentSessionsPage(prev => prev + 1);
+      fetchSessions(currentSessionsPage + 1);
+    }
+  };
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId)
@@ -87,70 +107,63 @@ export function ChatUI() {
         {/* Past Sessions */}
         {showSessionsBox && sessionChats.length === 0 && (
           <div>
-            <div className='mb-24 mt-10'>
+            <div className='mb-14 mt-10'>
               <BotMessageSquare className='px-4 h-20 w-20 text-white' />
               <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
             </div>
             {sessions.length > 0 && (
               <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
             )}
-            <div className="session-box p-4 h-36 overflow-y-auto w-full">
-              {showAllSessions ? sessions.map(session => (
-                <div className='flex gap-2'>
-                  <div
-                    key={session.id}
-                    onClick={() => handleGetSessionChats(session.id)}
-                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
-                  >
-                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-
-                    {/* Age */}
-                    <span className="text-sm text-gray-400">
-                      {session.age}
-                    </span>
-
-                  </div>
-
-                  {/* Trash Icon */}
-                  <div>
-                    <Trash2
-                      className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
-                      onClick={(e) => {
-                        handleDeleteSession(session.id);
-                      }}
-                    />
-                  </div>
+            <div className="session-box p-4 h-[170px] overflow-y-auto" onScroll={handleScroll}>
+              {!showAllSessions ? (
+                <div>
+                  {sessions.slice(0, visibleSessions).map(session => (
+                    <div className='flex gap-2' key={session.id}>
+                      <div
+                        onClick={() => handleGetSessionChats(session.id)}
+                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                      >
+                        <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                        <span className="text-sm text-gray-400">{session.age}</span>
+                      </div>
+                      <div>
+                        <Trash2
+                          className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                          onClick={(e) => {
+                            handleDeleteSession(session.id);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )) : sessions.slice(0, visibleSessions).map(session => (
-                <div className='flex gap-2'>
-                  <div
-                    key={session.id}
-                    onClick={() => handleGetSessionChats(session.id)}
-                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[83%] relative"
-                  >
-                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-
-                    {/* Age */}
-                    <span className="text-sm text-gray-400">
-                      {session.age}
-                    </span>
-
-                  </div>
-
-                  {/* Trash Icon */}
-                  <div>
-                    <Trash2
-                      className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
-                      onClick={(e) => {
-                        handleDeleteSession(session.id);
-                      }}
-                    />
-                  </div>
+              ) : (
+                <div>
+                  {sessions.slice(0, currentSessionsPage * sessionsPerPage).map(session => (
+                    <div className='flex gap-2' key={session.id}>
+                      <div
+                        onClick={() => handleGetSessionChats(session.id)}
+                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                      >
+                        <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                        <span className="text-sm text-gray-400">{session.age}</span>
+                      </div>
+                      <div>
+                        <Trash2
+                          className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                          onClick={(e) => {
+                            handleDeleteSession(session.id);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              {sessionsLoading && <div className='text-white'>Loading...</div>}
             </div>
-            {!showAllSessions && visibleSessions < sessions.length && (
-              <button onClick={handleShowMore} className="text-white mt-2 px-4">
+            {!sessionsLoading && !showAllSessions && (
+              <button onClick={() => handleShowMore()} className="text-white px-4">
                 Show More...
               </button>
             )}

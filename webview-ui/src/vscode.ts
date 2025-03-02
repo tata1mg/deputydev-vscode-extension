@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import useExtensionStore, { ViewType } from './stores/useExtensionStore';
-import { Session, sessionChats, useChatStore  } from './stores/chatStore';
-import {useWorkspaceStore} from './stores/workspaceStore';
+import { Session, sessionChats, useChatStore } from './stores/chatStore';
+import { useWorkspaceStore } from './stores/workspaceStore';
 import { useRepoSelectorStore } from './stores/repoSelectorStore';
 
 type Resolver = {
@@ -46,7 +46,7 @@ window.addEventListener('message', (event) => {
 
   if (command === 'chunk') {
     const resolver = resolvers[id];
-    console.log('chunk', data,id);
+    console.log('chunk', data, id);
     resolver.chunk?.(data);
     return;
   }
@@ -176,7 +176,7 @@ addCommandEventListener('repo-selector-state', ({ data }) => {
 
 
 addCommandEventListener('set-workspace-repos', ({ data }) => {
-  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+  const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
   console.log('Received Repositories:', repos);
@@ -204,7 +204,7 @@ addCommandEventListener('repo-selector-state', ({ data }) => {
 
 
 addCommandEventListener('set-workspace-repos', ({ data }) => {
-  const { repos, activeRepo } = data as SetWorkspaceReposData; 
+  const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
   console.log('Received Repositories:', repos);
@@ -225,7 +225,9 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
 
 addCommandEventListener('sessions-history', ({ data }) => {
-  useChatStore.setState({ sessions: data as Session[] });
+  useChatStore.setState(prevState => ({
+    sessions: [...prevState.sessions, ...(data as Session[])]
+  }));
 });
 
 addCommandEventListener('session-chats-history', ({ data }) => {
