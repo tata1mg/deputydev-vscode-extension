@@ -17,7 +17,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
-  
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
@@ -33,7 +33,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView: vscode.WebviewView,
     _context?: vscode.WebviewViewResolveContext,
     _token?: vscode.CancellationToken,
-    
+
   ): void {
     this._view = webviewView;
     webviewView.webview.options = {
@@ -66,6 +66,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data: chunkData,
         });
       };
+
+      const sendMessage = (message: any) => {
+        this.sendMessageToSidebar(message);
+      };
       // Depending on `command`, handle each case
       switch (command) {
         case 'api-chat':
@@ -83,9 +87,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.chatService.apiChatSetting(data);
           break;
         case 'keyword-search':
-          promise = this.codeReferenceService.keywordSearch(data);
+          promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
-        
+
 
 
         // File Operations
@@ -163,7 +167,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             this._onWebviewFocused.fire();
           }
           break;
-        
+
 
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);
@@ -195,7 +199,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(`Setting active repo to via frotnend ${data.repoPath}`);
     this._onDidChangeRepo.fire(data.repoPath);
-    return this.setWorkspaceState({key: 'activeRepo', value: data.repoPath});
+    return this.setWorkspaceState({ key: 'activeRepo', value: data.repoPath });
   }
 
 
@@ -290,7 +294,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.globalState.update(data.key, data.value);
   }
 
-  
+
 
   private async getGlobalState(data: { key: string }) {
     console.log('this is the saved', this.context.globalState.get(data.key))
@@ -494,7 +498,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
 
-  
-    
+
+
 
 }

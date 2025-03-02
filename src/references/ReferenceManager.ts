@@ -1,6 +1,8 @@
 import exp = require('constants');
 import * as vscode from 'vscode';
 import { ReferenceService } from '../services/references/ReferenceService';
+import { v4 as uuidv4 } from 'uuid';
+
 
 export class ReferenceManager {
     onStarted: () => void = () => { };
@@ -24,11 +26,16 @@ export class ReferenceManager {
         this.outputChannel.info('Stopping deputydev code reference service...');
     }
 
-    async keywordSearch(payload: Object) {
+    async keywordSearch(payload: Object, sendMessage: (message: Object) => void) {
         const repo_path = this.context.workspaceState.get<string>('activeRepo');
         payload = { ...payload, repo_path };
         this.outputChannel.info('keywordSearch', payload);
         const response = await this.referenceService.keywordSearch(payload);
         this.outputChannel.info('keywordSearch-response', response);
+        sendMessage({
+            id: uuidv4(),
+            command: 'keyword-search-response',
+            data: response.response
+        });
     }
 }
