@@ -4,8 +4,11 @@ import { useChatStore } from "../../stores/chatStore";
 import { ChatArea } from "./chatMessagesArea";
 import { AutocompleteMenu } from "./autocomplete";
 import { Folder, File, Code } from "lucide-react";
+import { AutocompleteOption } from "@/types";
+import { keywordSearch } from "@/commandApi";
 
-const autocompleteOptions = [
+
+const initialAutocompleteOptions: AutocompleteOption[] = [
   {
     icon: <Folder className="w-5 h-5 text-blue-400" />,
     label: "Directory",
@@ -32,15 +35,17 @@ export function ChatUI() {
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipText, setChipText] = useState<string | null>(null);
-
+  const [autocompleteOptions, setAutoCompleteOptions] = useState(initialAutocompleteOptions);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const chipInputRef = useRef<HTMLInputElement | null>(null); // New ref for chip input
+  const chipInputRef = useRef<HTMLInputElement | null>(null);
+  const [typingTimeout, setTypingTimeout] = useState<number | null>(null);
+
 
   useEffect(() => {
     if (chipText !== null && chipInputRef.current) {
       chipInputRef.current.focus();
     }
-  }, [chipText]); // Focus on chip input when chipText is set
+  }, [chipText]);
 
   const handleSend = async () => {
     if (!userInput.trim() && !chipText) return;
@@ -64,6 +69,23 @@ export function ChatUI() {
     setShowAutocomplete(false);
   };
 
+  const handleChipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setChipText(newValue);
+
+    // Clear the previous timeout if the user keeps typing
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+
+    // Set a new timeout to call the API after 500ms of inactivity
+    const newTimeout = window.setTimeout(async () => {
+      await keywordSearch({ keyword: newValue });
+    }, 500);
+
+    setTypingTimeout(newTimeout);
+  };
+
   return (
     <div className="flex flex-col justify-between h-full relative">
       <div className="flex-grow overflow-y-auto">
@@ -82,17 +104,17 @@ export function ChatUI() {
             {chipText !== null && (
               <div className="flex items-center px-2 py-1 bg-gray-600 text-white rounded-md">
                 <input
-                  ref={chipInputRef} // Set ref to input
+                  ref={chipInputRef}
                   type="text"
                   value={chipText}
                   className="bg-transparent border-none text-white outline-none"
-                  onChange={(e) => setChipText(e.target.value)}
+                  onChange={handleChipChange}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
                       setShowAutocomplete(false);
                       if (textareaRef.current) {
-                        textareaRef.current.focus(); // Move focus back to textarea
+                        textareaRef.current.focus();
                       }
                     }
                   }}

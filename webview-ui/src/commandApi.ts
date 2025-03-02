@@ -36,6 +36,10 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
+export function keywordSearch(payload: unknown) {
+  return callCommand('keyword-search', payload);
+}
+
 // accept/reject file
 
 /**

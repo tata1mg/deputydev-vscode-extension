@@ -8,4 +8,5 @@ export const API_ENDPOINTS = {
     UPDATE_VECTOR_DB: "/v1/update_chunks",
     PAST_SESSIONS: "/end_user/history/v1/sessions",
     PAST_CHATS: "/end_user/history/v1/chats",
+    KEYWORD_SEARCH: "/v1/keyword_search",
 } as const;
