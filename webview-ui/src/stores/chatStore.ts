@@ -181,6 +181,7 @@ export const useChatStore = create(
       selectedSession: 0,
       sessions: [] as Session[],
       sessionChats: [] as sessionChats[],
+      currentEditorReference: null as ChatReferenceFileItem[] | null,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -195,6 +196,7 @@ export const useChatStore = create(
             showSessionsBox: true,
             showAllSessions: false,
             selectedSession: 0,
+            currentEditorReference: null,
           });
         },
 
