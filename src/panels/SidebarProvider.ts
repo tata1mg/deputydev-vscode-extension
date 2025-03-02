@@ -9,6 +9,7 @@ import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
 import { WorkspaceManager } from '../embedding/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
+import { ReferenceManager } from "../references/ReferenceManager";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = []
@@ -24,6 +25,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly outputChannel: vscode.LogOutputChannel,
     private chatService: ChatManager,
     private historyService: HistoryService,
+    private codeReferenceService: ReferenceManager
   ) { }
 
 
@@ -79,6 +81,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'api-chat-setting':
           promise = this.chatService.apiChatSetting(data);
+          break;
+        case 'keyword-search':
+          promise = this.codeReferenceService.keywordSearch(data);
           break;
         
 

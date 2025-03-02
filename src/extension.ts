@@ -9,6 +9,7 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './embedding/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
+import { ReferenceManager } from './references/ReferenceManager';
 import   ConfigManager   from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
 import { WebviewFocusListener } from './embedding/WebviewFocusListener';
@@ -73,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
   const chatService = new ChatManager(context, outputChannel);
+  const referenceService = new ReferenceManager(context, outputChannel);
   const historyService = new HistoryService();
 
 
@@ -85,7 +87,7 @@ export function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, referenceService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );

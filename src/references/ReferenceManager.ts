@@ -1,0 +1,34 @@
+import exp = require('constants');
+import * as vscode from 'vscode';
+import { ReferenceService } from '../services/references/ReferenceService';
+
+export class ReferenceManager {
+    onStarted: () => void = () => { };
+    onError: (error: Error) => void = () => { };
+    private referenceService = new ReferenceService();
+
+    constructor(
+        private context: vscode.ExtensionContext,
+        private outputChannel: vscode.LogOutputChannel,
+    ) { }
+
+    async start() {
+        this.outputChannel.info('Starting deputydev code reference service...');
+    }
+
+    restart() {
+        this.outputChannel.info('Restarting deputydev code reference service...');
+    }
+
+    stop() {
+        this.outputChannel.info('Stopping deputydev code reference service...');
+    }
+
+    async keywordSearch(payload: Object) {
+        const repo_path = this.context.workspaceState.get<string>('activeRepo');
+        payload = { ...payload, repo_path };
+        this.outputChannel.info('keywordSearch', payload);
+        const response = await this.referenceService.keywordSearch(payload);
+        this.outputChannel.info('keywordSearch-response', response);
+    }
+}
