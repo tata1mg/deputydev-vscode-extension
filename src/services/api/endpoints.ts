@@ -9,5 +9,6 @@ export const API_ENDPOINTS = {
     PAST_SESSIONS: "/end_user/history/v1/sessions",
     PAST_CHATS: "/end_user/history/v1/chats",
     GENERATE_INLINE_EDIT: "/end_user/query_solver/v1/generate-inline-edit",
-    GET_INLINE_EDIT_RESULT: "/end_user/query_solver/v1/get-inline-edit-result"
+    GET_INLINE_EDIT_RESULT: "/end_user/query_solver/v1/get-inline-edit-result",
+    DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
 } as const;

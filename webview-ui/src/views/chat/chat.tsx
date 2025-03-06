@@ -18,8 +18,8 @@ export function ChatUI() {
   const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
-  // const [repoSelectorDisabled] = useState(false);
+  // const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
+  const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -40,16 +40,20 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
-    useChatStore.setState({ showSessionsBox: false })
+    useChatStore.setState({ showSessionsBox: false });
     if (!userInput.trim()) return;
+    
     let message = userInput.trim();
     setUserInput('');
-    await sendChatMessage(message, (data) => {
-    });
+    
+    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = '70px';
     }
+  
+    await sendChatMessage(message, (data) => {});
   };
+  
 
   useEffect(() => {
     getSessions()
@@ -151,30 +155,31 @@ export function ChatUI() {
         <div className="space-y-2 py-2"></div>
 
         <div className="relative">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            className="bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
-                      focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
-                      overflow-y-auto text-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-            placeholder="Ask anything (⌘L), @ to mention code blocks"
-            value={userInput}
-            onChange={(e) => {
-              setUserInput(e.target.value);
-              autoResize();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // Prevent new line
-                handleSend();
-              }
-            }}
-            disabled={repoSelectorDisabled || isLoading}
-            {...(repoSelectorDisabled && {
-              'data-tooltip-id': 'repo-tooltip',
-              'data-tooltip-content': 'Please wait, your repo is embedding.',
-            })}
-          />
+        <textarea
+        ref={textareaRef}
+        rows={1}
+        className="bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
+                  focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+                  overflow-y-auto text-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+        placeholder="Ask anything (⌘L), @ to mention code blocks"
+        value={userInput}
+        onChange={(e) => {
+          setUserInput(e.target.value);
+          autoResize();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!isLoading) {
+              handleSend();
+            }
+          }
+        }}
+        {...(repoSelectorDisabled && {
+          'data-tooltip-id': 'repo-tooltip',
+          'data-tooltip-content': 'Please wait, your repo is embedding.',
+        })}
+      />
 
           <div className="top-1/2 right-3 absolute flex items-center -translate-y-1/2">
             {isLoading ? (

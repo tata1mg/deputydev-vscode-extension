@@ -141,14 +141,20 @@ export class WorkspaceFileWatcher {
     if (this.shouldIgnore(uri)) {
       return;
     }
-
-    this.pendingFileChanges.add(uri.fsPath);
-
+  
+    const relativePath = path.relative(this.activeRepoPath, uri.fsPath).replace(/\\/g, '/');
+    this.pendingFileChanges.add(relativePath);
+  
+    if (this.changeTimeout) {
+      clearTimeout(this.changeTimeout);
+    }
+  
     this.changeTimeout = setTimeout(() => {
       this.processFileUpdates();
       this.changeTimeout = null;
     }, 500);
   }
+  
 
 
 
