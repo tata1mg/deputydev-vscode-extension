@@ -12,7 +12,8 @@ export function setExtensionContext(
 }
 
 export function getAuthToken(): string | undefined {
-  return extensionContext?.globalState.get<string>('authToken');
+  return "< replace with your auth token >";
+  // return extensionContext?.globalState.get<string>('authToken');
 }
 
 
