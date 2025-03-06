@@ -19,8 +19,8 @@ export function ChatArea() {
                   <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
                     <CircleUserRound className="text-neutral-400" size={18} />
                   </div>
-                  <pre className="text-white whitespace-pre-wrap break-words">
-                    {msg.content.text}
+                  <pre className="text-white whitespace-pre-wrap break-words m-0 p-0 font-sans">
+                  {msg.content.text}
                   </pre>
                 </div>
               );
