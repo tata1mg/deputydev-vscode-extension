@@ -10,19 +10,19 @@ import { keywordSearch } from "@/commandApi";
 
 const initialAutocompleteOptions: AutocompleteOption[] = [
   {
-    icon: <Folder className="w-5 h-5 text-blue-400" />,
+    icon: 'class',
     label: "Directory",
     value: "Directory: ",
     description: "A folder containing files and subfolders",
   },
   {
-    icon: <File className="w-5 h-5 text-green-400" />,
+    icon: "function",
     label: "File",
     value: "File: ",
     description: "A single file such as a document or script",
   },
   {
-    icon: <Code className="w-5 h-5 text-purple-400" />,
+    icon: "file",
     label: "Code Snippet",
     value: "Code: ",
     description: "A short piece of reusable code",
@@ -35,11 +35,10 @@ export function ChatUI() {
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipText, setChipText] = useState<string | null>(null);
-  const [autocompleteOptions, setAutoCompleteOptions] = useState(initialAutocompleteOptions);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const chipInputRef = useRef<HTMLInputElement | null>(null);
   const [typingTimeout, setTypingTimeout] = useState<number | null>(null);
-
+  const [selectedReferenceItem, setSelectedReferenceItem] = useState("");
 
   useEffect(() => {
     if (chipText !== null && chipInputRef.current) {
@@ -57,7 +56,8 @@ export function ChatUI() {
   };
 
   const handleSelectAutocomplete = (label: string) => {
-    setChipText(label);
+    setChipText(label)
+    setSelectedReferenceItem(label);
     setShowAutocomplete(false);
   };
 
@@ -71,6 +71,7 @@ export function ChatUI() {
 
   const handleChipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
+    setShowAutocomplete(true);
     setChipText(newValue);
 
     // Clear the previous timeout if the user keeps typing
@@ -94,7 +95,11 @@ export function ChatUI() {
 
       {showAutocomplete && (
         <div className="w-full">
-          <AutocompleteMenu options={autocompleteOptions} onSelect={handleSelectAutocomplete} />
+          <AutocompleteMenu options={
+            chipText ?
+              useChatStore.getState().ChatAutocompleteOptions :
+              initialAutocompleteOptions
+            } onSelect={handleSelectAutocomplete} />
         </div>
       )}
 

@@ -17,6 +17,7 @@ import {
 
 import { persistStorage } from './lib';
 import pick from 'lodash/pick';
+import { AutocompleteOption } from '@/types';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -165,6 +166,8 @@ export type ChatChunkMessage = {
   error: string;
 };
 
+export type ChatAutocompleteOptions = AutocompleteOption[]
+
 /*===========================================================================
   Chat Store
 ===========================================================================*/
@@ -182,6 +185,7 @@ export const useChatStore = create(
       sessions: [] as Session[],
       sessionChats: [] as sessionChats[],
       currentEditorReference: null as ChatReferenceFileItem[] | null,
+      ChatAutocompleteOptions: [] as ChatAutocompleteOptions,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
