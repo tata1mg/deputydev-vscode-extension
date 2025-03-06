@@ -155,30 +155,31 @@ export function ChatUI() {
         <div className="space-y-2 py-2"></div>
 
         <div className="relative">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            className="bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
-                      focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
-                      overflow-y-auto text-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-            placeholder="Ask anything (⌘L), @ to mention code blocks"
-            value={userInput}
-            onChange={(e) => {
-              setUserInput(e.target.value);
-              autoResize();
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // Prevent new line
-                handleSend();
-              }
-            }}
-            disabled={repoSelectorDisabled || isLoading}
-            {...(repoSelectorDisabled && {
-              'data-tooltip-id': 'repo-tooltip',
-              'data-tooltip-content': 'Please wait, your repo is embedding.',
-            })}
-          />
+        <textarea
+        ref={textareaRef}
+        rows={1}
+        className="bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
+                  focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+                  overflow-y-auto text-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+        placeholder="Ask anything (⌘L), @ to mention code blocks"
+        value={userInput}
+        onChange={(e) => {
+          setUserInput(e.target.value);
+          autoResize();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!isLoading) {
+              handleSend();
+            }
+          }
+        }}
+        {...(repoSelectorDisabled && {
+          'data-tooltip-id': 'repo-tooltip',
+          'data-tooltip-content': 'Please wait, your repo is embedding.',
+        })}
+      />
 
           <div className="top-1/2 right-3 absolute flex items-center -translate-y-1/2">
             {isLoading ? (
