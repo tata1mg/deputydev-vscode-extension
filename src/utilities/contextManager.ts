@@ -11,7 +11,6 @@ export function setExtensionContext(
   logOutputChannel = outputChannel;
 }
 
-
 export function getAuthToken(): string | undefined {
   return extensionContext?.globalState.get<string>('authToken');
 }
@@ -62,4 +61,9 @@ export function setQueryId(value: number ) {
   return
 }
 
+
+
+export function getActiveRepo(): string | undefined {
+  return extensionContext?.workspaceState.get<string>('activeRepo');
+}
 

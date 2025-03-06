@@ -1,4 +1,3 @@
-// // from aider composer, will need same/similar commands in our extension
 
 import { callCommand } from './vscode';
 
@@ -12,7 +11,7 @@ import { callCommand } from './vscode';
 //   >;
 // }
 
-export function writeFile(params: { path: string; content: string }) {
+export function writeFile(params: { filePath : string; raw_diff: string }) {
   return callCommand('write-file', params);
 }
 

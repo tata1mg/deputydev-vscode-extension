@@ -44,7 +44,13 @@ export class WebSocketClient {
                 { 
                 this.resolveResponse(messageData.status);
                 this.close();
-              } else {
+              }
+              else if (messageData.status === 'Failed')  
+                { 
+            this.rejectResponse(new Error("WebSocket request timed out"));
+            this.close();
+              }
+               else {
                 console.warn("Received unknown message format:", messageData);
               }
             } catch (error) {
