@@ -6,6 +6,7 @@ import { useWorkspaceStore } from './stores/workspaceStore';
 import { useRepoSelectorStore } from './stores/repoSelectorStore';
 import { ChatReferenceFileItem } from './stores/chatStore';
 import { SearchResponseItem } from './types';
+import { logToOutput } from './commandApi';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -229,6 +230,17 @@ addCommandEventListener('sessions-history', ({ data }) => {
 });
 
 addCommandEventListener('keyword-search-response', ({ data }) => {
+  logToOutput('info', `Popla Lappa ${data}`);
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      icon: item.type,
+      label: item.value,
+      value: item.value,
+      description: item.path,
+    }
+  })
+  logToOutput('info', `AutoSearchResponse :: ${AutoSearchResponse}`);
+  useChatStore.setState({ChatAutocompleteOptions: [...AutoSearchResponse, ...AutoSearchResponse]});
   if (!Array.isArray(data)) {
     console.error("Invalid data format for 'keyword-search-response'", data);
     return;

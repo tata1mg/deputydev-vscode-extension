@@ -1,7 +1,7 @@
 import { JSX } from "react";
 
 export type AutocompleteOption = {
-  icon: JSX.Element;
+  icon: string;
   label: string;
   value: string;
   description: string;
