@@ -74,48 +74,38 @@ export function AnalyzedCodeItem({ fileName, status, onClick, autoFetchChunks = 
   );
 }
 
+
 /**
  * Component for Searched Codebase.
+ * Displays status and file count based on props from history.
  */
-export function SearchedCodebase({ status, onClick }: CommonProps) {
-  const [fileCount, setFileCount] = useState<number | null>(null);
-  const [loadingText, setLoadingText] = useState('Searching codebase.');
-  const [titleText, setTitleText] = useState('Searched Codebase');
-
-  useEffect(() => {
-    if (status === 'in-progress') {
-      let dotCount = 0;
-      const interval = setInterval(() => {
-        dotCount = (dotCount + 1) % 4;
-        const dots = '.'.repeat(dotCount);
-        setLoadingText(`Searching codebase${dots}`);
-        setTitleText(`Searching Codebase${dots}`); // Dynamic title update
-      }, 500);
-
-      // Simulate API call to get file count
-      setTimeout(() => {
-        setFileCount(37); // Example, replace with API response
-        clearInterval(interval);
-        setTitleText('Searched Codebase'); // Reset title once done
-      }, 3000);
-
-      return () => clearInterval(interval);
-    }
-  }, [status]);
+export function SearchedCodebase({ status, fileCount }: { 
+  status: 'in-progress' | 'completed' | 'error'; 
+  fileCount?: number; 
+}) {
+  let displayText = 'Searched codebase';
+  if (status === 'in-progress') {
+    displayText = 'Searching codebase...';
+  } else if (status === 'error') {
+    displayText = 'Error searching codebase';
+  }
 
   return (
     <div
-      className="flex justify-between items-center bg-neutral-800 px-2 py-2 border border-neutral-600 rounded w-full text-white text-sm cursor-pointer"
-      onClick={onClick}
-      title={titleText} // Dynamic title updates here
+      className="flex justify-between items-center bg-neutral-800 px-2 py-2 border border-neutral-600 rounded w-full text-white text-sm"
+      title="Searched Codebase"
     >
       <div className="flex items-center gap-2">
-        {status === 'in-progress' ? <StatusIcon status={status} /> : <Search className="w-4 h-4 text-white" />}
-        <span className="text-white">
-          {status === 'in-progress' ? loadingText : 'Searched codebase'}
-        </span>
+        {status === 'in-progress' ? (
+          <StatusIcon status={status} />
+        ) : (
+          <Search className="w-4 h-4 text-white" />
+        )}
+        <span className="text-white">{displayText}</span>
       </div>
-      <div className="text-gray-300">{fileCount !== null ? `${fileCount} results` : ''}</div>
+      <div className="text-gray-300">
+        {fileCount !== undefined ? `${fileCount} results` : ''}
+      </div>
     </div>
   );
 }
@@ -140,7 +130,8 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
 
   return (
     <div
-      className="flex items-center gap-2 px-2 py-1 border border-neutral-600 rounded w-fit text-white text-sm"
+
+      className="flex items-center gap-2 px-2 py-2 border border-neutral-600 rounded w-full text-white text-sm"
       title={completed ? "Completed" : "Thinking..."}
     >
       {!completed ? (

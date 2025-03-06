@@ -40,16 +40,20 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
-    useChatStore.setState({ showSessionsBox: false })
+    useChatStore.setState({ showSessionsBox: false });
     if (!userInput.trim()) return;
+    
     let message = userInput.trim();
     setUserInput('');
-    await sendChatMessage(message, (data) => {
-    });
+    
+    // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = '70px';
     }
+  
+    await sendChatMessage(message, (data) => {});
   };
+  
 
   useEffect(() => {
     getSessions()
