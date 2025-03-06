@@ -8,6 +8,8 @@ import { QuerySolverService } from "../services/chat/ChatService";
 import { setSessionId , getSessionId  , setQueryId, getQueryId, deleteQueryId} from '../utilities/contextManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
 interface payload {
+  focus_files?: string[];
+  focus_chunks?: string[];
   message_id?: string;
   query?: string;
   relevant_chunks?: string[];
@@ -109,7 +111,7 @@ export class ChatManager {
    */
 
 
-  private async processRelevantChunks(data: payload): Promise<string[]> {
+  async processRelevantChunks(data: payload): Promise<string[]> {
     try {
       // If data contains a referenceList, process it as needed.
       // if (data.referenceList) {
@@ -130,8 +132,10 @@ export class ChatManager {
       const result = await fetchRelevantChunks({
         repo_path: active_repo,
         query: query,
+        // focus_chunks: data.focus_chunks || [],
+        // focus_files: data.focus_files || [],
       });
-      // only print few words only 
+      // only print few words only
       this.outputChannel.info(`Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`);
       // Extract the content from each chunk in the payload.
       return result;
@@ -161,7 +165,7 @@ export class ChatManager {
 
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
-      
+
       for await (const event of querySolverIterator) {
         switch (event.type) {
           case 'RESPONSE_METADATA': {
@@ -242,7 +246,7 @@ export class ChatManager {
   }
 
 
-  
+
 
    async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
     this.outputChannel.info(`Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`);
@@ -254,12 +258,12 @@ export class ChatManager {
       if (!active_repo) {
         throw new Error('Active repository is not defined.');
       }
-      
+
       // Parse accumulatedContent to extract the search query and paths (used as focus_files).
       const parsedContent = JSON.parse(toolRequest.accumulatedContent);
       const searchQuery: string = parsedContent.search_query || '';
       const focusFiles: string[] = parsedContent.paths || [];
-  
+
       this.outputChannel.info("Running code_searcher tool with query");
       // Call the external function to fetch relevant chunks.
       const result = await fetchRelevantChunks({
@@ -268,7 +272,7 @@ export class ChatManager {
         // Uncomment and use focusFiles if needed:
         // focus_files: focusFiles,
       });
-  
+
       // Define the callback to send chunk data.
       const chunkCallback = (chunkData: unknown) => {
         this.sidebarProvider?.sendMessageToSidebar({
@@ -278,7 +282,7 @@ export class ChatManager {
           data: chunkData,
         });
       };
-  
+
       if (result) {
         const payloadData = {
           message_id: message_id,
@@ -295,14 +299,14 @@ export class ChatManager {
         await this.apiChat(payloadData, chunkCallback);
         return JSON.stringify({ result: 'Completed Tool use ' });
       }
-  
+
       this.outputChannel.info(`Code searcher result: ${JSON.stringify(result)}`);
-  
+
       return JSON.stringify({ result: 'Tool Failed' });
 
       case 'ask_user_input':
         return JSON.stringify({ result: 'User input requested' });
-        
+
       default:
         this.outputChannel.warn(`Unknown tool: ${toolRequest.tool_name}`);
         return JSON.stringify({ placeholder: true });
