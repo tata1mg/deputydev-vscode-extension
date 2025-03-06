@@ -18,8 +18,8 @@ export function ChatUI() {
   const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
-  // const [repoSelectorDisabled] = useState(false);
+  // const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
+  const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
