@@ -12,6 +12,8 @@ import { getSessionChats, getSessions } from '@/commandApi';
 import { BotMessageSquare } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
+import '../../styles/markdown-body.css';
+
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -25,7 +27,7 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
 
-
+  
   // Function to handle showing all sessions
   const handleShowMore = () => {
     useChatStore.setState({ showAllSessions: true })
@@ -139,7 +141,7 @@ export function ChatUI() {
           <ChatArea />
 
           {current && typeof current.content?.text === "string" && (
-            <div key="streaming" className="text-white">
+            <div key="streaming" className="text-white text-base markdown-body">
               <Markdown>{current.content.text}</Markdown>
             </div>
           )}

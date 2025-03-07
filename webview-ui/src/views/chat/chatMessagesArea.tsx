@@ -1,16 +1,18 @@
 import { CircleUserRound } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { CodeActionPanel } from './chatElements/codeActionPanel';
+import remarkGfm from 'remark-gfm';
+import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
+import '../../styles/markdown-body.css';
 import { AnalyzedCodeItem, SearchedCodebase, ThinkingChip } from './chatElements/AnalysisChips';
-import { useChatStore, useChatSettingStore } from '../../stores/chatStore';
+import { CodeActionPanel } from './chatElements/codeActionPanel';
 
 
 export function ChatArea() {
   const { history: messages } = useChatStore();
-
+  
   return (
     <>
-      {messages.map((msg, index) => {
+          {messages.map((msg, index) => {
         switch (msg.type) {
           case 'TEXT_BLOCK':
             if (msg.actor === 'USER') {
@@ -28,7 +30,7 @@ export function ChatArea() {
 
             if (msg.actor === 'ASSISTANT') {
               return (
-                <div key={index} className="text-white">
+                <div key={index} className="text-white markdown-body">
                   <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
