@@ -1,18 +1,13 @@
-import { spawn, ChildProcess } from 'node:child_process';
-import * as fsPromise from 'node:fs/promises';
-import * as path from 'node:path';
-import * as readline from 'node:readline';
+// import * as path from 'node:path';
+import { join } from 'path';
 import * as vscode from 'vscode';
-import { fetchRelevantChunks, updateVectorStore } from "../services/websockets/websocketHandlers";
-import { QuerySolverService } from "../services/chat/ChatService";
-import { setSessionId, getSessionId, setQueryId, getQueryId, deleteQueryId, getActiveRepo } from '../utilities/contextManager';
+import { DiffViewManager } from '../diff/DiffManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { DiffViewManager } from '../diff/DiffManager';
-import { write } from 'node:fs';
-import { existsSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { QuerySolverService } from "../services/chat/ChatService";
+import { fetchRelevantChunks } from "../services/websockets/websocketHandlers";
+import { getActiveRepo, getSessionId, setQueryId, setSessionId } from '../utilities/contextManager';
 
 interface payload {
   message_id?: string;
@@ -48,7 +43,6 @@ export class ChatManager {
   private sidebarProvider?: SidebarProvider; // Optional at first
 
 
-  private isDev = false;
 
   onStarted: () => void = () => { };
   onError: (error: Error) => void = () => { };
@@ -452,11 +446,11 @@ export class ChatManager {
     // Implementation for clearing chat on the backend.
   }
 
-  async apiSaveSession(payload: unknown) {
+  async apiSaveSession() {
     // Implementation for saving the chat session.
   }
 
-  async apiChatSetting(payload: unknown) {
+  async apiChatSetting() {
     // Implementation for updating chat settings.
   }
 }
