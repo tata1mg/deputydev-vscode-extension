@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { ChatManager } from '../chat/ChatManager';
 import { InlineEditService } from '../services/inlineEdit/inlineEditService';
+import { getActiveRepo } from '../utilities/contextManager';
+import * as path from 'node:path';
 
 interface RelevantChunk {
     content: string;
@@ -23,11 +25,12 @@ export class InlineEditManager {
     private endLineOfSelectedText: number | undefined;
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.LogOutputChannel;
-    private relevant_chunks: RelevantChunk[] | undefined;
     private selected_text: string | undefined;
     private focus_chunks: string[] | undefined;
     private file_path: string | undefined;
     private focus_files: string[] | undefined;
+    private active_repo: string | undefined;
+    private relative_file_path: string | undefined
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -48,8 +51,17 @@ export class InlineEditManager {
                 return;
             }
 
+            this.active_repo = getActiveRepo();
+            this.outputChannel.info(`Active repo: ${this.active_repo}`)
             // Get file path
             this.file_path = this.editor.document.uri.fsPath;
+            if(!this.active_repo){
+                return
+            }
+            this.relative_file_path = path.relative(this.active_repo, this.file_path);
+            this.outputChannel.info(`Relative path: ${this.relative_file_path}`)
+
+
             this.focus_files = []
             this.focus_files?.push(this.file_path)
             this.outputChannel.info(`Current Active File Path: ${this.file_path}`);
@@ -104,49 +116,48 @@ export class InlineEditManager {
                 cancellable: true
             }, async () => {
                 this.outputChannel.info("Inside function")
-                // const result = await this.chatService.processRelevantChunks({
-                //     focus_chunks : this.focus_chunks,
-                //     query : reply.text,
-                //     focus_files : this.focus_files
-                // })
-                this.relevant_chunks = [
-                    {
-                        content: "    def __set_corporate_id(self):\n        x_corporate_id = self.request.headers.get(\"X-CORPORATE-ID\", None)\n        setattr(self, \"x_corporate_id\", x_corporate_id)",
-                        embedding: null,
-                        source_details: {
-                            file_path: "app/common/helpers/header_attributes.py",
-                            file_hash: "31ead26d0c5039175ea391d2d2bdca527b7b05b4",
-                            start_line: 152,
-                            end_line: 154
-                        },
-                        metadata: null,
-                        search_score: 0.699999988079071
-                    },
-                    {
-                        content: "                    {\n                        \"id\": 31283,\n                        \"name\": \"CECT Neck\",\n                        \"mix_panel_data\": {\n                            \"sku_id\": 31283,\n                            \"sku_name\": \"CECT Neck\",\n                            \"position\": 9,\n                            \"mrp\": \"\\\u20b92200.0\",\n                            \"discount\": \"10% off\",\n                        },\n                        \"info\": null,\n                        \"tag\": null,\n                        \"category\": \"Radiology\",\n                        \"test_type\": \"generic_test\",\n                        \"search_type\": \"sku\",\n                        \"url\": \"/labs/test/31283\",\n                        \"image\": \"https://onemg.gumlet.io/assets/ec7331ae-6882-11ec-82c2-0a3c85ad997a.png?format=auto\",\n                        \"subheading\": {\"text\": \"Contains 1 tests\", \"data\": null},\n                        \"prices\": {\n                            \"mrp\": \"\\\u20b92200.0\",\n                            \"discounted_price\": \"\\\u20b91980.0\",\n                            \"discount\": \"10% off\",\n                        },\n                        \"eta\": {\"text\": \"Report within <b> 24.0 hours </b>\"},\n                    },\n                ],",
-                        embedding: null,
-                        source_details: {
-                            file_path: "app/tests/third_party_methods/search_client_test.py",
-                            file_hash: "6f308e141a0b030e040dc4da9561008c0eaa013f",
-                            start_line: 6398,
-                            end_line: 6423
-                        },
-                        metadata: null,
-                        search_score: 0.6903731226921082
-                    }
-                ];
-                this.outputChannel.info(`Relevant chunks: ${JSON.stringify(this.relevant_chunks.slice(0, 1))}`);
+                const relevant_chunks = await this.chatService.processRelevantChunks({
+                    focus_chunks : this.focus_chunks,
+                    query : reply.text,
+                    focus_files : this.focus_files
+                })
                 const job = await this.inlineEditService.generateInlineEdit({
                     "query": reply.text,
-                    "relevant_chunks": this.relevant_chunks,
-                    "code_selection": this.selected_text
+                    "relevant_chunks": relevant_chunks,
+                    "code_selection": {
+                        "selected_text": this.selected_text,
+                        "file_path": this.relative_file_path,
+                    },
                 })
                 this.outputChannel.info(`Job_id: ${job.job_id}`)
+
                 let uDiff;
                 if (job.job_id) {
                     uDiff = await this.pollInlineDiffResult(job.job_id);
                 }
+
                 this.outputChannel.info(`UDIFF: ${JSON.stringify(uDiff, null, 2)}`);
+
+                this.outputChannel.info(`Active Repo: ${this.active_repo}`)
+
+                const modified_file_path = uDiff.code_snippets[0].file_path
+                const raw_diff = uDiff.code_snippets[0].code
+
+                this.outputChannel.info(`File_path: ${modified_file_path}`)
+                this.outputChannel.info(`raw_diff: ${raw_diff}`)
+
+                if (!modified_file_path) {
+                    return
+                }
+                const modifiedFiles = await this.chatService.getModifiedRequest({
+                    filepath: modified_file_path,
+                    raw_diff: raw_diff,
+                }) as Record<string, string>;
+
+                if (!this.active_repo) {
+                    return
+                }
+                this.chatService.handleModifiedFiles(modifiedFiles , this.active_repo)
             });
         }));
     }
