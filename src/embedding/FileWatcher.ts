@@ -56,7 +56,10 @@ export class WorkspaceFileWatcher {
 
     // Load patterns from .gitignore files recursively.
     patterns = patterns.concat(this.loadGitignorePatternsRecursive(this.activeRepoPath, ''));
-    patterns.push('.git/');  // Ignore Git index lock file
+    patterns.push('.git/');  // Ignore the entire .git directory
+
+    // Ignore all files with .git extension but NOT .gitignore or .gitattributes
+    patterns.push('**/*.git');
 
     // Additional ignore patterns from configuration.
     const additionalIgnore: string[] =
@@ -176,9 +179,7 @@ export class WorkspaceFileWatcher {
       // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
       updateVectorStore(params);
   
-      this.outputChannel.info('done with websockets ..');
-  
-      vscode.window.showInformationMessage(`Files updated: ${fileList}`);
+      this.outputChannel.info(`Files updated with websockets: ${fileList}`);
       this.pendingFileChanges.clear();
     }
   }
