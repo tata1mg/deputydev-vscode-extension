@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { SidebarProvider } from '../panels/SidebarProvider';
-import { WorkspaceManager } from '../embedding/WorkspaceManager';
-import { updateVectorStore, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { WorkspaceManager } from './WorkspaceManager';
+import { updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 
 export class WebviewFocusListener {
     constructor(

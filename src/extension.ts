@@ -6,19 +6,23 @@ import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff 
 import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager
 import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
-import { WorkspaceManager } from './embedding/WorkspaceManager';
+import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import   ConfigManager   from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
-import { WebviewFocusListener } from './embedding/WebviewFocusListener';
+import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 let outputChannel: vscode.LogOutputChannel;
 
 
 export function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
+  const outputChannelName = vscode.workspace
+    .getConfiguration('deputydev')
+    .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
+  
+  outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
   deleteSessionId();
 
