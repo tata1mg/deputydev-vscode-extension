@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import ignore from 'ignore';
 
 import ConfigManager from '../utilities/ConfigManager'; // Your singleton config manager
-import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;

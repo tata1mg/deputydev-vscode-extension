@@ -7,7 +7,7 @@ import { ChatManager } from '../chat/ChatManager';
 import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
-import { WorkspaceManager } from '../embedding/WorkspaceManager';
+import { WorkspaceManager } from '../code_syncing/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
 import { getActiveRepo } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from 'fs';

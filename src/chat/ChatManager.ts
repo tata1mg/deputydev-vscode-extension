@@ -6,7 +6,7 @@ import { SidebarProvider } from '../panels/SidebarProvider';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { QuerySolverService } from "../services/chat/ChatService";
-import { fetchRelevantChunks } from "../services/websockets/websocketHandlers";
+import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import { getActiveRepo, getSessionId, setQueryId, setSessionId } from '../utilities/contextManager';
 
 interface payload {
@@ -111,12 +111,7 @@ export class ChatManager {
     this.outputChannel.info('Stopping deputydev binary service...');
   }
 
-  /**
-   * apiChat:
-   * Expects a payload that includes session_id and message_id along with the query,
-   * and uses the querySolver service to yield text chunks. Each chunk is sent via
-   * the provided chunkCallback.
-   */
+
 
 
   private async processRelevantChunks(data: payload): Promise<string[]> {
@@ -152,6 +147,15 @@ export class ChatManager {
       return [];
     }
   }
+
+
+    /**
+   * apiChat:
+   * Expects a payload that includes message_id along with the query with other parameters,
+   * and uses the querySolver service to yield text chunks. Each chunk is sent via
+   * the provided chunkCallback.
+   */
+
 
   async apiChat(payload: payload, chunkCallback: (data: { name: string; data: unknown }) => void) {
     try {
