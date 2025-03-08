@@ -176,10 +176,7 @@ export class ChatManager {
       }
       delete payload.is_tool_response;
 
-      this.outputChannel.info(`Payload ; 
 
-        
-      ${JSON.stringify(payload)}`);
 
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
@@ -235,16 +232,8 @@ export class ChatManager {
                 },
               });
               // Run the tool (placeholder) and send a result.
-              const toolResult = await this.runTool(currentToolRequest, message_id);
-              chunkCallback({
-                name: 'TOOL_USE_RESULT',
-                data: {
-                  tool_name: currentToolRequest.tool_name,
-                  tool_use_id: currentToolRequest.tool_use_id,
-                  result_json: toolResult,
-                  status: 'completed',
-                },
-              });
+              await this.runTool(currentToolRequest, message_id);
+              
               currentToolRequest = null;
             }
             break;
@@ -426,6 +415,19 @@ export class ChatManager {
               }
             }
           };
+
+
+          chunkCallback({
+            name: 'TOOL_USE_RESULT',
+            data: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              result_json: result,
+              status: 'completed',
+            },
+          });
+
+
 
           this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
           await this.apiChat(payloadData, chunkCallback);

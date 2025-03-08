@@ -20,7 +20,7 @@ export function ChatUI() {
   const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  const repoSelectorDisabled = useRepoSelectorStore((state) => state.repoSelectorDisabled);
+  const repoSelectorEmbedding = useRepoSelectorStore((state) => state.repoSelectorDisabled);
   // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -33,6 +33,18 @@ export function ChatUI() {
     useChatStore.setState({ showAllSessions: true })
   };
 
+
+  // Do not block user typing or canceling even if a response is pending.
+  // Instead, we simply block sending a new message.
+  const blockSendMessage = isLoading;
+
+  // The repo selector should be disabled if the repo is embedding, a response is pending, or there is chat history.
+  const disableRepoSelector =  isLoading || messages.length > 0;
+  const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
+    ? { 'data-tooltip-id': 'repo-tooltip', 'data-tooltip-content': 'Create new chat to select new repo.' }
+    : {};
+
+
   // Auto-resize the textarea.
   const autoResize = () => {
     const el = textareaRef.current;
@@ -43,7 +55,7 @@ export function ChatUI() {
 
   const handleSend = async () => {
     useChatStore.setState({ showSessionsBox: false });
-    if (!userInput.trim()) return;
+    if (!userInput.trim() || blockSendMessage) return;
     
     let message = userInput.trim();
     setUserInput('');
@@ -140,88 +152,79 @@ export function ChatUI() {
 
           <ChatArea />
 
-          {current && typeof current.content?.text === "string" && (
-            <div key="streaming" className="text-white text-base markdown-body">
-              <Markdown>{current.content.text}</Markdown>
-            </div>
-          )}
-
-
         </div>
         <div ref={messagesEndRef} />
       </div>
 
 
       {/* Input Layer */}
-      <div className="pt-2 border-gray-300">
-        <div className="space-y-2 py-2"></div>
-
+      <div className="">
+        <div className="space-y-2"></div>
         <div className="relative">
-        <textarea
-        ref={textareaRef}
-        rows={1}
-        className="bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
-                  focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
-                  overflow-y-auto text-white resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-        placeholder="Ask anything (⌘L), @ to mention code blocks"
-        value={userInput}
-        onChange={(e) => {
-          setUserInput(e.target.value);
-          autoResize();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            if (!isLoading) {
-              handleSend();
-            }
-          }
-        }}
-        {...(repoSelectorDisabled && {
-          'data-tooltip-id': 'repo-tooltip',
-          'data-tooltip-content': 'Please wait, your repo is embedding.',
-        })}
-      />
+          {/* The textarea remains enabled even when a response is pending */}
+          <textarea
+  ref={textareaRef}
+  rows={1}
+  className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
+              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+              overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}
+  placeholder="Ask anything (⌘L), @ to mention code blocks"
+  value={userInput}
+  onChange={(e) => {
+    if (!repoSelectorEmbedding) {
+      setUserInput(e.target.value);
+      autoResize();
+    }
+  }}
+  onKeyDown={(e) => {
+    if (!repoSelectorEmbedding && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading) {
+        handleSend();
+      }
+    }
+  }}
 
+  disabled={repoSelectorEmbedding}
+  {...(repoSelectorEmbedding && {
+    'data-tooltip-id': 'repo-tooltip',
+    'data-tooltip-content': 'Please wait, your repo is embedding.'
+  })}
+/>
+
+
+
+
+
+          {/* The cancel button remains enabled even if a response is pending */}
           <div className="top-1/2 right-3 absolute flex items-center -translate-y-1/2">
             {isLoading ? (
               <button
-                className="flex justify-center items-center bg-red-500 rounded-sm w-4 h-4 
-                          disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex justify-center items-center bg-red-500 rounded-sm w-4 h-4"
                 onClick={cancelChat}
-                disabled={repoSelectorDisabled}
-                {...(repoSelectorDisabled && {
-                  'data-tooltip-id': 'repo-tooltip',
-                  'data-tooltip-content': 'Please wait, your repo is embedding.',
-                })}
               />
             ) : (
               <button
-                className="flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                onClick={handleSend}
-                disabled={repoSelectorDisabled}
-                {...(repoSelectorDisabled && {
-                  'data-tooltip-id': 'repo-tooltip',
-                  'data-tooltip-content': 'Please wait, your repo is embedding.',
-                })}
+                className="flex justify-center items-center"
+                onClick={() => {
+                  if (!blockSendMessage) {
+                    handleSend();
+                  }
+                }}
               >
                 <EnterIcon className="w-5 h-5 text-white" />
               </button>
             )}
           </div>
-
-          {/* Tooltip Component */}
           <Tooltip id="repo-tooltip" />
         </div>
 
-        {/* Chat Type Toggle */}
+        {/* Chat Type Toggle and RepoSelector */}
         <div className="flex items-center justify-between text-xs">
-          {/* Left side: RepoSelector */}
-          <div className="flex items-center gap-2">
-            <RepoSelector />
-          </div>
+        <div className="flex items-center gap-2">
+          <RepoSelector disabled={disableRepoSelector} tooltipProps={repoTooltipProps} />
+        </div>
 
-          {/* Right side: Chat/Write toggle */}
           <div className="flex items-center gap-2">
             <span className="font-medium text-white">Chat</span>
             <label className="inline-flex relative items-center cursor-pointer">
