@@ -23,6 +23,11 @@ interface payload {
   };
 }
 
+interface SearchTerm {
+  keyword: string;
+  type: string;
+}
+
 interface ToolRequest {
   tool_name: string;
   tool_use_id: string;
@@ -136,7 +141,7 @@ export class ChatManager {
         repo_path: active_repo,
         query: query,
       });
-      // only print few words only 
+      // only print few words only
       this.outputChannel.info(`Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`);
       // Extract the content from each chunk in the payload.
       return result;
@@ -237,7 +242,7 @@ export class ChatManager {
               });
               // Run the tool (placeholder) and send a result.
               await this.runTool(currentToolRequest, message_id);
-              
+
               currentToolRequest = null;
             }
             break;
@@ -268,7 +273,7 @@ export class ChatManager {
                 const modifiedFiles = await this.getModifiedRequest(currentDiffRequest);
                 await this.handleModifiedFiles(modifiedFiles, active_repo);
               }
-  
+
               currentDiffRequest = null;
             } else {
               chunkCallback({ name: event.type, data: event.content });
@@ -282,7 +287,7 @@ export class ChatManager {
       }
       // Signal end of stream.
       chunkCallback({ name: 'end', data: {} });
-  
+
     } catch (error) {
       this.outputChannel.error(`Error during apiChat: ${error}`);
     }
@@ -291,18 +296,18 @@ export class ChatManager {
 
   public async getModifiedRequest(currentDiffRequest: CurrentDiffRequest) : Promise<Record<string, string>> {
     this.outputChannel.info(`Running diff tool for file ${currentDiffRequest.filepath}`);
-  
+
     const active_repo = getActiveRepo();
     if (!active_repo) {
       throw new Error('Active repository is not defined.');
     }
-  
+
     // Parse accumulated diff content to extract necessary params
     const raw_udiff = currentDiffRequest.raw_diff;
     const payload_key = currentDiffRequest.filepath;
-  
+
     this.outputChannel.info("getting modified file from binary");
-  
+
     // Call the external function to fetch the modified file
     const result = await this.fetchModifiedFile(
       active_repo,
@@ -318,10 +323,10 @@ export class ChatManager {
       return {};
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
-  
+
     return result;
   }
-  
+
 
   public async fetchModifiedFile(
     repo_path: string,
@@ -351,44 +356,74 @@ export class ChatManager {
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
-      
-  
+
+
       // // Check if file exists
       // if (!existsSync(fullPath)) {
       //   // Ensure parent directories exist
       //   const fs = await import('fs/promises');
       //   await fs.mkdir(join(fullPath, '..'), { recursive: true });
-  
+
       //   // Create a new file with the provided content
       //   writeFileSync(fullPath, content);
       // } else {
       //   // File exists, update it with the new content
       //   writeFileSync(fullPath, content);
       // }
-  
+
       await this.diffViewManager.openDiffView({ path : fullPath, content });
     }
   }
-  
 
+  async fetchFocusedSnippetsSearcherResult(repo_path: string, search_terms: SearchTerm[]): Promise<any> {
+    try {
+      const response = await binaryApi.post(
+        API_ENDPOINTS.BATCH_CHUNKS_SEARCH,
+        {
+          repo_path: repo_path,
+          search_terms: search_terms,
+        },
+      )
+      return response.status === 200 ? response.data : "failed";
+    } catch (error) {
+      console.error("Error while fetching focused snippets searcher results:", error);
+      throw error;
+    }
+  }
 
   async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
     this.outputChannel.info(`Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`);
     this.outputChannel.info(`message id ${message_id}`);
+    let active_repo;
+    let parsedContent;
+    let searchQuery: string;
+    let focusFiles: string[];
+
+    // Define the callback to send chunk data.
+    const chunkCallback = (chunkData: unknown) => {
+      this.sidebarProvider?.sendMessageToSidebar({
+        // Use the same ID so that the front-end resolver knows which generator to push data into.
+        id: message_id,
+        command: 'chunk',
+        data: chunkData,
+      });
+    };
+
     switch (toolRequest.tool_name) {
       case 'related_code_searcher':
         this.outputChannel.info("The tool use request:", JSON.stringify(toolRequest));
-        const active_repo = this.context.workspaceState.get<string>('activeRepo');
+        active_repo = this.context.workspaceState.get<string>('activeRepo');
         if (!active_repo) {
           throw new Error('Active repository is not defined.');
         }
 
         // Parse accumulatedContent to extract the search query and paths (used as focus_files).
-        const parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        const searchQuery: string = parsedContent.search_query || '';
-        const focusFiles: string[] = parsedContent.paths || [];
+        parsedContent = JSON.parse(toolRequest.accumulatedContent);
+        this.outputChannel.info(`Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`);
+        searchQuery = parsedContent.search_query || '';
+        focusFiles = parsedContent.paths || [];
 
-        this.outputChannel.info("Running focused_snippets_searcher tool with query");
+        this.outputChannel.info("Running related_code_searcher tool with query");
         // Call the external function to fetch relevant chunks.
         const result = await fetchRelevantChunks({
           repo_path: active_repo,
@@ -396,16 +431,6 @@ export class ChatManager {
           // Uncomment and use focusFiles if needed:
           // focus_files: focusFiles,
         });
-
-        // Define the callback to send chunk data.
-        const chunkCallback = (chunkData: unknown) => {
-          this.sidebarProvider?.sendMessageToSidebar({
-            // Use the same ID so that the front-end resolver knows which generator to push data into.
-            id: message_id,
-            command: 'chunk',
-            data: chunkData,
-          });
-        };
 
         if (result) {
           const payloadData = {
@@ -439,6 +464,54 @@ export class ChatManager {
         }
 
         this.outputChannel.info(`Code searcher result: ${JSON.stringify(result)}`);
+
+        return JSON.stringify({ completed: false });
+
+      case "focused_snippets_searcher":
+        this.outputChannel.info("The tool use request:", JSON.stringify(toolRequest));
+        active_repo = this.context.workspaceState.get<string>('activeRepo');
+        if (!active_repo) {
+          throw new Error('Active repository is not defined.');
+        }
+
+        // Parse accumulatedContent to extract the search query and paths (used as focus_files).
+        parsedContent = JSON.parse(toolRequest.accumulatedContent);
+        const search_terms = parsedContent.search_terms;
+
+        this.outputChannel.info("Running focused_snippets_searcher tool with query");
+
+        const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
+
+        if (response) {
+          const payloadData = {
+            message_id: message_id,
+            write_mode : toolRequest.write_mode,
+            tool_use_response: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              response: {
+                batch_chunks_search: response
+              }
+            }
+          }
+
+          chunkCallback({
+            name: 'TOOL_USE_RESULT',
+            data: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              result_json: response,
+              status: 'completed',
+            },
+          });
+
+          this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
+          await this.apiChat(payloadData, chunkCallback);
+          return JSON.stringify({ completed: true });
+
+        }
+
+        this.outputChannel.info(`Focused snippets searcher result: ${JSON.stringify(response)}`);
 
         return JSON.stringify({ completed: false });
 
