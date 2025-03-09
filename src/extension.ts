@@ -9,11 +9,12 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
-import   ConfigManager   from './utilities/ConfigManager';
+import ConfigManager from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
+import { InlineEditManager } from './edit/inlineEdit';
 let outputChannel: vscode.LogOutputChannel;
 
 
@@ -21,13 +22,15 @@ export function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
     .getConfiguration('deputydev')
     .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
-  
+
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
   deleteSessionId();
 
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
+
+
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(context);
   authenticationManager.validateCurrentSession().then((status) => {
@@ -76,8 +79,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 
-  
+
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
+  const inlineEditManager = new InlineEditManager(context, outputChannel, chatService);
+  inlineEditManager.editThisCode();
+  inlineEditManager.codeLenseForInlineEdit();
+
+
   const historyService = new HistoryService();
 
 
@@ -116,15 +124,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
 
-  
-const  workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
+
+  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel);
 
 
 
-const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, workspaceManager,outputChannel);
+  const webviewFocusListener = new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   // const relevantPaths = workspaceManager.getWorkspaceRepos();
-  
+
 
   //   7) Register commands for Accept/Reject etc
 

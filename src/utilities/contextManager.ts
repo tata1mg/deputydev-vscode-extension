@@ -33,7 +33,7 @@ export function deleteSessionId() {
 export function setSessionId(value: number ) {
   logOutputChannel?.info(`Setting session ID received for update: ${value}`);
   extensionContext?.workspaceState.update('sessionId', value);
-  return 
+  return
 }
 
 
@@ -59,7 +59,7 @@ export function deleteQueryId() {
 export function setQueryId(value: number ) {
   logOutputChannel?.info(`Setting query ID received for update: ${value}`);
   extensionContext?.workspaceState.update('queryId', value);
-  return 
+  return
 }
 
 

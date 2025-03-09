@@ -10,6 +10,8 @@ import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import { getActiveRepo, getSessionId, setQueryId, setSessionId } from '../utilities/contextManager';
 
 interface payload {
+  focus_files?: string[];
+  focus_chunks?: string[];
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
@@ -114,7 +116,7 @@ export class ChatManager {
 
 
 
-  private async processRelevantChunks(data: payload): Promise<string[]> {
+  async processRelevantChunks(data: payload): Promise<string[]> {
     try {
       // If data contains a referenceList, process it as needed.
       // if (data.referenceList) {
@@ -135,8 +137,10 @@ export class ChatManager {
       const result = await fetchRelevantChunks({
         repo_path: active_repo,
         query: query,
+        // focus_chunks: data.focus_chunks || [],
+        // focus_files: data.focus_files || [],
       });
-      // only print few words only 
+      // only print few words only
       this.outputChannel.info(`Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`);
       // Extract the content from each chunk in the payload.
       return result;
@@ -237,7 +241,7 @@ export class ChatManager {
               });
               // Run the tool (placeholder) and send a result.
               await this.runTool(currentToolRequest, message_id);
-              
+
               currentToolRequest = null;
             }
             break;
@@ -268,7 +272,7 @@ export class ChatManager {
                 const modifiedFiles = await this.getModifiedRequest(currentDiffRequest);
                 await this.handleModifiedFiles(modifiedFiles, active_repo);
               }
-  
+
               currentDiffRequest = null;
             } else {
               chunkCallback({ name: event.type, data: event.content });
@@ -282,7 +286,7 @@ export class ChatManager {
       }
       // Signal end of stream.
       chunkCallback({ name: 'end', data: {} });
-  
+
     } catch (error) {
       this.outputChannel.error(`Error during apiChat: ${error}`);
     }
@@ -291,18 +295,18 @@ export class ChatManager {
 
   public async getModifiedRequest(currentDiffRequest: CurrentDiffRequest) : Promise<Record<string, string>> {
     this.outputChannel.info(`Running diff tool for file ${currentDiffRequest.filepath}`);
-  
+
     const active_repo = getActiveRepo();
     if (!active_repo) {
       throw new Error('Active repository is not defined.');
     }
-  
+
     // Parse accumulated diff content to extract necessary params
     const raw_udiff = currentDiffRequest.raw_diff;
     const payload_key = currentDiffRequest.filepath;
-  
+
     this.outputChannel.info("getting modified file from binary");
-  
+
     // Call the external function to fetch the modified file
     const result = await this.fetchModifiedFile(
       active_repo,
@@ -318,10 +322,10 @@ export class ChatManager {
       return {};
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
-  
+
     return result;
   }
-  
+
 
   public async fetchModifiedFile(
     repo_path: string,
@@ -351,25 +355,25 @@ export class ChatManager {
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
-      
-  
+
+
       // // Check if file exists
       // if (!existsSync(fullPath)) {
       //   // Ensure parent directories exist
       //   const fs = await import('fs/promises');
       //   await fs.mkdir(join(fullPath, '..'), { recursive: true });
-  
+
       //   // Create a new file with the provided content
       //   writeFileSync(fullPath, content);
       // } else {
       //   // File exists, update it with the new content
       //   writeFileSync(fullPath, content);
       // }
-  
+
       await this.diffViewManager.openDiffView({ path : fullPath, content });
     }
   }
-  
+
 
 
   async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
