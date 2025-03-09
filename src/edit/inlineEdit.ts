@@ -31,6 +31,7 @@ export class InlineEditManager {
     private focus_files: string[] | undefined;
     private active_repo: string | undefined;
     private relative_file_path: string | undefined
+    private comment_box_thread: vscode.CommentThread | undefined
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -38,6 +39,36 @@ export class InlineEditManager {
     ) {
         this.context = context;
         this.outputChannel = outputChannel;
+    }
+
+    public async codeLenseForInlineEdit() {
+        // Register the CodeLensProvider for any language
+        this.context.subscriptions.push(vscode.languages.registerCodeLensProvider({ scheme: 'file', language: '*' }, {
+            provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
+                const codeLenses: vscode.CodeLens[] = [];
+                const selection = vscode.window.activeTextEditor?.selection;
+
+                if (selection && !selection.isEmpty) {
+                    const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
+
+                    codeLenses.push(
+                        new vscode.CodeLens(range, {
+                            title: 'Edit',
+                            command: 'deputydev.editThisCode',
+                            arguments: [document.uri.toString(), selection.start.line, selection.end.line],
+                        }),
+                        new vscode.CodeLens(range, {
+                            title: 'Chat',
+                            command: 'deputydev.chat',
+                            arguments: [document.uri.toString(), selection.start.line, selection.end.line],
+                        }),
+                    );
+                }
+
+                // Return the code lenses or an empty array if there is no selection
+                return codeLenses.length > 0 ? codeLenses : []; // Ensure empty array is returned when no selection
+            }
+        }));
     }
 
     public async editThisCode() {
@@ -55,7 +86,7 @@ export class InlineEditManager {
             this.outputChannel.info(`Active repo: ${this.active_repo}`)
             // Get file path
             this.file_path = this.editor.document.uri.fsPath;
-            if(!this.active_repo){
+            if (!this.active_repo) {
                 return
             }
             this.relative_file_path = path.relative(this.active_repo, this.file_path);
@@ -94,7 +125,7 @@ export class InlineEditManager {
             if (!this.range) {
                 return;
             }
-            const thread = commentController.createCommentThread(
+            this.comment_box_thread = commentController.createCommentThread(
                 this.editor.document.uri,
                 this.range,
                 []
@@ -104,7 +135,7 @@ export class InlineEditManager {
                 prompt: "Ask DeputyDev AI To Edit Your Code..."
             };
 
-            thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+            this.comment_box_thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
         });
 
         // Register the command for AI editing
@@ -117,9 +148,9 @@ export class InlineEditManager {
             }, async () => {
                 this.outputChannel.info("Inside function")
                 const relevant_chunks = await this.chatService.processRelevantChunks({
-                    focus_chunks : this.focus_chunks,
-                    query : reply.text,
-                    focus_files : this.focus_files
+                    focus_chunks: this.focus_chunks,
+                    query: reply.text,
+                    focus_files: this.focus_files
                 })
                 const job = await this.inlineEditService.generateInlineEdit({
                     "query": reply.text,
@@ -157,7 +188,7 @@ export class InlineEditManager {
                 if (!this.active_repo) {
                     return
                 }
-                this.chatService.handleModifiedFiles(modifiedFiles , this.active_repo)
+                this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo)
             });
         }));
     }
@@ -180,7 +211,7 @@ export class InlineEditManager {
             }
 
             // Wait for 3 seconds before the next attempt
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
 }

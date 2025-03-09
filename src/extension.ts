@@ -79,6 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
   const inlineEditManager = new InlineEditManager(context, outputChannel, chatService);
   inlineEditManager.editThisCode();
+  inlineEditManager.codeLenseForInlineEdit();
 
 
   const historyService = new HistoryService();
