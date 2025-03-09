@@ -11,4 +11,5 @@ export const API_ENDPOINTS = {
     GENERATE_INLINE_EDIT: "/end_user/query_solver/v1/generate-inline-edit",
     GET_INLINE_EDIT_RESULT: "/end_user/query_solver/v1/get-inline-edit-result",
     DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
+    BATCH_CHUNKS_SEARCH : "/v1/batch_chunks_search",
 }
