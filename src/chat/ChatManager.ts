@@ -480,8 +480,8 @@ export class ChatManager {
 
         this.outputChannel.info("Running focused_snippets_searcher tool with query");
 
-        const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
-
+        // const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
+        const response = ["This tool is not usable please related_code_searcher"]
         if (response) {
           const payloadData = {
             message_id: message_id,
