@@ -9,4 +9,5 @@ export const API_ENDPOINTS = {
     PAST_SESSIONS: "/end_user/history/v1/sessions",
     PAST_CHATS: "/end_user/history/v1/chats",
     KEYWORD_SEARCH: "/v1/keyword_search",
+    DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
 } as const;

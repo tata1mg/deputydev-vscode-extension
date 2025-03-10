@@ -77,11 +77,6 @@ export interface ChatUserMessage {
   actor: 'USER';
 }
 
-export interface ChatSystemMessage {
-  type: 'system';
-  text: string;
-  referenceList: ChatReferenceItem[];
-}
 
 // New type for tool use messages.
 export interface ChatToolUseMessage {
@@ -109,6 +104,10 @@ export interface ChatCodeBlockMessage {
     language: string;
     file_path?: string;
     code: string;
+    is_diff?: boolean; 
+    diff?: string | null; 
+    added_lines?: number | null; 
+    removed_lines?: number | null; 
   };
   completed: boolean;
   actor: "ASSISTANT";
@@ -117,7 +116,6 @@ export interface ChatCodeBlockMessage {
 export type ChatMessage =
   | ChatUserMessage
   | ChatAssistantMessage
-  | ChatSystemMessage
   | ChatToolUseMessage
   | ThinkingMessage
   | ChatCodeBlockMessage;
@@ -186,6 +184,7 @@ export const useChatStore = create(
       sessionChats: [] as sessionChats[],
       currentEditorReference: null as ChatReferenceFileItem[] | null,
       ChatAutocompleteOptions: [] as ChatAutocompleteOptions,
+      lastToolUseResponse: undefined as { tool_use_id: string; tool_name: string } | undefined,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -209,7 +208,7 @@ export const useChatStore = create(
           chunkCallback: (data: { name: string; data: any }) => void
         ) {
           logToOutput('info', `sendChatMessage: ${message}`);
-          const { history } = get();
+          const { history, lastToolUseResponse } = get();
 
           // Create the user message 
           const userMessage: ChatUserMessage = {
@@ -226,13 +225,30 @@ export const useChatStore = create(
           });
 
 
-          // Build the payload without including any message id.
-          const payload = {
-            query: message,
-            relevant_chunks: [] as string[],
-            write_mode: useChatSettingStore.getState().chatType === 'write',
-            referenceList: userMessage.referenceList,
-          };
+
+            // Build the payload
+            const payload: any = {
+              query: message,
+              is_tool_response: false,
+              relevant_chunks: [] as string[],
+              write_mode: useChatSettingStore.getState().chatType === 'write',
+              referenceList: userMessage.referenceList,
+            };
+
+            // If a tool response was stored, add it to the payload
+            if (lastToolUseResponse) {
+              payload.is_tool_response = true;
+              payload.tool_use_response = {
+                tool_name: lastToolUseResponse.tool_name,
+                tool_use_id: lastToolUseResponse.tool_use_id,
+                response: {
+                  user_response: message,
+                },
+              };
+              // Clear it so it doesn't affect subsequent messages.
+              set({ lastToolUseResponse: undefined });
+            }
+
 
           const stream = apiChat(payload);
           console.log('stream received in FE : ', stream);
@@ -338,7 +354,6 @@ export const useChatStore = create(
                   break;
                 }
 
-
                 case 'CODE_BLOCK_START': {
                   const codeData = event.data as { language?: string; filepath?: string; is_diff?: boolean };
 
@@ -348,6 +363,7 @@ export const useChatStore = create(
                       language: codeData.language || '',
                       file_path: codeData.filepath,
                       code: '',
+                      is_diff: codeData.is_diff || false, // ✅ Save is_diff here
                     },
                     completed: false,
                     actor: "ASSISTANT",
@@ -381,13 +397,26 @@ export const useChatStore = create(
                 }
 
                 case 'CODE_BLOCK_END': {
+                  console.log('Raw event data:', event.data);
+                  const endData = event.data as {
+                    diff: string | null;
+                    added_lines: number | null;
+                    removed_lines: number | null;
+                  };
+                  logToOutput('info', `code end data ${endData.diff}`);
+
                   set((state) => {
                     const newHistory = [...state.history];
                     const lastMsg = newHistory[newHistory.length - 1];
 
                     if (lastMsg?.type === 'CODE_BLOCK') {
                       lastMsg.completed = true;
-                    }
+
+                        // ✅ Update diff info
+                        lastMsg.content.diff = endData.diff;
+                        lastMsg.content.added_lines = endData.added_lines;
+                        lastMsg.content.removed_lines = endData.removed_lines;
+                      }
 
                     return { history: newHistory };
                   })
@@ -499,6 +528,7 @@ export const useChatStore = create(
                       return {
                         history: [...state.history, { ...state.current, text: finalText }],
                         current: undefined,
+                        lastToolUseResponse: { tool_use_id, tool_name },
                       };
                     });
                   } else {
