@@ -9,7 +9,7 @@ const api = axios.create({
 });
 
 const binaryApi = axios.create({
-    baseURL: 'http://localhost:8001',
+    baseURL: 'http://localhost:8000',
     headers: {
         'Content-Type': 'application/json',
     },
