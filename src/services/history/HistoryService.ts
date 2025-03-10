@@ -55,8 +55,8 @@ export class HistoryService {
         };
         try {
             const response = await api.post(API_ENDPOINTS.RELEVANT_CHAT_HISTORY, {
-                headers, data: {query}
-            });
+                query
+            }, {headers});
             return response.data.data;
         } catch (error) {
             console.error('Error while fetching session:', error);
