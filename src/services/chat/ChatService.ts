@@ -26,9 +26,7 @@ export class QuerySolverService {
           'Content-Type': 'application/json',
           'X-REQUEST-ID': uuidv4(),
           'Accept': 'text/event-stream',
-          'X-Session-Id': currentSessionId,
-          'X-Client': 'VSCODE_EXT',
-          'X-Client-Version': '0.0.1'
+          'X-Session-Id': currentSessionId
         },
         data: payload,
         responseType: 'stream'
