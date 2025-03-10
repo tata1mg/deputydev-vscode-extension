@@ -45,7 +45,7 @@ function App() {
       view = <Auth />
       break;
     case 'chat':
-      view =  <Chat />;
+      view =  isAuthenticated ? <Chat /> : <Auth />;
       break;
     case 'setting':
       view =  <Setting /> ;
