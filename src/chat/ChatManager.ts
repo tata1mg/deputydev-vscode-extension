@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from '../services/api/endpoints';
 import { QuerySolverService } from "../services/chat/ChatService";
 import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import { getActiveRepo, getSessionId, setQueryId, setSessionId } from '../utilities/contextManager';
+import { HistoryService } from '../services/history/HistoryService';
 
 interface payload {
   focus_files?: string[];
@@ -23,6 +24,7 @@ interface payload {
     tool_use_id?: string;
     response: any;
   };
+  previous_query_ids?: number[];
 }
 
 interface SearchTerm {
@@ -48,6 +50,7 @@ interface CurrentDiffRequest {
 export class ChatManager {
   private querySolverService = new QuerySolverService();
   private sidebarProvider?: SidebarProvider; // Optional at first
+  private historyService = new HistoryService();
 
 
 
@@ -121,7 +124,7 @@ export class ChatManager {
 
 
 
-  async processRelevantChunks(data: payload): Promise<string[]> {
+  async processRelevantChunks(data: payload, relevantHistoryText ?: string): Promise<string[]> {
     try {
       // If data contains a referenceList, process it as needed.
       // if (data.referenceList) {
@@ -135,7 +138,10 @@ export class ChatManager {
         throw new Error('Active repository is not defined.');
       }
       // Extract the query from the data.
-      const query = data.query || '';
+      let query = data.query ?? '';
+      if (relevantHistoryText) {
+        query = query + "\n" + relevantHistoryText;
+      }
       this.outputChannel.info(`Relevant chunks next`);
 
       // Call the external function to fetch relevant chunks.
@@ -170,8 +176,32 @@ export class ChatManager {
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
+      //get all relevant previous chat queries if any
+      let currentSessionId = getSessionId();
+      let relevantHistoryText : string | undefined = undefined;
+      let relevantHistoryQueryIds: number[] = [];
+      if (currentSessionId && payload.query) {
+        this.outputChannel.info(`Current session ID: ${currentSessionId}`);
+
+        // call the api to get all the previous chat queries
+        const relevantHistoryData = await this.historyService.getRelevantChatHistory(currentSessionId, payload.query);
+        this.outputChannel.info(`Relevant chat history: ${JSON.stringify(relevantHistoryData)}`);
+
+        // extract the text from the response
+        const relevantHistoryChats = relevantHistoryData?.chats || [];
+        for (const chat of relevantHistoryChats) {
+          relevantHistoryText = relevantHistoryText ? relevantHistoryText + chat.query : chat.response;
+          relevantHistoryQueryIds.push(chat.id);
+        }
+      }
+
+
+      this.outputChannel.info("relevantHistoryText", relevantHistoryText);
+      this.outputChannel.info("relevantHistoryQueryIds", relevantHistoryQueryIds);
+
+
       if (payload.query) {
-        const relevant_chunks = await this.processRelevantChunks(payload);
+        const relevant_chunks = await this.processRelevantChunks(payload, relevantHistoryText);
         payload.relevant_chunks = relevant_chunks;
       }
       delete payload.referenceList;
@@ -189,7 +219,9 @@ export class ChatManager {
       }
       delete payload.is_tool_response;
 
-
+      if (relevantHistoryQueryIds.length > 0) {
+        payload.previous_query_ids = relevantHistoryQueryIds;
+      }
 
       const querySolverIterator = await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
