@@ -5,27 +5,33 @@ import { ChatArea } from "./chatMessagesArea";
 import { AutocompleteMenu } from "./autocomplete";
 import { Folder, File, Code } from "lucide-react";
 import { AutocompleteOption } from "@/types";
-import { keywordSearch } from "@/commandApi";
+import { keywordSearch, keywordTypeSearch } from "@/commandApi";
 
 
 const initialAutocompleteOptions: AutocompleteOption[] = [
   {
-    icon: 'class',
+    icon: 'directory',
     label: "Directory",
     value: "Directory: ",
     description: "A folder containing files and subfolders",
   },
   {
-    icon: "function",
+    icon: "file",
     label: "File",
     value: "File: ",
     description: "A single file such as a document or script",
   },
   {
-    icon: "file",
-    label: "Code Snippet",
-    value: "Code: ",
+    icon: "function",
+    label: "Function",
+    value: "Function: ",
     description: "A short piece of reusable code",
+  },
+  {
+    icon: "class",
+    label: "Class",
+    value: "Class: ",
+    description: "A short piece of reusable class code",
   },
 ];
 
@@ -69,6 +75,11 @@ export function ChatUI() {
     setShowAutocomplete(false);
   };
 
+  function startsWithPrefix(word: string) {
+    const prefixes = ["File: ", "Directory: ", "Class: ", "Function: "];
+    return prefixes.some(prefix => word.startsWith(prefix));
+  }
+
   const handleChipChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setShowAutocomplete(true);
@@ -81,9 +92,16 @@ export function ChatUI() {
 
     // Set a new timeout to call the API after 500ms of inactivity
     const newTimeout = window.setTimeout(async () => {
-      await keywordSearch({ keyword: newValue });
+      if (startsWithPrefix(newValue)) {
+        await keywordTypeSearch({ 
+          keyword: newValue.split(": ")[1], 
+          type: newValue.split(": ")[0].toLowerCase()
+        }); 
+      } else{
+        await keywordSearch({ keyword: newValue });
+      }
     }, 500);
-
+    
     setTypingTimeout(newTimeout);
   };
 

@@ -230,7 +230,6 @@ addCommandEventListener('sessions-history', ({ data }) => {
 });
 
 addCommandEventListener('keyword-search-response', ({ data }) => {
-  logToOutput('info', `Popla Lappa ${data}`);
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
       icon: item.type,
@@ -240,7 +239,7 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
     }
   })
   logToOutput('info', `AutoSearchResponse :: ${AutoSearchResponse}`);
-  useChatStore.setState({ChatAutocompleteOptions: [...AutoSearchResponse, ...AutoSearchResponse]});
+  useChatStore.setState({ChatAutocompleteOptions: AutoSearchResponse});
   if (!Array.isArray(data)) {
     console.error("Invalid data format for 'keyword-search-response'", data);
     return;
@@ -254,6 +253,24 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
   }));
 
   useChatStore.setState({ currentEditorReference: editorReference });
+});
+
+addCommandEventListener('keyword-type-search-response', ({ data }) => {
+  logToOutput('info', `Popla Lappa type respose${data}`);
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      icon: item.type,
+      label: item.value,
+      value: item.value,
+      description: item.path,
+    }
+  })
+  logToOutput('info', `AutoSearchResponse :: ${AutoSearchResponse}`);
+  useChatStore.setState({ChatAutocompleteOptions: AutoSearchResponse});
+  if (!Array.isArray(data)) {
+    console.error("Invalid data format for 'keyword-type-search-response'", data);
+    return;
+  }
 });
 
 
