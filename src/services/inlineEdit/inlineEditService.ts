@@ -20,10 +20,9 @@ export class InlineEditService {
         try {
             const headers = {
                 'X-Client': 'VSCODE_EXT',
-                'X-Client-Version': '0.0.1',
-                "job_id": job_id
+                'X-Client-Version': '0.0.1'
             }
-            const response = await api.get(API_ENDPOINTS.GET_INLINE_EDIT_RESULT, {headers});
+            const response = await api.get(API_ENDPOINTS.GET_INLINE_EDIT_RESULT, {headers, params: {job_id: job_id}});
             return response.data.data;
         } catch (error) {
             console.error('Error while fetching inline diff result: ', error);
