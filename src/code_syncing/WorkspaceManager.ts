@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import ConfigManager from '../utilities/ConfigManager';
 import { WorkspaceFileWatcher } from './FileWatcher';
-import { updateVectorStoreWithResponse, updateVectorStore, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { updateVectorStoreWithResponse, updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 
 
 

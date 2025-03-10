@@ -7,9 +7,13 @@ import { ChatManager } from '../chat/ChatManager';
 import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
-import { WorkspaceManager } from '../embedding/WorkspaceManager';
+import { WorkspaceManager } from '../code_syncing/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
 import { ReferenceManager } from "../references/ReferenceManager";
+import { getActiveRepo } from "../utilities/contextManager";
+import { existsSync, writeFileSync } from 'fs';
+import { join } from 'path';
+
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = []
@@ -74,18 +78,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       switch (command) {
         case 'api-chat':
           console.log('api-chat data:', data);
+          data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
 
-        case 'api-clear-chat':
-          promise = this.chatService.apiClearChat();
-          break;
-        case 'api-save-session':
-          promise = this.chatService.apiSaveSession(data);
-          break;
-        case 'api-chat-setting':
-          promise = this.chatService.apiChatSetting(data);
-          break;
+        // case 'api-clear-chat':
+        //   promise = this.chatService.apiClearChat();
+        //   break;
+        // case 'api-save-session':
+        //   promise = this.chatService.apiSaveSession(data);
+        //   break;
+        // case 'api-chat-setting':
+        //   promise = this.chatService.apiChatSetting(data);
+          // break;
         case 'keyword-search':
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
@@ -170,12 +175,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             this._onWebviewFocused.fire();
           }
           break;
-
-
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);
           break;
+
+        // diff
+        case 'write-file':
+          promise = this.writeFile(data);
+          break;
       }
+
+     
+
 
 
       if (promise) {
@@ -219,16 +230,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   /**
    * Example of applying changes (like "openDiffView" in your other code)
    */
-  private async writeFile(data: { type: string; value: string; filePath: string }) {
-    const mappedData = {
-      path: data.filePath,
-      content: data.value,
-    };
-    // Debug logs
-    console.log('Mapped Data:', mappedData);
-    console.log('command write file:', mappedData.path);
 
-    return this.diffViewManager.openDiffView(mappedData);
+
+  private async writeFile(data: { filePath: string; raw_diff: string }) {
+    
+    const modifiedFiles = await this.chatService.getModifiedRequest({
+      filepath: data.filePath,
+      raw_diff: data.raw_diff,
+    }) as Record<string, string>;
+  
+    this.outputChannel.info(`Writing file(s) for: ${data.filePath}`);
+  
+    const active_repo = getActiveRepo();
+    if (!active_repo) {
+      this.outputChannel.error('No active repo found');
+      return;
+    }
+    this.chatService.handleModifiedFiles(modifiedFiles,active_repo);
+    return; 
   }
 
   private async getOpenedFiles() {

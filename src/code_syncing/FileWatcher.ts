@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import ignore from 'ignore';
 
 import ConfigManager from '../utilities/ConfigManager'; // Your singleton config manager
-import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../services/websockets/websocketHandlers';
+import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;
@@ -56,7 +56,10 @@ export class WorkspaceFileWatcher {
 
     // Load patterns from .gitignore files recursively.
     patterns = patterns.concat(this.loadGitignorePatternsRecursive(this.activeRepoPath, ''));
-    patterns.push('.git/');  // Ignore Git index lock file
+    patterns.push('.git/');  // Ignore the entire .git directory
+
+    // Ignore all files with .git extension but NOT .gitignore or .gitattributes
+    patterns.push('**/*.git');
 
     // Additional ignore patterns from configuration.
     const additionalIgnore: string[] =
@@ -141,14 +144,20 @@ export class WorkspaceFileWatcher {
     if (this.shouldIgnore(uri)) {
       return;
     }
-
-    this.pendingFileChanges.add(uri.fsPath);
-
+  
+    const relativePath = path.relative(this.activeRepoPath, uri.fsPath).replace(/\\/g, '/');
+    this.pendingFileChanges.add(relativePath);
+  
+    if (this.changeTimeout) {
+      clearTimeout(this.changeTimeout);
+    }
+  
     this.changeTimeout = setTimeout(() => {
       this.processFileUpdates();
       this.changeTimeout = null;
     }, 500);
   }
+  
 
 
 
@@ -170,9 +179,7 @@ export class WorkspaceFileWatcher {
       // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
       updateVectorStore(params);
   
-      this.outputChannel.info('done with websockets ..');
-  
-      vscode.window.showInformationMessage(`Files updated: ${fileList}`);
+      this.outputChannel.info(`Files updated with websockets: ${fileList}`);
       this.pendingFileChanges.clear();
     }
   }

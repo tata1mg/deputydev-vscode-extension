@@ -1,6 +1,6 @@
 import { WebSocketClient, BASE_URL } from './websocketClient';
 import { getAuthToken } from '../../utilities/contextManager';
-import { API_ENDPOINTS } from "../api/endpoints";
+import { API_ENDPOINTS } from "../../services/api/endpoints";
 
 // Updated interface for RelevantChunksParams (includes new backend fields)
 export interface RelevantChunksParams {

@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
-import { useChatStore } from "../../stores/chatStore";
 import { ChatArea } from "./chatMessagesArea";
 import { AutocompleteMenu } from "./autocomplete";
 import { Folder, File, Code } from "lucide-react";
 import { AutocompleteOption } from "@/types";
 import { keywordSearch, keywordTypeSearch } from "@/commandApi";
-
+import { useChatSettingStore, useChatStore, Session } from '../../stores/chatStore';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
+import RepoSelector from './chatElements/RepoSelector';
+import { getSessionChats, getSessions } from '@/commandApi';
+import { BotMessageSquare } from 'lucide-react';
+import Markdown from 'react-markdown';
+import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
+import '../../styles/markdown-body.css';
 
 const initialAutocompleteOptions: AutocompleteOption[] = [
   {
@@ -36,15 +43,20 @@ const initialAutocompleteOptions: AutocompleteOption[] = [
 ];
 
 export function ChatUI() {
-  const { sendChatMessage, cancelChat, isLoading } = useChatStore();
   const [repoSelectorDisabled] = useState(false);
-  const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipText, setChipText] = useState<string | null>(null);
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
+  const { chatType, setChatType } = useChatSettingStore();
+  const visibleSessions = 3;
+  const repoSelectorEmbedding = useRepoSelectorStore((state) => state.repoSelectorDisabled);
+  const [userInput, setUserInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const chipInputRef = useRef<HTMLInputElement | null>(null);
   const [typingTimeout, setTypingTimeout] = useState<number | null>(null);
   const [selectedReferenceItem, setSelectedReferenceItem] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chipText !== null && chipInputRef.current) {
@@ -52,17 +64,33 @@ export function ChatUI() {
     }
   }, [chipText]);
 
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.max(70, Math.min(el.scrollHeight, 300))}px`;
+  };
+
+  const handleShowMore = () => {
+    useChatStore.setState({ showAllSessions: true });
+  };
+
   const handleSend = async () => {
-    if (!userInput.trim() && !chipText) return;
-    setUserInput("");
-    setChipText(null);
-    setShowAutocomplete(false);
-    await sendChatMessage(userInput, () => { });
-    if (textareaRef.current) textareaRef.current.style.height = "70px";
+    useChatStore.setState({ showSessionsBox: false });
+    if (!userInput.trim()) return;
+
+    const message = userInput.trim();
+    setUserInput('');
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '70px';
+    }
+
+    await sendChatMessage(message, (data) => { });
   };
 
   const handleSelectAutocomplete = (label: string) => {
-    setChipText(label)
+    setChipText(label);
     setSelectedReferenceItem(label);
     setShowAutocomplete(false);
   };
@@ -85,39 +113,86 @@ export function ChatUI() {
     setShowAutocomplete(true);
     setChipText(newValue);
 
-    // Clear the previous timeout if the user keeps typing
     if (typingTimeout) {
       clearTimeout(typingTimeout);
     }
 
-    // Set a new timeout to call the API after 500ms of inactivity
     const newTimeout = window.setTimeout(async () => {
       if (startsWithPrefix(newValue)) {
-        await keywordTypeSearch({ 
-          keyword: newValue.split(": ")[1], 
+        await keywordTypeSearch({
+          keyword: newValue.split(": ")[1],
           type: newValue.split(": ")[0].toLowerCase()
-        }); 
-      } else{
+        });
+      } else {
         await keywordSearch({ keyword: newValue });
       }
     }, 500);
-    
+
     setTypingTimeout(newTimeout);
   };
+
+  const blockSendMessage = isLoading;
+  const disableRepoSelector = isLoading || messages.length > 0;
+  const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
+    ? { 'data-tooltip-id': 'repo-tooltip', 'data-tooltip-content': 'Create new chat to select new repo.' }
+    : {};
 
   return (
     <div className="flex flex-col justify-between h-full relative">
       <div className="flex-grow overflow-y-auto">
         <ChatArea />
+
+        {showSessionsBox && selectedSession === 0 && (
+          <div>
+            <div className='mb-24 mt-10'>
+              <BotMessageSquare className='px-4 h-20 w-20 text-white' />
+              <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
+            </div>
+
+            {sessions.length > 0 && (
+              <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
+            )}
+
+            <div className="session-box p-4 h-36 overflow-y-auto">
+              {showAllSessions ? sessions.map(session => (
+                <button
+                  key={session.id}
+                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                  className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+                >
+                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                  <span className="text-sm text-gray-400">{session.age}</span>
+                </button>
+              )) : sessions.slice(0, visibleSessions).map(session => (
+                <button
+                  key={session.id}
+                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
+                  className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+                >
+                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                  <span className="text-sm text-gray-400">{session.age}</span>
+                </button>
+              ))}
+            </div>
+
+            {!showAllSessions && visibleSessions < sessions.length && (
+              <button onClick={handleShowMore} className="text-white mt-2 px-4">
+                Show More...
+              </button>
+            )}
+          </div>
+        )}
+
+        <div ref={chatContainerEndRef} />
+        <div ref={messagesEndRef} />
       </div>
 
       {showAutocomplete && (
         <div className="w-full">
-          <AutocompleteMenu options={
-            chipText ?
-              useChatStore.getState().ChatAutocompleteOptions :
-              initialAutocompleteOptions
-            } onSelect={handleSelectAutocomplete} />
+          <AutocompleteMenu
+            options={chipText ? useChatStore.getState().ChatAutocompleteOptions : initialAutocompleteOptions}
+            onSelect={handleSelectAutocomplete}
+          />
         </div>
       )}
 
@@ -149,35 +224,81 @@ export function ChatUI() {
 
           <textarea
             ref={textareaRef}
-            className="bg-transparent p-1 w-full text-white resize-none focus:outline-none"
+            rows={1}
+            className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
+              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+              overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}
             placeholder="Ask anything (⌘L), @ to mention code blocks"
             value={userInput}
             onChange={(e) => {
-              const newValue = e.target.value;
-
-              if (newValue.endsWith("@")) {
-                setChipText("");
-                setShowAutocomplete(true);
-              } else {
-                setUserInput(newValue);
+              if (!repoSelectorEmbedding) {
+                setUserInput(e.target.value);
+                autoResize();
               }
             }}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
+              if (!repoSelectorEmbedding && e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSend();
+                if (!isLoading) {
+                  handleSend();
+                }
               }
             }}
-            disabled={repoSelectorDisabled || isLoading}
+            disabled={repoSelectorEmbedding}
+            {...(repoSelectorEmbedding && {
+              'data-tooltip-id': 'repo-tooltip',
+              'data-tooltip-content': 'Please wait, your repo is embedding.'
+            })}
           />
+
           <div className="top-1/2 right-3 absolute flex items-center -translate-y-1/2">
             {isLoading ? (
-              <button className="bg-red-500 rounded-sm w-4 h-4" onClick={cancelChat} disabled={repoSelectorDisabled} />
+              <button
+                className="flex justify-center items-center bg-red-500 rounded-sm w-4 h-4"
+                onClick={cancelChat}
+              />
             ) : (
-              <button onClick={handleSend} disabled={repoSelectorDisabled}>
+              <button
+                className="flex justify-center items-center"
+                onClick={() => {
+                  if (!blockSendMessage) {
+                    handleSend();
+                  }
+                }}
+              >
                 <EnterIcon className="w-5 h-5 text-white" />
               </button>
             )}
+          </div>
+          <Tooltip id="repo-tooltip" />
+        </div>
+
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <RepoSelector disabled={disableRepoSelector} tooltipProps={repoTooltipProps} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-white">Chat</span>
+            <label className="inline-flex relative items-center cursor-pointer">
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={chatType === 'write'}
+                onChange={() => {
+                  if (!isLoading) {
+                    setChatType(chatType === 'ask' ? 'write' : 'ask');
+                  }
+                }}
+                disabled={isLoading}
+              />
+              <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500 
+                  after:content-[''] after:absolute after:top-0.5 after:left-0.5 
+                  after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all 
+                  peer-checked:after:translate-x-4"
+              />
+            </label>
+            <span className="font-medium text-white">Write</span>
           </div>
         </div>
       </div>

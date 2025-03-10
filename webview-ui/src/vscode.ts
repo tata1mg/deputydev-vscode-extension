@@ -37,17 +37,19 @@ const resolvers: Record<string, Resolver> = {};
 const events: Record<string, EventListener[]> = {};
 
 window.addEventListener('message', (event) => {
+  console.log('message', event.data);
   const { id, command, data } = event.data;
   if (command === 'result') {
     const resolver = resolvers[id];
     resolver.resolve(data);
+    console.log('result resolver finisihed', data);
     delete resolvers[id];
     return;
   }
 
   if (command === 'chunk') {
     const resolver = resolvers[id];
-    console.log('chunk', data);
+    console.log('chunk', data,id);
     resolver.chunk?.(data);
     return;
   }

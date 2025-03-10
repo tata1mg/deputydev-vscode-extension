@@ -14,7 +14,7 @@
     "onCommand:deputydev.editThisCode",
     "onCommand:deputydev.acceptChanges",
     "onCommand:deputydev.rejectChanges",
-    "onCommand:deputydev.acceptAllChanges",
+    "onCommand:deputydev.AcceptAllChanges",
     "onCommand:deputydev.rejectAllChanges",
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
@@ -49,7 +49,7 @@
         "title": "Reject Changes"
       },
       {
-        "command": "deputydev.acceptAllChanges",
+        "command": "deputydev.AcceptAllChanges",
         "category": "DeputyDev",
         "title": "Accept All Changes",
         "icon": "$(check-all)"
@@ -78,14 +78,14 @@
         "icon": "$(settings-gear)"
       },
       {
-        "command": "deputydev.HistoryButtonClick",
-        "title": "History",
-        "icon": "$(history)"
-      },
-      {
         "command": "deputydev.AddButtonClick",
         "title": "New",
         "icon": "$(add)"
+      },
+      {
+        "command": "deputydev.ConfirmModify",
+        "title": "Confirm Modify",
+        "icon": "$(check)"
       }
     ],
     "menus": {
@@ -96,14 +96,9 @@
           "group": "navigation@1"
         },
         {
-          "command": "deputydev.HistoryButtonClick",
-          "when": "view == deputydev-sidebar",
-          "group": "navigation@2"
-        },
-        {
           "command": "deputydev.SettingButtonClick",
           "when": "view == deputydev-sidebar",
-          "group": "navigation@3"
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
@@ -120,24 +115,19 @@
       ],
       "editor/title": [
         {
-          "command": "deputydev.acceptChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@1"
+          "command": "deputydev.ConfirmModify",
+          "group": "navigation@1",
+          "when": "isInDiffEditor && resourceScheme == 'deputydev'"
         },
         {
-          "command": "deputydev.rejectChanges",
+          "command": "deputydev.AcceptAllChanges",
           "when": "deputydev.hasChanges",
           "group": "navigation@2"
         },
         {
-          "command": "deputydev.acceptAllChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@3"
-        },
-        {
           "command": "deputydev.rejectAllChanges",
           "when": "deputydev.hasChanges",
-          "group": "navigation@4"
+          "group": "navigation@3"
         }
       ]
     },
@@ -160,16 +150,21 @@
         }
       ]
     },
-    "configuration": {
-      "title": "Deputydev",
-      "properties": {
-        "deputydev.inlineDiff.enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable inline diff in the editor(preview), restart vscode after changing"
+      "configuration": {
+        "title": "DeputyDev",
+        "properties": {
+          "deputydev.inlineDiff.enable": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable inline diff in the editor (preview), restart VS Code after changing."
+          },
+          "deputydev.outputChannelName": {
+            "type": "string",
+            "default": "DeputyDev",
+            "description": "Set the name of the output channel."
+          }
         }
       }
-    }
   },
   "scripts": {
     "install:all": "yarn install && yarn --cwd ./webview-ui install",
@@ -185,8 +180,10 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.1",
     "@types/event-source-polyfill": "^1.0.5",
     "@types/glob": "^8.1.0",
+    "@types/lodash": "^4.17.16",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.7",
     "@types/vscode": "^1.96.0",
@@ -202,8 +199,6 @@
     "vscode-test": "^1.6.1"
   },
   "dependencies": {
-    "@types/diff": "^7.0.0",
-    "@types/lodash": "^4.17.15",
     "axios": "^1.7.9",
     "deepmerge": "^4.3.1",
     "diff": "^7.0.0",

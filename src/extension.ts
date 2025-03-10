@@ -6,21 +6,26 @@ import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff 
 import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager
 import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
-import { WorkspaceManager } from './embedding/WorkspaceManager';
+import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import { ReferenceManager } from './references/ReferenceManager';
 import   ConfigManager   from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
-import { WebviewFocusListener } from './embedding/WebviewFocusListener';
+import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 let outputChannel: vscode.LogOutputChannel;
 
 
 export function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel('DeputyDev', { log: true });
+  const outputChannelName = vscode.workspace
+    .getConfiguration('deputydev')
+    .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
+  
+  outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
+  deleteSessionId();
 
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
@@ -70,11 +75,13 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
 
+
+
   
 
 
-  const chatService = new ChatManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
+  const chatService = new ChatManager(context, outputChannel, diffViewManager);
   const historyService = new HistoryService();
 
 
@@ -94,6 +101,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   //  * 5) Example: Register a code editor context command  (might remove it)
   registerCodeEditorMenuCommand(context, sidebarProvider);
+
+  chatService.setSidebarProvider(sidebarProvider);
 
 
 
@@ -124,46 +133,48 @@ const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, w
   //   7) Register commands for Accept/Reject etc
 
   // Accept changes in the active file
-  context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage('No active editor to accept changes for.');
-        return;
-      }
-      const fileUri = editor.document.uri;
-      await diffViewManager.acceptFile(fileUri.fsPath);
-      vscode.window.showInformationMessage('Changes accepted successfully.');
-    })
-  );
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
+  //     const editor = vscode.window.activeTextEditor;
+  //     if (!editor) {
+  //       vscode.window.showErrorMessage('No active editor to accept changes for.');
+  //       return;
+  //     }
+  //     const fileUri = editor.document.uri;
+  //     outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
+  //     await diffViewManager.acceptFile(fileUri.fsPath);
+  //     vscode.window.showInformationMessage('Changes accepted successfully.');
+  //   })
+  // );
 
-  // Reject changes in the active file
-  context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage('No active editor to reject changes for.');
-        return;
-      }
-      const fileUri = editor.document.uri;
-      await diffViewManager.rejectFile(fileUri.fsPath);
-      vscode.window.showInformationMessage('Changes rejected successfully.');
-    })
-  );
+  // // Reject changes in the active file
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
+  //     const editor = vscode.window.activeTextEditor;
+  //     if (!editor) {
+  //       vscode.window.showErrorMessage('No active editor to reject changes for.');
+  //       return;
+  //     }
+  //     const fileUri = editor.document.uri;
+  //     await diffViewManager.rejectFile(fileUri.fsPath);
+  //     vscode.window.showInformationMessage('Changes rejected successfully.');
+  //   })
+  // );
 
-  // If you want commands for accepting or rejecting ALL tracked files:
-  context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
-      await diffViewManager.acceptAllFile();
-      vscode.window.showInformationMessage('All changes accepted.');
-    })
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
-      await diffViewManager.rejectAllFile();
-      vscode.window.showInformationMessage('All changes rejected.');
-    })
-  );
+  // // If you want commands for accepting or rejecting ALL tracked files:
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
+  //     outputChannel.info(`Accepting changes for all file`);
+  //     await diffViewManager.acceptAllFile();
+  //     vscode.window.showInformationMessage('All changes accepted.');
+  //   })
+  // );
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
+  //     await diffViewManager.rejectAllFile();
+  //     vscode.window.showInformationMessage('All changes rejected.');
+  //   })
+  // );
 
   // Command to open a diff view for any file path + new content
   context.subscriptions.push(
@@ -198,14 +209,6 @@ const webviewFocusListener = new WebviewFocusListener(context,sidebarProvider, w
     vscode.commands.registerCommand('deputydev.SettingButtonClick', () => {
       outputChannel.info('Setting button clicked!');
       sidebarProvider.setViewType('setting');
-    }),
-  );
-
-  // history button click
-  context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.HistoryButtonClick', () => {
-      outputChannel.info('History button clicked!');
-      sidebarProvider.setViewType('history');
     }),
   );
 
