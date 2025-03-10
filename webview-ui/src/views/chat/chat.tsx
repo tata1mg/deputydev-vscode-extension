@@ -28,7 +28,7 @@ export function ChatUI() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
-  const sessionsPerPage = 5;
+  const sessionsPerPage = 20;
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
 

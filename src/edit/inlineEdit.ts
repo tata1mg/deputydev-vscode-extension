@@ -65,8 +65,31 @@ export class InlineEditManager {
                     );
                 }
 
-                // Return the code lenses or an empty array if there is no selection
-                return codeLenses.length > 0 ? codeLenses : []; // Ensure empty array is returned when no selection
+                return codeLenses.length > 0 ? codeLenses : [];
+            }
+        }));
+
+        // Listen for selection changes
+        this.context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
+            const editor = event.textEditor;
+            const selection = editor.selection;
+
+            // Trigger a refresh of CodeLenses
+            vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
+        }));
+
+        // Also listen for when the active editor changes
+        this.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor) {
+                vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
+            }
+        }));
+
+        // Listen for document changes to clear CodeLenses when nothing is selected
+        this.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document === event.document) {
+                vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
             }
         }));
     }
