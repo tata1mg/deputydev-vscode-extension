@@ -20,7 +20,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
-  
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
@@ -35,7 +35,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     webviewView: vscode.WebviewView,
     _context?: vscode.WebviewViewResolveContext,
     _token?: vscode.CancellationToken,
-    
+
   ): void {
     this._view = webviewView;
     webviewView.webview.options = {
@@ -85,7 +85,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // case 'api-chat-setting':
         //   promise = this.chatService.apiChatSetting(data);
         //   break;
-        
+
 
 
         // File Operations
@@ -151,10 +151,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.initiateLogin(data);
           break;
         case 'get-sessions':
-          promise = this.getSessions();
+          promise = this.getSessions(data);
           break;
         case 'get-session-chats':
-          promise = this.getSessionChats();
+          promise = this.getSessionChats(data);
+          break;
+        case 'delete-session':
+          promise = this.deleteSession(data);
           break;
 
         // Extention's focus state
@@ -173,7 +176,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
       }
 
-     
+
 
 
 
@@ -221,21 +224,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
 
   private async writeFile(data: { filePath: string; raw_diff: string }) {
-    
+
     const modifiedFiles = await this.chatService.getModifiedRequest({
       filepath: data.filePath,
       raw_diff: data.raw_diff,
     }) as Record<string, string>;
-  
+
     this.outputChannel.info(`Writing file(s) for: ${data.filePath}`);
-  
+
     const active_repo = getActiveRepo();
     if (!active_repo) {
       this.outputChannel.error('No active repo found');
       return;
     }
     this.chatService.handleModifiedFiles(modifiedFiles,active_repo);
-    return; 
+    return;
   }
 
   private async getOpenedFiles() {
@@ -304,7 +307,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.globalState.update(data.key, data.value);
   }
 
-  
+
 
   private async getGlobalState(data: { key: string }) {
     console.log('this is the saved', this.context.globalState.get(data.key))
@@ -345,42 +348,49 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
-  async getSessions() {
+  async getSessions(data: { limit: number, offset: number}) {
     try {
-      const data = await this.historyService.getPastSessions()
+      const response = await this.historyService.getPastSessions(data.limit, data.offset)
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'sessions-history',
-        data: data
+        data: response
       });
     } catch (error) {
-      const data: any[] = []
+      const response: any[] = []
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'sessions-history',
-        data: data
+        data: response
       });
     }
   }
 
-  async getSessionChats() {
+  async getSessionChats(sessionData: { sessionId: number }) {
     try {
-      const data = await this.historyService.getPastSessionChats()
+      const response = await this.historyService.getPastSessionChats(sessionData.sessionId)
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'session-chats-history',
-        data: data
+        data: response
       });
     } catch (error) {
-      const data: any[] = []
+      const response: any[] = []
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'session-chats-history',
-        data: data
+        data: response
       });
     }
   }
 
+  async deleteSession(data: { sessionId: number }) {
+    try {
+      await this.historyService.deleteSession(data.sessionId)
+    } catch (error) {
+      console.error('Error while deleting session:', error);
+    }
+  }
 
   setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth') { //add auth view
     this.sendMessageToSidebar({
@@ -508,7 +518,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
 
-  
-    
+
+
 
 }
