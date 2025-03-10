@@ -126,12 +126,16 @@ export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand('webview-focus-state', { focused: isFocused });
 }
 
-export function getSessions() {
-  return callCommand('get-sessions', {});
+export function getSessions(limit: number, offset: number) {
+  return callCommand('get-sessions', {limit, offset});
 }
 
-export function getSessionChats() {
-  return callCommand('get-session-chats', {});
+export function getSessionChats(sessionId: number) {
+  return callCommand('get-session-chats', {sessionId});
+}
+
+export function deleteSession(sessionId: number) {
+  return callCommand('delete-session', {sessionId})
 }
 
 export function sendWorkspaceRepoChange(data : {repoPath: string}) {

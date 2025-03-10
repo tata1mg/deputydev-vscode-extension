@@ -176,7 +176,6 @@ export const useChatStore = create(
       isLoading: false,
       showSessionsBox: true,
       showAllSessions: false,
-      selectedSession: 0,
       sessions: [] as Session[],
       sessionChats: [] as sessionChats[],
       lastToolUseResponse: undefined as { tool_use_id: string; tool_name: string } | undefined,
@@ -184,7 +183,7 @@ export const useChatStore = create(
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
-      
+
       return {
         async clearChat() {
           set({
@@ -194,7 +193,7 @@ export const useChatStore = create(
             isLoading: false,
             showSessionsBox: true,
             showAllSessions: false,
-            selectedSession: 0,
+            sessionChats: []
           });
         },
 
@@ -205,7 +204,7 @@ export const useChatStore = create(
           logToOutput('info', `sendChatMessage: ${message}`);
           const { history, lastToolUseResponse } = get();
 
-          // Create the user message 
+          // Create the user message
           const userMessage: ChatUserMessage = {
             type: 'TEXT_BLOCK',
             content: { text: message },
@@ -259,20 +258,20 @@ export const useChatStore = create(
                   chunkCallback({ name: 'TEXT_START', data: event.data });
                   break;
                 }
-                
+
                 case 'TEXT_DELTA': {
                   const textChunk = (event.data as any)?.text || '';
-                
+
                   set((state) => ({
                     current: state.current
                       ? { ...state.current, content: { text: state.current.content.text + textChunk } }
                       : state.current,
                   }));
-                
+
                   chunkCallback({ name: 'TEXT_DELTA', data: event.data });
                   break;
                 }
-                
+
 
 
 
@@ -288,11 +287,11 @@ export const useChatStore = create(
                     }
                     return state;
                   })
-                
+
                   chunkCallback({ name: 'TEXT_BLOCK_END', data: event.data });
                   break;
                 }
-                
+
 
                 case 'THINKING_BLOCK_START': {
                   const thinkingContent = (event.data as any)?.content || { text: '' };
@@ -538,7 +537,7 @@ export const useChatStore = create(
                                 ...toolMsg.content,
                                 status: 'in-progress' as 'in-progress', // ✅ Explicitly setting the correct type
                               },
-                            };                            
+                            };
                           }
                         }
                         return msg;
@@ -575,7 +574,7 @@ export const useChatStore = create(
                     });
                     return { history: newHistory };
                   });
-                  
+
                   chunkCallback({ name: event.name, data: event.data });
                   break;
                 }

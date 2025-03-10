@@ -1,14 +1,16 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useRef, useState } from 'react';
 import { EnterIcon } from '../../components/enterIcon';
-import { useChatSettingStore, useChatStore, Session } from '../../stores/chatStore';
+import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
+import { Trash2 } from 'lucide-react';
 // import Markdown from 'react-markdown';
 import { Tooltip } from 'react-tooltip';
 import 'react-tooltip/dist/react-tooltip.css'; // Import CSS for styling
+import { ParserUI } from './parser';
 import { ChatArea } from './chatMessagesArea';
 import RepoSelector from './chatElements/RepoSelector';
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-import { getSessionChats, getSessions } from '@/commandApi';
+import { deleteSession, getSessionChats, getSessions } from '@/commandApi';
 import { BotMessageSquare } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
@@ -17,7 +19,7 @@ import '../../styles/markdown-body.css';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
-  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, selectedSession, sessions, sessionChats } = useChatStore();
+  const { history: messages, current, isLoading, sendChatMessage, cancelChat, showSessionsBox, showAllSessions, sessions, sessionChats } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
   const repoSelectorEmbedding = useRepoSelectorStore((state) => state.repoSelectorDisabled);
@@ -26,8 +28,11 @@ export function ChatUI() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
+  const sessionsPerPage = 5;
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
 
-  
+
   // Function to handle showing all sessions
   const handleShowMore = () => {
     useChatStore.setState({ showAllSessions: true })
@@ -39,7 +44,7 @@ export function ChatUI() {
   const blockSendMessage = isLoading;
 
   // The repo selector should be disabled if the repo is embedding, a response is pending, or there is chat history.
-  const disableRepoSelector =  isLoading || messages.length > 0;
+  const disableRepoSelector = isLoading || messages.length > 0;
   const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
     ? { 'data-tooltip-id': 'repo-tooltip', 'data-tooltip-content': 'Create new chat to select new repo.' }
     : {};
@@ -56,27 +61,50 @@ export function ChatUI() {
   const handleSend = async () => {
     useChatStore.setState({ showSessionsBox: false });
     if (!userInput.trim() || blockSendMessage) return;
-    
+
     let message = userInput.trim();
     setUserInput('');
-    
+
     // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = '70px';
     }
-  
-    await sendChatMessage(message, (data) => {});
+
+    await sendChatMessage(message, (data) => { });
   };
-  
 
+
+  const handleDeleteSession = async (sessionId: number) => {
+    useChatStore.setState({
+      sessions: useChatStore.getState().sessions.filter((session) => session.id !== sessionId)
+    })
+    await deleteSession(sessionId)
+    console.log(`Delete session ${sessionId}`);
+  }
+
+  const fetchSessions = async (pageNumber: number) => {
+    setSessionsLoading(true);
+    const limit = sessionsPerPage;
+    const offset = (pageNumber - 1) * sessionsPerPage;
+    getSessions(limit, offset)
+    setSessionsLoading(false);
+  }
   useEffect(() => {
-    getSessions()
-  }, [])
+    fetchSessions(currentSessionsPage);
+  }, [currentSessionsPage]);
 
+  // Scroll handler for past sessions
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    if (scrollTop + clientHeight >= scrollHeight - 5 && !sessionsLoading) {
+      setCurrentSessionsPage(prev => prev + 1);
+      fetchSessions(currentSessionsPage + 1);
+    }
+  };
 
-  useEffect(() => {
-    getSessionChats()
-  }, [])
+  const handleGetSessionChats = async (sessionId: number) => {
+    getSessionChats(sessionId)
+  }
 
   // Scroll to bottom when new messages arrive.
   useEffect(() => {
@@ -85,63 +113,84 @@ export function ChatUI() {
   }, [messages, current?.content?.text]);
 
   useEffect(() => {
-    console.log("SelectedSession", selectedSession)
-  }, [selectedSession])
-
-  useEffect(() => {
     // Scroll to the bottom when a new session is selected
     if (chatContainerEndRef.current) {
       chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [selectedSession]);
+  }, [sessionChats]);
 
   return (
     <div className='flex flex-col justify-between h-full relative'>
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
-        {showSessionsBox && selectedSession === 0 && (
+        {showSessionsBox && sessionChats.length === 0 && (
           <div>
-            <div className='mb-24 mt-10'>
+            <div className='mb-14 mt-10'>
               <BotMessageSquare className='px-4 h-20 w-20 text-white' />
               <h1 className="text-3xl font-bold text-white px-4">Chat with DeputyDev</h1>
             </div>
             {sessions.length > 0 && (
               <h3 className="text-lg font-bold text-white px-4">Past Conversations</h3>
             )}
-            <div className="session-box p-4 h-36 overflow-y-auto">
-              {showAllSessions ? sessions.map(session => (
-                <button
-                  key={session.id}
-                  onClick={() => useChatStore.setState({ selectedSession: session.id })}
-                  className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
-                >
-                  <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-                  <span className="text-sm text-gray-400">{session.age}</span>
-                </button>
-              )) : sessions.slice(0, visibleSessions).map(session => (
-                <div className="session-box">
-                  <button
-                    key={session.id}
-                    onClick={() => useChatStore.setState({ selectedSession: session.id })}
-                    className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
-                  >
-                    <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
-                    <span className="text-sm text-gray-400">{session.age}</span>
-                  </button>
+            <div className="session-box p-4 h-[170px] overflow-y-auto" onScroll={handleScroll}>
+              {!showAllSessions ? (
+                <div>
+                  {sessions.slice(0, visibleSessions).map(session => (
+                    <div className='flex gap-2' key={session.id}>
+                      <div
+                        onClick={() => handleGetSessionChats(session.id)}
+                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                      >
+                        <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                        <span className="text-sm text-gray-400">{session.age}</span>
+                      </div>
+                      <div>
+                        <Trash2
+                          className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                          onClick={(e) => {
+                            handleDeleteSession(session.id);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div>
+                  {sessions.slice(0, currentSessionsPage * sessionsPerPage).map(session => (
+                    <div className='flex gap-2' key={session.id}>
+                      <div
+                        onClick={() => handleGetSessionChats(session.id)}
+                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                      >
+                        <div className='text-sm overflow-hidden whitespace-nowrap text-ellipsis'>{session.summary}</div>
+                        <span className="text-sm text-gray-400">{session.age}</span>
+                      </div>
+                      <div>
+                        <Trash2
+                          className='text-gray-400 hover:text-white hover:cursor-pointer m-1'
+                          onClick={(e) => {
+                            handleDeleteSession(session.id);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {sessionsLoading && <div className='text-white'>Loading...</div>}
             </div>
-            {!showAllSessions && visibleSessions < sessions.length && (
-              <button onClick={handleShowMore} className="text-white mt-2 px-4">
+            {!sessionsLoading && !showAllSessions && (
+              <button onClick={() => handleShowMore()} className="text-white px-4">
                 Show More...
               </button>
             )}
           </div>
         )}
 
-        {/* {selectedSession !== 0 && (
+        {sessionChats.length > 0 && (
           <ParserUI sessionChats={sessionChats} />
-        )} */}
+        )}
 
 
 
@@ -163,34 +212,34 @@ export function ChatUI() {
         <div className="relative">
           {/* The textarea remains enabled even when a response is pending */}
           <textarea
-  ref={textareaRef}
-  rows={1}
-  className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
-              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+            ref={textareaRef}
+            rows={1}
+            className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded
+              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px]
               overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? 'disabled:opacity-50 disabled:cursor-not-allowed' : ''}`}
-  placeholder="Ask anything (⌘L), @ to mention code blocks"
-  value={userInput}
-  onChange={(e) => {
-    if (!repoSelectorEmbedding) {
-      setUserInput(e.target.value);
-      autoResize();
-    }
-  }}
-  onKeyDown={(e) => {
-    if (!repoSelectorEmbedding && e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!isLoading) {
-        handleSend();
-      }
-    }
-  }}
+            placeholder="Ask anything (⌘L), @ to mention code blocks"
+            value={userInput}
+            onChange={(e) => {
+              if (!repoSelectorEmbedding) {
+                setUserInput(e.target.value);
+                autoResize();
+              }
+            }}
+            onKeyDown={(e) => {
+              if (!repoSelectorEmbedding && e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!isLoading) {
+                  handleSend();
+                }
+              }
+            }}
 
-  disabled={repoSelectorEmbedding}
-  {...(repoSelectorEmbedding && {
-    'data-tooltip-id': 'repo-tooltip',
-    'data-tooltip-content': 'Please wait, your repo is embedding.'
-  })}
-/>
+            disabled={repoSelectorEmbedding}
+            {...(repoSelectorEmbedding && {
+              'data-tooltip-id': 'repo-tooltip',
+              'data-tooltip-content': 'Please wait, your repo is embedding.'
+            })}
+          />
 
 
 
@@ -221,9 +270,9 @@ export function ChatUI() {
 
         {/* Chat Type Toggle and RepoSelector */}
         <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          <RepoSelector disabled={disableRepoSelector} tooltipProps={repoTooltipProps} />
-        </div>
+          <div className="flex items-center gap-2">
+            <RepoSelector disabled={disableRepoSelector} tooltipProps={repoTooltipProps} />
+          </div>
 
           <div className="flex items-center gap-2">
             <span className="font-medium text-white">Chat</span>
@@ -239,9 +288,9 @@ export function ChatUI() {
                 }}
                 disabled={isLoading}
               />
-              <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500 
-                              after:content-[''] after:absolute after:top-0.5 after:left-0.5 
-                              after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all 
+              <div className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500
+                              after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                              after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all
                               peer-checked:after:translate-x-4"
               />
             </label>
