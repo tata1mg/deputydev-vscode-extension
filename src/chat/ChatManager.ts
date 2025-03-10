@@ -480,12 +480,12 @@ export class ChatManager {
 
         // Parse accumulatedContent to extract the search query and paths (used as focus_files).
         parsedContent = JSON.parse(toolRequest.accumulatedContent);
+        this.outputChannel.info(`Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`);
         const search_terms = parsedContent.search_terms;
 
         this.outputChannel.info("Running focused_snippets_searcher tool with query");
 
-        // const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
-        const response = ["This tool is not usable please related_code_searcher"]
+        const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
         if (response) {
           const payloadData = {
             message_id: message_id,
