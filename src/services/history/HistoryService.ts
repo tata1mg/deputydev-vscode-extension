@@ -48,4 +48,19 @@ export class HistoryService {
             throw error; // Throw the error to be handled by the caller
         }
     }
+
+    public async getRelevantChatHistory(sessionId: number, query: string): Promise<any> {
+        const headers = {
+            "X-Session-ID" : sessionId
+        };
+        try {
+            const response = await api.post(API_ENDPOINTS.RELEVANT_CHAT_HISTORY, {
+                headers, data: {query}
+            });
+            return response.data.data;
+        } catch (error) {
+            console.error('Error while fetching session:', error);
+            throw error; // Throw the error to be handled by the caller
+        }
+    }
 }
