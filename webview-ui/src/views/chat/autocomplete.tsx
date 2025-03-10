@@ -1,6 +1,6 @@
 import { FC } from "react";
 import { AutocompleteOption } from "@/types";
-import { Folder, File, Code } from "lucide-react";
+import { Folder, File, Code, Boxes } from "lucide-react";
 
 interface AutocompleteMenuProps {
   options: AutocompleteOption[];
@@ -8,9 +8,10 @@ interface AutocompleteMenuProps {
 }
 
 const iconMap = {
-  class: <Folder className="w-5 h-5 text-blue-400" />,
+  class: <Boxes className="w-5 h-5 text-blue-400" />,
   function: <Code className="w-5 h-5 text-purple-400" />,
   file: <File className="w-5 h-5 text-green-400" />,
+  directory: <Folder className="w-5 h-5 text-blue-400" />
 }
 
 export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({ options, onSelect }) => {

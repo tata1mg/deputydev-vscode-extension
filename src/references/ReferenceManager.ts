@@ -38,4 +38,17 @@ export class ReferenceManager {
             data: response.response
         });
     }
+
+    async keywordTypeSearch(payload: Object, sendMessage: (message: Object) => void) {  
+        const repo_path = this.context.workspaceState.get<string>('activeRepo');
+        payload = { ...payload, repo_path };
+        this.outputChannel.info('keywordTypeSearch', payload);
+        const response = await this.referenceService.keywordTypeSearch(payload);
+        this.outputChannel.info('keywordTypeSearch-response', response);
+        sendMessage({
+            id: uuidv4(),
+            command: 'keyword-type-search-response',
+            data: response.response
+        });
+    }
 }

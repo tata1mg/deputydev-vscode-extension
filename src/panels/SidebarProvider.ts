@@ -89,6 +89,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'keyword-search':
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
+        case 'keyword-type-search':
+          promise = this.codeReferenceService.keywordTypeSearch(data, sendMessage);
+          break;
 
 
 
