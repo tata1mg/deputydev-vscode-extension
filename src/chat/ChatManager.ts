@@ -185,14 +185,20 @@ export class ChatManager {
 
         // call the api to get all the previous chat queries
         const relevantHistoryData = await this.historyService.getRelevantChatHistory(currentSessionId, payload.query);
+        this.outputChannel.info(`Relevant chat history: ${JSON.stringify(relevantHistoryData)}`);
 
         // extract the text from the response
-        const relevantHistoryChats = relevantHistoryData?.data?.chats || [];
+        const relevantHistoryChats = relevantHistoryData?.chats || [];
         for (const chat of relevantHistoryChats) {
           relevantHistoryText = relevantHistoryText ? relevantHistoryText + chat.query : chat.response;
           relevantHistoryQueryIds.push(chat.id);
         }
       }
+
+
+      this.outputChannel.info("relevantHistoryText", relevantHistoryText);
+      this.outputChannel.info("relevantHistoryQueryIds", relevantHistoryQueryIds);
+
 
       if (payload.query) {
         const relevant_chunks = await this.processRelevantChunks(payload, relevantHistoryText);
