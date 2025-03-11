@@ -45,7 +45,9 @@ function App() {
       view = <Auth />
       break;
     case 'chat':
-      view =  isAuthenticated ? <Chat /> : <Auth />;
+      // TODO: Bypassing auth for development
+      // view =  isAuthenticated ? <Chat /> : <Auth />;
+      view = <Chat />;
       break;
     case 'setting':
       view =  <Setting /> ;

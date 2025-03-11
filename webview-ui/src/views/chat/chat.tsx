@@ -1,7 +1,11 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
-import { useChatSettingStore, useChatStore } from "../../stores/chatStore";
+import {
+  useChatSettingStore,
+  useChatStore,
+  initialAutocompleteOptions,
+} from "../../stores/chatStore";
 import { Trash2 } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
@@ -10,41 +14,20 @@ import { ParserUI } from "./parser";
 import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-import { deleteSession, getSessionChats, getSessions } from "@/commandApi";
+import {
+  deleteSession,
+  getSessionChats,
+  getSessions,
+  logToOutput,
+} from "@/commandApi";
 import { BotMessageSquare } from "lucide-react";
 import Markdown from "react-markdown";
 import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
 import "../../styles/markdown-body.css";
-import { AutocompleteOption } from "@/types";
+import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
 import { AutocompleteMenu } from "./autocomplete";
-
-const initialAutocompleteOptions: AutocompleteOption[] = [
-  {
-    icon: "directory",
-    label: "Directory",
-    value: "Directory: ",
-    description: "A folder containing files and subfolders",
-  },
-  {
-    icon: "file",
-    label: "File",
-    value: "File: ",
-    description: "A single file such as a document or script",
-  },
-  {
-    icon: "function",
-    label: "Function",
-    value: "Function: ",
-    description: "A short piece of reusable code",
-  },
-  {
-    icon: "class",
-    label: "Class",
-    value: "Class: ",
-    description: "A short piece of reusable class code",
-  },
-];
+import { isEqual as lodashIsEqual } from "lodash";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -58,6 +41,7 @@ export function ChatUI() {
     showAllSessions,
     sessions,
     sessionChats,
+    ChatAutocompleteOptions,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
@@ -107,6 +91,7 @@ export function ChatUI() {
 
     let message = userInput.trim();
     setUserInput("");
+    useChatStore.setState({currentEditorReference: []})
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -148,6 +133,53 @@ export function ChatUI() {
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
+  };
+
+  const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (e.target.value.endsWith("@")) {
+      setShowAutocomplete(true);
+      useChatStore.setState({
+        ChatAutocompleteOptions: initialAutocompleteOptions,
+      });
+      setUserInput(e.target.value.substring(0, e.target.value.length - 1));
+      const editorRefs = useChatStore.getState().currentEditorReference;
+      const newChatRefrenceItem: ChatReferenceItem = {
+        index: editorRefs.length,
+        type: "keyword",
+        keyword: "",
+        path: "",
+      };
+      useChatStore.setState({
+        currentEditorReference: [...editorRefs, newChatRefrenceItem],
+      });
+    } else {
+      setShowAutocomplete(false);
+      setUserInput(e.target.value);
+    }
+    autoResize();
+  };
+
+  const handleChipDelete = (index: number) => {
+    const editorRefs = useChatStore.getState().currentEditorReference;
+    const newEditorRefs = editorRefs.filter((ref) => ref.index !== index);
+    useChatStore.setState({ currentEditorReference: newEditorRefs });
+    setShowAutocomplete(false);
+  };
+
+  const handleAutoCompleteSelect = (option: AutocompleteOption) => {
+    const selectedChipIndex = useChatStore.getState().chipIndexBeingEdited;
+    const currentAutocompleteOptions =
+      useChatStore.getState().ChatAutocompleteOptions;
+    if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
+      const allChips = [...useChatStore.getState().currentEditorReference];
+      allChips[selectedChipIndex].keyword = option.value;
+      useChatStore.setState({ currentEditorReference: allChips });
+    } else {
+      const allChips = [...useChatStore.getState().currentEditorReference];
+      allChips[selectedChipIndex].keyword = option.icon + ": " + option.value;
+      useChatStore.setState({ currentEditorReference: allChips });
+      setShowAutocomplete(false);
+    }
   };
 
   // Scroll to bottom when new messages arrive.
@@ -270,25 +302,26 @@ export function ChatUI() {
           {showAutocomplete && (
             <div className="w-full">
               <AutocompleteMenu
-                options={
-                  initialAutocompleteOptions
-                  // chipText
-                  //   ? useChatStore.getState().ChatAutocompleteOptions
-                  //   : initialAutocompleteOptions
-                }
-                onSelect={(option) => {
-                  console.log(option);
-                }}
+                options={ChatAutocompleteOptions}
+                onSelect={handleAutoCompleteSelect}
               />
             </div>
           )}
           <div className="flex flex-wrap gap-1">
-            <ReferenceChip initialText="Ref 1" onDelete={() => {}} />
-            <ReferenceChip initialText="Ref 2" onDelete={() => {}} />
-            <ReferenceChip initialText="Ref 3" onDelete={() => {}} />
-            <ReferenceChip initialText="Ref 4" onDelete={() => {}} />
-            <ReferenceChip initialText="Ref 5" onDelete={() => {}} />
-            <ReferenceChip initialText="Ref 6" onDelete={() => {}} />
+            {useChatStore.getState().currentEditorReference?.map((chip) => (
+              <ReferenceChip
+                chipIndex={chip.index}
+                initialText={chip.keyword}
+                onDelete={() => {
+                  handleChipDelete(chip.index);
+                }}
+                autoEdit={
+                  chip.index ===
+                  useChatStore.getState().currentEditorReference.length - 1
+                }
+                setShowAutoComplete={setShowAutocomplete}
+              />
+            ))}
           </div>
 
           {/* The textarea remains enabled even when a response is pending */}
@@ -300,12 +333,7 @@ export function ChatUI() {
               overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? "disabled:opacity-50 disabled:cursor-not-allowed" : ""}`}
             placeholder="Ask anything (⌘L), @ to mention code blocks"
             value={userInput}
-            onChange={(e) => {
-              if (!repoSelectorEmbedding) {
-                setUserInput(e.target.value);
-                autoResize();
-              }
-            }}
+            onChange={handleTextAreaChange}
             onKeyDown={(e) => {
               if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

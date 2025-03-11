@@ -1,21 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Pencil } from "lucide-react";
+import { keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
+import { useChatStore } from "@/stores/chatStore";
 
 type ReferenceChipProps = {
+  chipIndex: number;
   initialText: string;
   onDelete: () => void;
+  autoEdit?: boolean;
+  setShowAutoComplete: (value: boolean) => void;
 };
 
 export default function ReferenceChip({
+  chipIndex,
   initialText,
   onDelete,
+  autoEdit = false,
+  setShowAutoComplete
 }: ReferenceChipProps) {
   const [text, setText] = useState<string>(initialText);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleEdit = () => setIsEditing(true);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setText(e.target.value);
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setText(initialText);
+    setIsEditing(true);
+  }, [initialText]);
+
+  useEffect(() => {
+    if (autoEdit) {
+      setIsEditing(true);
+      useChatStore.setState({ chipIndexBeingEdited: chipIndex });
+    }
+  }, [autoEdit]);
+
+  const handleEdit = () => {
+    useChatStore.setState({ chipIndexBeingEdited: chipIndex });
+    setIsEditing(true);
+    setShowAutoComplete(true);
+  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setText(value);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      const valueArr = value.split(": ");
+      if (
+        ["file", "directory", "function", "class"].includes(
+          valueArr[0].toLowerCase()
+        )
+      ) {
+        keywordTypeSearch({ type: valueArr[0].toLowerCase(), keyword: valueArr[1] });
+      } else {
+        keywordSearch({ keyword: value });
+      }
+    }, 500);
+  };
   const handleBlur = () => setIsEditing(false);
 
   return (
