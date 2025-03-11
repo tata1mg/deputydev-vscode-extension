@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
     PAST_SESSIONS: "/end_user/history/v1/sessions",
     PAST_CHATS: "/end_user/history/v1/chats",
     KEYWORD_SEARCH: "/v1/keyword_search",
+    KEYWORD_TYPE_SEARCH: "/v1/keyword_type_search",
     DELETE_SESSION: "/end_user/v1/history/delete-session",
     GENERATE_INLINE_EDIT: "/end_user/v2/code-gen/generate-inline-edit",
     GET_INLINE_EDIT_RESULT: "/end_user/v1/code-gen/get-job-status",
