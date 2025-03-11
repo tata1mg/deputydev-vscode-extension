@@ -9,12 +9,12 @@ export class WebSocketClient {
     private resolveResponse!: (value: any) => void;
     private rejectResponse!: (reason: any) => void;
     private timeout: NodeJS.Timeout | null = null;
-    private timeoutDuration: number = 30000; // 30 seconds timeout
+    private timeoutDuration: number = 100000; // 30 seconds timeout
 
     constructor(baseUrl: string, endpoint: string) {
         this.url = `${baseUrl}${endpoint}`;
         this.socket = new WebSocket(this.url);
-        
+
         // Create a promise that will be resolved when we get a response
         this.responsePromise = new Promise((resolve, reject) => {
             this.resolveResponse = resolve;
@@ -38,15 +38,15 @@ export class WebSocketClient {
               if (Array.isArray(messageData)) {
                 this.resolveResponse(messageData);
                 this.close();
-              } 
+              }
               // Check if the response is an object (update vector store)
-              else if (messageData.status === 'Completed')  
-                { 
+              else if (messageData.status === 'Completed')
+                {
                 this.resolveResponse(messageData.status);
                 this.close();
               }
-              else if (messageData.status === 'Failed')  
-                { 
+              else if (messageData.status === 'Failed')
+                {
             this.rejectResponse(new Error("WebSocket request timed out"));
             this.close();
               }
@@ -59,7 +59,7 @@ export class WebSocketClient {
               this.close();
             }
           });
-          
+
 
         this.socket.on('close', (code, reason) => {
             console.log(`⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`);
@@ -90,10 +90,10 @@ export class WebSocketClient {
                         setTimeout(checkReadyState, 100);
                     }
                 };
-                
+
                 this.socket.on('open', () => resolve());
                 this.socket.on('error', (error) => reject(error));
-                
+
                 // Check immediately in case it's already open
                 checkReadyState();
             });
@@ -101,7 +101,7 @@ export class WebSocketClient {
 
         // Send the data
         this.socket.send(JSON.stringify(data));
-        
+
         // Return the promise that will resolve when we get a response
         return this.responsePromise;
     }
@@ -111,7 +111,7 @@ export class WebSocketClient {
             clearTimeout(this.timeout);
             this.timeout = null;
         }
-        
+
         if (this.socket.readyState !== WebSocket.CLOSED && this.socket.readyState !== WebSocket.CLOSING) {
             this.socket.close();
         }
