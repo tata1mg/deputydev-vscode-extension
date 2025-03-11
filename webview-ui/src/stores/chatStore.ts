@@ -243,7 +243,6 @@ export const useChatStore = create(
               set({ lastToolUseResponse: undefined });
             }
 
-
           const stream = apiChat(payload);
           console.log('stream received in FE : ', stream);
 
