@@ -7,7 +7,7 @@ const useExtensionStore = create(
   combine(
     {
       isStarted: false,
-      viewType: 'chat' as ViewType, // changed welcome to chat  as default
+      viewType: 'loader' as ViewType, // changed welcome to chat  as default
       serverUrl:
         import.meta.env.NODE_ENV === 'development'
           ? 'http://localhost:5000'
