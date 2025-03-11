@@ -228,6 +228,7 @@ export const useChatStore = create(
 
         async sendChatMessage(
           message: string,
+          editorReferences: ChatReferenceItem[],
           chunkCallback: (data: { name: string; data: any }) => void
         ) {
           logToOutput("info", `sendChatMessage: ${message}`);
@@ -237,7 +238,7 @@ export const useChatStore = create(
           const userMessage: ChatUserMessage = {
             type: "TEXT_BLOCK",
             content: { text: message },
-            referenceList: [],
+            referenceList: editorReferences,
             actor: "USER",
           };
 

@@ -91,6 +91,7 @@ export function ChatUI() {
 
     let message = userInput.trim();
     setUserInput("");
+    const editorReferences = [...useChatStore.getState().currentEditorReference]
     useChatStore.setState({ currentEditorReference: [] });
 
     // Reset textarea height
@@ -98,7 +99,7 @@ export function ChatUI() {
       textareaRef.current.style.height = "70px";
     }
 
-    await sendChatMessage(message, (data) => {});
+    await sendChatMessage(message,editorReferences, (data) => {});
   };
 
   const handleDeleteSession = async (sessionId: number) => {
