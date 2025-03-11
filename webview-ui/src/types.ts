@@ -5,6 +5,7 @@ export type AutocompleteOption = {
   label: string;
   value: string;
   description: string;
+  chunks: Chunk[]
 };
 
 export type FileParts = {
@@ -19,9 +20,15 @@ export type SearchResponseItem = {
   chunks: FileParts[];
 };
 
+export type Chunk = {
+  start_line: number;
+  end_line: number;
+}
+
 export type ChatReferenceItem = {
   index: number;
-  type: "file" | "directory" | "function" | "keyword";
+  type: "file" | "directory" | "function" | "keyword" | string;
   keyword: string;
   path: string;
+  chunks: Chunk[]
 };

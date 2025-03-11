@@ -466,6 +466,9 @@ export class ChatManager {
         const result = await fetchRelevantChunks({
           repo_path: active_repo,
           query: searchQuery,
+          focus_files: [],
+          focus_directories: [],
+          focus_chunks: [],
           // Uncomment and use focusFiles if needed:
           // focus_files: focusFiles,
         });
@@ -493,8 +496,6 @@ export class ChatManager {
               status: 'completed',
             },
           });
-
-
 
           this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
           await this.apiChat(payloadData, chunkCallback);
