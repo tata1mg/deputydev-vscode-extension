@@ -1,7 +1,7 @@
 export const API_ENDPOINTS = {
-    GET_SESSION: "/end_user/v1/get-session",
-    VERIFY_AUTH_TOKEN: "/end_user/v1/verify-auth-token",
-    QUERY_SOLVER: "/end_user/query_solver/v1/solve-user-query",
+    GET_SESSION: "/end_user/v1/auth/get-session",
+    VERIFY_AUTH_TOKEN: "/end_user/v1/auth/verify-auth-token",
+    QUERY_SOLVER: "/end_user/v2/code-gen/generate-code",
     STORE_AUTH_TOKEN: "/v1/auth/store_token",
     LOAD_AUTH_TOKEN: "/v1/auth/load_token",
     RELEVANT_CHUNKS: "/v1/relevant_chunks",
@@ -9,5 +9,10 @@ export const API_ENDPOINTS = {
     PAST_SESSIONS: "/end_user/history/v1/sessions",
     PAST_CHATS: "/end_user/history/v1/chats",
     KEYWORD_SEARCH: "/v1/keyword_search",
+    DELETE_SESSION: "/end_user/v1/history/delete-session",
+    GENERATE_INLINE_EDIT: "/end_user/v2/code-gen/generate-inline-edit",
+    GET_INLINE_EDIT_RESULT: "/end_user/v1/code-gen/get-job-status",
     DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
-} as const;
+    BATCH_CHUNKS_SEARCH : "/v1/batch_chunks_search",
+    RELEVANT_CHAT_HISTORY: "/end_user/v1/history/relevant-chat-history",
+}

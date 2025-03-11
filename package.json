@@ -86,9 +86,21 @@
         "command": "deputydev.ConfirmModify",
         "title": "Confirm Modify",
         "icon": "$(check)"
-      }
+      },
+      {
+				"command": "deputydev.aiEdit",
+				"title": "Edit",
+				"enablement": "!commentIsEmpty"
+			}
     ],
     "menus": {
+			"comments/commentThread/context": [
+				{
+					"command": "deputydev.aiEdit",
+					"group": "inline@1",
+					"when": "commentController == DeputyDevAI"
+				}
+			],
       "view/title": [
         {
           "command": "deputydev.AddButtonClick",
