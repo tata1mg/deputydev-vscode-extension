@@ -73,7 +73,7 @@ export class AuthenticationManager {
             }
         } catch (error) {
             console.error("Authentication failed, please try again later.")
-            return true;
+            return false;
         }
     }
 
