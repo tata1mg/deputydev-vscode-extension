@@ -15,6 +15,7 @@ import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 import { InlineEditManager } from './edit/inlineEdit';
+import { AuthService } from './services/auth/AuthService';
 let outputChannel: vscode.LogOutputChannel;
 
 
@@ -87,6 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
   const historyService = new HistoryService();
+  const authService = new AuthService();
 
 
   // //  * 3) Register Custom TextDocumentContentProvider
@@ -98,7 +100,7 @@ export function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );

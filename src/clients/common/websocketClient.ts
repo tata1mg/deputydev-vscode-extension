@@ -1,6 +1,6 @@
 import { WebSocket, RawData } from 'ws';
 
-const BASE_URL = "ws://localhost:8001";
+const BASE_URL = "ws://localhost:8000";
 
 export class WebSocketClient {
     private socket: WebSocket;
