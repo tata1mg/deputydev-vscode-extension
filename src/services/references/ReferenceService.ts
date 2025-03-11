@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../api/endpoints";
 
 export class ReferenceService {
   public async keywordSearch(payload: unknown): Promise<any> {
+    console.log(`Keyword Search ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi.post(API_ENDPOINTS.KEYWORD_SEARCH, payload);
@@ -13,6 +14,7 @@ export class ReferenceService {
     }
   }
   public async keywordTypeSearch(payload: unknown): Promise<any> {
+    console.log(`Keyword Type Search ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi.post(
