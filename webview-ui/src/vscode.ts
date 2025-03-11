@@ -256,7 +256,7 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
     fsPath: item.path,
   }));
 
-  useChatStore.setState({ currentEditorReference: editorReference });
+  // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
 addCommandEventListener('keyword-type-search-response', ({ data }) => {
