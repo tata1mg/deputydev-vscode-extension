@@ -1,25 +1,23 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
-import {
-  useChatSettingStore,
-  useChatStore,
-  Session,
-} from "../../stores/chatStore";
+import { useChatSettingStore, useChatStore } from "../../stores/chatStore";
+import { Trash2 } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
+import { ParserUI } from "./parser";
 import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-import { getSessionChats, getSessions } from "@/commandApi";
+import { deleteSession, getSessionChats, getSessions } from "@/commandApi";
 import { BotMessageSquare } from "lucide-react";
 import Markdown from "react-markdown";
 import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
-import { AutocompleteMenu } from "./autocomplete";
-import { AutocompleteOption } from "@/types";
 import "../../styles/markdown-body.css";
+import { AutocompleteOption } from "@/types";
 import ReferenceChip from "./referencechip";
+import { AutocompleteMenu } from "./autocomplete";
 
 const initialAutocompleteOptions: AutocompleteOption[] = [
   {
@@ -58,7 +56,6 @@ export function ChatUI() {
     cancelChat,
     showSessionsBox,
     showAllSessions,
-    selectedSession,
     sessions,
     sessionChats,
   } = useChatStore();
@@ -74,6 +71,9 @@ export function ChatUI() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
+  const sessionsPerPage = 20;
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
 
   // Function to handle showing all sessions
   const handleShowMore = () => {
@@ -116,23 +116,39 @@ export function ChatUI() {
     await sendChatMessage(message, (data) => {});
   };
 
-  const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!repoSelectorEmbedding) {
-      if (e.target.value.endsWith("@")) {
-        setShowAutocomplete(true);
-      }
-      setUserInput(e.target.value);
-      autoResize();
+  const handleDeleteSession = async (sessionId: number) => {
+    useChatStore.setState({
+      sessions: useChatStore
+        .getState()
+        .sessions.filter((session) => session.id !== sessionId),
+    });
+    await deleteSession(sessionId);
+    console.log(`Delete session ${sessionId}`);
+  };
+
+  const fetchSessions = async (pageNumber: number) => {
+    setSessionsLoading(true);
+    const limit = sessionsPerPage;
+    const offset = (pageNumber - 1) * sessionsPerPage;
+    getSessions(limit, offset);
+    setSessionsLoading(false);
+  };
+  useEffect(() => {
+    fetchSessions(currentSessionsPage);
+  }, [currentSessionsPage]);
+
+  // Scroll handler for past sessions
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    if (scrollTop + clientHeight >= scrollHeight - 5 && !sessionsLoading) {
+      setCurrentSessionsPage((prev) => prev + 1);
+      fetchSessions(currentSessionsPage + 1);
     }
   };
 
-  useEffect(() => {
-    getSessions();
-  }, []);
-
-  useEffect(() => {
-    getSessionChats();
-  }, []);
+  const handleGetSessionChats = async (sessionId: number) => {
+    getSessionChats(sessionId);
+  };
 
   // Scroll to bottom when new messages arrive.
   useEffect(() => {
@@ -141,23 +157,19 @@ export function ChatUI() {
   }, [messages, current?.content?.text]);
 
   useEffect(() => {
-    console.log("SelectedSession", selectedSession);
-  }, [selectedSession]);
-
-  useEffect(() => {
     // Scroll to the bottom when a new session is selected
     if (chatContainerEndRef.current) {
       chatContainerEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedSession]);
+  }, [sessionChats]);
 
   return (
     <div className="flex flex-col justify-between h-full relative">
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
-        {showSessionsBox && selectedSession === 0 && (
+        {showSessionsBox && sessionChats.length === 0 && (
           <div>
-            <div className="mb-24 mt-10">
+            <div className="mb-14 mt-10">
               <BotMessageSquare className="px-4 h-20 w-20 text-white" />
               <h1 className="text-3xl font-bold text-white px-4">
                 Chat with DeputyDev
@@ -168,32 +180,17 @@ export function ChatUI() {
                 Past Conversations
               </h3>
             )}
-            <div className="session-box p-4 h-36 overflow-y-auto">
-              {showAllSessions
-                ? sessions.map((session) => (
-                    <button
-                      key={session.id}
-                      onClick={() =>
-                        useChatStore.setState({ selectedSession: session.id })
-                      }
-                      className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
-                    >
-                      <div className="text-sm overflow-hidden whitespace-nowrap text-ellipsis">
-                        {session.summary}
-                      </div>
-                      <span className="text-sm text-gray-400">
-                        {session.age}
-                      </span>
-                    </button>
-                  ))
-                : sessions.slice(0, visibleSessions).map((session) => (
-                    <div className="session-box">
-                      <button
-                        key={session.id}
-                        onClick={() =>
-                          useChatStore.setState({ selectedSession: session.id })
-                        }
-                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
+            <div
+              className="session-box p-4 h-[170px] overflow-y-auto"
+              onScroll={handleScroll}
+            >
+              {!showAllSessions ? (
+                <div>
+                  {sessions.slice(0, visibleSessions).map((session) => (
+                    <div className="flex gap-2" key={session.id}>
+                      <div
+                        onClick={() => handleGetSessionChats(session.id)}
+                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
                       >
                         <div className="text-sm overflow-hidden whitespace-nowrap text-ellipsis">
                           {session.summary}
@@ -201,21 +198,61 @@ export function ChatUI() {
                         <span className="text-sm text-gray-400">
                           {session.age}
                         </span>
-                      </button>
+                      </div>
+                      <div>
+                        <Trash2
+                          className="text-gray-400 hover:text-white hover:cursor-pointer m-1"
+                          onClick={(e) => {
+                            handleDeleteSession(session.id);
+                          }}
+                        />
+                      </div>
                     </div>
                   ))}
+                </div>
+              ) : (
+                <div>
+                  {sessions
+                    .slice(0, currentSessionsPage * sessionsPerPage)
+                    .map((session) => (
+                      <div className="flex gap-2" key={session.id}>
+                        <div
+                          onClick={() => handleGetSessionChats(session.id)}
+                          className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                        >
+                          <div className="text-sm overflow-hidden whitespace-nowrap text-ellipsis">
+                            {session.summary}
+                          </div>
+                          <span className="text-sm text-gray-400">
+                            {session.age}
+                          </span>
+                        </div>
+                        <div>
+                          <Trash2
+                            className="text-gray-400 hover:text-white hover:cursor-pointer m-1"
+                            onClick={(e) => {
+                              handleDeleteSession(session.id);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+              {sessionsLoading && <div className="text-white">Loading...</div>}
             </div>
-            {!showAllSessions && visibleSessions < sessions.length && (
-              <button onClick={handleShowMore} className="text-white mt-2 px-4">
+            {!sessionsLoading && !showAllSessions && (
+              <button
+                onClick={() => handleShowMore()}
+                className="text-white px-4"
+              >
                 Show More...
               </button>
             )}
           </div>
         )}
 
-        {/* {selectedSession !== 0 && (
-          <ParserUI sessionChats={sessionChats} />
-        )} */}
+        {sessionChats.length > 0 && <ParserUI sessionChats={sessionChats} />}
 
         {/* Invisible div just to instant scroll to bottom for session chats */}
         <div ref={chatContainerEndRef} />
@@ -258,12 +295,17 @@ export function ChatUI() {
           <textarea
             ref={textareaRef}
             rows={1}
-            className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded 
-              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px] 
+            className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded
+              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px]
               overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? "disabled:opacity-50 disabled:cursor-not-allowed" : ""}`}
             placeholder="Ask anything (⌘L), @ to mention code blocks"
             value={userInput}
-            onChange={handleTextAreaChange}
+            onChange={(e) => {
+              if (!repoSelectorEmbedding) {
+                setUserInput(e.target.value);
+                autoResize();
+              }
+            }}
             onKeyDown={(e) => {
               if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -274,8 +316,8 @@ export function ChatUI() {
             }}
             disabled={repoSelectorEmbedding}
             // {...(repoSelectorEmbedding && {
-            //   "data-tooltip-id": "repo-tooltip",
-            //   "data-tooltip-content": "Please wait, your repo is embedding.",
+            //   'data-tooltip-id': 'repo-tooltip',
+            //   'data-tooltip-content': 'Please wait, your repo is embedding.'
             // })}
           />
 
@@ -326,9 +368,9 @@ export function ChatUI() {
                 disabled={isLoading}
               />
               <div
-                className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500 
-                              after:content-[''] after:absolute after:top-0.5 after:left-0.5 
-                              after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all 
+                className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500
+                              after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                              after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all
                               peer-checked:after:translate-x-4"
               />
             </label>

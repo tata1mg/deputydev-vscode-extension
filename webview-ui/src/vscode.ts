@@ -49,7 +49,7 @@ window.addEventListener('message', (event) => {
 
   if (command === 'chunk') {
     const resolver = resolvers[id];
-    console.log('chunk', data,id);
+    console.log('chunk', data, id);
     resolver.chunk?.(data);
     return;
   }
@@ -228,7 +228,9 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
 
 addCommandEventListener('sessions-history', ({ data }) => {
-  useChatStore.setState({ sessions: data as Session[] });
+  useChatStore.setState(prevState => ({
+    sessions: [...prevState.sessions, ...(data as Session[])]
+  }));
 });
 
 addCommandEventListener('keyword-search-response', ({ data }) => {

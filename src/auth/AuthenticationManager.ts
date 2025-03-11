@@ -7,7 +7,7 @@ export class AuthenticationManager {
     authService = new AuthService();
     browserClient = new BrowserClient();
     constructor(
-        private context: vscode.ExtensionContext, 
+        private context: vscode.ExtensionContext,
     ) {}
 
     public async pollSession(supabaseSessionId: string) {
@@ -64,16 +64,16 @@ export class AuthenticationManager {
                         // return false;
                     }
                 } else {
-                    // return false;
-                    return true;
+                    return false;
+                    // return true;
                 }
             } else {
-                // return false;
-                return true;
+                return false;
+                // return true;
             }
         } catch (error) {
             console.error("Authentication failed, please try again later.")
-            return true;
+            return false;
         }
     }
 
