@@ -270,6 +270,20 @@ export const useChatStore = create(
             set({ lastToolUseResponse: undefined });
           }
 
+            // If a tool response was stored, add it to the payload
+            if (lastToolUseResponse) {
+              payload.is_tool_response = true;
+              payload.tool_use_response = {
+                tool_name: lastToolUseResponse.tool_name,
+                tool_use_id: lastToolUseResponse.tool_use_id,
+                response: {
+                  user_response: message,
+                },
+              };
+              // Clear it so it doesn't affect subsequent messages.
+              set({ lastToolUseResponse: undefined });
+            }
+
           const stream = apiChat(payload);
           console.log("stream received in FE : ", stream);
 
