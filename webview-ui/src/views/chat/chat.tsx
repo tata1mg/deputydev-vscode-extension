@@ -91,7 +91,7 @@ export function ChatUI() {
 
     let message = userInput.trim();
     setUserInput("");
-    useChatStore.setState({currentEditorReference: []})
+    useChatStore.setState({ currentEditorReference: [] });
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -148,6 +148,7 @@ export function ChatUI() {
         type: "keyword",
         keyword: "",
         path: "",
+        chunks: [],
       };
       useChatStore.setState({
         currentEditorReference: [...editorRefs, newChatRefrenceItem],
@@ -177,6 +178,9 @@ export function ChatUI() {
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       allChips[selectedChipIndex].keyword = option.icon + ": " + option.value;
+      allChips[selectedChipIndex].chunks = option.chunks
+      allChips[selectedChipIndex].path = option.description
+      allChips[selectedChipIndex].type = option.icon
       useChatStore.setState({ currentEditorReference: allChips });
       setShowAutocomplete(false);
     }
