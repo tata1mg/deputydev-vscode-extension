@@ -418,11 +418,13 @@ export class ChatManager {
         {
           repo_path: repo_path,
           search_terms: search_terms,
-        },
+        }
       )
+      this.outputChannel.info(`Focused snippets searcher response: ${JSON.stringify(response)}`);
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
       console.error("Error while fetching focused snippets searcher results:", error);
+      this.outputChannel.error("Error while fetching focused snippets searcher results:", error);
       throw error;
     }
   }
@@ -518,6 +520,7 @@ export class ChatManager {
         this.outputChannel.info("Running focused_snippets_searcher tool with query");
 
         const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
+        this.outputChannel.info(`Focused snippets searcher result: ${JSON.stringify(response)}`);
         if (response) {
           const payloadData = {
             message_id: message_id,
