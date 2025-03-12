@@ -49,7 +49,6 @@ export function ChatUI() {
     ? { 'data-tooltip-id': 'repo-tooltip', 'data-tooltip-content': 'Create new chat to select new repo.' }
     : {};
 
-
   // Auto-resize the textarea.
   const autoResize = () => {
     const el = textareaRef.current;

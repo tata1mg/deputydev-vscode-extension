@@ -9,7 +9,7 @@ import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
 import { WorkspaceManager } from '../code_syncing/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
-import { getActiveRepo } from "../utilities/contextManager";
+import { getActiveRepo, setSessionId } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -374,6 +374,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         command: 'session-chats-history',
         data: response
       });
+      setSessionId(sessionData.sessionId);
     } catch (error) {
       const response: any[] = []
       this.sendMessageToSidebar({
