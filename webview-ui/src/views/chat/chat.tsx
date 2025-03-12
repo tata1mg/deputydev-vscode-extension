@@ -45,10 +45,10 @@ export function ChatUI() {
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  // const repoSelectorEmbedding = useRepoSelectorStore(
-  //   (state) => state.repoSelectorDisabled
-  // );
-  const repoSelectorEmbedding = false;
+  const repoSelectorEmbedding = useRepoSelectorStore(
+    (state) => state.repoSelectorDisabled
+  );
+  // const repoSelectorEmbedding = false;
   // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
