@@ -9,10 +9,14 @@ import { getUri } from '../utilities/getUri';
 import { requireModule } from '../utilities/require-config';
 import { WorkspaceManager } from '../code_syncing/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
+import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
 import { getActiveRepo, setSessionId } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { binaryApi } from "../services/api/axios";
+import { API_ENDPOINTS } from "../services/api/endpoints";
+import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -29,6 +33,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly outputChannel: vscode.LogOutputChannel,
     private chatService: ChatManager,
     private historyService: HistoryService,
+    private authService: AuthService,
     private codeReferenceService: ReferenceManager
   ) { }
 
@@ -160,6 +165,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'initiate-login':
           promise = this.initiateLogin(data);
           break;
+        case 'initiate-binary':
+          promise = this.initiateBinary(data);
+          break;
         case 'get-sessions':
           promise = this.getSessions(data);
           break;
@@ -211,6 +219,55 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.sendMessageToSidebar(status);
   }
 
+  // For Binary init
+  private async initiateBinary(data: any) {
+    const active_repo = getActiveRepo();
+    const auth_token = await this.authService.loadAuthToken()
+    if (!auth_token) {
+      return
+    }
+    this.outputChannel.info('Initiating binary...')
+    const payload = {
+      "config": {
+        "DEPUTY_DEV": {
+          "HOST": "http://localhost:8084",
+          "TIMEOUT": 20,
+          "LIMIT": 0,
+          "LIMIT_PER_HOST": 0,
+          "TTL_DNS_CACHE": 10
+        }
+      }
+    }
+    const headers = {
+      "Authorization": `Bearer ${auth_token}`,
+    }
+
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'repo-selector-state',
+      data: true
+    });
+
+    const response = await binaryApi.post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+    this.outputChannel.info(response.data.status)
+    if (response.data.status === "Completed") {
+      if (active_repo) {
+        this.outputChannel.info(`Embedding creation with repo ${active_repo}`)
+        const params = { repo_path: active_repo };
+        this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
+        await updateVectorStoreWithResponse(params).then((response) => {
+            this.sendMessageToSidebar({
+              id: uuidv4(),
+              command: 'repo-selector-state',
+              data: false
+            });
+            this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
+          }
+        );
+      }
+    }
+  }
+
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(`Setting active repo to via frotnend ${data.repoPath}`);
     this._onDidChangeRepo.fire(data.repoPath);
@@ -247,7 +304,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.error('No active repo found');
       return;
     }
-    this.chatService.handleModifiedFiles(modifiedFiles,active_repo);
+    this.chatService.handleModifiedFiles(modifiedFiles, active_repo);
     return;
   }
 
@@ -358,7 +415,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
-  async getSessions(data: { limit: number, offset: number}) {
+  async getSessions(data: { limit: number, offset: number }) {
     try {
       const response = await this.historyService.getPastSessions(data.limit, data.offset)
       this.sendMessageToSidebar({

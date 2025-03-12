@@ -99,10 +99,6 @@ export class WorkspaceManager {
       this.initializeFileWatcher();
     }
 
-    // ✅ Send WebSocket request only if `activeRepo` is defined
-    if (this.activeRepo) {
-      this.sendWebSocketUpdate();
-    }
 
     // this.outputChannel.info('Done with WebSockets.');
 
