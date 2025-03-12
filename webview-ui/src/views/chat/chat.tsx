@@ -348,10 +348,10 @@ export function ChatUI() {
               }
             }}
             disabled={repoSelectorEmbedding}
-            // {...(repoSelectorEmbedding && {
-            //   'data-tooltip-id': 'repo-tooltip',
-            //   'data-tooltip-content': 'Please wait, your repo is embedding.'
-            // })}
+            {...(repoSelectorEmbedding && {
+              'data-tooltip-id': 'repo-tooltip',
+              'data-tooltip-content': 'Please wait, your repo is embedding.'
+            })}
           />
 
           {/* The cancel button remains enabled even if a response is pending */}
