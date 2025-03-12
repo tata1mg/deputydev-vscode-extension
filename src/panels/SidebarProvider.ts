@@ -242,6 +242,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.outputChannel.info(response.data.status)
     if (response.data.status === "Completed") {
       if (active_repo) {
+        this.outputChannel.info(`Embedding creation with repo ${active_repo}`)
         const params = { repo_path: active_repo };
         this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
         await updateVectorStoreWithResponse(params).then((response) => {
