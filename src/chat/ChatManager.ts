@@ -461,9 +461,6 @@ export class ChatManager {
         repo_path: repo_path,
         search_terms: search_terms,
       });
-      this.outputChannel.info(
-        `Focused snippets searcher response: ${JSON.stringify(response)}`
-      );
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
       console.error(
