@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { v4 as uuidv4 } from 'uuid';
-import useExtensionStore, { ViewType } from './stores/useExtensionStore';
-import { Session, sessionChats, useChatStore } from './stores/chatStore';
-import { useWorkspaceStore } from './stores/workspaceStore';
-import { useRepoSelectorStore } from './stores/repoSelectorStore';
+import { v4 as uuidv4 } from "uuid";
+import useExtensionStore, { ViewType } from "./stores/useExtensionStore";
+import { Session, sessionChats, useChatStore } from "./stores/chatStore";
+import { useWorkspaceStore } from "./stores/workspaceStore";
+import { useRepoSelectorStore } from "./stores/repoSelectorStore";
+import { ChatReferenceFileItem } from "./stores/chatStore";
+import { SearchResponseItem } from "./types";
+import { logToOutput } from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -33,20 +36,20 @@ const resolvers: Record<string, Resolver> = {};
 
 const events: Record<string, EventListener[]> = {};
 
-window.addEventListener('message', (event) => {
-  console.log('message', event.data);
+window.addEventListener("message", (event) => {
+  console.log("message", event.data);
   const { id, command, data } = event.data;
-  if (command === 'result') {
+  if (command === "result") {
     const resolver = resolvers[id];
     resolver.resolve(data);
-    console.log('result resolver finisihed', data);
+    console.log("result resolver finisihed", data);
     delete resolvers[id];
     return;
   }
 
-  if (command === 'chunk') {
+  if (command === "chunk") {
     const resolver = resolvers[id];
-    console.log('chunk', data, id);
+    console.log("chunk", data, id);
     resolver.chunk?.(data);
     return;
   }
@@ -62,19 +65,19 @@ export function callCommand(command: string, data: unknown): Promise<any>;
 export function callCommand(
   command: string,
   data: unknown,
-  options: { stream: false },
+  options: { stream: false }
 ): Promise<any>;
 
 export function callCommand<T = any>(
   command: string,
   data: unknown,
-  options: { stream: true },
+  options: { stream: true }
 ): AsyncIterableIterator<T>;
 
 export function callCommand(
   command: string,
   data: unknown,
-  options?: { stream: boolean },
+  options?: { stream: boolean }
 ): Promise<any> | AsyncIterableIterator<any> {
   const id = uuidv4();
   vscode.postMessage({
@@ -136,7 +139,7 @@ export function callCommand(
 
 export function addCommandEventListener(
   command: string,
-  listener: EventListener,
+  listener: EventListener
 ) {
   if (!events[command]) {
     events[command] = [];
@@ -146,40 +149,36 @@ export function addCommandEventListener(
 
 export function removeCommandEventListener(
   command: string,
-  listener: EventListener,
+  listener: EventListener
 ) {
   if (events[command]) {
     events[command] = events[command].filter((l) => l !== listener);
   }
 }
 
-addCommandEventListener('new-chat', async () => {
-
+addCommandEventListener("new-chat", async () => {
   const currentViewType = useExtensionStore.getState().viewType;
-  if (currentViewType !== 'chat') {
-    useExtensionStore.setState({ viewType: 'chat' });
+  if (currentViewType !== "chat") {
+    useExtensionStore.setState({ viewType: "chat" });
   } else {
     // clear chat history
     useChatStore.getState().clearChat();
   }
 });
 
-addCommandEventListener('set-view-type', ({ data }) => {
+addCommandEventListener("set-view-type", ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
-
-addCommandEventListener('repo-selector-state', ({ data }) => {
+addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-
-
-addCommandEventListener('set-workspace-repos', ({ data }) => {
+addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
-  console.log('Received Repositories:', repos);
+  console.log("Received Repositories:", repos);
 
   // Log each repo individually for better readability
   repos.forEach((repo, index) => {
@@ -187,27 +186,20 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
   });
 
   // Log activeRepo
-  console.log('Active Repo:', activeRepo);
+  console.log("Active Repo:", activeRepo);
 
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-
-
-
-
-
-addCommandEventListener('repo-selector-state', ({ data }) => {
+addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-
-
-addCommandEventListener('set-workspace-repos', ({ data }) => {
+addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
-  console.log('Received Repositories:', repos);
+  console.log("Received Repositories:", repos);
 
   // Log each repo individually for better readability
   repos.forEach((repo, index) => {
@@ -215,22 +207,68 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
   });
 
   // Log activeRepo
-  console.log('Active Repo:', activeRepo);
+  console.log("Active Repo:", activeRepo);
 
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-
-
-
-
-addCommandEventListener('sessions-history', ({ data }) => {
-  useChatStore.setState(prevState => ({
-    sessions: [...prevState.sessions, ...(data as Session[])]
+addCommandEventListener("sessions-history", ({ data }) => {
+  useChatStore.setState((prevState) => ({
+    sessions: [...prevState.sessions, ...(data as Session[])],
   }));
 });
 
-addCommandEventListener('session-chats-history', ({ data }) => {
+addCommandEventListener("keyword-search-response", ({ data }) => {
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      icon: item.type,
+      label: item.value,
+      value: item.value,
+      description: item.path,
+      chunks: item.chunks ? item.chunks : null,
+    };
+  });
+  logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
+  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+  if (!Array.isArray(data)) {
+    console.error("Invalid data format for 'keyword-search-response'", data);
+    return;
+  }
+
+  const editorReference: ChatReferenceFileItem[] = (
+    data as SearchResponseItem[]
+  ).map((item) => ({
+    id: item.value,
+    type: "file",
+    name: item.path.split("/").pop() || item.path,
+    fsPath: item.path,
+  }));
+
+  // useChatStore.setState({ currentEditorReference: editorReference });
+});
+
+addCommandEventListener("keyword-type-search-response", ({ data }) => {
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      icon: item.type,
+      label: item.value,
+      value: item.value,
+      description: item.path,
+      chunks: item.chunks ? item.chunks : null,
+    };
+  });
+  logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
+  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+  if (!Array.isArray(data)) {
+    console.error(
+      "Invalid data format for 'keyword-type-search-response'",
+      data
+    );
+    return;
+  }
+});
+
+addCommandEventListener("session-chats-history", ({ data }) => {
   useChatStore.setState({ sessionChats: data as sessionChats[] });
 });
 // addCommandEventListener('current-editor-changed', ({ data }) => {
