@@ -240,7 +240,7 @@ export class ChatManager {
         relevantHistoryQueryIds
       );
 
-      if (payload.query) {
+      if (payload.query && currentSessionId !== undefined) {
         const relevant_chunks = await this.processRelevantChunks(
           payload,
           relevantHistoryText
