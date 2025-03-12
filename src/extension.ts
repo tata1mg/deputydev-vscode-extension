@@ -9,7 +9,8 @@ import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
-import ConfigManager from './utilities/ConfigManager';
+import { ReferenceManager } from './references/ReferenceManager';
+import   ConfigManager   from './utilities/ConfigManager';
 import { setExtensionContext } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
@@ -77,15 +78,11 @@ export function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-
-
-
-
+  const referenceService = new ReferenceManager(context, outputChannel);
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
   const inlineEditManager = new InlineEditManager(context, outputChannel, chatService);
   inlineEditManager.editThisCode();
   inlineEditManager.codeLenseForInlineEdit();
-
 
   const historyService = new HistoryService();
   const authService = new AuthService();
@@ -100,7 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService, referenceService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );

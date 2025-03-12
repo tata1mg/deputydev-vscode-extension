@@ -10,6 +10,7 @@ import { requireModule } from '../utilities/require-config';
 import { WorkspaceManager } from '../code_syncing/WorkspaceManager';
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
+import { ReferenceManager } from "../references/ReferenceManager";
 import { getActiveRepo, setSessionId } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -33,6 +34,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private chatService: ChatManager,
     private historyService: HistoryService,
     private authService: AuthService,
+    private codeReferenceService: ReferenceManager
   ) { }
 
 
@@ -73,6 +75,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data: chunkData,
         });
       };
+
+      const sendMessage = (message: any) => {
+        this.sendMessageToSidebar(message);
+      };
       // Depending on `command`, handle each case
       switch (command) {
         case 'api-chat':
@@ -80,7 +86,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-
         // case 'api-clear-chat':
         //   promise = this.chatService.apiClearChat();
         //   break;
@@ -89,8 +94,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         //   break;
         // case 'api-chat-setting':
         //   promise = this.chatService.apiChatSetting(data);
-        //   break;
-
+          // break;
+        case 'keyword-search':
+          promise = this.codeReferenceService.keywordSearch(data, sendMessage);
+          break;
+        case 'keyword-type-search':
+          promise = this.codeReferenceService.keywordTypeSearch(data, sendMessage);
+          break;
 
 
         // File Operations
