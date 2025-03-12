@@ -217,7 +217,7 @@ export class InlineEditManager {
     }
 
     public async pollInlineDiffResult(job_id: number) {
-        const maxAttempts: number = 20;
+        const maxAttempts: number = 30;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 if (job_id) {
@@ -234,7 +234,7 @@ export class InlineEditManager {
             }
 
             // Wait for 3 seconds before the next attempt
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
         }
     }
 }
