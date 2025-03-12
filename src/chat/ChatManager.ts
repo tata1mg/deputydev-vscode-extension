@@ -1,14 +1,33 @@
 // import * as path from 'node:path';
-import { join } from 'path';
-import * as vscode from 'vscode';
-import { DiffViewManager } from '../diff/DiffManager';
-import { SidebarProvider } from '../panels/SidebarProvider';
-import { binaryApi } from '../services/api/axios';
-import { API_ENDPOINTS } from '../services/api/endpoints';
+import { join } from "path";
+import * as vscode from "vscode";
+import { DiffViewManager } from "../diff/DiffManager";
+import { SidebarProvider } from "../panels/SidebarProvider";
+import { binaryApi } from "../services/api/axios";
+import { API_ENDPOINTS } from "../services/api/endpoints";
 import { QuerySolverService } from "../services/chat/ChatService";
 import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
-import { getActiveRepo, getSessionId, setQueryId, setSessionId } from '../utilities/contextManager';
-import { HistoryService } from '../services/history/HistoryService';
+import {
+  getActiveRepo,
+  getSessionId,
+  setQueryId,
+  setSessionId,
+} from "../utilities/contextManager";
+import { HistoryService } from "../services/history/HistoryService";
+import { forEach } from "lodash";
+
+export type Chunk = {
+  start_line: number;
+  end_line: number;
+};
+
+export type ChatReferenceItem = {
+  index: number;
+  type: "file" | "directory" | "function" | "keyword" | string;
+  keyword: string;
+  path: string;
+  chunks: Chunk[];
+};
 
 interface payload {
   focus_files?: string[];
@@ -18,7 +37,7 @@ interface payload {
   is_tool_response?: boolean;
   relevant_chunks?: any[];
   write_mode?: boolean;
-  referenceList?: string[];
+  referenceList?: ChatReferenceItem[];
   tool_use_response?: {
     tool_name: string;
     tool_use_id?: string;
@@ -36,33 +55,26 @@ interface ToolRequest {
   tool_name: string;
   tool_use_id: string;
   accumulatedContent: string;
-  write_mode? : boolean;
+  write_mode?: boolean;
 }
-
 
 interface CurrentDiffRequest {
   filepath: string;
   raw_diff: string;
-
 }
-
 
 export class ChatManager {
   private querySolverService = new QuerySolverService();
   private sidebarProvider?: SidebarProvider; // Optional at first
   private historyService = new HistoryService();
 
-
-
-  onStarted: () => void = () => { };
-  onError: (error: Error) => void = () => { };
+  onStarted: () => void = () => {};
+  onError: (error: Error) => void = () => {};
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager,
-
-  ) { }
-
+    private diffViewManager: DiffViewManager
+  ) {}
 
   // Method to set the sidebar provider later
   setSidebarProvider(sidebarProvider: SidebarProvider) {
@@ -70,7 +82,7 @@ export class ChatManager {
   }
 
   async start() {
-    this.outputChannel.info('Starting deputydev binary service...');
+    this.outputChannel.info("Starting deputydev binary service...");
 
     // const config = vscode.workspace.getConfiguration('deputydev');
     // const pythonPath = config.get('pythonPath') as string;
@@ -112,33 +124,48 @@ export class ChatManager {
   }
 
   restart() {
-    this.outputChannel.info('Restarting deputydev binary service...');
+    this.outputChannel.info("Restarting deputydev binary service...");
     this.stop();
     this.start();
   }
 
   stop() {
-    this.outputChannel.info('Stopping deputydev binary service...');
+    this.outputChannel.info("Stopping deputydev binary service...");
   }
 
+  async processRelevantChunks(
+    data: payload,
+    relevantHistoryText?: string
+  ): Promise<string[]> {
+    const focus_files = [] as string[];
+    const focus_directories = [] as string[];
+    const focus_chunks = [] as string[];
 
+    data.referenceList?.forEach((element) => {
+      if (element.type === "file") {
+        focus_files.push(element.path);
+      } else if (element.type === "directory") {
+        focus_directories.push(element.path);
+      } else {
+        focus_chunks.push(
+          `${element.path}:${element.chunks[0].start_line}-${element.chunks[0].end_line}`
+        );
+      }
+    });
 
-
-  async processRelevantChunks(data: payload, relevantHistoryText ?: string): Promise<string[]> {
     try {
       // If data contains a referenceList, process it as needed.
       // if (data.referenceList) {
       //   // TODO: Create an array from the referenceList and process it if necessary.
       // }
 
-
       // Retrieve the active repository path.
       const active_repo = getActiveRepo();
       if (!active_repo) {
-        throw new Error('Active repository is not defined.');
+        throw new Error("Active repository is not defined.");
       }
       // Extract the query from the data.
-      let query = data.query ?? '';
+      let query = data.query ?? "";
       if (relevantHistoryText) {
         query = query + "\n" + relevantHistoryText;
       }
@@ -148,60 +175,76 @@ export class ChatManager {
       const result = await fetchRelevantChunks({
         repo_path: active_repo,
         query: query,
+        focus_files: focus_files,
+        focus_directories: focus_directories,
+        focus_chunks: focus_chunks,
         // focus_chunks: data.focus_chunks || [],
         // focus_files: data.focus_files || [],
       });
       // only print few words only
-      this.outputChannel.info(`Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`);
+      this.outputChannel.info(
+        `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
+      );
       // Extract the content from each chunk in the payload.
       return result;
-
-
     } catch (error) {
       this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
       return [];
     }
   }
 
-
-    /**
+  /**
    * apiChat:
    * Expects a payload that includes message_id along with the query with other parameters,
    * and uses the querySolver service to yield text chunks. Each chunk is sent via
    * the provided chunkCallback.
    */
 
-
-  async apiChat(payload: payload, chunkCallback: (data: { name: string; data: unknown }) => void) {
+  async apiChat(
+    payload: payload,
+    chunkCallback: (data: { name: string; data: unknown }) => void
+  ) {
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
       //get all relevant previous chat queries if any
       let currentSessionId = getSessionId();
-      let relevantHistoryText : string | undefined = undefined;
+      let relevantHistoryText: string | undefined = undefined;
       let relevantHistoryQueryIds: number[] = [];
       if (currentSessionId && payload.query) {
         this.outputChannel.info(`Current session ID: ${currentSessionId}`);
 
         // call the api to get all the previous chat queries
-        const relevantHistoryData = await this.historyService.getRelevantChatHistory(currentSessionId, payload.query);
-        this.outputChannel.info(`Relevant chat history: ${JSON.stringify(relevantHistoryData)}`);
+        const relevantHistoryData =
+          await this.historyService.getRelevantChatHistory(
+            currentSessionId,
+            payload.query
+          );
+        this.outputChannel.info(
+          `Relevant chat history: ${JSON.stringify(relevantHistoryData)}`
+        );
 
         // extract the text from the response
         const relevantHistoryChats = relevantHistoryData?.chats || [];
         for (const chat of relevantHistoryChats) {
-          relevantHistoryText = relevantHistoryText ? relevantHistoryText + chat.query : chat.response;
+          relevantHistoryText = relevantHistoryText
+            ? relevantHistoryText + chat.query
+            : chat.response;
           relevantHistoryQueryIds.push(chat.id);
         }
       }
 
-
       this.outputChannel.info("relevantHistoryText", relevantHistoryText);
-      this.outputChannel.info("relevantHistoryQueryIds", relevantHistoryQueryIds);
-
+      this.outputChannel.info(
+        "relevantHistoryQueryIds",
+        relevantHistoryQueryIds
+      );
 
       if (payload.query && currentSessionId !== undefined) {
-        const relevant_chunks = await this.processRelevantChunks(payload, relevantHistoryText);
+        const relevant_chunks = await this.processRelevantChunks(
+          payload,
+          relevantHistoryText
+        );
         payload.relevant_chunks = relevant_chunks;
       }
       delete payload.referenceList;
@@ -223,51 +266,53 @@ export class ChatManager {
         payload.previous_query_ids = relevantHistoryQueryIds;
       }
 
-      const querySolverIterator = await this.querySolverService.querySolver(payload);
+      const querySolverIterator =
+        await this.querySolverService.querySolver(payload);
       let currentToolRequest: any = null;
       let currentDiffRequest: any = null;
 
       for await (const event of querySolverIterator) {
         switch (event.type) {
-          case 'RESPONSE_METADATA': {
+          case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
               setSessionId(event.content.session_id);
             }
             if (event.content?.query_id) {
               setQueryId(event.content.session_id);
             }
-            const sessionid = getSessionId()
+            const sessionid = getSessionId();
             this.outputChannel.info(`Session ID: ${sessionid}`);
             chunkCallback({ name: event.type, data: event.content });
             break;
           }
-          case 'TOOL_USE_REQUEST_START': {
+          case "TOOL_USE_REQUEST_START": {
             currentToolRequest = {
               tool_name: event.content?.tool_name,
               tool_use_id: event.content?.tool_use_id,
-              accumulatedContent: '',
-              write_mode : payload.write_mode
+              accumulatedContent: "",
+              write_mode: payload.write_mode,
             };
             // Immediately forward the start event.
             chunkCallback({ name: event.type, data: event.content });
             break;
           }
-          case 'TOOL_USE_REQUEST_DELTA': {
+          case "TOOL_USE_REQUEST_DELTA": {
             if (currentToolRequest) {
-              currentToolRequest.accumulatedContent += event.content?.input_params_json_delta || '';
+              currentToolRequest.accumulatedContent +=
+                event.content?.input_params_json_delta || "";
               // Forward the delta along with the tool_use_id.
               chunkCallback({
                 name: event.type,
                 data: {
                   tool_name: currentToolRequest.tool_name,
                   tool_use_id: currentToolRequest.tool_use_id,
-                  delta: event.content?.input_params_json_delta || '',
+                  delta: event.content?.input_params_json_delta || "",
                 },
               });
             }
             break;
           }
-          case 'TOOL_USE_REQUEST_END': {
+          case "TOOL_USE_REQUEST_END": {
             if (currentToolRequest) {
               chunkCallback({
                 name: event.type,
@@ -283,7 +328,7 @@ export class ChatManager {
             }
             break;
           }
-          case 'CODE_BLOCK_START': {
+          case "CODE_BLOCK_START": {
             if (event.content?.is_diff) {
               currentDiffRequest = {
                 is_diff: true,
@@ -295,18 +340,22 @@ export class ChatManager {
             break;
           }
 
-
-          case 'CODE_BLOCK_END': {
-            this.outputChannel.info(`Code block end: ${JSON.stringify(event.content)}`);
+          case "CODE_BLOCK_END": {
+            this.outputChannel.info(
+              `Code block end: ${JSON.stringify(event.content)}`
+            );
             if (currentDiffRequest) {
               currentDiffRequest.raw_diff = event.content.diff;
               chunkCallback({ name: event.type, data: event.content });
               const active_repo = getActiveRepo();
               if (!active_repo) {
-                throw new Error('Active repository is not defined. cannot apply diff');
+                throw new Error(
+                  "Active repository is not defined. cannot apply diff"
+                );
               }
               if (payload.write_mode) {
-                const modifiedFiles = await this.getModifiedRequest(currentDiffRequest);
+                const modifiedFiles =
+                  await this.getModifiedRequest(currentDiffRequest);
                 await this.handleModifiedFiles(modifiedFiles, active_repo);
               }
 
@@ -322,20 +371,22 @@ export class ChatManager {
         }
       }
       // Signal end of stream.
-      chunkCallback({ name: 'end', data: {} });
-
+      chunkCallback({ name: "end", data: {} });
     } catch (error) {
       this.outputChannel.error(`Error during apiChat: ${error}`);
     }
   }
 
-
-  public async getModifiedRequest(currentDiffRequest: CurrentDiffRequest) : Promise<Record<string, string>> {
-    this.outputChannel.info(`Running diff tool for file ${currentDiffRequest.filepath}`);
+  public async getModifiedRequest(
+    currentDiffRequest: CurrentDiffRequest
+  ): Promise<Record<string, string>> {
+    this.outputChannel.info(
+      `Running diff tool for file ${currentDiffRequest.filepath}`
+    );
 
     const active_repo = getActiveRepo();
     if (!active_repo) {
-      throw new Error('Active repository is not defined.');
+      throw new Error("Active repository is not defined.");
     }
 
     // Parse accumulated diff content to extract necessary params
@@ -345,12 +396,9 @@ export class ChatManager {
     this.outputChannel.info("getting modified file from binary");
 
     // Call the external function to fetch the modified file
-    const result = await this.fetchModifiedFile(
-      active_repo,
-      {
-        [payload_key]: raw_udiff,
-      }
-    );
+    const result = await this.fetchModifiedFile(active_repo, {
+      [payload_key]: raw_udiff,
+    });
 
     console.log("result of binary search and replace", result);
 
@@ -363,20 +411,15 @@ export class ChatManager {
     return result;
   }
 
-
   public async fetchModifiedFile(
     repo_path: string,
-    file_path_to_diff_map: Record<string, string>,
+    file_path_to_diff_map: Record<string, string>
   ): Promise<any> {
     try {
-      const response = await binaryApi.post(
-        API_ENDPOINTS.DIFF_APPLIER,
-        {
-          repo_path: repo_path,
-          file_path_to_diff_map: file_path_to_diff_map,
-        },
-
-      );
+      const response = await binaryApi.post(API_ENDPOINTS.DIFF_APPLIER, {
+        repo_path: repo_path,
+        file_path_to_diff_map: file_path_to_diff_map,
+      });
 
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
@@ -385,14 +428,12 @@ export class ChatManager {
     }
   }
 
-
   async handleModifiedFiles(
     modifiedFiles: Record<string, string>,
     active_repo: string
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
-
 
       // // Check if file exists
       // if (!existsSync(fullPath)) {
@@ -407,30 +448,40 @@ export class ChatManager {
       //   writeFileSync(fullPath, content);
       // }
 
-      await this.diffViewManager.openDiffView({ path : fullPath, content });
+      await this.diffViewManager.openDiffView({ path: fullPath, content });
     }
   }
 
-  async fetchFocusedSnippetsSearcherResult(repo_path: string, search_terms: SearchTerm[]): Promise<any> {
+  async fetchFocusedSnippetsSearcherResult(
+    repo_path: string,
+    search_terms: SearchTerm[]
+  ): Promise<any> {
     try {
-      const response = await binaryApi.post(
-        API_ENDPOINTS.BATCH_CHUNKS_SEARCH,
-        {
-          repo_path: repo_path,
-          search_terms: search_terms,
-        }
-      )
-      this.outputChannel.info(`Focused snippets searcher response: ${JSON.stringify(response)}`);
+      const response = await binaryApi.post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+        repo_path: repo_path,
+        search_terms: search_terms,
+      });
+      this.outputChannel.info(
+        `Focused snippets searcher response: ${JSON.stringify(response)}`
+      );
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
-      console.error("Error while fetching focused snippets searcher results:", error);
-      this.outputChannel.error("Error while fetching focused snippets searcher results:", error);
+      console.error(
+        "Error while fetching focused snippets searcher results:",
+        error
+      );
+      this.outputChannel.error(
+        "Error while fetching focused snippets searcher results:",
+        error
+      );
       throw error;
     }
   }
 
   async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
-    this.outputChannel.info(`Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`);
+    this.outputChannel.info(
+      `Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`
+    );
     this.outputChannel.info(`message id ${message_id}`);
     let active_repo;
     let parsedContent;
@@ -442,30 +493,40 @@ export class ChatManager {
       this.sidebarProvider?.sendMessageToSidebar({
         // Use the same ID so that the front-end resolver knows which generator to push data into.
         id: message_id,
-        command: 'chunk',
+        command: "chunk",
         data: chunkData,
       });
     };
 
     switch (toolRequest.tool_name) {
-      case 'related_code_searcher':
-        this.outputChannel.info("The tool use request:", JSON.stringify(toolRequest));
-        active_repo = this.context.workspaceState.get<string>('activeRepo');
+      case "related_code_searcher":
+        this.outputChannel.info(
+          "The tool use request:",
+          JSON.stringify(toolRequest)
+        );
+        active_repo = this.context.workspaceState.get<string>("activeRepo");
         if (!active_repo) {
-          throw new Error('Active repository is not defined.');
+          throw new Error("Active repository is not defined.");
         }
 
         // Parse accumulatedContent to extract the search query and paths (used as focus_files).
         parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(`Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`);
-        searchQuery = parsedContent.search_query || '';
+        this.outputChannel.info(
+          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
+        );
+        searchQuery = parsedContent.search_query || "";
         focusFiles = parsedContent.paths || [];
 
-        this.outputChannel.info("Running related_code_searcher tool with query");
+        this.outputChannel.info(
+          "Running related_code_searcher tool with query"
+        );
         // Call the external function to fetch relevant chunks.
         const result = await fetchRelevantChunks({
           repo_path: active_repo,
           query: searchQuery,
+          focus_files: [],
+          focus_directories: [],
+          focus_chunks: [],
           // Uncomment and use focusFiles if needed:
           // focus_files: focusFiles,
         });
@@ -473,84 +534,100 @@ export class ChatManager {
         if (result) {
           const payloadData = {
             message_id: message_id,
-            write_mode : toolRequest.write_mode,
+            write_mode: toolRequest.write_mode,
             tool_use_response: {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               response: {
-                RELEVANT_CHUNKS: result
-              }
-            }
+                RELEVANT_CHUNKS: result,
+              },
+            },
           };
 
-
           chunkCallback({
-            name: 'TOOL_USE_RESULT',
+            name: "TOOL_USE_RESULT",
             data: {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               result_json: result,
-              status: 'completed',
+              status: "completed",
             },
           });
 
-
-
-          this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
+          this.outputChannel.info(
+            `Code searcher payload: ${JSON.stringify(payloadData)}`
+          );
           await this.apiChat(payloadData, chunkCallback);
           return JSON.stringify({ completed: true });
         }
 
-        this.outputChannel.info(`Code searcher result: ${JSON.stringify(result)}`);
+        this.outputChannel.info(
+          `Code searcher result: ${JSON.stringify(result)}`
+        );
 
         return JSON.stringify({ completed: false });
 
       case "focused_snippets_searcher":
-        this.outputChannel.info("The tool use request:", JSON.stringify(toolRequest));
-        active_repo = this.context.workspaceState.get<string>('activeRepo');
+        this.outputChannel.info(
+          "The tool use request:",
+          JSON.stringify(toolRequest)
+        );
+        active_repo = this.context.workspaceState.get<string>("activeRepo");
         if (!active_repo) {
-          throw new Error('Active repository is not defined.');
+          throw new Error("Active repository is not defined.");
         }
 
         // Parse accumulatedContent to extract the search query and paths (used as focus_files).
         parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(`Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`);
+        this.outputChannel.info(
+          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
+        );
         const search_terms = parsedContent.search_terms;
 
-        this.outputChannel.info("Running focused_snippets_searcher tool with query");
+        this.outputChannel.info(
+          "Running focused_snippets_searcher tool with query"
+        );
 
-        const response = await this.fetchFocusedSnippetsSearcherResult(active_repo, search_terms);
-        this.outputChannel.info(`Focused snippets searcher result: ${JSON.stringify(response)}`);
+        const response = await this.fetchFocusedSnippetsSearcherResult(
+          active_repo,
+          search_terms
+        );
+        this.outputChannel.info(
+          `Focused snippets searcher result: ${JSON.stringify(response)}`
+        );
         if (response) {
           const payloadData = {
             message_id: message_id,
-            write_mode : toolRequest.write_mode,
+            write_mode: toolRequest.write_mode,
             tool_use_response: {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               response: {
-                batch_chunks_search: response
-              }
-            }
-          }
+                batch_chunks_search: response,
+              },
+            },
+          };
 
           chunkCallback({
-            name: 'TOOL_USE_RESULT',
+            name: "TOOL_USE_RESULT",
             data: {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               result_json: response,
-              status: 'completed',
+              status: "completed",
             },
           });
 
-          this.outputChannel.info(`Code searcher payload: ${JSON.stringify(payloadData)}`);
+          this.outputChannel.info(
+            `Code searcher payload: ${JSON.stringify(payloadData)}`
+          );
           await this.apiChat(payloadData, chunkCallback);
           return JSON.stringify({ completed: true });
-
         }
 
-        this.outputChannel.info(`Focused snippets searcher result: ${JSON.stringify(response)}`);
+        this.outputChannel.info(
+          `Focused snippets searcher result: ${JSON.stringify(response)}`
+        );
 
         return JSON.stringify({ completed: false });
 
