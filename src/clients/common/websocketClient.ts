@@ -9,7 +9,7 @@ export class WebSocketClient {
     private resolveResponse!: (value: any) => void;
     private rejectResponse!: (reason: any) => void;
     private timeout: NodeJS.Timeout | null = null;
-    private timeoutDuration: number = 100000; // 30 seconds timeout
+    private timeoutDuration: number = 1800000; // 30 minutes timeout
 
     constructor(baseUrl: string, endpoint: string) {
         this.url = `${baseUrl}${endpoint}`;

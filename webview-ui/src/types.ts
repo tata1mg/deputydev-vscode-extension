@@ -32,3 +32,13 @@ export type ChatReferenceItem = {
   path: string;
   chunks: Chunk[]
 };
+
+
+export type ChatUserMessage  = {
+  type: "TEXT_BLOCK";
+  content: {
+    text: string;
+  };
+  referenceList: ChatReferenceItem[];
+  actor: "USER";
+}
