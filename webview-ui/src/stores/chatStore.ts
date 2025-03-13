@@ -201,7 +201,6 @@ export const useChatStore = create(
       showSessionsBox: true,
       showAllSessions: false,
       sessions: [] as Session[],
-      // sessionChats: [] as ChatMessage[],
       currentEditorReference: [] as ChatReferenceItem[],
       ChatAutocompleteOptions: initialAutocompleteOptions,
       chipIndexBeingEdited: -1,
@@ -222,7 +221,6 @@ export const useChatStore = create(
             showSessionsBox: true,
             showAllSessions: false,
             currentEditorReference: [],
-            // sessionChats: [],
           });
         },
 
