@@ -12,6 +12,7 @@ import { CodeActionPanel } from "./chatElements/codeActionPanel";
 
 export function ChatArea() {
   const { history: messages, current } = useChatStore();
+  console.log("messages in parser",messages)
 
   return (
     <>
@@ -61,7 +62,7 @@ export function ChatArea() {
               </div>
             );
 
-          case "TOOL_USE_REQUEST_BLOCK":
+          case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
                 <SearchedCodebase status={msg.content.status} />

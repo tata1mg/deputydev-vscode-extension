@@ -65,13 +65,13 @@ export interface ChatUserMessage {
   content: {
     text: string;
   };
-  referenceList: ChatReferenceItem[];
+  referenceList?: ChatReferenceItem[];
   actor: "USER";
 }
 
 // New type for tool use messages.
 export interface ChatToolUseMessage {
-  type: "TOOL_USE_REQUEST_BLOCK";
+  type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
   content: {
     tool_name: string;
     tool_use_id: string;
@@ -82,7 +82,7 @@ export interface ChatToolUseMessage {
 }
 
 export interface ThinkingMessage {
-  type: "THINKING";
+  type: "THINKING" | "THINKING_BLOCK";
   text: string;
   completed: boolean;
   actor?: "ASSISTANT";
@@ -99,7 +99,7 @@ export interface ChatCodeBlockMessage {
     added_lines?: number | null;
     removed_lines?: number | null;
   };
-  completed: boolean;
+  completed?: boolean;
   actor: "ASSISTANT";
 }
 
@@ -135,7 +135,7 @@ export interface SessionChatContent {
   text: string;
   language: string;
   code: string;
-  filePath: string;
+  file_path: string;
   toolName: string;
   toolUseId: string;
   inputParamsJson: JSON;
@@ -201,7 +201,7 @@ export const useChatStore = create(
       showSessionsBox: true,
       showAllSessions: false,
       sessions: [] as Session[],
-      sessionChats: [] as sessionChats[],
+      // sessionChats: [] as ChatMessage[],
       currentEditorReference: [] as ChatReferenceItem[],
       ChatAutocompleteOptions: initialAutocompleteOptions,
       chipIndexBeingEdited: -1,
@@ -222,7 +222,7 @@ export const useChatStore = create(
             showSessionsBox: true,
             showAllSessions: false,
             currentEditorReference: [],
-            sessionChats: [],
+            // sessionChats: [],
           });
         },
 
@@ -501,7 +501,7 @@ export const useChatStore = create(
                   } else {
                     // For normal tools, create a tool use message.
                     const newToolMsg: ChatToolUseMessage = {
-                      type: "TOOL_USE_REQUEST_BLOCK",
+                      type: "TOOL_USE_REQUEST",
                       content: {
                         tool_name: toolData.tool_name || "",
                         tool_use_id: toolData.tool_use_id || "",
@@ -553,7 +553,7 @@ export const useChatStore = create(
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                        if (msg.type === "TOOL_USE_REQUEST") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -609,7 +609,7 @@ export const useChatStore = create(
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                        if (msg.type === "TOOL_USE_REQUEST") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -638,7 +638,7 @@ export const useChatStore = create(
                   };
                   set((state) => {
                     const newHistory = state.history.map((msg) => {
-                      if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                      if (msg.type === "TOOL_USE_REQUEST") {
                         const toolMsg = msg as ChatToolUseMessage;
                         if (
                           toolMsg.content.tool_use_id ===

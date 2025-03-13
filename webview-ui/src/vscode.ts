@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
 import useExtensionStore, { ViewType } from "./stores/useExtensionStore";
-import { Session, sessionChats, useChatStore } from "./stores/chatStore";
+import { ChatMessage, Session, sessionChats, useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatReferenceFileItem } from "./stores/chatStore";
@@ -269,7 +269,7 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {
-  useChatStore.setState({ sessionChats: data as sessionChats[] });
+  useChatStore.setState({ history: data as ChatMessage[] });
 });
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
