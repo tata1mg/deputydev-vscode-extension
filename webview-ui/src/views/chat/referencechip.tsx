@@ -66,7 +66,7 @@ export default function ReferenceChip({
       } else {
         keywordSearch({ keyword: value });
       }
-    }, 500);
+    }, 0);
   };
   const handleBlur = () => setIsEditing(false);
 

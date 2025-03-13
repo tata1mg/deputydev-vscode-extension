@@ -15,7 +15,7 @@
     "onCommand:deputydev.acceptChanges",
     "onCommand:deputydev.rejectChanges",
     "onCommand:deputydev.AcceptAllChanges",
-    "onCommand:deputydev.rejectAllChanges",
+    "onCommand:deputydev.RejectAllChanges",
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
     "onStartupFinished"
@@ -55,7 +55,7 @@
         "icon": "$(check-all)"
       },
       {
-        "command": "deputydev.rejectAllChanges",
+        "command": "deputydev.RejectAllChanges",
         "category": "DeputyDev",
         "title": "Reject All Changes",
         "icon": "$(close-all)"
@@ -137,7 +137,7 @@
           "group": "navigation@2"
         },
         {
-          "command": "deputydev.rejectAllChanges",
+          "command": "deputydev.RejectAllChanges",
           "when": "deputydev.hasChanges",
           "group": "navigation@3"
         }
