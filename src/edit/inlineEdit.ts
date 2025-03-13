@@ -30,8 +30,7 @@ export class InlineEditManager {
     private file_path: string | undefined;
     private focus_files: string[] | undefined;
     private active_repo: string | undefined;
-    private relative_file_path: string | undefined
-    private comment_box_thread: vscode.CommentThread | undefined
+    private relative_file_path: string | undefined;
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -43,60 +42,61 @@ export class InlineEditManager {
 
     public async codeLenseForInlineEdit() {
         // Register the CodeLensProvider for any language
-        this.context.subscriptions.push(vscode.languages.registerCodeLensProvider({ scheme: 'file', language: '*' }, {
-            provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
-                const codeLenses: vscode.CodeLens[] = [];
+        this.context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: '*' }, {
+            provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeAction[]> {
+                const codeActions: vscode.CodeAction[] = [];
                 const selection = vscode.window.activeTextEditor?.selection;
 
-                if (selection && !selection.isEmpty) {
-                    const range = new vscode.Range(selection.start.line, 0, selection.end.line, 0);
-
-                    codeLenses.push(
-                        new vscode.CodeLens(range, {
-                            title: 'Edit',
-                            command: 'deputydev.editThisCode',
-                            arguments: [document.uri.toString(), selection.start.line, selection.end.line],
-                        }),
-                        new vscode.CodeLens(range, {
-                            title: 'Chat',
-                            command: 'deputydev.chat',
-                            arguments: [document.uri.toString(), selection.start.line, selection.end.line],
-                        }),
-                    );
+                if (!selection) {
+                    return;
                 }
 
-                return codeLenses.length > 0 ? codeLenses : [];
+                const actionEdit = new vscode.CodeAction('Edit (cmd+i)', vscode.CodeActionKind.QuickFix);
+                actionEdit.command = {
+                    command: 'deputydev.editThisCode',
+                    title: 'Edit'
+                };
+                codeActions.push(actionEdit);
+
+                const actionChat = new vscode.CodeAction('Chat (cmd+l', vscode.CodeActionKind.QuickFix);
+                actionChat.command = {
+                    command: 'deputydev.chat',
+                    title: 'Chat'
+                };
+                codeActions.push(actionChat);
+
+                return codeActions;
             }
         }));
 
-        // Listen for selection changes
-        this.context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
-            const editor = event.textEditor;
-            const selection = editor.selection;
+        // // Listen for selection changes
+        // this.context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
+        //     const editor = event.textEditor;
+        //     const selection = editor.selection;
 
-            // Trigger a refresh of CodeLenses
-            vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        }));
+        //     // Trigger a refresh of CodeLenses
+        //     vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
+        // }));
 
-        // Also listen for when the active editor changes
-        this.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-            if (editor) {
-                vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-            }
-        }));
+        // // Also listen for when the active editor changes
+        // this.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+        //     if (editor) {
+        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
+        //     }
+        // }));
 
-        // Listen for document changes to clear CodeLenses when nothing is selected
-        this.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-            const editor = vscode.window.activeTextEditor;
-            if (editor && editor.document === event.document) {
-                vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-            }
-        }));
+        // // Listen for document changes to clear CodeLenses when nothing is selected
+        // this.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
+        //     const editor = vscode.window.activeTextEditor;
+        //     if (editor && editor.document === event.document) {
+        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
+        //     }
+        // }));
     }
 
     public async editThisCode() {
         // Register the command for inline editing
-        vscode.commands.registerCommand('deputydev.editThisCode', () => {
+        vscode.commands.registerCommand('deputydev.editThisCode', (collapse: boolean = false) => {
             this.outputChannel.info('Edit command triggered');
             const commentController = vscode.comments.createCommentController('DeputyDevAI', 'DeputyDevAI Inline Edit');
 
@@ -123,32 +123,34 @@ export class InlineEditManager {
 
             const selection = this.editor.selection;
 
-            if (selection && !selection.isEmpty) {
-                // Get selected text as a string
-                this.selected_text = this.editor.document.getText(selection);
-                if (this.selected_text) {
-                    this.focus_chunks = [];
-                    // Add selected text to focus_chunks array
-                    this.focus_chunks.push(this.selected_text);
-                    this.outputChannel.info(`Focus Chunks: ${JSON.stringify(this.focus_chunks)}`);
-                }
-
-                // Get the start and end positions of the selection
-                this.startLineOfSelectedText = selection.start.line; // Start line number
-                this.endLineOfSelectedText = selection.end.line; // End line number
-
-                // Create a range using the start and end positions
-                this.range = new vscode.Range(
-                    new vscode.Position(this.startLineOfSelectedText, 0),
-                    new vscode.Position(this.endLineOfSelectedText, 0)
-                );
-
-                // outputChannel.info(`Start Line: ${startLineOfSelectedText}, End Line: ${endLineOfSelectedText}`);
+            if (!selection) {
+                return
             }
+            // Get selected text as a string
+            this.selected_text = this.editor.document.getText(selection);
+            if (this.selected_text) {
+                this.focus_chunks = [];
+                // Add selected text to focus_chunks array
+                this.focus_chunks.push(this.selected_text);
+                this.outputChannel.info(`Focus Chunks: ${JSON.stringify(this.focus_chunks)}`);
+            }
+
+            // Get the start and end positions of the selection
+            this.startLineOfSelectedText = selection.start.line; // Start line number
+            this.endLineOfSelectedText = selection.end.line; // End line number
+
+            // Create a range using the start and end positions
+            this.range = new vscode.Range(
+                new vscode.Position(this.startLineOfSelectedText, 0),
+                new vscode.Position(this.endLineOfSelectedText, 0)
+            );
+
+            // outputChannel.info(`Start Line: ${startLineOfSelectedText}, End Line: ${endLineOfSelectedText}`);
+
             if (!this.range) {
                 return;
             }
-            this.comment_box_thread = commentController.createCommentThread(
+            const comment_box_thread = commentController.createCommentThread(
                 this.editor.document.uri,
                 this.range,
                 []
@@ -158,7 +160,11 @@ export class InlineEditManager {
                 prompt: "Ask DeputyDev AI To Edit Your Code..."
             };
 
-            this.comment_box_thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+            if (collapse) {
+                comment_box_thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
+            } else {
+                comment_box_thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
+            }
         });
 
         // Register the command for AI editing
@@ -212,6 +218,7 @@ export class InlineEditManager {
                     return
                 }
                 this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo)
+                vscode.commands.executeCommand('deputydev.editThisCode', true);
             });
         }));
     }
