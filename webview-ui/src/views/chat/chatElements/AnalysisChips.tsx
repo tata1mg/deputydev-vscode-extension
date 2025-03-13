@@ -132,7 +132,7 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
     <div
 
       className="flex items-center gap-2 px-2 py-2 border border-neutral-600 rounded w-full text-white text-sm"
-      title={completed ? "Completed" : "Thinking..."}
+      title={completed ? "Thinking Complete" : "Thinking..."}
     >
       {!completed ? (
         <>

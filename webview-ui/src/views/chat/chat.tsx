@@ -28,6 +28,7 @@ import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
 import { AutocompleteMenu } from "./autocomplete";
 import { isEqual as lodashIsEqual } from "lodash";
+import {ChatUserMessage} from "@/types";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -58,6 +59,7 @@ export function ChatUI() {
   const sessionsPerPage = 20;
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
 
   // Function to handle showing all sessions
   const handleShowMore = () => {
@@ -132,6 +134,24 @@ export function ChatUI() {
     }
   };
 
+
+  useEffect(() => {
+    if (messages.length > 0 && messages[messages.length - 1].type === "TEXT_BLOCK") {
+      const lastMessage = messages[messages.length - 1] as ChatUserMessage;
+      if (lastMessage.actor === "USER") {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
+      }
+    }
+  }, [messages]);
+  
+  
+  
+
+
+
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
   };
@@ -186,19 +206,53 @@ export function ChatUI() {
       setShowAutocomplete(false);
     }
   };
+// Updated auto-scroll logic with debounce to prevent conflicting manual scrolls
+useEffect(() => {
+  const container = messagesEndRef.current?.parentElement;
+  if (!container) return;
 
-  // Scroll to bottom when new messages arrive.
-  useEffect(() => {
-    console.log("messages updated:", messages);
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, current?.content?.text]);
+  const threshold = 50;
+  let reenableTimer: ReturnType<typeof setTimeout> | null = null;
 
-  useEffect(() => {
-    // Scroll to the bottom when a new session is selected
-    if (chatContainerEndRef.current) {
-      chatContainerEndRef.current.scrollIntoView({ behavior: "smooth" });
+  const handleScroll = () => {
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    if (distanceFromBottom < threshold) {
+      // User is near the bottom: debounce re-enabling auto-scroll
+      if (reenableTimer) clearTimeout(reenableTimer);
+      reenableTimer = setTimeout(() => {
+        setIsAutoScrollEnabled(true);
+      }, 300);
+    } else {
+      // User scrolled up: cancel any pending re-enable and disable auto-scroll
+      if (reenableTimer) {
+        clearTimeout(reenableTimer);
+        reenableTimer = null;
+      }
+      setIsAutoScrollEnabled(false);
     }
-  }, [sessionChats]);
+  };
+
+  container.addEventListener("scroll", handleScroll);
+  return () => {
+    container.removeEventListener("scroll", handleScroll);
+    if (reenableTimer) clearTimeout(reenableTimer);
+  };
+}, []);
+
+// Scroll to bottom when new messages arrive (if auto-scroll is enabled)
+useEffect(() => {
+  console.log("messages updated:", messages);
+  if (isAutoScrollEnabled) {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+}, [messages, current?.content?.text, isAutoScrollEnabled]);
+
+useEffect(() => {
+  // Scroll to the bottom when a new session is selected
+  if (chatContainerEndRef.current) {
+    chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }
+}, [sessionChats]);
 
   return (
     <div className="flex flex-col justify-between h-full relative">
@@ -350,7 +404,7 @@ export function ChatUI() {
             disabled={repoSelectorEmbedding}
             {...(repoSelectorEmbedding && {
               'data-tooltip-id': 'repo-tooltip',
-              'data-tooltip-content': 'Please wait, your repo is embedding.'
+              'data-tooltip-content': 'Please wait, DeputyDev is initializing.'
             })}
           />
 
