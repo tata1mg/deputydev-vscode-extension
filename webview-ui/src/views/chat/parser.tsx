@@ -1,16 +1,18 @@
 import React from 'react';
 import { CircleUserRound } from 'lucide-react';
 import { CodeBlock } from './codeBlock';
+import Markdown from "react-markdown";
+import { CodeActionPanel } from './chatElements/codeActionPanel';
 
 interface ChatContent {
     type: string;
     actor: string;
     content: {
-        user?: string;
-        text?: string;
-        language?: string;
-        code?: string;
-        file_path?: string;
+        user: string;
+        text: string;
+        language: string;
+        code: string;
+        file_path: string;
     };
 }
 
@@ -32,17 +34,26 @@ export function ParserUI({ sessionChats }: ParserUIProps) {
                                     <span className='text-white'>{chat.content.text}</span>
                                 </div>
                             )
-                        } else {
-                            return <p key={index} className='text-white mb-2 p-2'>{chat.content.text}</p>;
+                        } else if (chat.actor === "ASSISTANT") {
+                            return (
+                                <p key={index} className='text-white markdown-body'>
+                                    <Markdown>{String(chat.content.text)}</Markdown>
+                                </p>
+                            );
                         }
                     case 'CODE_BLOCK':
                         return (
-                            <div className='mb-2'>
-                                <CodeBlock language={chat.content.language || ""} code={chat.content.code || ""} file_path={chat.content.file_path || ""} />
+                            <div>
+                                <CodeActionPanel
+                                language={chat.content.language}
+                                filepath={chat.content.file_path}
+                                content={chat.content.code}
+                                inline={false}
+                                >
+                                </CodeActionPanel>
+                                {/* <CodeBlock language={chat.content.language || ""} code={chat.content.code || ""} file_path={chat.content.file_path || ""} /> */}
                             </div>
                         );
-                    case "THINKING_BLOCK":
-                        return <p key={index} className='text-white mb-2 p-2'>{chat.content.text}</p>;
                     default:
                         return null;
                 }

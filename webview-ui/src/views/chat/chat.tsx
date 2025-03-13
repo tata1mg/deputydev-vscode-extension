@@ -41,7 +41,7 @@ export function ChatUI() {
     showSessionsBox,
     showAllSessions,
     sessions,
-    sessionChats,
+    // sessionChats,
     ChatAutocompleteOptions,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
@@ -146,9 +146,9 @@ export function ChatUI() {
       }
     }
   }, [messages]);
-  
-  
-  
+
+
+
 
 
 
@@ -247,18 +247,18 @@ useEffect(() => {
   }
 }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
-useEffect(() => {
-  // Scroll to the bottom when a new session is selected
-  if (chatContainerEndRef.current) {
-    chatContainerEndRef.current.scrollIntoView({ behavior: 'smooth' });
-  }
-}, [sessionChats]);
+  useEffect(() => {
+    // Scroll to the bottom when a new session is selected
+    if (chatContainerEndRef.current) {
+      chatContainerEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   return (
     <div className="flex flex-col justify-between h-full relative">
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
-        {showSessionsBox && sessionChats.length === 0 && (
+        {showSessionsBox && messages.length === 0 && (
           <div>
             <div className="mb-14 mt-10">
               <BotMessageSquare className="px-4 h-20 w-20 text-white" />
@@ -343,10 +343,10 @@ useEffect(() => {
           </div>
         )}
 
-        {sessionChats.length > 0 && <ParserUI sessionChats={sessionChats} />}
+        {/* {messages.length > 0 && <ChatArea/>} */}
 
         {/* Invisible div just to instant scroll to bottom for session chats */}
-        <div ref={chatContainerEndRef} />
+        {/* <div ref={chatContainerEndRef} /> */}
 
         <div className="flex-grow space-y-4 py-2 overflow-auto">
           <ChatArea />
