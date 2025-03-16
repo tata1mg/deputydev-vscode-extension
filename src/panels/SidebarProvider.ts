@@ -145,9 +145,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'set-workspace-state':
           promise = this.setWorkspaceState(data);
           break;
-        case 'get-workspace-state':
-          promise = this.getWorkspaceState(data);
-          break;
+          
+          case "get-workspace-state":
+            console.log("[DEBUG] Handling get-workspace-state request:", data);
+            promise = this.getWorkspaceState(data);
+            promise.then((res: any) => console.log("[DEBUG] Workspace state retrieved:", res));
+            break;
+          
         case 'delete-workspace-state':
           promise = this.deleteWorkspaceState(data);
           break;

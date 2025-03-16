@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
-import useExtensionStore, { ViewType } from "./stores/useExtensionStore";
-import { Session, sessionChats, useChatStore } from "./stores/chatStore";
+import useExtensionStore from "./stores/useExtensionStore";
+import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatReferenceFileItem } from "./stores/chatStore";
-import { SearchResponseItem } from "./types";
+import { Session , sessionChats ,ViewType , SearchResponseItem} from "@/types";
 import { logToOutput } from "./commandApi";
 
 type Resolver = {
@@ -178,7 +177,7 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
-  console.log("Received Repositories:", repos);
+  console.log("Received Repositories:");
 
   // Log each repo individually for better readability
   repos.forEach((repo, index) => {
@@ -235,14 +234,14 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
     return;
   }
 
-  const editorReference: ChatReferenceFileItem[] = (
-    data as SearchResponseItem[]
-  ).map((item) => ({
-    id: item.value,
-    type: "file",
-    name: item.path.split("/").pop() || item.path,
-    fsPath: item.path,
-  }));
+  // const editorReference: ChatReferenceFileItem[] = (
+  //   data as SearchResponseItem[]
+  // ).map((item) => ({
+  //   id: item.value,
+  //   type: "file",
+  //   name: item.path.split("/").pop() || item.path,
+  //   fsPath: item.path,
+  // }));
 
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
