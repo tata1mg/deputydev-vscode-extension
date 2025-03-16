@@ -9,7 +9,7 @@ import {
 import { Trash2 } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
-import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
+// import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { ParserUI } from "./parser";
 import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
@@ -20,6 +20,8 @@ import {
   getSessions,
   logToOutput,
 } from "@/commandApi";
+
+
 import { BotMessageSquare } from "lucide-react";
 import Markdown from "react-markdown";
 import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
@@ -255,19 +257,19 @@ useEffect(() => {
 }, [sessionChats]);
 
   return (
-    <div className="flex flex-col justify-between h-full relative">
+    <div className="relative flex flex-col justify-between h-full">
       <div className="flex-grow overflow-y-auto">
         {/* Past Sessions */}
         {showSessionsBox && sessionChats.length === 0 && (
           <div>
-            <div className="mb-14 mt-10">
-              <BotMessageSquare className="px-4 h-20 w-20 text-white" />
-              <h1 className="text-3xl font-bold text-white px-4">
+            <div className="mt-10 mb-14">
+              <BotMessageSquare className="w-20 h-20 px-4 " />
+              <h1 className="px-4 text-3xl font-bold">
                 Chat with DeputyDev
               </h1>
             </div>
             {sessions.length > 0 && (
-              <h3 className="text-lg font-bold text-white px-4">
+              <h3 className="px-4 text-lg font-bold">
                 Past Conversations
               </h3>
             )}
@@ -281,23 +283,21 @@ useEffect(() => {
                     <div className="flex gap-2" key={session.id}>
                       <div
                         onClick={() => handleGetSessionChats(session.id)}
-                        className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                        className="rounded border text-sm border-gray-500/10  gap-1 p-1 session-title  mb-3 flex justify-between transition-transform transform hover:scale-105  relative opacity-70 hover:opacity-100 bg-gray-500/20  w-[85%] hover:cursor-pointer"
                       >
-                        <div className="text-sm overflow-hidden whitespace-nowrap text-ellipsis">
+                        <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                           {session.summary}
                         </div>
-                        <span className="text-sm text-gray-400">
+                        <span>
                           {session.age}
                         </span>
                       </div>
-                      <div>
                         <Trash2
-                          className="text-gray-400 hover:text-white hover:cursor-pointer m-1"
+                          className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
                           onClick={(e) => {
                             handleDeleteSession(session.id);
                           }}
                         />
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -309,33 +309,33 @@ useEffect(() => {
                       <div className="flex gap-2" key={session.id}>
                         <div
                           onClick={() => handleGetSessionChats(session.id)}
-                          className="bg-neutral-700 border rounded-lg p-1 session-title text-white mb-3 flex justify-between transition-transform transform hover:scale-105 hover:bg-neutral-600 hover:cursor-pointer w-[80%] relative"
+                          className="rounded border-[1px]   border-gray-500/10 text-sm p-1 session-title gap-1 mb-3 flex justify-between transition-transform transform hover:scale-105 opacity-70 hover:opacity-100 bg-gray-500/20  w-[85%] relative hover:cursor-pointer"
                         >
-                          <div className="text-sm overflow-hidden whitespace-nowrap text-ellipsis">
+                          <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                             {session.summary}
                           </div>
-                          <span className="text-sm text-gray-400">
+                          <span>
                             {session.age}
                           </span>
                         </div>
-                        <div>
+                        <div className="flex-shrink-0">
                           <Trash2
-                            className="text-gray-400 hover:text-white hover:cursor-pointer m-1"
+                            className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer"
                             onClick={(e) => {
                               handleDeleteSession(session.id);
                             }}
                           />
-                        </div>
+                          </div>
                       </div>
                     ))}
                 </div>
               )}
-              {sessionsLoading && <div className="text-white">Loading...</div>}
+              {sessionsLoading && <div >Loading...</div>}
             </div>
             {!sessionsLoading && !showAllSessions && (
               <button
                 onClick={() => handleShowMore()}
-                className="text-white px-4"
+                className="px-4 "
               >
                 Show More...
               </button>
@@ -348,15 +348,14 @@ useEffect(() => {
         {/* Invisible div just to instant scroll to bottom for session chats */}
         <div ref={chatContainerEndRef} />
 
-        <div className="flex-grow space-y-4 py-2 overflow-auto">
+        <div className="flex-grow space-y-4 py-2 mr-3.5 pl-2 overflow-auto">
           <ChatArea />
         </div>
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Layer */}
-      <div className="">
-        <div className="space-y-2"></div>
+      <div className="px-1">
         <div className="relative">
           {showAutocomplete && (
             <div className="w-full">
@@ -387,9 +386,9 @@ useEffect(() => {
           <textarea
             ref={textareaRef}
             rows={1}
-            className={`bg-neutral-700 scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded
+            className={`bg-[var(--deputydev-input-background)] scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded
               focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px]
-              overflow-y-auto text-white resize-none ${repoSelectorEmbedding ? "disabled:opacity-50 disabled:cursor-not-allowed" : ""}`}
+              overflow-y-auto  resize-none ${repoSelectorEmbedding ? "disabled:opacity-50 disabled:cursor-not-allowed" : ""}`}
             placeholder="Ask anything (⌘L), @ to mention code blocks"
             value={userInput}
             onChange={handleTextAreaChange}
@@ -409,22 +408,22 @@ useEffect(() => {
           />
 
           {/* The cancel button remains enabled even if a response is pending */}
-          <div className="top-1/2 right-3 absolute flex items-center -translate-y-1/2">
+          <div className="absolute flex items-center -translate-y-1/2 top-1/2 right-3">
             {isLoading ? (
               <button
-                className="flex justify-center items-center bg-red-500 rounded-sm w-4 h-4"
+                className="flex items-center justify-center w-4 h-4 bg-red-500 border rounded-md"
                 onClick={cancelChat}
               />
             ) : (
               <button
-                className="flex justify-center items-center"
+                className="flex items-center justify-center"
                 onClick={() => {
                   if (!blockSendMessage) {
                     handleSend();
                   }
                 }}
               >
-                <EnterIcon className="w-5 h-5 text-white" />
+                <EnterIcon className="w-5 h-5 " />
               </button>
             )}
           </div>
@@ -441,8 +440,8 @@ useEffect(() => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="font-medium text-white">Chat</span>
-            <label className="inline-flex relative items-center cursor-pointer">
+            <span className="font-medium ">Chat</span>
+            <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 className="sr-only peer"
@@ -455,13 +454,13 @@ useEffect(() => {
                 disabled={isLoading}
               />
               <div
-                className="w-8 h-4 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-blue-500
+                className="w-8 h-4 bg-gray-200  rounded-full peer peer-checked:bg-blue-500
                               after:content-[''] after:absolute after:top-0.5 after:left-0.5
                               after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all
                               peer-checked:after:translate-x-4"
               />
             </label>
-            <span className="font-medium text-white">Write</span>
+            <span className="font-medium ">Write</span>
           </div>
         </div>
       </div>
