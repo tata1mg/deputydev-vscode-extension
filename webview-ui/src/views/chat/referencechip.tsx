@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Pencil } from "lucide-react";
-import { keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
+import { keywordSearch, keywordTypeSearch, openFile } from "@/commandApi";
 import { useChatStore } from "@/stores/chatStore";
 
 type ReferenceChipProps = {
@@ -9,6 +9,8 @@ type ReferenceChipProps = {
   onDelete: () => void;
   autoEdit?: boolean;
   setShowAutoComplete: (value: boolean) => void;
+  displayOnly?: boolean;
+  path?: string;
 };
 
 export default function ReferenceChip({
@@ -16,7 +18,9 @@ export default function ReferenceChip({
   initialText,
   onDelete,
   autoEdit = false,
-  setShowAutoComplete
+  setShowAutoComplete,
+  displayOnly = false,
+  path,
 }: ReferenceChipProps) {
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
@@ -62,21 +66,49 @@ export default function ReferenceChip({
           valueArr[0].toLowerCase()
         )
       ) {
-        keywordTypeSearch({ type: valueArr[0].toLowerCase(), keyword: valueArr[1] });
+        keywordTypeSearch({
+          type: valueArr[0].toLowerCase(),
+          keyword: valueArr[1],
+        });
       } else {
         keywordSearch({ keyword: value });
       }
     }, 0);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && text === "") {
+      e.preventDefault();
+      onDelete();
+    }
+  };
+
   const handleBlur = () => setIsEditing(false);
 
+  const handleDisplayClick = () => {
+    if (displayOnly) {
+      openFile("webview-ui/src/views/chat/chat.tsx");
+    }
+    // if (path && displayOnly) {
+    //   openFile(path);
+    // }
+  };
+
   return (
-    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md text-sm font-normal cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)] transition-colors mr-2 mb-2 shadow-sm">
-      {isEditing ? (
+    <div
+      onClick={handleDisplayClick}
+      className={`inline-flex items-center gap-2 ${
+        displayOnly
+          ? "px-2 py-0.5 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]"
+          : "px-3 py-1 text-sm cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)]"
+      } bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md font-normal transition-colors mr-2 mb-2 shadow-sm`}
+    >
+      {isEditing && !displayOnly ? (
         <input
           type="text"
           value={text}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           autoFocus
           className="bg-transparent border-none focus:outline-none w-auto px-1 text-[var(--vscode-input-foreground)] caret-[var(--vscode-editor-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] focus:ring-2 focus:ring-[var(--vscode-focusBorder)] rounded-sm"
@@ -84,18 +116,22 @@ export default function ReferenceChip({
       ) : (
         <span onClick={handleEdit} className="flex items-center gap-1.5 group">
           {text}
-          <Pencil
-            size={14}
-            className="text-[var(--vscode-icon-foreground)] opacity-0 group-hover:opacity-70 transition-opacity"
-          />
+          {!displayOnly && (
+            <Pencil
+              size={14}
+              className="text-[var(--vscode-icon-foreground)] opacity-0 group-hover:opacity-70 transition-opacity"
+            />
+          )}
         </span>
       )}
-      <button
-        onClick={onDelete}
-        className="text-[var(--vscode-icon-foreground)] hover:bg-[var(--vscode-toolbar-hoverBackground)] rounded-full p-0.5 transition-colors"
-      >
-        <X size={16} className="hover:text-[var(--vscode-errorForeground)]" />
-      </button>
+      {!displayOnly && (
+        <button
+          onClick={onDelete}
+          className="text-[var(--vscode-icon-foreground)] hover:bg-[var(--vscode-toolbar-hoverBackground)] rounded-full p-0.5 transition-colors"
+        >
+          <X size={16} className="hover:text-[var(--vscode-errorForeground)]" />
+        </button>
+      )}
     </div>
   );
 }

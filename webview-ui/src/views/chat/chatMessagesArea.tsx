@@ -9,10 +9,11 @@ import {
   ThinkingChip,
 } from "./chatElements/AnalysisChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
+import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
   const { history: messages, current } = useChatStore();
-  console.log("messages in parser",messages)
+  console.log("messages in parser", messages);
 
   return (
     <>
@@ -21,13 +22,27 @@ export function ChatArea() {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               return (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
-                    <CircleUserRound className="text-neutral-400" size={20} />
+                <div>
+                  {msg.referenceList?.map((reference, index) => {
+                    return (
+                      <ReferenceChip
+                        chipIndex={index}
+                        initialText={reference.keyword}
+                        onDelete={() => {}}
+                        setShowAutoComplete={() => {}}
+                        displayOnly={true}
+                        path={reference.path}
+                      />
+                    );
+                  })}
+                  <div key={index} className="flex items-start gap-2">
+                    <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                      <CircleUserRound className="text-neutral-400" size={20} />
+                    </div>
+                    <pre className="text-white whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
+                      {msg.content.text}
+                    </pre>
                   </div>
-                  <pre className="text-white whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
-                    {msg.content.text}
-                  </pre>
                 </div>
               );
             }
