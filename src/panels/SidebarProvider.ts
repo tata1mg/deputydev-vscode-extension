@@ -204,7 +204,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
       if (promise) {
         try {
-          await promise;
+          const result = await promise;
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'response',
+            data: result,
+          });
         } catch (err) {
           vscode.window.showErrorMessage(
             'Error handling sidebar message: ' + String(err),
