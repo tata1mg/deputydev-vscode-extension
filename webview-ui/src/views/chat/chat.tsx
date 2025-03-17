@@ -10,7 +10,6 @@ import { Trash2 } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import { ParserUI } from "./parser";
 import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
@@ -55,7 +54,6 @@ export function ChatUI() {
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const chatContainerEndRef = useRef<HTMLDivElement | null>(null);
   const sessionsPerPage = 20;
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
@@ -247,12 +245,6 @@ useEffect(() => {
   }
 }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
-  useEffect(() => {
-    // Scroll to the bottom when a new session is selected
-    if (chatContainerEndRef.current) {
-      chatContainerEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
 
   return (
     <div className="flex flex-col justify-between h-full relative">
@@ -343,10 +335,6 @@ useEffect(() => {
           </div>
         )}
 
-        {/* {messages.length > 0 && <ChatArea/>} */}
-
-        {/* Invisible div just to instant scroll to bottom for session chats */}
-        {/* <div ref={chatContainerEndRef} /> */}
 
         <div className="flex-grow space-y-4 py-2 overflow-auto">
           <ChatArea />
