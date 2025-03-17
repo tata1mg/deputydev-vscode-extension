@@ -413,7 +413,7 @@ export const useChatStore = create(
                   } else {
                     // For normal tools, create a tool use message.
                     const newToolMsg: ChatToolUseMessage = {
-                      type: "TOOL_USE_REQUEST",
+                      type: "TOOL_USE_REQUEST_BLOCK",
                       content: {
                         tool_name: toolData.tool_name || "",
                         tool_use_id: toolData.tool_use_id || "",
@@ -465,7 +465,7 @@ export const useChatStore = create(
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST") {
+                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -521,7 +521,7 @@ export const useChatStore = create(
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST") {
+                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -550,7 +550,7 @@ export const useChatStore = create(
                   };
                   set((state) => {
                     const newHistory = state.history.map((msg) => {
-                      if (msg.type === "TOOL_USE_REQUEST") {
+                      if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
                         const toolMsg = msg as ChatToolUseMessage;
                         if (
                           toolMsg.content.tool_use_id ===

@@ -76,7 +76,7 @@ export function ChatArea() {
                 );
               }
 
-          case "TOOL_USE_REQUEST":
+          case "TOOL_USE_REQUEST_BLOCK":
             return (
               <div key={index}>
                 <SearchedCodebase status={msg.content.status} />
