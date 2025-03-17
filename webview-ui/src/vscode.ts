@@ -6,7 +6,7 @@ import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatReferenceFileItem } from "./stores/chatStore";
 import { SearchResponseItem } from "./types";
-import { logToOutput } from "./commandApi";
+import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -157,6 +157,8 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener("new-chat", async () => {
+  useChatStore.getState().clearSessions();
+  getSessions(20, 0);
   const currentViewType = useExtensionStore.getState().viewType;
   if (currentViewType !== "chat") {
     useExtensionStore.setState({ viewType: "chat" });
