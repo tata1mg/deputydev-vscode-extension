@@ -8,7 +8,7 @@ export default function Auth() {
     }
 
     return (
-        <div className="mt-36">
+        <div className="mt-36 px-4">
             <div className="mx-auto flex w-full flex-col justify-between p-2 border rounded-xl bg-white">
                 <BotMessageSquare className="text-black w-20 h-20" />
                 <h1 className="text-2xl font-bold text-black ml-2">Welcome to DeputyDev</h1>

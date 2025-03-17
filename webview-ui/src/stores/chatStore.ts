@@ -16,145 +16,12 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatSessionHistory,Session,sessionChats } from "@/types";
+import { log } from "console";
 
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
-
-export type ChatType = "ask" | "write";
-
-export interface ChatReferenceFileItem {
-  id: string;
-  type: "file";
-  name: string;
-  fsPath: string;
-}
-
-export interface ChatReferenceDirectoryItem {
-  id: string;
-  type: "directory";
-  name: string;
-  fsPath: string;
-}
-
-export interface ChatReferenceFunctionItem {
-  id: string;
-  type: "function";
-  name: string;
-  fsPath: string;
-}
-// export interface ChatUserMessage {
-//   id: string; // initially empty; updated via RESPONSE_METADATA
-//   type: 'user';
-//   text: string;
-//   referenceList: ChatReferenceItem[];
-// }
-
-export interface ChatAssistantMessage {
-  type: "TEXT_BLOCK"; // Updated to match the new message format
-  content: {
-    text: string;
-  };
-  usage?: string;
-  actor: "ASSISTANT";
-}
-
-export interface ChatUserMessage {
-  type: "TEXT_BLOCK";
-  content: {
-    text: string;
-  };
-  referenceList?: ChatReferenceItem[];
-  actor: "USER";
-}
-
-// New type for tool use messages.
-export interface ChatToolUseMessage {
-  type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
-  content: {
-    tool_name: string;
-    tool_use_id: string;
-    input_params_json: string;
-    result_json: string;
-    status: "in-progress" | "completed" | "error";
-  };
-}
-
-export interface ThinkingMessage {
-  type: "THINKING" | "THINKING_BLOCK";
-  text: string;
-  completed: boolean;
-  actor?: "ASSISTANT";
-}
-
-export interface ChatCodeBlockMessage {
-  type: "CODE_BLOCK";
-  content: {
-    language: string;
-    file_path?: string;
-    code: string;
-    is_diff?: boolean;
-    diff?: string | null;
-    added_lines?: number | null;
-    removed_lines?: number | null;
-  };
-  completed?: boolean;
-  actor: "ASSISTANT";
-}
-
-export type ChatMessage =
-  | ChatUserMessage
-  | ChatAssistantMessage
-  | ChatToolUseMessage
-  | ThinkingMessage
-  | ChatCodeBlockMessage;
-
-export interface ChatReferenceSnippetItem {
-  type: "snippet";
-  name: string;
-  content: string;
-  language: string;
-  path?: string;
-}
-
-export interface ChatSessionHistory {
-  id: string;
-  title: string;
-  time: number;
-  data: ChatMessage[];
-}
-
-export interface Session {
-  id: number;
-  summary: string;
-  age: string;
-}
-
-export interface SessionChatContent {
-  text: string;
-  language: string;
-  code: string;
-  file_path: string;
-  toolName: string;
-  toolUseId: string;
-  inputParamsJson: JSON;
-  resultJson: JSON;
-  user: string; // TODO: need to change this
-}
-
-export interface sessionChats {
-  type: string;
-  actor: string;
-  content: SessionChatContent;
-}
-
-export type ChatChunkMessage = {
-  chunk: string;
-  error: string;
-};
-
-export type ChatAutocompleteOptions = AutocompleteOption[];
 
 export const initialAutocompleteOptions: AutocompleteOption[] = [
   {
@@ -361,7 +228,7 @@ export const useChatStore = create(
                         content: thinkingContent,
                         completed: false,
                         actor: "ASSISTANT",
-                      } as ThinkingMessage,
+                      } as ChatThinkingMessage,
                     ],
                   }));
 
@@ -431,6 +298,8 @@ export const useChatStore = create(
                     },
                     completed: false,
                     actor: "ASSISTANT",
+                    write_mode: useChatSettingStore.getState().chatType === "write",
+                    status: "pending"
                   };
 
                   set((state) => ({
@@ -489,6 +358,44 @@ export const useChatStore = create(
                   break;
                 }
 
+
+
+                case "APPLY_DIFF_RESULT": {
+                  const diffResultData = event.data as "completed" | "error";;
+                  set((state) => {
+                    const newHistory = [...state.history]; // Copy the history array
+                    const lastMsg = newHistory[newHistory.length - 1]; // Get the last message
+                    logToOutput("info", `ui got the applied diff}`);
+                    // log modified files
+                    if (lastMsg?.type === "CODE_BLOCK") {
+                      // Determine the correct status type
+                      logToOutput("info", `ui got the applied dif part 2} ${lastMsg}`);
+                      const status = diffResultData;
+                      logToOutput("info", `status at the ui  ${status}`);
+                      // Update only the last CODE_BLOCK message
+                      newHistory[newHistory.length - 1] = {
+                        ...lastMsg,
+                        status, // ✅ Update status only for the last CODE_BLOCK
+                      };
+
+                      logToOutput("info", `status ${status}`);
+
+                    }
+
+                    return { history: newHistory }; // Update state
+                  });
+
+                  chunkCallback({ name: event.name, data: event.data });
+                  break;
+                }
+
+
+
+
+
+
+
+
                 case "TOOL_USE_REQUEST_START": {
                   const toolData = event.data as {
                     tool_name?: string;
@@ -512,7 +419,7 @@ export const useChatStore = create(
                         tool_use_id: toolData.tool_use_id || "",
                         input_params_json: "",
                         result_json: "",
-                        status: "in-progress",
+                        status: "pending",
                       },
                     };
                     set((state) => ({
@@ -621,7 +528,7 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                status: "in-progress" as "in-progress", // ✅ Explicitly setting the correct type
+                                status: "pending" as "pending", // ✅ Explicitly setting the correct type
                               },
                             };
                           }

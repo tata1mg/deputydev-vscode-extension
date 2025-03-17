@@ -145,9 +145,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'set-workspace-state':
           promise = this.setWorkspaceState(data);
           break;
-        case 'get-workspace-state':
-          promise = this.getWorkspaceState(data);
-          break;
+          
+          case "get-workspace-state":
+            console.log("[DEBUG] Handling get-workspace-state request:", data);
+            promise = this.getWorkspaceState(data);
+            promise.then((res: any) => console.log("[DEBUG] Workspace state retrieved:", res));
+            break;
+          
         case 'delete-workspace-state':
           promise = this.deleteWorkspaceState(data);
           break;
@@ -200,7 +204,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
       if (promise) {
         try {
-          await promise;
+          const result = await promise;
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'response',
+            data: result,
+          });
         } catch (err) {
           vscode.window.showErrorMessage(
             'Error handling sidebar message: ' + String(err),

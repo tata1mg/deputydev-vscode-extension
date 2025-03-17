@@ -1,13 +1,14 @@
 import { CircleUserRound } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useChatSettingStore, useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  AnalyzedCodeItem,
   SearchedCodebase,
   ThinkingChip,
-} from "./chatElements/AnalysisChips";
+  FileEditedChip,
+} from "./chatElements/ToolChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 
 export function ChatArea() {
@@ -16,7 +17,7 @@ export function ChatArea() {
 
   return (
     <>
-      {messages.map((msg, index) => {
+    {messages.map((msg, index) => {
         switch (msg.type) {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
@@ -25,7 +26,7 @@ export function ChatArea() {
                   <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
                     <CircleUserRound className="text-neutral-400" size={20} />
                   </div>
-                  <pre className="text-white whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
+                  <pre className=" whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
                     {msg.content.text}
                   </pre>
                 </div>
@@ -33,7 +34,7 @@ export function ChatArea() {
             }
             if (msg.actor === "ASSISTANT") {
               return (
-                <div key={index} className="text-white markdown-body">
+                <div key={index} className=" markdown-body">
                   <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
@@ -46,21 +47,34 @@ export function ChatArea() {
               </div>
             );
 
-          case "CODE_BLOCK":
-            return (
-              <div key={index} className="text-white">
-                <CodeActionPanel
-                  language={msg.content.language}
-                  filepath={msg.content.file_path}
-                  is_diff={msg.content.is_diff} // ✅ fixed here
-                  content={msg.content.code}
-                  inline={false}
-                  diff={msg.content.diff}
-                  added_lines={msg.content.added_lines}
-                  removed_lines={msg.content.removed_lines}
-                />
-              </div>
-            );
+            case "CODE_BLOCK":
+              if (msg.write_mode && msg.content.is_diff) {
+                return (
+                  <div key={index}>
+                    <FileEditedChip
+                      filepath={msg.content.file_path}
+                      added_lines={msg.content.added_lines}
+                      removed_lines={msg.content.removed_lines}
+                      status={msg.status}
+                    />
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={index} className="text-white">
+                    <CodeActionPanel
+                      language={msg.content.language}
+                      filepath={msg.content.file_path}
+                      is_diff={msg.content.is_diff} // ✅ fixed here
+                      content={msg.content.code}
+                      inline={false}
+                      diff={msg.content.diff}
+                      added_lines={msg.content.added_lines}
+                      removed_lines={msg.content.removed_lines}
+                    />
+                  </div>
+                );
+              }
 
           case "TOOL_USE_REQUEST":
             return (
@@ -75,7 +89,7 @@ export function ChatArea() {
       })}
 
       {current && typeof current.content?.text === "string" && (
-        <div key="streaming" className="text-white text-base markdown-body">
+        <div key="streaming" className=" text-base markdown-body">
           <Markdown>{current.content.text}</Markdown>
         </div>
       )}
