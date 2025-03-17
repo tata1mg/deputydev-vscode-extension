@@ -213,6 +213,11 @@ export const useChatStore = create(
       // Helper to generate an incremental message ID.
 
       return {
+        async clearSessions() {
+          set({
+            sessions: [],
+          })
+        },
         async clearChat() {
           set({
             history: [],
