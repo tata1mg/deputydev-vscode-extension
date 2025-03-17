@@ -282,12 +282,9 @@ addCommandEventListener("session-chats-history", ({ data }) => {
 });
 
 addCommandEventListener("inline-chat-data", ({ data }) => {
-  console.dir(data as InlineChatReferenceData, { depth: null });
   const response = data as InlineChatReferenceData;
-
   const currentEditorReference = useChatStore.getState().currentEditorReference;
   const lengthOfCurrentEditorReference = currentEditorReference.length;
-  console.log("length", lengthOfCurrentEditorReference)
   const chatReferenceItem: ChatReferenceItem = {
     index: lengthOfCurrentEditorReference,
     type: "file",
@@ -295,7 +292,6 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     path: response.path,
     chunks: [response.chunk]
   }
-  console.dir(chatReferenceItem, {depth: null});
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem]
   })
