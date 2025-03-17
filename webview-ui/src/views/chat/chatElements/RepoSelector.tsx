@@ -23,11 +23,11 @@ const RepoSelector = ({ disabled, tooltipProps }: RepoSelectorProps) => {
   return (
     <div
       {...(tooltipProps || {})} // Ensures tooltipProps is always an object
-      className={`relative inline-flex items-center gap-1 px-1 py-1 border rounded w-full text-white text-sm
-                  ${disabled ? 'opacity-50 p-0 cursor-not-allowed' : 'hover:bg-neutral-700'}`}
+      className={`relative inline-flex items-center gap-1 px-1 py-1 border rounded w-full  text-sm
+                  ${disabled ? 'opacity-50 p-0 cursor-not-allowed' : 'hover:bg-[var(--deputydev-input-background)]'}`}
     >
       <select
-        className="bg-transparent text-white w-full cursor-pointer outline-none text-xs"
+        className="bg-transparent  w-full cursor-pointer outline-none text-xs"
         value={activeRepo || ''}
         onChange={handleChange}
         disabled={disabled} // Ensures the select box is also disabled when needed
