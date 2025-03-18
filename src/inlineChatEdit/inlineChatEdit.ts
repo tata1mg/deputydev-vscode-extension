@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
+import { v4 as uuidv4 } from 'uuid';
 import { ChatManager } from '../chat/ChatManager';
 import { InlineEditService } from '../services/inlineEdit/inlineEditService';
 import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
+import { SidebarProvider } from '../panels/SidebarProvider';
 
 interface RelevantChunk {
     content: string;
@@ -17,7 +19,7 @@ interface RelevantChunk {
     search_score: number;
 }
 
-export class InlineEditManager {
+export class InlineChatEditManager {
     private inlineEditService = new InlineEditService();
     private range: vscode.Range | undefined;
     private editor: vscode.TextEditor | undefined;
@@ -34,13 +36,14 @@ export class InlineEditManager {
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
-        private chatService: ChatManager
+        private chatService: ChatManager,
+        private sidebarProvider: SidebarProvider
     ) {
         this.context = context;
         this.outputChannel = outputChannel;
     }
 
-    public async codeLenseForInlineEdit() {
+    public async inlineChatEditQuickFixes() {
         // Register the CodeLensProvider for any language
         this.context.subscriptions.push(vscode.languages.registerCodeActionsProvider({ scheme: 'file', language: '*' }, {
             provideCodeActions(document: vscode.TextDocument, range: vscode.Range, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeAction[]> {
@@ -51,16 +54,16 @@ export class InlineEditManager {
                     return;
                 }
 
-                const actionEdit = new vscode.CodeAction('Edit (cmd+i)', vscode.CodeActionKind.QuickFix);
+                const actionEdit = new vscode.CodeAction('Edit ⌘+i', vscode.CodeActionKind.QuickFix);
                 actionEdit.command = {
                     command: 'deputydev.editThisCode',
                     title: 'Edit'
                 };
                 codeActions.push(actionEdit);
 
-                const actionChat = new vscode.CodeAction('Chat (cmd+l', vscode.CodeActionKind.QuickFix);
+                const actionChat = new vscode.CodeAction('Chat ⌘+l', vscode.CodeActionKind.QuickFix);
                 actionChat.command = {
-                    command: 'deputydev.chat',
+                    command: 'deputydev.chatWithDeputy',
                     title: 'Chat'
                 };
                 codeActions.push(actionChat);
@@ -94,7 +97,55 @@ export class InlineEditManager {
         // }));
     }
 
-    public async editThisCode() {
+    public async inlineChat() {
+        vscode.commands.registerCommand("deputydev.chatWithDeputy", () => {
+            this.editor = vscode.window.activeTextEditor;
+            if (!this.editor) {
+                return;
+            }
+            // Extracting file name
+            const activeFileFullName = this.editor.document.fileName;
+            const activeFileName = path.basename(activeFileFullName);
+            this.outputChannel.info(`Active file path: ${activeFileName}`)
+
+            this.active_repo = getActiveRepo();
+            this.outputChannel.info(`Active repo: ${this.active_repo}`)
+            // Get file path
+            this.file_path = this.editor.document.uri.fsPath;
+            if (!this.active_repo) {
+                return
+            }
+            // Extracting relativa path
+            this.relative_file_path = path.relative(this.active_repo, this.file_path);
+            this.outputChannel.info(`Relative path: ${this.relative_file_path}`)
+
+            const selection = this.editor.selection;
+            if (!selection) {
+                return
+            }
+            // Extracting selected text start and end line
+            const start_line = selection.start.line;
+            const end_line = selection.end.line;
+            this.outputChannel.info(`start line = ${start_line}, end line = ${end_line}`)
+
+            const inlineChatData = {
+                keyword : activeFileName,
+                path : this.relative_file_path,
+                chunk : {
+                    start_line : start_line + 1,
+                    end_line : end_line + 1
+                }
+            }
+
+            this.sidebarProvider.sendMessageToSidebar({
+                id: uuidv4(),
+                command: 'inline-chat-data',
+                data: inlineChatData
+              });
+        })
+    }
+
+    public async inlineEdit() {
         // Register the command for inline editing
         vscode.commands.registerCommand('deputydev.editThisCode', (collapse: boolean = false) => {
             this.outputChannel.info('Edit command triggered');
@@ -245,3 +296,4 @@ export class InlineEditManager {
         }
     }
 }
+
