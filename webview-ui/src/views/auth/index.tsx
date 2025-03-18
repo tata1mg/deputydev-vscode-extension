@@ -8,22 +8,18 @@ export default function Auth() {
     }
 
     return (
-        <div className="mt-36">
-            <div className="mx-auto flex w-full flex-col justify-between p-2 border rounded-xl bg-white">
-                <BotMessageSquare className="text-black w-20 h-20" />
-                <h1 className="text-2xl font-bold text-black ml-2">Welcome to DeputyDev</h1>
-                <span className="text-lg text-gray-400 ml-2">AI Powered Assistant</span>
-                <p className="text-sm text-gray-500 ml-2">
-                    Please login first...
-                </p>
-                <hr className="border-black mt-2 mb-2" />
-                <button
-                    onClick={handleLogin}
-                    className="text-lg text-center bg-black border rounded-xl p-2 text-white w-full transition-transform transform hover:scale-105 hover:bg-neutral-600"
-                >
-                    LOGIN USING BROWSER
-                </button>
-            </div>
+        <div className="mx-auto flex w-full flex-col justify-between items-center p-6 mt-[210px]">
+            <BotMessageSquare className="w-20 h-20 mb-[20px] animate-bounce" />
+            <span className="text-3xl mb-[25px] text-center">Develop with DeputyDev</span>
+            <span className="text-xl text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient mb-[40px]">
+                Your AI assistant for smarter coding!
+            </span>
+            <button
+                onClick={handleLogin}
+                className="border border-black rounded-xl text-xl text-center w-full transition-transform transform hover:scale-105 text-white p-2 shadow-lg hover:shadow-xl active:scale-95 animate-pulse"
+            >
+                Sign in
+            </button>
         </div>
     );
 }

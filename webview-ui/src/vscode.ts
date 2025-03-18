@@ -1,18 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
-import useExtensionStore, { ViewType } from "./stores/useExtensionStore";
-import { Session, sessionChats, useChatStore } from "./stores/chatStore";
+import useExtensionStore from "./stores/useExtensionStore";
+import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatReferenceFileItem } from "./stores/chatStore";
-import { SearchResponseItem } from "./types";
-import { logToOutput } from "./commandApi";
+import { ChatMessage, Session , sessionChats ,ViewType , SearchResponseItem, ChatReferenceItem } from "@/types";
+import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
   reject: (error: unknown) => void;
   chunk?: (data: unknown) => void;
 };
+
+interface InlineChatReferenceData {
+  keyword: string;
+  path: string;
+  chunk: {
+    start_line: number;
+    end_line: number;
+  }
+}
 
 interface WorkspaceRepo {
   repoPath: string;
@@ -157,6 +165,8 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener("new-chat", async () => {
+  useChatStore.getState().clearSessions();
+  getSessions(20, 0);
   const currentViewType = useExtensionStore.getState().viewType;
   if (currentViewType !== "chat") {
     useExtensionStore.setState({ viewType: "chat" });
@@ -178,7 +188,7 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
-  console.log("Received Repositories:", repos);
+  console.log("Received Repositories:");
 
   // Log each repo individually for better readability
   repos.forEach((repo, index) => {
@@ -235,14 +245,14 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
     return;
   }
 
-  const editorReference: ChatReferenceFileItem[] = (
-    data as SearchResponseItem[]
-  ).map((item) => ({
-    id: item.value,
-    type: "file",
-    name: item.path.split("/").pop() || item.path,
-    fsPath: item.path,
-  }));
+  // const editorReference: ChatReferenceFileItem[] = (
+  //   data as SearchResponseItem[]
+  // ).map((item) => ({
+  //   id: item.value,
+  //   type: "file",
+  //   name: item.path.split("/").pop() || item.path,
+  //   fsPath: item.path,
+  // }));
 
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
@@ -269,8 +279,25 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {
-  useChatStore.setState({ sessionChats: data as sessionChats[] });
+  useChatStore.setState({ history: data as ChatMessage[] });
 });
+
+addCommandEventListener("inline-chat-data", ({ data }) => {
+  const response = data as InlineChatReferenceData;
+  const currentEditorReference = useChatStore.getState().currentEditorReference;
+  const lengthOfCurrentEditorReference = currentEditorReference.length;
+  const chatReferenceItem: ChatReferenceItem = {
+    index: lengthOfCurrentEditorReference,
+    type: "file",
+    keyword: response.keyword,
+    path: response.path,
+    chunks: [response.chunk]
+  }
+  useChatStore.setState({
+    currentEditorReference: [...currentEditorReference, chatReferenceItem]
+  })
+  console.dir(useChatStore.getState().currentEditorReference, {depth: null})
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

@@ -293,7 +293,7 @@ export class ChatManager {
               write_mode: payload.write_mode,
             };
             // Immediately forward the start event.
-            chunkCallback({ name: event.type, data: event.content });
+            chunkCallback({ name: event.type, data: event.content});
             break;
           }
           case "TOOL_USE_REQUEST_DELTA": {
@@ -356,7 +356,35 @@ export class ChatManager {
               if (payload.write_mode) {
                 const modifiedFiles =
                   await this.getModifiedRequest(currentDiffRequest);
-                await this.handleModifiedFiles(modifiedFiles, active_repo);
+                if (modifiedFiles)
+                {
+                  //  only log 1st words
+                  this.outputChannel.error(
+                    `the modified file at vscode side is:  ${JSON.stringify(
+                      modifiedFiles
+                    ).slice(0, 1)}`
+                  );
+                  this.sidebarProvider?.sendMessageToSidebar({
+                    id: message_id,
+                    command: "chunk",
+                    data: {
+                      name: "APPLY_DIFF_RESULT",
+                      data: "completed",
+                    },
+                  });
+                  await this.handleModifiedFiles(modifiedFiles, active_repo);
+                }
+                else{
+                  this.sidebarProvider?.sendMessageToSidebar({
+                    id: message_id,
+                    command: "chunk",
+                    data: {
+                      name: "APPLY_DIFF_RESULT",
+                      data: "error",
+                    },
+                  });
+                }
+                  
               }
 
               currentDiffRequest = null;
@@ -379,7 +407,7 @@ export class ChatManager {
 
   public async getModifiedRequest(
     currentDiffRequest: CurrentDiffRequest
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, string> | null> { 
     this.outputChannel.info(
       `Running diff tool for file ${currentDiffRequest.filepath}`
     );
@@ -402,9 +430,9 @@ export class ChatManager {
 
     console.log("result of binary search and replace", result);
 
-    if (!result) {
+    if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);
-      return {};
+      return null;  
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
 
@@ -420,7 +448,6 @@ export class ChatManager {
         repo_path: repo_path,
         file_path_to_diff_map: file_path_to_diff_map,
       });
-
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
       console.error("Error while applying diff:", error);
@@ -434,20 +461,6 @@ export class ChatManager {
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
-
-      // // Check if file exists
-      // if (!existsSync(fullPath)) {
-      //   // Ensure parent directories exist
-      //   const fs = await import('fs/promises');
-      //   await fs.mkdir(join(fullPath, '..'), { recursive: true });
-
-      //   // Create a new file with the provided content
-      //   writeFileSync(fullPath, content);
-      // } else {
-      //   // File exists, update it with the new content
-      //   writeFileSync(fullPath, content);
-      // }
-
       await this.diffViewManager.openDiffView({ path: fullPath, content });
     }
   }
