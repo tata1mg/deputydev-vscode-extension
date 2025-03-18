@@ -341,7 +341,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="px-1">
+      <div className="px-1 mt-4">
         <div className="relative">
           {showAutocomplete && (
             <div className="w-full">

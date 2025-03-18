@@ -5,7 +5,7 @@ import { Tooltip } from "react-tooltip";
 import { openFile } from "@/commandApi";
 import { reduce } from 'lodash';
 /**
- * 
+ *
  * Represents the status of chips
  */
 export type Status = 'pending' | 'completed' | 'error';
@@ -86,9 +86,9 @@ const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
  */
 
 
-export function SearchedCodebase({ status, fileCount }: { 
+export function SearchedCodebase({ status, fileCount }: {
   status: Status;
-  fileCount?: number; 
+  fileCount?: number;
 }) {
   let displayText = 'Searched codebase';
   if (status === 'pending') {
@@ -138,7 +138,7 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
   return (
     <div
 
-      className="flex items-center w-full gap-2 px-2 py-2 text-sm rounded border-[1px] border-gray-500/40"
+      className="flex items-center w-full gap-2 px-2 py-2 text-sm rounded border-[1px] border-gray-500/40 mt-2"
       title={completed ? "Thinking Complete" : "Thinking..."}
     >
       {!completed ? (
@@ -162,14 +162,14 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
 
 
 /**
- * Component for file edited 
+ * Component for file edited
  * Displays file name and and lines changed
  */
 
 
 
 
-export function FileEditedChip({ filepath ,added_lines  ,removed_lines, status}: { 
+export function FileEditedChip({ filepath ,added_lines  ,removed_lines, status}: {
   filepath?: string;
   added_lines?: number | null;
   removed_lines?: number | null;
@@ -200,7 +200,7 @@ export function FileEditedChip({ filepath ,added_lines  ,removed_lines, status}:
       {/* File Name Button */}
       {filepath && (
           <>
-            <button 
+            <button
               className=" px-1 py-0.5 rounded border-[1px] bg-neutral-600/5 border-gray-500/40  hover:text-white hover:bg-neutral-600 transition text-xs"
               onClick={() => openFile(filepath)}
               data-tooltip-id="filepath-tooltip"

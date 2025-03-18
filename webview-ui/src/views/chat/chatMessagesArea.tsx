@@ -15,11 +15,11 @@ import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton } = useChatStore();
-  console.log("messages in parser",messages)
+  console.log("messages in parser", messages)
 
   return (
     <>
-    {messages.map((msg, index) => {
+      {messages.map((msg, index) => {
         switch (msg.type) {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
@@ -28,15 +28,15 @@ export function ChatArea() {
                   <div className="h-7 flex items-center justify-center flex-shrink-0">
                     <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 overflow-hidden max-w-full">
                     <p className="space-x-1 space-y-1">
                       {msg.referenceList?.map((reference, chipIndex) => (
                         <ReferenceChip
                           key={chipIndex}
                           chipIndex={chipIndex}
                           initialText={reference.keyword}
-                          onDelete={() => {}}
-                          setShowAutoComplete={() => {}}
+                          onDelete={() => { }}
+                          setShowAutoComplete={() => { }}
                           displayOnly={true}
                           path={reference.path}
                         />
@@ -64,34 +64,34 @@ export function ChatArea() {
               </div>
             );
 
-            case "CODE_BLOCK":
-              if (msg.write_mode && msg.content.is_diff) {
-                return (
-                  <div key={index}>
-                    <FileEditedChip
-                      filepath={msg.content.file_path}
-                      added_lines={msg.content.added_lines}
-                      removed_lines={msg.content.removed_lines}
-                      status={msg.status}
-                    />
-                  </div>
-                );
-              } else {
-                return (
-                  <div key={index} className="text-white">
-                    <CodeActionPanel
-                      language={msg.content.language}
-                      filepath={msg.content.file_path}
-                      is_diff={msg.content.is_diff} // ✅ fixed here
-                      content={msg.content.code}
-                      inline={false}
-                      diff={msg.content.diff}
-                      added_lines={msg.content.added_lines}
-                      removed_lines={msg.content.removed_lines}
-                    />
-                  </div>
-                );
-              }
+          case "CODE_BLOCK":
+            if (msg.write_mode && msg.content.is_diff) {
+              return (
+                <div key={index}>
+                  <FileEditedChip
+                    filepath={msg.content.file_path}
+                    added_lines={msg.content.added_lines}
+                    removed_lines={msg.content.removed_lines}
+                    status={msg.status}
+                  />
+                </div>
+              );
+            } else {
+              return (
+                <div key={index} className="text-white">
+                  <CodeActionPanel
+                    language={msg.content.language}
+                    filepath={msg.content.file_path}
+                    is_diff={msg.content.is_diff} // ✅ fixed here
+                    content={msg.content.code}
+                    inline={false}
+                    diff={msg.content.diff}
+                    added_lines={msg.content.added_lines}
+                    removed_lines={msg.content.removed_lines}
+                  />
+                </div>
+              );
+            }
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
