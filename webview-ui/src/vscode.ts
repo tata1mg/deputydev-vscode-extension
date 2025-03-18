@@ -291,7 +291,8 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     type: "file",
     keyword: response.keyword,
     path: response.path,
-    chunks: [response.chunk]
+    chunks: [response.chunk],
+    noEdit: true,
   }
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem]
