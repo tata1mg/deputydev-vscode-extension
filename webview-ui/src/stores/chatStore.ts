@@ -68,7 +68,7 @@ export const useChatStore = create(
       showSessionsBox: true,
       showAllSessions: false,
       sessions: [] as Session[],
-      // sessionChats: [] as ChatMessage[],
+      showSkeleton: false,
       currentEditorReference: [] as ChatReferenceItem[],
       ChatAutocompleteOptions: initialAutocompleteOptions,
       chipIndexBeingEdited: -1,
@@ -122,6 +122,7 @@ export const useChatStore = create(
               actor: "ASSISTANT",
             },
             isLoading: true,
+            showSkeleton: true
           });
 
           // Build the payload
@@ -166,6 +167,7 @@ export const useChatStore = create(
 
           try {
             for await (const event of stream) {
+              useChatStore.setState({showSkeleton: false})
               switch (event.name) {
                 case "TEXT_START": {
                   // Initialize a new current message with the desired structure

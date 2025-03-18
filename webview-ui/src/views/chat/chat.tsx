@@ -29,7 +29,7 @@ import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
 import { AutocompleteMenu } from "./autocomplete";
 import { isEqual as lodashIsEqual } from "lodash";
-import {ChatUserMessage} from "@/types";
+import { ChatUserMessage } from "@/types";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -74,9 +74,9 @@ export function ChatUI() {
   const disableRepoSelector = isLoading || messages.length > 0;
   const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
     ? {
-        "data-tooltip-id": "repo-tooltip",
-        "data-tooltip-content": "Create new chat to select new repo.",
-      }
+      "data-tooltip-id": "repo-tooltip",
+      "data-tooltip-content": "Create new chat to select new repo.",
+    }
     : {};
 
   // Auto-resize the textarea.
@@ -101,7 +101,7 @@ export function ChatUI() {
       textareaRef.current.style.height = "70px";
     }
 
-    await sendChatMessage(message,editorReferences, (data) => {});
+    await sendChatMessage(message, editorReferences, (data) => { });
   };
 
   const handleDeleteSession = async (sessionId: number) => {
@@ -206,51 +206,51 @@ export function ChatUI() {
       setShowAutocomplete(false);
     }
   };
-// Updated auto-scroll logic with debounce to prevent conflicting manual scrolls
-useEffect(() => {
-  const container = messagesEndRef.current?.parentElement;
-  if (!container) return;
+  // Updated auto-scroll logic with debounce to prevent conflicting manual scrolls
+  useEffect(() => {
+    const container = messagesEndRef.current?.parentElement;
+    if (!container) return;
 
-  const threshold = 50;
-  let reenableTimer: ReturnType<typeof setTimeout> | null = null;
+    const threshold = 50;
+    let reenableTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const handleScroll = () => {
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    if (distanceFromBottom < threshold) {
-      // User is near the bottom: debounce re-enabling auto-scroll
-      if (reenableTimer) clearTimeout(reenableTimer);
-      reenableTimer = setTimeout(() => {
-        setIsAutoScrollEnabled(true);
-      }, 300);
-    } else {
-      // User scrolled up: cancel any pending re-enable and disable auto-scroll
-      if (reenableTimer) {
-        clearTimeout(reenableTimer);
-        reenableTimer = null;
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distanceFromBottom < threshold) {
+        // User is near the bottom: debounce re-enabling auto-scroll
+        if (reenableTimer) clearTimeout(reenableTimer);
+        reenableTimer = setTimeout(() => {
+          setIsAutoScrollEnabled(true);
+        }, 300);
+      } else {
+        // User scrolled up: cancel any pending re-enable and disable auto-scroll
+        if (reenableTimer) {
+          clearTimeout(reenableTimer);
+          reenableTimer = null;
+        }
+        setIsAutoScrollEnabled(false);
       }
-      setIsAutoScrollEnabled(false);
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      if (reenableTimer) clearTimeout(reenableTimer);
+    };
+  }, []);
+
+  // Scroll to bottom when new messages arrive (if auto-scroll is enabled)
+  useEffect(() => {
+    console.log("messages updated:", messages);
+    if (isAutoScrollEnabled) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  };
-
-  container.addEventListener("scroll", handleScroll);
-  return () => {
-    container.removeEventListener("scroll", handleScroll);
-    if (reenableTimer) clearTimeout(reenableTimer);
-  };
-}, []);
-
-// Scroll to bottom when new messages arrive (if auto-scroll is enabled)
-useEffect(() => {
-  console.log("messages updated:", messages);
-  if (isAutoScrollEnabled) {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-}, [messages, current?.content?.text, isAutoScrollEnabled]);
+  }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
 
   return (
     <div className="relative flex flex-col justify-between h-full">
-      <div className="flex-grow overflow-y-auto">
+      <div className="flex-grow">
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
           <div>
@@ -284,12 +284,12 @@ useEffect(() => {
                           {session.age}
                         </span>
                       </div>
-                        <Trash2
-                          className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
-                          onClick={(e) => {
-                            handleDeleteSession(session.id);
-                          }}
-                        />
+                      <Trash2
+                        className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
+                        onClick={(e) => {
+                          handleDeleteSession(session.id);
+                        }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -317,7 +317,7 @@ useEffect(() => {
                               handleDeleteSession(session.id);
                             }}
                           />
-                          </div>
+                        </div>
                       </div>
                     ))}
                 </div>
@@ -334,11 +334,10 @@ useEffect(() => {
             )}
           </div>
         )}
+      </div>
 
-
-        <div className="flex-grow space-y-4 py-2 mr-3.5 pl-2 overflow-auto">
-          <ChatArea />
-        </div>
+      <div className="flex-grow px-4 overflow-auto h-full">
+        <ChatArea />
         <div ref={messagesEndRef} />
       </div>
 
