@@ -59,6 +59,10 @@ export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
 }
 
+export function openFile(path: string) {
+  return callCommand('open-file', { path });
+}
+
 // generate code
 export function cancelGenerateCode() {
   return callCommand('cancel-generate-code', null);
