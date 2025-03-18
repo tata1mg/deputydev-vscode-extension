@@ -101,7 +101,7 @@
       },
       {
 				"command": "deputydev.aiEdit",
-				"title": "Edit",
+				"title": "Modify",
 				"enablement": "!commentIsEmpty"
 			}
     ],
