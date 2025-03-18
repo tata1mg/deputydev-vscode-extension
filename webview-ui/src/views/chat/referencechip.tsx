@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Pencil } from "lucide-react";
 import { keywordSearch, keywordTypeSearch, openFile } from "@/commandApi";
-import { useChatStore } from "@/stores/chatStore";
+import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
 
 type ReferenceChipProps = {
   chipIndex: number;
@@ -54,6 +54,12 @@ export default function ReferenceChip({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setText(value);
+    if (value === "") {
+      useChatStore.setState({
+        ChatAutocompleteOptions: initialAutocompleteOptions,
+      });
+      return;
+    }
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -89,19 +95,18 @@ export default function ReferenceChip({
     if (displayOnly) {
       openFile("webview-ui/src/views/chat/chat.tsx");
     }
-    // if (path && displayOnly) {
-    //   openFile(path);
-    // }
   };
 
   return (
-    <div
+    <span
       onClick={handleDisplayClick}
-      className={`inline-flex items-center gap-2 ${
+      className={`inline-flex items-center gap-1.5 ${
         displayOnly
-          ? "px-2 py-0.5 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]"
-          : "px-3 py-1 text-sm cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)]"
-      } bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md font-normal transition-colors mr-2 mb-2 shadow-sm`}
+          ? "px-1.5 py-0 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] space-x-1.5 space-y-0.5"
+          : "px-3 py-1 text-sm cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)] space-x-2 space-y-1"
+      } bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md font-normal transition-colors ${
+        !displayOnly && "mr-1 mb-1"
+      } shadow-sm`} // ← Changed margin condition
     >
       {isEditing && !displayOnly ? (
         <input
@@ -132,6 +137,6 @@ export default function ReferenceChip({
           <X size={16} className="hover:text-[var(--vscode-errorForeground)]" />
         </button>
       )}
-    </div>
+    </span>
   );
 }
