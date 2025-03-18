@@ -7,10 +7,12 @@ import Setting from './views/setting';
 import Loader from './views/loader';
 import History from './views/history';
 import Auth from './views/auth';
+import { useAuthStore } from './stores/authStore';
 
 function App() {
   const extensionState = useExtensionStore();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const setIsAuthenticated = useAuthStore((state) => state.setAuthenticated);
 
   let view;
 
@@ -20,9 +22,9 @@ function App() {
 
       if (response === "AUTHENTICATED") {
         // call binary init command api
+        setIsAuthenticated(true);
         initiateBinary();
         extensionState.setViewType("chat")
-        setIsAuthenticated(true);
       }
     }
 
@@ -30,13 +32,9 @@ function App() {
       sendWebviewFocusState(true);
     }
 
-    // function handleBlur() {
-    //   sendWebviewFocusState(false); // Send "blurred" state to VS Code
-    // }
 
     window.addEventListener('message', handleMessage); // Listen for messages
     window.addEventListener('focus', handleFocus);
-    // window.addEventListener('blur', handleBlur);
 
 
     return () => window.removeEventListener('message', handleMessage);
@@ -48,14 +46,15 @@ function App() {
       break;
     case 'chat':
       // TODO: Bypassing auth for development
-      // view =  isAuthenticated ? <Chat /> : <Auth />;
-      view = <Chat />;
+      view =  <Chat />;
+      // view = isAuthenticated ? <Chat /> : <Auth />; 
       break;
     case 'setting':
-      view =  <Setting /> ;
+      // view = isAuthenticated ? <Setting /> : <Auth />;  
+      view = <Setting />;  
       break;
     case 'loader':
-      view = <Loader />;
+      view =  <Loader />;
       break;
     case 'history':
       view = isAuthenticated ? <History /> : <Auth />;

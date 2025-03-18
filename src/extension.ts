@@ -24,7 +24,11 @@ export function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
     .getConfiguration('deputydev')
     .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
-
+  context.workspaceState.update("auth-storage", false);
+  context.workspaceState.update("workspace-storage", undefined);
+  context.workspaceState.update("view-state-storage", undefined);
+  context.workspaceState.update("chat-type-storage", undefined);
+  context.workspaceState.update("chat-storage", undefined);
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
   deleteSessionId();
@@ -225,6 +229,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   outputChannel?.info('Extension "DeputyDev" is now deactivated!');
+  deleteSessionId();
 }
 
 
