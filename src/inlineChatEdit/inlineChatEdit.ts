@@ -54,14 +54,14 @@ export class InlineChatEditManager {
                     return;
                 }
 
-                const actionEdit = new vscode.CodeAction('Edit ⌘+i', vscode.CodeActionKind.QuickFix);
+                const actionEdit = new vscode.CodeAction('Edit ⌘ I', vscode.CodeActionKind.QuickFix);
                 actionEdit.command = {
                     command: 'deputydev.editThisCode',
                     title: 'Edit'
                 };
                 codeActions.push(actionEdit);
 
-                const actionChat = new vscode.CodeAction('Chat ⌘+l', vscode.CodeActionKind.QuickFix);
+                const actionChat = new vscode.CodeAction('Chat ⌘ L', vscode.CodeActionKind.QuickFix);
                 actionChat.command = {
                     command: 'deputydev.chatWithDeputy',
                     title: 'Chat'
@@ -221,6 +221,7 @@ export class InlineChatEditManager {
         // Register the command for AI editing
         this.context.subscriptions.push(vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
             this.outputChannel.info(`USER QUERY: ${reply.text}`);
+            vscode.commands.executeCommand('deputydev.editThisCode', true);
             vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: "Editing...",
@@ -269,7 +270,6 @@ export class InlineChatEditManager {
                     return
                 }
                 this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo)
-                vscode.commands.executeCommand('deputydev.editThisCode', true);
             });
         }));
     }
