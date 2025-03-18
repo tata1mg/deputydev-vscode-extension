@@ -145,6 +145,7 @@ export class WorkspaceManager {
         activeRepo: this.activeRepo || null,
       },
     });
+    this.outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(this.context.workspaceState.get("workspace-storage"))}`);
   }
 
   /**

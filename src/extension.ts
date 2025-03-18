@@ -15,7 +15,7 @@ import { setExtensionContext } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
-import { InlineEditManager } from './edit/inlineEdit';
+import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
 import { AuthService } from './services/auth/AuthService';
 let outputChannel: vscode.LogOutputChannel;
 
@@ -80,9 +80,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   const referenceService = new ReferenceManager(context, outputChannel);
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
-  const inlineEditManager = new InlineEditManager(context, outputChannel, chatService);
-  inlineEditManager.editThisCode();
-  inlineEditManager.codeLenseForInlineEdit();
 
   const historyService = new HistoryService();
   const authService = new AuthService();
@@ -108,7 +105,10 @@ export function activate(context: vscode.ExtensionContext) {
   chatService.setSidebarProvider(sidebarProvider);
 
 
-
+  const inlineChatEditManager = new InlineChatEditManager(context, outputChannel, chatService, sidebarProvider);
+  inlineChatEditManager.inlineEdit();
+  inlineChatEditManager.inlineChat();
+  inlineChatEditManager.inlineChatEditQuickFixes();
 
   // const fileWatcher = new FileWatcher(outputChannel);
   // context.subscriptions.push(fileWatcher);
@@ -214,6 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
       sidebarProvider.setViewType('setting');
     }),
   );
+  outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`);
 
 
   //  8) Show the output channel if needed & start server

@@ -1,17 +1,21 @@
 import { CircleUserRound } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useChatSettingStore, useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  AnalyzedCodeItem,
   SearchedCodebase,
   ThinkingChip,
-} from "./chatElements/AnalysisChips";
+  FileEditedChip,
+} from "./chatElements/ToolChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
+import { Shimmer } from "./chatElements/shimmerEffect";
+import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
-  const { history: messages, current } = useChatStore();
+  const { history: messages, current, showSkeleton } = useChatStore();
+  console.log("messages in parser", messages)
 
   return (
     <>
@@ -20,19 +24,34 @@ export function ChatArea() {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               return (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
-                    <CircleUserRound className="text-neutral-400" size={20} />
+                <div key={index} className="flex items-start gap-2 border border-gray-500 rounded-md p-2">
+                  <div className="h-7 flex items-center justify-center flex-shrink-0">
+                    <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
-                  <pre className="text-white whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
-                    {msg.content.text}
-                  </pre>
+                  <div className="flex-1 overflow-hidden max-w-full">
+                    <p className="space-x-1 space-y-1">
+                      {msg.referenceList?.map((reference, chipIndex) => (
+                        <ReferenceChip
+                          key={chipIndex}
+                          chipIndex={chipIndex}
+                          initialText={reference.keyword}
+                          onDelete={() => { }}
+                          setShowAutoComplete={() => { }}
+                          displayOnly={true}
+                          path={reference.path}
+                        />
+                      ))}
+                      <span className="text-white whitespace-pre-wrap break-words m-0 p-0 font-sans">
+                        {msg.content.text}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               );
             }
             if (msg.actor === "ASSISTANT") {
               return (
-                <div key={index} className="text-white markdown-body">
+                <div key={index} className=" markdown-body">
                   <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
@@ -46,20 +65,33 @@ export function ChatArea() {
             );
 
           case "CODE_BLOCK":
-            return (
-              <div key={index} className="text-white">
-                <CodeActionPanel
-                  language={msg.content.language}
-                  filepath={msg.content.file_path}
-                  is_diff={msg.content.is_diff} // ✅ fixed here
-                  content={msg.content.code}
-                  inline={false}
-                  diff={msg.content.diff}
-                  added_lines={msg.content.added_lines}
-                  removed_lines={msg.content.removed_lines}
-                />
-              </div>
-            );
+            if (msg.write_mode && msg.content.is_diff) {
+              return (
+                <div key={index}>
+                  <FileEditedChip
+                    filepath={msg.content.file_path}
+                    added_lines={msg.content.added_lines}
+                    removed_lines={msg.content.removed_lines}
+                    status={msg.status}
+                  />
+                </div>
+              );
+            } else {
+              return (
+                <div key={index} className="text-white">
+                  <CodeActionPanel
+                    language={msg.content.language}
+                    filepath={msg.content.file_path}
+                    is_diff={msg.content.is_diff} // ✅ fixed here
+                    content={msg.content.code}
+                    inline={false}
+                    diff={msg.content.diff}
+                    added_lines={msg.content.added_lines}
+                    removed_lines={msg.content.removed_lines}
+                  />
+                </div>
+              );
+            }
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
@@ -73,8 +105,11 @@ export function ChatArea() {
         }
       })}
 
+      {showSkeleton && (
+        <Shimmer />
+      )}
       {current && typeof current.content?.text === "string" && (
-        <div key="streaming" className="text-white text-base markdown-body">
+        <div key="streaming" className=" text-base markdown-body">
           <Markdown>{current.content.text}</Markdown>
         </div>
       )}
