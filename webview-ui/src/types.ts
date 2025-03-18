@@ -31,6 +31,7 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
+  value?: string;
 };
 
 export type ChatType = "ask" | "write";
@@ -51,6 +52,7 @@ export type ChatUserMessage = {
   type: "TEXT_BLOCK";
   content: {
     text: string;
+    focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
   actor: "USER";

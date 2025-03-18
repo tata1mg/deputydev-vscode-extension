@@ -23,6 +23,13 @@ export function ChatArea() {
         switch (msg.type) {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
+              if (msg.content.focus_items?.length) {
+                msg.referenceList = msg.content.focus_items;
+                for (let i = 0; i < msg.referenceList.length; i++) {
+                  msg.referenceList[i].index = i;
+                  msg.referenceList[i].keyword = `${msg.referenceList[i].type}:${msg.referenceList[i].value}`;
+                }
+              }
               return (
                 <div
                   key={index}

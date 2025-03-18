@@ -145,13 +145,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.setWorkspaceState(data);
           break;
 
-          case "get-workspace-state":
-            console.log("[DEBUG] Handling get-workspace-state request:", data);
-            promise = this.getWorkspaceState(data);
-            promise.then((res: any) => console.log("[DEBUG] Workspace state retrieved:", res));
-            break;
+        case "get-workspace-state":
+          console.log("[DEBUG] Handling get-workspace-state request:", data);
+          promise = this.getWorkspaceState(data);
+          promise.then((res: any) =>
+            console.log("[DEBUG] Workspace state retrieved:", res)
+          );
+          break;
 
-        case 'delete-workspace-state':
+        case "delete-workspace-state":
           promise = this.deleteWorkspaceState(data);
           break;
 
@@ -204,7 +206,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           const result = await promise;
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'response',
+            command: "response",
             data: result,
           });
         } catch (err) {
@@ -299,10 +301,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (!workspaceFolder) {
       vscode.window.showErrorMessage("No workspace folder found.");
     } else {
-      const absolutePath = path.join(
-        workspaceFolder,
-        file_path
-      );
+      const absolutePath = path.join(workspaceFolder, file_path);
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
@@ -438,6 +437,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data.limit,
         data.offset
       );
+      this.outputChannel.info(`Lappa: ${JSON.stringify(response)}`);
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
