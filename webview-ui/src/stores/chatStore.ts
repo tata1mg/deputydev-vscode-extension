@@ -94,7 +94,6 @@ export const useChatStore = create(
             showSessionsBox: true,
             showAllSessions: false,
             currentEditorReference: [],
-            // sessionChats: [],
           });
         },
 

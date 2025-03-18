@@ -4,7 +4,7 @@ import useExtensionStore from "./stores/useExtensionStore";
 import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatMessage, Session , sessionChats ,ViewType , SearchResponseItem} from "@/types";
+import { ChatMessage, Session , sessionChats ,ViewType , SearchResponseItem, ChatReferenceItem } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
@@ -12,6 +12,15 @@ type Resolver = {
   reject: (error: unknown) => void;
   chunk?: (data: unknown) => void;
 };
+
+interface InlineChatReferenceData {
+  keyword: string;
+  path: string;
+  chunk: {
+    start_line: number;
+    end_line: number;
+  }
+}
 
 interface WorkspaceRepo {
   repoPath: string;
@@ -272,6 +281,23 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 addCommandEventListener("session-chats-history", ({ data }) => {
   useChatStore.setState({ history: data as ChatMessage[] });
 });
+
+addCommandEventListener("inline-chat-data", ({ data }) => {
+  const response = data as InlineChatReferenceData;
+  const currentEditorReference = useChatStore.getState().currentEditorReference;
+  const lengthOfCurrentEditorReference = currentEditorReference.length;
+  const chatReferenceItem: ChatReferenceItem = {
+    index: lengthOfCurrentEditorReference,
+    type: "file",
+    keyword: response.keyword,
+    path: response.path,
+    chunks: [response.chunk]
+  }
+  useChatStore.setState({
+    currentEditorReference: [...currentEditorReference, chatReferenceItem]
+  })
+  console.dir(useChatStore.getState().currentEditorReference, {depth: null})
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

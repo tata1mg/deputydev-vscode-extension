@@ -11,6 +11,7 @@ import {
 } from "./chatElements/ToolChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
+import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton } = useChatStore();
@@ -27,9 +28,24 @@ export function ChatArea() {
                   <div className="h-7 flex items-center justify-center flex-shrink-0">
                     <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
-                  <pre className="whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
-                    {msg.content.text}
-                  </pre>
+                  <div className="flex-1">
+                    <p className="space-x-1 space-y-1">
+                      {msg.referenceList?.map((reference, chipIndex) => (
+                        <ReferenceChip
+                          key={chipIndex}
+                          chipIndex={chipIndex}
+                          initialText={reference.keyword}
+                          onDelete={() => {}}
+                          setShowAutoComplete={() => {}}
+                          displayOnly={true}
+                          path={reference.path}
+                        />
+                      ))}
+                      <span className="text-white whitespace-pre-wrap break-words m-0 p-0 font-sans">
+                        {msg.content.text}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               );
             }

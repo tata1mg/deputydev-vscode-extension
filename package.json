@@ -22,6 +22,18 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "keybindings": [
+        {
+            "command": "deputydev.editThisCode",
+            "key": "cmd+i",
+            "when": "editorHasSelection"
+        },
+        {
+          "command": "deputydev.chatWithDeputy",
+          "key": "cmd+l",
+          "when": "editorHasSelection"
+      }
+    ],
     "commands": [
       {
         "command": "deputydev.editThisCode",
@@ -89,7 +101,7 @@
       },
       {
 				"command": "deputydev.aiEdit",
-				"title": "Edit",
+				"title": "Modify",
 				"enablement": "!commentIsEmpty"
 			}
     ],

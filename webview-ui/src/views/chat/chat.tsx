@@ -42,7 +42,6 @@ export function ChatUI() {
     showSessionsBox,
     showAllSessions,
     sessions,
-    // sessionChats,
     ChatAutocompleteOptions,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
