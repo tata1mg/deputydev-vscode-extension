@@ -10,9 +10,10 @@ import {
   FileEditedChip,
 } from "./chatElements/ToolChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
+import { Shimmer } from "./chatElements/shimmerEffect";
 
 export function ChatArea() {
-  const { history: messages, current } = useChatStore();
+  const { history: messages, current, showSkeleton } = useChatStore();
   console.log("messages in parser",messages)
 
   return (
@@ -22,11 +23,11 @@ export function ChatArea() {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               return (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
-                    <CircleUserRound className="text-neutral-400" size={20} />
+                <div key={index} className="flex items-start gap-2 border border-gray-500 rounded-md p-2">
+                  <div className="h-7 flex items-center justify-center flex-shrink-0">
+                    <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
-                  <pre className=" whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
+                  <pre className="whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
                     {msg.content.text}
                   </pre>
                 </div>
@@ -88,6 +89,9 @@ export function ChatArea() {
         }
       })}
 
+      {showSkeleton && (
+        <Shimmer />
+      )}
       {current && typeof current.content?.text === "string" && (
         <div key="streaming" className=" text-base markdown-body">
           <Markdown>{current.content.text}</Markdown>

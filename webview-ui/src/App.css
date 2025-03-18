@@ -1,6 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@keyframes gradient {
+  0% {
+      background-position: 0% 50%;
+  }
+  50% {
+      background-position: 100% 50%;
+  }
+  100% {
+      background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
 /* @layer base {
   :root {
     --background: 0 0% 100%;
@@ -65,13 +81,13 @@
   body {
     @apply  text-foreground;
     padding: 5px 10px;
-    height: 100vh; 
+    height: 100vh;
     display: flex;
     flex-direction: column;
     /* align-items:end; */
     /* might have to remove height */
   /* }
-} */ 
+} */
 
 
 
