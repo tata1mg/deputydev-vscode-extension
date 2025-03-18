@@ -1,11 +1,11 @@
-import { JSX } from "react";
+export type ViewType = "chat" | "setting" | "loader" | "history" | "auth";
 
 export type AutocompleteOption = {
   icon: string;
   label: string;
   value: string;
   description: string;
-  chunks: Chunk[]
+  chunks: Chunk[];
 };
 
 export type FileParts = {
@@ -23,22 +23,128 @@ export type SearchResponseItem = {
 export type Chunk = {
   start_line: number;
   end_line: number;
-}
+};
 
 export type ChatReferenceItem = {
   index: number;
   type: "file" | "directory" | "function" | "keyword" | string;
   keyword: string;
   path: string;
-  chunks: Chunk[]
+  chunks: Chunk[];
 };
 
+export type ChatType = "ask" | "write";
 
-export type ChatUserMessage  = {
+export type ChatChunkMessage = {
+  chunk: string;
+  error: string;
+};
+
+export type ChatMessage =
+  | ChatUserMessage
+  | ChatAssistantMessage
+  | ChatToolUseMessage
+  | ChatThinkingMessage
+  | ChatCodeBlockMessage;
+
+export type ChatUserMessage = {
   type: "TEXT_BLOCK";
   content: {
     text: string;
   };
   referenceList: ChatReferenceItem[];
   actor: "USER";
+};
+
+export interface ChatAssistantMessage {
+  type: "TEXT_BLOCK";
+  content: {
+    text: string;
+  };
+  usage?: string;
+  actor: "ASSISTANT";
+}
+
+export interface ChatToolUseMessage {
+  type: "TOOL_USE_REQUEST_BLOCK";
+  content: {
+    tool_name: string;
+    tool_use_id: string;
+    input_params_json: string;
+    result_json: string;
+    status: "pending" | "completed" | "error";
+  };
+}
+
+export interface ChatThinkingMessage {
+  type: "THINKING";
+  text: string;
+  completed: boolean;
+  actor?: "ASSISTANT";
+}
+
+export interface ChatCodeBlockMessage {
+  type: "CODE_BLOCK";
+  content: {
+    language: string;
+    file_path?: string;
+    code: string;
+    is_diff?: boolean;
+    diff?: string | null;
+    added_lines?: number | null;
+    removed_lines?: number | null;
+  };
+  completed: boolean;
+  actor: "ASSISTANT";
+  write_mode: boolean;
+  status : "pending" | "completed" | "error";
+
+}
+
+export interface ChatSessionHistory {
+  id: string;
+  title: string;
+  time: number;
+  data: ChatMessage[];
+}
+
+export interface Session {
+  id: number;
+  summary: string;
+  age: string;
+}
+
+export interface SessionChatContent {
+  text: string;
+  language: string;
+  code: string;
+  filePath: string;
+  toolName: string;
+  toolUseId: string;
+  inputParamsJson: JSON;
+  resultJson: JSON;
+  user: string; // TODO: need to change this
+}
+
+export interface sessionChats {
+  type: string;
+  actor: string;
+  content: SessionChatContent;
+}
+
+export type ChatAutocompleteOptions = AutocompleteOption[];
+
+export type WorkspaceRepo = {
+  repoPath: string;
+  repoName: string;
+};
+
+export interface WorkspaceStore {
+  workspaceRepos: WorkspaceRepo[];
+  activeRepo: string | null;
+  setWorkspaceRepos: (
+    repos: WorkspaceRepo[],
+    activeRepo: string | null
+  ) => void;
+  setActiveRepo: (repoPath: string) => void;
 }

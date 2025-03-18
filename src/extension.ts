@@ -214,6 +214,7 @@ export function activate(context: vscode.ExtensionContext) {
       sidebarProvider.setViewType('setting');
     }),
   );
+  outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`);
 
 
   //  8) Show the output channel if needed & start server
