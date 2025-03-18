@@ -20,7 +20,6 @@ import {
   logToOutput,
 } from "@/commandApi";
 
-
 import { BotMessageSquare } from "lucide-react";
 import Markdown from "react-markdown";
 import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
@@ -73,9 +72,9 @@ export function ChatUI() {
   const disableRepoSelector = isLoading || messages.length > 0;
   const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
     ? {
-      "data-tooltip-id": "repo-tooltip",
-      "data-tooltip-content": "Create new chat to select new repo.",
-    }
+        "data-tooltip-id": "repo-tooltip",
+        "data-tooltip-content": "Create new chat to select new repo.",
+      }
     : {};
 
   // Auto-resize the textarea.
@@ -92,7 +91,9 @@ export function ChatUI() {
 
     let message = userInput.trim();
     setUserInput("");
-    const editorReferences = [...useChatStore.getState().currentEditorReference]
+    const editorReferences = [
+      ...useChatStore.getState().currentEditorReference,
+    ];
     useChatStore.setState({ currentEditorReference: [] });
 
     // Reset textarea height
@@ -100,7 +101,7 @@ export function ChatUI() {
       textareaRef.current.style.height = "70px";
     }
 
-    await sendChatMessage(message, editorReferences, (data) => { });
+    await sendChatMessage(message, editorReferences, (data) => {});
   };
 
   const handleDeleteSession = async (sessionId: number) => {
@@ -133,9 +134,11 @@ export function ChatUI() {
     }
   };
 
-
   useEffect(() => {
-    if (messages.length > 0 && messages[messages.length - 1].type === "TEXT_BLOCK") {
+    if (
+      messages.length > 0 &&
+      messages[messages.length - 1].type === "TEXT_BLOCK"
+    ) {
       const lastMessage = messages[messages.length - 1] as ChatUserMessage;
       if (lastMessage.actor === "USER") {
         messagesEndRef.current?.scrollIntoView({
@@ -145,11 +148,6 @@ export function ChatUI() {
       }
     }
   }, [messages]);
-
-
-
-
-
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
@@ -198,9 +196,9 @@ export function ChatUI() {
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       allChips[selectedChipIndex].keyword = option.icon + ": " + option.value;
-      allChips[selectedChipIndex].chunks = option.chunks
-      allChips[selectedChipIndex].path = option.description
-      allChips[selectedChipIndex].type = option.icon
+      allChips[selectedChipIndex].chunks = option.chunks;
+      allChips[selectedChipIndex].path = option.description;
+      allChips[selectedChipIndex].type = option.icon;
       useChatStore.setState({ currentEditorReference: allChips });
       setShowAutocomplete(false);
     }
@@ -214,7 +212,8 @@ export function ChatUI() {
     let reenableTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleScroll = () => {
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      const distanceFromBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distanceFromBottom < threshold) {
         // User is near the bottom: debounce re-enabling auto-scroll
         if (reenableTimer) clearTimeout(reenableTimer);
@@ -246,7 +245,6 @@ export function ChatUI() {
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
-
   return (
     <div className="relative flex flex-col justify-between h-full">
       <div className="flex-grow">
@@ -255,14 +253,10 @@ export function ChatUI() {
           <div>
             <div className="mt-10 mb-14">
               <BotMessageSquare className="w-20 h-20 px-4 " />
-              <h1 className="px-4 text-3xl font-bold">
-                Chat with DeputyDev
-              </h1>
+              <h1 className="px-4 text-3xl font-bold">Chat with DeputyDev</h1>
             </div>
             {sessions.length > 0 && (
-              <h3 className="px-4 text-lg font-bold">
-                Past Conversations
-              </h3>
+              <h3 className="px-4 text-lg font-bold">Past Conversations</h3>
             )}
             <div
               className="session-box p-4 h-[170px] overflow-y-auto"
@@ -279,9 +273,7 @@ export function ChatUI() {
                         <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                           {session.summary}
                         </div>
-                        <span>
-                          {session.age}
-                        </span>
+                        <span>{session.age}</span>
                       </div>
                       <Trash2
                         className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
@@ -305,9 +297,7 @@ export function ChatUI() {
                           <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                             {session.summary}
                           </div>
-                          <span>
-                            {session.age}
-                          </span>
+                          <span>{session.age}</span>
                         </div>
                         <div className="flex-shrink-0">
                           <Trash2
@@ -321,13 +311,10 @@ export function ChatUI() {
                     ))}
                 </div>
               )}
-              {sessionsLoading && <div >Loading...</div>}
+              {sessionsLoading && <div>Loading...</div>}
             </div>
             {!sessionsLoading && !showAllSessions && (
-              <button
-                onClick={() => handleShowMore()}
-                className="px-4 "
-              >
+              <button onClick={() => handleShowMore()} className="px-4 ">
                 Show More...
               </button>
             )}
@@ -364,6 +351,7 @@ export function ChatUI() {
                   useChatStore.getState().currentEditorReference.length - 1
                 }
                 setShowAutoComplete={setShowAutocomplete}
+                chunks={chip.chunks}
               />
             ))}
           </div>
@@ -388,8 +376,8 @@ export function ChatUI() {
             }}
             disabled={repoSelectorEmbedding}
             {...(repoSelectorEmbedding && {
-              'data-tooltip-id': 'repo-tooltip',
-              'data-tooltip-content': 'Please wait, DeputyDev is initializing.'
+              "data-tooltip-id": "repo-tooltip",
+              "data-tooltip-content": "Please wait, DeputyDev is initializing.",
             })}
           />
 
