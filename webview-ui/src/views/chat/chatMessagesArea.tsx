@@ -22,26 +22,27 @@ export function ChatArea() {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               return (
-                <div>
-                  {msg.referenceList?.map((reference, index) => {
-                    return (
-                      <ReferenceChip
-                        chipIndex={index}
-                        initialText={reference.keyword}
-                        onDelete={() => {}}
-                        setShowAutoComplete={() => {}}
-                        displayOnly={true}
-                        path={reference.path}
-                      />
-                    );
-                  })}
-                  <div key={index} className="flex items-start gap-2">
-                    <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
-                      <CircleUserRound className="text-neutral-400" size={20} />
-                    </div>
-                    <pre className="text-white whitespace-pre-wrap break-words mt-1 m-0 p-0 font-sans">
-                      {msg.content.text}
-                    </pre>
+                <div key={index} className="flex items-start gap-2">
+                  <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                    <CircleUserRound className="text-neutral-400" size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="space-x-1 space-y-1">
+                      {msg.referenceList?.map((reference, chipIndex) => (
+                        <ReferenceChip
+                          key={chipIndex}
+                          chipIndex={chipIndex}
+                          initialText={reference.keyword}
+                          onDelete={() => {}}
+                          setShowAutoComplete={() => {}}
+                          displayOnly={true}
+                          path={reference.path}
+                        />
+                      ))}
+                      <span className="text-white whitespace-pre-wrap break-words m-0 p-0 font-sans">
+                        {msg.content.text}
+                      </span>
+                    </p>
                   </div>
                 </div>
               );
