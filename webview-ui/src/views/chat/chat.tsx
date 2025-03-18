@@ -248,15 +248,15 @@ export function ChatUI() {
 
 
   return (
-    <div className="relative flex flex-col justify-between h-full">
+    <div className="relative flex flex-col justify-between h-[100vh]">
       <div className="flex-grow">
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
           <div>
             <div className="mt-10 mb-14">
               <BotMessageSquare className="w-20 h-20 px-4 " />
-              <h1 className="px-4 text-3xl font-bold">
-                Chat with DeputyDev
+              <h1 className="px-4 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient">
+                Develop with DeputyDev
               </h1>
             </div>
             {sessions.length > 0 && (
@@ -341,7 +341,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="px-1 mt-4">
+      <div className="mt-4 mx-2">
         <div className="relative">
           {showAutocomplete && (
             <div className="w-full">
@@ -417,7 +417,7 @@ export function ChatUI() {
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs mt-1">
           <div className="flex items-center gap-2">
             <RepoSelector
               disabled={disableRepoSelector}
