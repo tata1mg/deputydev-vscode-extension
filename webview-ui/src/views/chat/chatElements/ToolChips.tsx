@@ -99,15 +99,11 @@ export function SearchedCodebase({ status, fileCount }: {
 
   return (
     <div
-      className="flex items-center justify-between w-full px-2 py-2 text-sm rounded border-[1px] border-gray-500/40"
+      className="flex items-center justify-between w-full px-2 py-2 text-sm rounded border-[1px] mt-2 border-gray-500/40"
       title="Searched Codebase"
     >
       <div className="flex items-center gap-2">
-        {status === 'pending' ? (
-          <StatusIcon status={status} />
-        ) : (
-          <Search className="w-4 h-4 " />
-        )}
+        <StatusIcon status={status} />
         <span className="">{displayText}</span>
       </div>
       <div className="text-gray-300">
