@@ -20,7 +20,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   onSelect,
 }) => {
   return (
-    <div className="min-h-[200px] max-h-[300px] overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackgroundd)] border border-[#3c3c3c] rounded-md shadow-xl z-50">
+    <div className="min-h-[200px] max-h-[300px] overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackground)] border border-[#3c3c3c] rounded-md shadow-xl z-50">
       <ul className="p-1 space-y-1">
         {options.map((option, index) => (
           <li

@@ -24,9 +24,9 @@
   "contributes": {
     "keybindings": [
         {
-            "command": "deputydev.editThisCode",
-            "key": "cmd+i",
-            "when": "editorHasSelection"
+          "command": "deputydev.editThisCode",
+          "key": "cmd+i",
+          "when": "editorHasSelection"
         },
         {
           "command": "deputydev.chatWithDeputy",

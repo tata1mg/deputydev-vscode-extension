@@ -10,31 +10,41 @@ export function Shimmer() {
     ];
 
     const [randomPhrase, setRandomPhrase] = useState("");
+    const [activeDots, setActiveDots] = useState(0);
 
     useEffect(() => {
-        // Function to update the random phrase
+        const updateDots = () => {
+            setActiveDots(prev => (prev + 1) % 4);
+        };
+
+        const intervalId = setInterval(updateDots, 1000);
+
+        return () => clearInterval(intervalId);
+    }, []);
+
+    useEffect(() => {
         const updatePhrase = () => {
             const selectedPhrase = phrases[Math.floor(Math.random() * phrases.length)];
             setRandomPhrase(selectedPhrase);
         };
 
-        // Set the initial phrase
         updatePhrase();
 
-        // Change the phrase every 2 seconds
-        const intervalId = setInterval(updatePhrase, 3000);
+        const intervalId = setInterval(updatePhrase, 2000);
 
-        // Clear the interval on component unmount
         return () => clearInterval(intervalId);
-    }, []); // Empty dependency array ensures this runs only once
+    }, []);
 
     return (
         <div role="status" className="flex items-center space-x-2 mb-[10px] mt-[5px]">
             <span className="animate-pulse text-gray-500 text-sm">{randomPhrase}</span>
             <div className="flex space-x-1">
-                <div className="animate-pulse bg-gray-500 rounded-full h-1 w-1"></div>
-                <div className="animate-pulse bg-gray-500 rounded-full h-1 w-1 delay-200"></div>
-                <div className="animate-pulse bg-gray-500 rounded-full h-1 w-1 delay-400"></div>
+                {Array.from({ length: 3 }, (_, index) => (
+                    <div
+                        key={index}
+                        className={`animate-pulse bg-gray-500 rounded-full h-1 w-1 ${index < activeDots ? '' : 'opacity-0'}`}
+                    ></div>
+                ))}
             </div>
         </div>
     );
