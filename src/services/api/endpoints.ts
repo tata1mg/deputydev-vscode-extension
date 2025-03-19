@@ -16,5 +16,7 @@ export const API_ENDPOINTS = {
     DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
     BATCH_CHUNKS_SEARCH : "/v1/batch_chunks_search",
     RELEVANT_CHAT_HISTORY: "/end_user/v1/history/relevant-chat-history",
-    INIT_BINARY: "/v1/init"
+    INIT_BINARY: "/v1/init",
+    CONFIG: "/end_user/v1/configs/get-configs",
+    CONFIG_ESSENTIALS: "/end_user/v1/configs/get-essential-configs"
 }

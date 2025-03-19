@@ -396,7 +396,7 @@ export function ChatUI() {
             <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
               {isLoading ? (
                 <button
-                  className="flex h-4 w-4 items-center justify-center rounded-sm bg-red-500"
+                  className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
                   onClick={cancelChat}
                 />
               ) : (

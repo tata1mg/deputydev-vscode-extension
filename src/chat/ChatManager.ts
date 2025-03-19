@@ -10,7 +10,6 @@ import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import {
   getActiveRepo,
   getSessionId,
-  setQueryId,
   setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
@@ -208,13 +207,23 @@ export class ChatManager {
   ) {
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
-      if (payload.referenceList?.length){
+      if (payload.referenceList?.length) {
         payload.focus_items = payload.referenceList;
         for (let i = 0; i < payload.focus_items.length; i++) {
           payload.focus_items[i].index = i;
-          payload.focus_items[i].value = payload.focus_items[i].keyword.split(":")[1].trim();
+          const splitKeyword = payload.focus_items[i].keyword?.split(":");
+          
+          // Ensure the splitKeyword has at least two elements before accessing index [1]
+          if (splitKeyword && splitKeyword.length > 1) {
+            payload.focus_items[i].value = splitKeyword[1].trim();
+          } else {
+            // Handle cases where the keyword format is incorrect
+            this.outputChannel.error(`Invalid keyword format: ${payload.focus_items[i].keyword}`);
+            payload.focus_items[i].value = ""; // Default value or handle error accordingly
+          }
         }
       }
+      
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
 
@@ -287,9 +296,6 @@ export class ChatManager {
           case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
               setSessionId(event.content.session_id);
-            }
-            if (event.content?.query_id) {
-              setQueryId(event.content.session_id);
             }
             const sessionid = getSessionId();
             this.outputChannel.info(`Session ID: ${sessionid}`);
