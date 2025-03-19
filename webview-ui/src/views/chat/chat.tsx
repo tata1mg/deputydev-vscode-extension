@@ -354,12 +354,12 @@ export function ChatUI() {
                   handleChipDelete(chip.index);
                 }}
                 autoEdit={
+                  !chip.noEdit &&
                   chip.index ===
-                  useChatStore.getState().currentEditorReference.length - 1
+                    useChatStore.getState().currentEditorReference.length - 1
                 }
                 setShowAutoComplete={setShowAutocomplete}
                 chunks={chip.chunks}
-                noEdit={chip.noEdit}
               />
             ))}
           </div>
@@ -392,6 +392,7 @@ export function ChatUI() {
               "data-tooltip-id": "repo-tooltip",
               "data-tooltip-content": "Please wait, DeputyDev is initializing.",
             })}
+            autoFocus
           />
 
           {/* The cancel button remains enabled even if a response is pending */}
