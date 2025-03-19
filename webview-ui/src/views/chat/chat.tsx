@@ -353,13 +353,13 @@ export function ChatUI() {
                 onDelete={() => {
                   handleChipDelete(chip.index);
                 }}
-                displayOnly={chip.noEdit}
                 autoEdit={
                   chip.index ===
                   useChatStore.getState().currentEditorReference.length - 1
                 }
                 setShowAutoComplete={setShowAutocomplete}
                 chunks={chip.chunks}
+                noEdit={chip.noEdit}
               />
             ))}
           </div>
