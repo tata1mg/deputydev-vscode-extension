@@ -16,7 +16,7 @@ import { join } from "path";
 import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
-
+import { ConfigManager } from "../utilities/ConfigManager";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -33,7 +33,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private chatService: ChatManager,
     private historyService: HistoryService,
     private authService: AuthService,
-    private codeReferenceService: ReferenceManager
+    private codeReferenceService: ReferenceManager,
+    private configManager: ConfigManager
   ) {}
 
   public resolveWebviewView(
@@ -228,6 +229,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async initiateBinary(data: any) {
     const active_repo = getActiveRepo();
     const auth_token = await this.authService.loadAuthToken();
+    this.context.workspaceState.update("authToken", auth_token);
+    const essential_config = this.configManager.getConfigEssentials();
+    this.outputChannel.info(`Essential config: ${JSON.stringify(essential_config)}`);
     if (!auth_token) {
       return;
     }
@@ -235,6 +239,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const payload = {
       config: {
         DEPUTY_DEV: {
+          // HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"],
+          // TIMEOUT: essential_config["HOST_AND_TIMEOUT"]["TIMEOUT"],
           HOST: "http://localhost:8084",
           TIMEOUT: 20,
           LIMIT: 0,

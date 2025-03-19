@@ -3,8 +3,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
-import ConfigManager from '../utilities/ConfigManager';
 import { WorkspaceFileWatcher } from './FileWatcher';
+import { ConfigManager } from '../utilities/ConfigManager';
 import { updateVectorStoreWithResponse, updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 
 
@@ -17,9 +17,9 @@ export class WorkspaceManager {
   private context: vscode.ExtensionContext;
   private activeRepo: string | undefined; // Active repo stored as its folder path.
   private sidebarProvider: SidebarProvider;
-  private configManager = ConfigManager; // Using the singleton instance.
   private outputChannel: vscode.LogOutputChannel;
   private fileWatcher?: WorkspaceFileWatcher;
+  private configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
 
 
@@ -28,11 +28,14 @@ export class WorkspaceManager {
   constructor(
     context: vscode.ExtensionContext,
     sidebarProvider: SidebarProvider,
-    outputChannel: vscode.LogOutputChannel
+    outputChannel: vscode.LogOutputChannel,
+    configManager: ConfigManager
+
   ) {
     this.context = context;
     this.sidebarProvider = sidebarProvider;
     this.outputChannel = outputChannel;
+    this.configManager = configManager;
 
     // Subscribe to repo change events from SidebarProvider
     this.sidebarProvider.onDidChangeRepo((newRepoPath) => {

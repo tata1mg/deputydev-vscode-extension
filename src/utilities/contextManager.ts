@@ -18,8 +18,8 @@ export function setSidebarProvider(provider: SidebarProvider) {
   sidebarProvider = provider
 }
 
-export function getAuthToken(): string | undefined {
-  return extensionContext?.globalState.get<string>('authToken');
+export function getAuthToken(): string | undefined { 
+    return  extensionContext?.workspaceState.get<string>('authToken');
 }
 
 
@@ -53,29 +53,6 @@ export function sendProgress(progress: number) {
 
 
 
-
-
-export function getQueryId(): number | undefined {
-  const session = extensionContext?.workspaceState.get<number>('queryId');
-  return session;
-}
-
-
-
-export function deleteQueryId() {
-  return extensionContext?.workspaceState.update('queryId', undefined);
-}
-
-
-
-export function setQueryId(value: number) {
-  logOutputChannel?.info(`Setting query ID received for update: ${value}`);
-  extensionContext?.workspaceState.update('queryId', value);
-  return
-}
-
-
-
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
@@ -86,7 +63,9 @@ export async function clearWorkspaceStorage() {
     console.log('extensionContext is not defined');
     return;
    }
-
+  await extensionContext.workspaceState.update("authToken", false);
+  await extensionContext.workspaceState.update("essentialConfigData", undefined);
+  await extensionContext.workspaceState.update("configData", undefined);
   await extensionContext.workspaceState.update("auth-storage", false);
   await extensionContext.workspaceState.update("workspace-storage", undefined);
   await extensionContext.workspaceState.update("view-state-storage", undefined);
