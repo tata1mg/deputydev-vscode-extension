@@ -59,6 +59,8 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
 ===========================================================================*/
 
 export const useChatStore = create(
+  persist(
+
   combine(
     {
       history: [] as ChatMessage[],
@@ -75,6 +77,7 @@ export const useChatStore = create(
       lastToolUseResponse: undefined as
         | { tool_use_id: string; tool_name: string }
         | undefined,
+      progressBar: 1,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -622,8 +625,14 @@ export const useChatStore = create(
         },
       };
     }
-  )
+  ),
+  {
+    name: "chat-storage", // Unique key for local storage persistence
+    storage: persistStorage, // Uses the same storage as in `useChatSessionStore`
+  }
+)
 );
+
 
 // =============================================================================
 // CHAT SETTING STORE
@@ -642,7 +651,7 @@ export const useChatSettingStore = create(
       })
     ),
     {
-      name: "chat",
+      name: "chat-type-storage",
       storage: persistStorage,
       partialize: (state) => pick(state, ["chatType"]),
     }
@@ -653,75 +662,75 @@ export const useChatSettingStore = create(
 // CHAT SESSION STORE (Persistence Example)
 // =============================================================================
 
-export const useChatSessionStore = create(
-  persist(
-    combine(
-      {
-        sessions: [] as ChatSessionHistory[],
-      },
-      (set) => ({
-        setSessions(nextSessions: ChatSessionHistory[]) {
-          set({ sessions: nextSessions });
-        },
-        addSession(id: string, data: ChatMessage[]) {
-          if (!id) {
-            console.error("id is required");
-            return;
-          }
-          set((state) => {
-            const existing = state.sessions.find((s) => s.id === id);
-            if (existing) {
-              return {
-                sessions: state.sessions.map((s) =>
-                  s.id === id ? { ...s, data, time: Date.now() } : s
-                ),
-              };
-            }
-            const title =
-              data.length > 0
-                ? (data[0] as ChatAssistantMessage).content.text
-                    .trim()
-                    .slice(0, 50)
-                : "New Session";
-            return {
-              sessions: [
-                ...state.sessions,
-                { id, title, time: Date.now(), data },
-              ],
-            };
-          });
-        },
-        deleteSession(id: string) {
-          set((state) => ({
-            sessions: state.sessions.filter((s) => s.id !== id),
-          }));
-        },
-      })
-    ),
-    {
-      name: "sessions",
-      storage: persistStorage,
-    }
-  )
-);
+// export const useChatSessionStore = create(
+//   persist(
+//     combine(
+//       {
+//         sessions: [] as ChatSessionHistory[],
+//       },
+//       (set) => ({
+//         setSessions(nextSessions: ChatSessionHistory[]) {
+//           set({ sessions: nextSessions });
+//         },
+//         addSession(id: string, data: ChatMessage[]) {
+//           if (!id) {
+//             console.error("id is required");
+//             return;
+//           }
+//           set((state) => {
+//             const existing = state.sessions.find((s) => s.id === id);
+//             if (existing) {
+//               return {
+//                 sessions: state.sessions.map((s) =>
+//                   s.id === id ? { ...s, data, time: Date.now() } : s
+//                 ),
+//               };
+//             }
+//             const title =
+//               data.length > 0
+//                 ? (data[0] as ChatAssistantMessage).content.text
+//                     .trim()
+//                     .slice(0, 50)
+//                 : "New Session";
+//             return {
+//               sessions: [
+//                 ...state.sessions,
+//                 { id, title, time: Date.now(), data },
+//               ],
+//             };
+//           });
+//         },
+//         deleteSession(id: string) {
+//           set((state) => ({
+//             sessions: state.sessions.filter((s) => s.id !== id),
+//           }));
+//         },
+//       })
+//     ),
+//     {
+//       name: "sessions",
+//       storage: persistStorage,
+//     }
+//   )
+// );
 
-/**
- * Loads a chat session by its ID and updates the chat store.
- */
-export async function setChatSession(sessionId: string) {
-  const session = useChatSessionStore
-    .getState()
-    .sessions.find((s) => s.id === sessionId);
-  if (!session) {
-    console.error("Session not found");
-    return;
-  }
-  // Convert stored messages to API payload format.
-  await apiSaveSession(
-    session.data.map((msg) => ({
-      role: msg.type,
-      // content: msg.text,
-    }))
-  );
-  useChatStore.setState({ history: session.data });
-}
+// /**
+//  * Loads a chat session by its ID and updates the chat store.
+//  */
+// export async function setChatSession(sessionId: string) {
+//   const session = useChatSessionStore
+//     .getState()
+//     .sessions.find((s) => s.id === sessionId);
+//   if (!session) {
+//     console.error("Session not found");
+//     return;
+//   }
+//   // Convert stored messages to API payload format.
+//   await apiSaveSession(
+//     session.data.map((msg) => ({
+//       role: msg.type,
+//       // content: msg.text,
+//     }))
+//   );
+//   useChatStore.setState({ history: session.data });
+// }

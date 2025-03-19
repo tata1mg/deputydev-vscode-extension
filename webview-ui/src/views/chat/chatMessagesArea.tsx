@@ -14,8 +14,8 @@ import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
-  const { history: messages, current, showSkeleton } = useChatStore();
-  console.log("messages in parser", messages);
+  const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
+  console.log("messages in parser", messages)
 
   return (
     <>
@@ -122,7 +122,9 @@ export function ChatArea() {
         }
       })}
 
-      {showSkeleton && <Shimmer />}
+      {showSkeleton && showSessionsBox === false &&(
+        <Shimmer />
+      )}
       {current && typeof current.content?.text === "string" && (
         <div key="streaming" className=" text-base markdown-body">
           <Markdown>{current.content.text}</Markdown>

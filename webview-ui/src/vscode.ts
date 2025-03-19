@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
-import useExtensionStore from "./stores/useExtensionStore";
+import {useExtensionStore} from "./stores/useExtensionStore";
+import { useAuthStore } from "./stores/authStore";
 import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatMessage, Session , sessionChats ,ViewType , SearchResponseItem, ChatReferenceItem } from "@/types";
-import { logToOutput, getSessions } from "./commandApi";
+import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem } from "@/types";
+import { logToOutput, getSessions , initiateBinary} from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -88,11 +89,33 @@ export function callCommand(
   options?: { stream: boolean }
 ): Promise<any> | AsyncIterableIterator<any> {
   const id = uuidv4();
-  vscode.postMessage({
-    id,
-    command,
-    data,
-  });
+
+  if (command === "get-workspace-state") {
+    console.log("callCommand: waiting 5 seconds before sending workspace state request...");
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log("callCommand: 5 seconds elapsed, now sending workspace state request...");
+
+        // Create the resolver only when we actually send the request
+        resolvers[id] = { resolve, reject };
+
+        vscode.postMessage({ id, command, data });
+      }, 500); // 5-second delay
+    });
+
+  } else {
+    console.log("callCommand - Sending:", { id, command, data });
+    vscode.postMessage({ id, command, data });
+
+    if (!options?.stream) {
+      return new Promise((resolve, reject) => {
+        resolvers[id] = { resolve, reject };
+      });
+    }
+  }
+
+
 
   if (!options?.stream) {
     return new Promise((resolve, reject) => {
@@ -202,6 +225,7 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 });
 
 addCommandEventListener("repo-selector-state", ({ data }) => {
+  useChatStore.setState({progressBar: 100})
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
@@ -291,12 +315,21 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     type: "file",
     keyword: response.keyword,
     path: response.path,
-    chunks: [response.chunk]
+    chunks: [response.chunk],
+    noEdit: true,
   }
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem]
   })
   console.dir(useChatStore.getState().currentEditorReference, {depth: null})
+})
+
+addCommandEventListener("progress-bar", ({data}) => {
+  const progress = data as number;
+  if (data !== 0) {
+    useChatStore.setState({progressBar: progress})
+  }
+  console.log("progress", data)
 })
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;

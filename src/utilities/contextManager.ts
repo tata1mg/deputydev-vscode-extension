@@ -1,14 +1,21 @@
 import * as vscode from 'vscode';
+import { SidebarProvider } from '../panels/SidebarProvider';
+import { v4 as uuidv4 } from "uuid";
 
 let extensionContext: vscode.ExtensionContext | null = null;
 let logOutputChannel: vscode.LogOutputChannel | null = null;
+let sidebarProvider: SidebarProvider | null = null;
 
 export function setExtensionContext(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.LogOutputChannel
+  outputChannel: vscode.LogOutputChannel,
 ) {
   extensionContext = context;
   logOutputChannel = outputChannel;
+}
+
+export function setSidebarProvider(provider: SidebarProvider) {
+  sidebarProvider = provider
 }
 
 export function getAuthToken(): string | undefined {
@@ -29,14 +36,20 @@ export function deleteSessionId() {
 
 
 
-export function setSessionId(value: number ) {
+export function setSessionId(value: number) {
   logOutputChannel?.info(`Setting session ID received for update: ${value}`);
   extensionContext?.workspaceState.update('sessionId', value);
   return
 }
 
 
-
+export function sendProgress(progress: number) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "progress-bar",
+    data: progress,
+  })
+}
 
 
 
@@ -55,7 +68,7 @@ export function deleteQueryId() {
 
 
 
-export function setQueryId(value: number ) {
+export function setQueryId(value: number) {
   logOutputChannel?.info(`Setting query ID received for update: ${value}`);
   extensionContext?.workspaceState.update('queryId', value);
   return
