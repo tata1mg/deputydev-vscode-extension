@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Pencil } from "lucide-react";
-import { keywordSearch, keywordTypeSearch, openFile } from "@/commandApi";
+import { keywordSearch, keywordTypeSearch, logToOutput, openFile } from "@/commandApi";
 import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
+import { Chunk } from "@/types";
 
 type ReferenceChipProps = {
   chipIndex: number;
@@ -11,6 +12,7 @@ type ReferenceChipProps = {
   setShowAutoComplete: (value: boolean) => void;
   displayOnly?: boolean;
   path?: string;
+  chunks?: Chunk[];
 };
 
 export default function ReferenceChip({
@@ -21,6 +23,7 @@ export default function ReferenceChip({
   setShowAutoComplete,
   displayOnly = false,
   path,
+  chunks = [] as Chunk[],
 }: ReferenceChipProps) {
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
@@ -36,7 +39,6 @@ export default function ReferenceChip({
 
   useEffect(() => {
     setText(initialText);
-    setIsEditing(true);
   }, [initialText]);
 
   useEffect(() => {
@@ -93,20 +95,20 @@ export default function ReferenceChip({
 
   const handleDisplayClick = () => {
     if (displayOnly) {
-      openFile("webview-ui/src/views/chat/chat.tsx");
+      openFile(path ? path : "");
     }
   };
 
   return (
     <span
       onClick={handleDisplayClick}
-      className={`inline-flex items-center gap-1.5 ${
+      className={`inline-flex items-center ${
         displayOnly
-          ? "px-1.5 py-0 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] space-x-1.5 space-y-0.5"
-          : "px-3 py-1 text-sm cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)] space-x-2 space-y-1"
+          ? "px-1.5 py-0 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] space-x-1.5"
+          : "px-2 py-0.5 text-xs cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)] space-x-1.5" // Changed to smaller padding and text size
       } bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md font-normal transition-colors ${
-        !displayOnly && "mr-1 mb-1"
-      } shadow-sm`} // ← Changed margin condition
+        !displayOnly && "mr-0.5 mb-0.5" // Reduced margins
+      } shadow-sm`}
     >
       {isEditing && !displayOnly ? (
         <input
@@ -116,14 +118,16 @@ export default function ReferenceChip({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           autoFocus
-          className="bg-transparent border-none focus:outline-none w-auto px-1 text-[var(--vscode-input-foreground)] caret-[var(--vscode-editor-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] focus:ring-2 focus:ring-[var(--vscode-focusBorder)] rounded-sm"
+          className="bg-transparent border-none focus:outline-none w-auto px-1 text-xs text-[var(--vscode-input-foreground)] caret-[var(--vscode-editor-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] focus:ring-1 focus:ring-[var(--vscode-focusBorder)] rounded-sm" // Smaller text and reduced focus ring
         />
       ) : (
-        <span onClick={handleEdit} className="flex items-center gap-1.5 group">
-          {text}
+        <span onClick={handleEdit} className="flex items-center gap-1 group">
+          {chunks.length
+            ? `@${text}:${chunks[0].start_line}-${chunks[0].end_line}`
+            : "@" + text}
           {!displayOnly && (
             <Pencil
-              size={14}
+              size={12}
               className="text-[var(--vscode-icon-foreground)] opacity-0 group-hover:opacity-70 transition-opacity"
             />
           )}
@@ -131,10 +135,14 @@ export default function ReferenceChip({
       )}
       {!displayOnly && (
         <button
-          onClick={onDelete}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDelete();
+          }}
           className="text-[var(--vscode-icon-foreground)] hover:bg-[var(--vscode-toolbar-hoverBackground)] rounded-full p-0.5 transition-colors"
         >
-          <X size={16} className="hover:text-[var(--vscode-errorForeground)]" />
+          <X size={14} className="hover:text-[var(--vscode-errorForeground)]" />
         </button>
       )}
     </span>

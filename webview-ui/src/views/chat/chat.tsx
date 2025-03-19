@@ -76,6 +76,12 @@ export function ChatUI() {
   const handleSend = async () => {
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
+    const resetTextareaHeight = () => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "70px";
+      }
+    };
+
     useChatStore.setState({ showSessionsBox: false });
 
     const message = userInput.trim();
@@ -84,17 +90,13 @@ export function ChatUI() {
     ];
     setUserInput("");
     useChatStore.setState({ currentEditorReference: [] });
+    resetTextareaHeight();
 
-    const resetTextareaHeight = () => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "70px";
-      }
-    };
+
 
     try {
       await sendChatMessage(message, editorReferences, () => {});
     } finally {
-      resetTextareaHeight();
     }
   };
 
@@ -347,10 +349,12 @@ export function ChatUI() {
                   handleChipDelete(chip.index);
                 }}
                 autoEdit={
+                  !chip.noEdit &&
                   chip.index ===
-                  useChatStore.getState().currentEditorReference.length - 1
+                    useChatStore.getState().currentEditorReference.length - 1
                 }
                 setShowAutoComplete={setShowAutocomplete}
+                chunks={chip.chunks}
               />
             ))}
           </div>
