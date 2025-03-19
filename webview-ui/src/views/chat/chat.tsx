@@ -59,6 +59,15 @@ export function ChatUI() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+  const [showDefaultContent, setShowDefaultContent] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowDefaultContent(true);
+    }, 2000); // 2 seconds delay
+
+    return () => clearTimeout(timer); // Cleanup the timer on unmount
+  }, []);
 
   // Function to handle showing all sessions
   const handleShowMore = () => {
@@ -326,19 +335,17 @@ export function ChatUI() {
                 )}
               </div>
             ) : (
-              <div>
-                {!sessionsLoading && (
-                  <div className="px-4">
-                    <div className="flex gap-2 items-center">
-                      <p className="mb-2 animate-pulse text-gray-400 text-lg">
-                        You are ready to go.
-                      </p>
-                      <Check className="text-sm text-green-500 animate-pulse mb-1" />
-                    </div>
-                    <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+              showDefaultContent && (
+                <div className="px-4 fade-in">
+                  <div className="flex gap-2 items-center">
+                    <p className="mb-2 animate-pulse text-gray-400 text-lg">
+                      You are ready to go.
+                    </p>
+                    <Check className="text-sm text-green-500 animate-pulse mb-1" />
                   </div>
-                )}
-              </div>
+                  <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+                </div>
+              )
             )}
           </div>
         )}
@@ -371,7 +378,7 @@ export function ChatUI() {
                 autoEdit={
                   !chip.noEdit &&
                   chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
+                  useChatStore.getState().currentEditorReference.length - 1
                 }
                 setShowAutoComplete={setShowAutocomplete}
                 chunks={chip.chunks}
