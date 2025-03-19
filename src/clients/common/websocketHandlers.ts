@@ -115,6 +115,7 @@ export const updateVectorStoreWithResponse = async (
     const result = await client.send({
       ...params,
       auth_token: authToken,
+      sync: true
     });
     console.log("✅ Response received from WebSocket:", result);
     return result;

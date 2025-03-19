@@ -1,4 +1,5 @@
 import { WebSocket, RawData } from 'ws';
+import { sendProgress } from '../../utilities/contextManager';
 
 const BASE_URL = "ws://localhost:8001";
 
@@ -38,6 +39,9 @@ export class WebSocketClient {
               if (Array.isArray(messageData)) {
                 this.resolveResponse(messageData);
                 this.close();
+              }
+              else if (messageData.status === "In Progress") {
+                sendProgress(messageData.progress)
               }
               // Check if the response is an object (update vector store)
               else if (messageData.status === 'Completed')
