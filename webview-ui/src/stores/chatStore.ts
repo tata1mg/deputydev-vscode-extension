@@ -618,6 +618,7 @@ export const useChatStore = create(
         },
 
         cancelChat() {
+          useChatStore.setState({showSkeleton: false})
           const { currentChatRequest } = get();
           currentChatRequest?.close();
           set({ currentChatRequest: undefined, isLoading: false });

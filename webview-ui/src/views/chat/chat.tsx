@@ -260,7 +260,7 @@ export function ChatUI() {
                 Develop with DeputyDev
               </h1>
             </div>
-            {sessions.length > 0 && (
+            {sessions.length > 0 ? (
               <div>
                 <h3 className="px-4 text-lg font-bold">
                   Past Conversations
@@ -332,6 +332,10 @@ export function ChatUI() {
                     Show More...
                   </button>
                 )}
+              </div>
+            ) : (
+              <div>
+
               </div>
             )}
           </div>

@@ -8,15 +8,15 @@ export default function Auth() {
     }
 
     return (
-        <div className="mx-auto flex w-full flex-col justify-between items-center p-6 mt-[210px]">
+        <div className="mx-auto flex max-w-[300px] w-full flex-col justify-between items-center p-6 mt-[210px]">
             <BotMessageSquare className="w-20 h-20 mb-[20px] animate-bounce" />
             <span className="text-3xl mb-[25px] text-center">Develop with DeputyDev</span>
-            <span className="text-xl text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient mb-[40px]">
-                Your AI assistant for smarter coding!
+            <span className="text-lg text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient mb-[40px]">
+                Your AI sidekick that amplifies your impact—turning coding hours into minutes
             </span>
             <button
                 onClick={handleLogin}
-                className="border border-b-2 border-black rounded-xl text-xl text-center max-w-[200px] w-full transition-transform transform hover:scale-105 p-2 shadow-xl hover:shadow-xxl active:scale-95"
+                className="border border-b border-black rounded-lg text-xl text-center max-w-[130px] w-full transition-transform transform hover:scale-105 p-2 shadow-xl hover:shadow-xxl active:scale-95 bg-[var(--vscode-list-inactiveSelectionBackground)]"
             >
                 <div className="text-md flex items-center justify-center space-x-4">
                     <LogIn />
