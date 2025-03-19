@@ -432,6 +432,9 @@ export class ChatManager {
 
     if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);
+      vscode.window.showErrorMessage(
+        "No file updated after search and replace."
+      );
       return null;  
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
