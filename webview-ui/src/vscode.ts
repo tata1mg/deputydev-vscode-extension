@@ -225,6 +225,7 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 });
 
 addCommandEventListener("repo-selector-state", ({ data }) => {
+  useChatStore.setState({progressBar: 100})
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
@@ -314,12 +315,21 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     type: "file",
     keyword: response.keyword,
     path: response.path,
-    chunks: [response.chunk]
+    chunks: [response.chunk],
+    noEdit: true,
   }
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem]
   })
   console.dir(useChatStore.getState().currentEditorReference, {depth: null})
+})
+
+addCommandEventListener("progress-bar", ({data}) => {
+  const progress = data as number;
+  if (data !== 0) {
+    useChatStore.setState({progressBar: progress})
+  }
+  console.log("progress", data)
 })
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
