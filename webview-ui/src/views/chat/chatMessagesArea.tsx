@@ -24,7 +24,7 @@ export function ChatArea() {
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               return (
-                <div key={index} className="flex items-start gap-2 border border-gray-500 rounded-md p-2">
+                <div key={index} className="flex items-start gap-2 border border-gray-500 rounded-md p-2 mt-2">
                   <div className="h-7 flex items-center justify-center flex-shrink-0">
                     <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
