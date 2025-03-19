@@ -42,7 +42,7 @@ export function ChatUI() {
     showSessionsBox,
     showAllSessions,
     sessions,
-    ChatAutocompleteOptions
+    ChatAutocompleteOptions,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
@@ -260,9 +260,7 @@ export function ChatUI() {
             </div>
             {sessions.length > 0 && (
               <div>
-                <h3 className="px-4 text-lg font-bold">
-                  Past Conversations
-                </h3>
+                <h3 className="px-4 text-lg font-bold">Past Conversations</h3>
                 <div
                   className="session-box px-4 h-[128px] overflow-y-auto"
                   onScroll={handleScroll}
@@ -278,9 +276,7 @@ export function ChatUI() {
                             <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                               {session.summary}
                             </div>
-                            <span>
-                              {session.age}
-                            </span>
+                            <span>{session.age}</span>
                           </div>
                           <Trash2
                             className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
@@ -304,9 +300,7 @@ export function ChatUI() {
                               <div className="overflow-hidden whitespace-nowrap text-ellipsis">
                                 {session.summary}
                               </div>
-                              <span>
-                                {session.age}
-                              </span>
+                              <span>{session.age}</span>
                             </div>
                             <div className="flex-shrink-0">
                               <Trash2
@@ -320,16 +314,15 @@ export function ChatUI() {
                         ))}
                     </div>
                   )}
-                  {sessionsLoading && <div >Loading...</div>}
+                  {sessionsLoading && <div>Loading...</div>}
                 </div>
-                {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions &&(
-                  <button
-                    onClick={() => handleShowMore()}
-                    className="px-4"
-                  >
-                    Show More...
-                  </button>
-                )}
+                {!sessionsLoading &&
+                  !showAllSessions &&
+                  sessions.length > visibleSessions && (
+                    <button onClick={() => handleShowMore()} className="px-4">
+                      Show More...
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -360,6 +353,7 @@ export function ChatUI() {
                 onDelete={() => {
                   handleChipDelete(chip.index);
                 }}
+                displayOnly={chip.noEdit}
                 autoEdit={
                   chip.index ===
                   useChatStore.getState().currentEditorReference.length - 1
