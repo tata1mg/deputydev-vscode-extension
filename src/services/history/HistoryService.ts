@@ -39,9 +39,7 @@ export class HistoryService {
             "X-Session-ID" : sessionId
         };
         try {
-            const response = await api.put(API_ENDPOINTS.DELETE_SESSION, {
-                headers
-            });
+            const response = await api.put(API_ENDPOINTS.DELETE_SESSION, {}, {headers});
             return response.data;
         } catch (error) {
             console.error('Error while deleting session:', error);
