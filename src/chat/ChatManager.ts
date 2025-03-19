@@ -215,7 +215,7 @@ export class ChatManager {
           payload.focus_items[i].value = payload.focus_items[i].keyword.split(":")[1].trim();
         }
       }
-      this.outputChannel.info(`apiChat payload POPLA LAPPA: ${JSON.stringify(payload)}`);
+      this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
 
       //get all relevant previous chat queries if any
