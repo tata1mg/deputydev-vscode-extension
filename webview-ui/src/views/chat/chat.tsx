@@ -30,6 +30,7 @@ import ReferenceChip from "./referencechip";
 import { AutocompleteMenu } from "./autocomplete";
 import { isEqual as lodashIsEqual } from "lodash";
 import { ChatUserMessage } from "@/types";
+import ProgressBar from "./chatElements/progressBar";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -248,7 +249,7 @@ export function ChatUI() {
 
 
   return (
-    <div className="relative flex flex-col justify-between h-[100vh]">
+    <div className="relative flex flex-col justify-between h-full">
       <div className="flex-grow">
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
@@ -335,13 +336,13 @@ export function ChatUI() {
         )}
       </div>
 
-      <div className="flex-grow px-4 overflow-auto h-full">
+      <div className="px-4 overflow-auto h-full">
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Layer */}
-      <div className="mt-4 mx-2">
+      <div className="absolute bottom-0 left-0 right-0 mt-4 mx-2">
         <div className="relative">
           {showAutocomplete && (
             <div className="w-full">
@@ -368,6 +369,11 @@ export function ChatUI() {
             ))}
           </div>
 
+          {repoSelectorEmbedding && (
+            <div className="w-full mb-[2px]">
+              <ProgressBar progress={useChatStore.getState().progressBar} />
+            </div>
+          )}
           {/* The textarea remains enabled even when a response is pending */}
           <textarea
             ref={textareaRef}

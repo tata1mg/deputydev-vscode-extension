@@ -11,7 +11,7 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import { ReferenceManager } from './references/ReferenceManager';
 import   ConfigManager   from './utilities/ConfigManager';
-import { setExtensionContext } from './utilities/contextManager';
+import { setExtensionContext, setSidebarProvider } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
@@ -103,6 +103,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerCodeEditorMenuCommand(context, sidebarProvider);
 
   chatService.setSidebarProvider(sidebarProvider);
+  setSidebarProvider(sidebarProvider);
 
 
   const inlineChatEditManager = new InlineChatEditManager(context, outputChannel, chatService, sidebarProvider);
