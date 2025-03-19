@@ -27,6 +27,7 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
+  value?: string;
 };
 
 interface payload {
@@ -44,6 +45,7 @@ interface payload {
     response: any;
   };
   previous_query_ids?: number[];
+  focus_items?: ChatReferenceItem[];
 }
 
 interface SearchTerm {
@@ -206,6 +208,15 @@ export class ChatManager {
   ) {
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
+      if (payload.referenceList?.length){
+        payload.focus_items = payload.referenceList;
+        for (let i = 0; i < payload.focus_items.length; i++) {
+          payload.focus_items[i].index = i;
+          payload.focus_items[i].value = payload.focus_items[i].keyword.split(":")[1].trim();
+        }
+      }
+      this.outputChannel.info(`apiChat payload POPLA LAPPA: ${JSON.stringify(payload)}`);
+
 
       //get all relevant previous chat queries if any
       let currentSessionId = getSessionId();
