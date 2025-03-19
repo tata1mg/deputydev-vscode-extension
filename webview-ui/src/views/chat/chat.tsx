@@ -6,7 +6,7 @@ import {
   useChatStore,
   initialAutocompleteOptions,
 } from "../../stores/chatStore";
-import { Trash2 } from "lucide-react";
+import { Trash2, Check } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
@@ -324,7 +324,7 @@ export function ChatUI() {
                   )}
                   {sessionsLoading && <div >Loading...</div>}
                 </div>
-                {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions &&(
+                {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions && (
                   <button
                     onClick={() => handleShowMore()}
                     className="px-4"
@@ -334,8 +334,14 @@ export function ChatUI() {
                 )}
               </div>
             ) : (
-              <div>
-
+              <div className="px-4">
+                <div className="flex gap-2 items-center">
+                  <p className="mb-2 animate-pulse text-gray-400 text-lg">
+                    You are ready to go.
+                  </p>
+                  <Check className="text-sm text-green-500 animate-pulse mb-1" />
+                </div>
+                <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
               </div>
             )}
           </div>
