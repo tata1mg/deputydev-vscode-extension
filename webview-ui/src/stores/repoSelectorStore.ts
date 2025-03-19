@@ -1,13 +1,21 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from './lib';
 
 interface RepoSelectorStore {
-  // If true, the repo selector is disabled.
   repoSelectorDisabled: boolean;
   setRepoSelectorDisabled: (disabled: boolean) => void;
 }
 
-export const useRepoSelectorStore = create<RepoSelectorStore>((set) => ({
-  repoSelectorDisabled: false, // initial state: repo selector enabled
-  setRepoSelectorDisabled: (disabled: boolean) =>
-    set({ repoSelectorDisabled: disabled }),
-}));
+export const useRepoSelectorStore = create<RepoSelectorStore>()(
+  persist(
+    (set) => ({
+      repoSelectorDisabled: false,
+      setRepoSelectorDisabled: (disabled: boolean) => set({ repoSelectorDisabled: disabled }),
+    }),
+    {
+      name: 'repo-selector-storage',
+      storage: persistStorage,
+    }
+  )
+);

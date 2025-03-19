@@ -29,6 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.workspaceState.update("view-state-storage", undefined);
   context.workspaceState.update("chat-type-storage", undefined);
   context.workspaceState.update("chat-storage", undefined);
+  context.workspaceState.update("repo-selector-storage", false);
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
   deleteSessionId();
