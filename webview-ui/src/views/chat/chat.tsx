@@ -73,9 +73,9 @@ export function ChatUI() {
   const disableRepoSelector = isLoading || messages.length > 0;
   const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
     ? {
-        "data-tooltip-id": "repo-tooltip",
-        "data-tooltip-content": "Create new chat to select new repo.",
-      }
+      "data-tooltip-id": "repo-tooltip",
+      "data-tooltip-content": "Create new chat to select new repo.",
+    }
     : {};
 
   // Auto-resize the textarea.
@@ -102,7 +102,7 @@ export function ChatUI() {
       textareaRef.current.style.height = "70px";
     }
 
-    await sendChatMessage(message, editorReferences, (data) => {});
+    await sendChatMessage(message, editorReferences, (data) => { });
   };
 
   const handleDeleteSession = async (sessionId: number) => {
@@ -326,14 +326,18 @@ export function ChatUI() {
                 )}
               </div>
             ) : (
-              <div className="px-4">
-                <div className="flex gap-2 items-center">
-                  <p className="mb-2 animate-pulse text-gray-400 text-lg">
-                    You are ready to go.
-                  </p>
-                  <Check className="text-sm text-green-500 animate-pulse mb-1" />
-                </div>
-                <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+              <div>
+                {!sessionsLoading && (
+                  <div className="px-4">
+                    <div className="flex gap-2 items-center">
+                      <p className="mb-2 animate-pulse text-gray-400 text-lg">
+                        You are ready to go.
+                      </p>
+                      <Check className="text-sm text-green-500 animate-pulse mb-1" />
+                    </div>
+                    <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
