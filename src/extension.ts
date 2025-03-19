@@ -11,7 +11,7 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import { ReferenceManager } from './references/ReferenceManager';
 import   ConfigManager   from './utilities/ConfigManager';
-import { setExtensionContext, setSidebarProvider } from './utilities/contextManager';
+import { setExtensionContext, setSidebarProvider, clearWorkspaceStorage } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
@@ -20,20 +20,17 @@ import { AuthService } from './services/auth/AuthService';
 let outputChannel: vscode.LogOutputChannel;
 
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
     .getConfiguration('deputydev')
-    .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
-  context.workspaceState.update("auth-storage", false);
-  context.workspaceState.update("workspace-storage", undefined);
-  context.workspaceState.update("view-state-storage", undefined);
-  context.workspaceState.update("chat-type-storage", undefined);
-  context.workspaceState.update("chat-storage", undefined);
-  context.workspaceState.update("repo-selector-storage", false);
+    .get<string>('outputChannelName', 'DeputyDev');
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
+  
+  // context reset from past session
   setExtensionContext(context,outputChannel);
-  deleteSessionId();
-
+  await clearWorkspaceStorage();
+  
+  
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = ConfigManager;
 
@@ -116,9 +113,6 @@ export function activate(context: vscode.ExtensionContext) {
   inlineChatEditManager.inlineChat();
   inlineChatEditManager.inlineChatEditQuickFixes();
 
-  // const fileWatcher = new FileWatcher(outputChannel);
-  // context.subscriptions.push(fileWatcher);
-
 
 
   //  6) Register "closeApp" command
@@ -134,7 +128,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 
-  const webviewFocusListener = new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
+  new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   // const relevantPaths = workspaceManager.getWorkspaceRepos();
 

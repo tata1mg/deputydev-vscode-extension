@@ -80,3 +80,19 @@ export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
 
+export async function clearWorkspaceStorage() {
+  if (!extensionContext) 
+   {
+    console.log('extensionContext is not defined');
+    return;
+   }
+
+  await extensionContext.workspaceState.update("auth-storage", false);
+  await extensionContext.workspaceState.update("workspace-storage", undefined);
+  await extensionContext.workspaceState.update("view-state-storage", undefined);
+  await extensionContext.workspaceState.update("chat-type-storage", undefined);
+  await extensionContext.workspaceState.update("chat-storage", undefined);
+  await extensionContext.workspaceState.update("repo-selector-storage", false);
+  await extensionContext.workspaceState.update("sessionId", undefined);
+}
+
