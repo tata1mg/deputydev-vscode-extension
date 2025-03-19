@@ -13,6 +13,7 @@ type ReferenceChipProps = {
   displayOnly?: boolean;
   path?: string;
   chunks?: Chunk[];
+  noEdit?: boolean;
 };
 
 export default function ReferenceChip({
@@ -24,6 +25,7 @@ export default function ReferenceChip({
   displayOnly = false,
   path,
   chunks = [] as Chunk[],
+  noEdit = false,
 }: ReferenceChipProps) {
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
@@ -111,14 +113,14 @@ export default function ReferenceChip({
         !displayOnly && "mr-0.5 mb-0.5" // Reduced margins
       } shadow-sm`}
     >
-      {isEditing && !displayOnly ? (
+      {isEditing && !displayOnly && !noEdit ? (
         <input
           type="text"
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          autoFocus
+          autoFocus={!noEdit}
           className="bg-transparent border-none focus:outline-none w-auto px-1 text-xs text-[var(--vscode-input-foreground)] caret-[var(--vscode-editor-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] focus:ring-1 focus:ring-[var(--vscode-focusBorder)] rounded-sm" // Smaller text and reduced focus ring
         />
       ) : (
