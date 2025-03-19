@@ -324,7 +324,7 @@ export function ChatUI() {
                   )}
                   {sessionsLoading && <div >Loading...</div>}
                 </div>
-                {!sessionsLoading && !showAllSessions && (
+                {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions &&(
                   <button
                     onClick={() => handleShowMore()}
                     className="px-4"
