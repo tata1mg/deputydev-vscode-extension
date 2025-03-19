@@ -206,7 +206,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           const result = await promise;
           this.sendMessageToSidebar({
             id: message.id,
-            command: "response",
+            command: 'result',
             data: result,
           });
         } catch (err) {
@@ -483,13 +483,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   setViewType(viewType: "chat" | "setting" | "history" | "auth") {
-    //add auth view
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
       data: viewType,
     });
   }
+
+  setAuthStatus(status: boolean) {
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: "set-auth-status",
+      data: status,
+    });
+  }
+
+
 
   newChat() {
     this.sendMessageToSidebar({

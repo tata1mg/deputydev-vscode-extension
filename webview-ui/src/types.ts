@@ -32,6 +32,7 @@ export type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   value?: string;
+  noEdit?: boolean;
 };
 
 export type ChatType = "ask" | "write";

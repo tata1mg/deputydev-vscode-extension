@@ -11,7 +11,7 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { ChatManager } from './chat/ChatManager';
 import { ReferenceManager } from './references/ReferenceManager';
 import   ConfigManager   from './utilities/ConfigManager';
-import { setExtensionContext } from './utilities/contextManager';
+import { setExtensionContext, setSidebarProvider } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import {deleteSessionId} from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
@@ -24,7 +24,12 @@ export function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
     .getConfiguration('deputydev')
     .get<string>('outputChannelName', 'DeputyDev'); // Default to 'DeputyDev'
-
+  context.workspaceState.update("auth-storage", false);
+  context.workspaceState.update("workspace-storage", undefined);
+  context.workspaceState.update("view-state-storage", undefined);
+  context.workspaceState.update("chat-type-storage", undefined);
+  context.workspaceState.update("chat-storage", undefined);
+  context.workspaceState.update("repo-selector-storage", false);
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
   setExtensionContext(context,outputChannel);
   deleteSessionId();
@@ -103,6 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerCodeEditorMenuCommand(context, sidebarProvider);
 
   chatService.setSidebarProvider(sidebarProvider);
+  setSidebarProvider(sidebarProvider);
 
 
   const inlineChatEditManager = new InlineChatEditManager(context, outputChannel, chatService, sidebarProvider);
@@ -225,6 +231,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
   outputChannel?.info('Extension "DeputyDev" is now deactivated!');
+  deleteSessionId();
 }
 
 
