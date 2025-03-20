@@ -7,14 +7,18 @@ interface ProgressProps {
 
 const ProgressBar: React.FC<ProgressProps> = ({ progress }) => {
     return (
-        <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-                className="h-2 rounded-full animate-pulse"
-                style={{
-                    width: `${progress}%`,
-                    background: 'linear-gradient(to right, #4F46E5, #3B82F6)', // Example gradient colors
-                }}
-            />
+        <div className="w-full flex items-center mb-2">
+            <div className="bg-gray-200 rounded h-6 flex-grow relative">
+                <div
+                    className="h-6 rounded absolute"
+                    style={{
+                        width: `${progress}%`,
+                        background: 'linear-gradient(to right, #4F46E5, #3B82F6)', // Example gradient colors
+                    }}
+                />
+                <span className="text-xs text-black absolute left-2 top-1">Indexing codebase...</span>
+                <span className="text-xs text-black absolute right-2 top-1">{Math.floor(progress)}%</span>
+            </div>
         </div>
     );
 };
