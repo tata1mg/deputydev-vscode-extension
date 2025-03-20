@@ -81,7 +81,7 @@ export const useChatStore = create(
       lastToolUseResponse: undefined as
         | { tool_use_id: string; tool_name: string }
         | undefined,
-      progressBar: 1,
+      progressBar: 0,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -622,6 +622,7 @@ export const useChatStore = create(
         },
 
         cancelChat() {
+          useChatStore.setState({showSkeleton: false})
           const { currentChatRequest } = get();
           currentChatRequest?.close();
           set({ currentChatRequest: undefined, isLoading: false });
