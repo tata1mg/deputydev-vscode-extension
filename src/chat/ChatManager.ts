@@ -77,13 +77,13 @@ export class ChatManager {
   private focusChunksService = new FocusChunksService();
   private authService = new AuthService();
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
     private diffViewManager: DiffViewManager
-  ) {}
+  ) { }
 
   // Method to set the sidebar provider later
   setSidebarProvider(sidebarProvider: SidebarProvider) {
@@ -253,6 +253,7 @@ export class ChatManager {
     payload: payload,
     chunkCallback: (data: { name: string; data: unknown }) => void
   ) {
+    const payload_copy = structuredClone(payload);
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
       if (payload.referenceList?.length) {
@@ -260,7 +261,7 @@ export class ChatManager {
         for (let i = 0; i < payload.focus_items.length; i++) {
           payload.focus_items[i].index = i;
           const splitKeyword = payload.focus_items[i].keyword?.split(":");
-          
+
           // Ensure the splitKeyword has at least two elements before accessing index [1]
           if (splitKeyword && splitKeyword.length > 1) {
             payload.focus_items[i].value = splitKeyword[1].trim();
@@ -271,7 +272,7 @@ export class ChatManager {
           }
         }
       }
-      
+
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
 
@@ -428,8 +429,7 @@ export class ChatManager {
               if (payload.write_mode) {
                 const modifiedFiles =
                   await this.getModifiedRequest(currentDiffRequest);
-                if (modifiedFiles)
-                {
+                if (modifiedFiles){
                   //  only log 1st words
                   this.outputChannel.error(
                     `the modified file at vscode side is:  ${JSON.stringify(
@@ -456,7 +456,7 @@ export class ChatManager {
                     },
                   });
                 }
-                  
+
               }
 
               currentDiffRequest = null;
@@ -473,13 +473,15 @@ export class ChatManager {
       // Signal end of stream.
       chunkCallback({ name: "end", data: {} });
     } catch (error) {
+      this.outputChannel.info('the payload before sending to UI', JSON.stringify(payload_copy));
+      chunkCallback({ name: "error", data: { payload_to_retry: payload_copy, error_msg: String(error) ,  retry: true}  });
       this.outputChannel.error(`Error during apiChat: ${error}`);
     }
   }
 
   public async getModifiedRequest(
     currentDiffRequest: CurrentDiffRequest
-  ): Promise<Record<string, string> | null> { 
+  ): Promise<Record<string, string> | null> {
     this.outputChannel.info(
       `Running diff tool for file ${currentDiffRequest.filepath}`
     );
@@ -507,7 +509,7 @@ export class ChatManager {
       vscode.window.showErrorMessage(
         "No file updated after search and replace."
       );
-      return null;  
+      return null;
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
 
