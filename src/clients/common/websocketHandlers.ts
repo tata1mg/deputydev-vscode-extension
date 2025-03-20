@@ -68,7 +68,7 @@ export const updateVectorStore = async (
 ): Promise<any> => {
   const authToken = fetchAuthToken();
   if (!authToken) {
-    throw new Error("Authentication token is required");
+    throw new Error("Authentication token is required while updating vector store.");
   }
 
   console.log("updateVectorStore with params:", params);
@@ -105,7 +105,7 @@ export const updateVectorStoreWithResponse = async (
 ): Promise<any> => {
   const authToken = fetchAuthToken();
   if (!authToken) {
-    throw new Error("Authentication token is required");
+    throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
 
   console.log("updateVectorStoreWithResponse with params:", params);
@@ -115,6 +115,7 @@ export const updateVectorStoreWithResponse = async (
     const result = await client.send({
       ...params,
       auth_token: authToken,
+      sync: true
     });
     console.log("✅ Response received from WebSocket:", result);
     return result;
@@ -126,29 +127,29 @@ export const updateVectorStoreWithResponse = async (
   }
 };
 
-export const updateVectorStoreFireAndForget = (
-  params: UpdateVectorStoreParams
-): void => {
-  const authToken = fetchAuthToken();
-  if (!authToken) {
-    throw new Error("Authentication token is required");
-  }
+// export const updateVectorStoreFireAndForget = (
+//   params: UpdateVectorStoreParams
+// ): void => {
+//   const authToken = fetchAuthToken();
+//   if (!authToken) {
+//     throw new Error("Authentication token is required 
+//   }
 
-  console.log("🚀 updateVectorStoreFireAndForget with params:", params);
-  const client = new WebSocketClient(BASE_URL, API_ENDPOINTS.UPDATE_VECTOR_DB);
+//   console.log("🚀 updateVectorStoreFireAndForget with params:", params);
+//   const client = new WebSocketClient(BASE_URL, API_ENDPOINTS.UPDATE_VECTOR_DB);
 
-  client
-    .send({
-      ...params,
-      auth_token: authToken,
-    })
-    .catch((error) => {
-      console.error("❌ Error updating vector store (fire-and-forget):", error);
-    });
+//   client
+//     .send({
+//       ...params,
+//       auth_token: authToken,
+//     })
+//     .catch((error) => {
+//       console.error("❌ Error updating vector store (fire-and-forget):", error);
+//     });
 
-  client.close(); // Close WebSocket immediately after sending
-  console.log("✅ Fire-and-forget request sent and WebSocket closed.");
-};
+//   client.close(); // Close WebSocket immediately after sending
+//   console.log("✅ Fire-and-forget request sent and WebSocket closed.");
+// };
 
 // Keeping these for backward compatibility, with deprecation warnings
 export const subscribeToRelevantChunks = (

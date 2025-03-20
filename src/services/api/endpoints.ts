@@ -18,4 +18,6 @@ export const API_ENDPOINTS = {
     RELEVANT_CHAT_HISTORY: "/end_user/v1/history/relevant-chat-history",
     INIT_BINARY: "/v1/init",
     FOCUS_CHUNKS: "/v1/get-focus-chunks",
+    CONFIG: "/end_user/v1/configs/get-configs",
+    CONFIG_ESSENTIALS: "/end_user/v1/configs/get-essential-configs"
 }
