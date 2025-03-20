@@ -338,12 +338,12 @@ export function ChatUI() {
               showDefaultContent && (
                 <div className="px-4 fade-in">
                   <div className="flex gap-2 items-center">
-                    <p className="mb-2 animate-pulse text-gray-400 text-lg">
+                    <p className="mb-2 text-gray-400 text-lg">
                       You are ready to go.
                     </p>
                     <Check className="text-sm text-green-500 animate-pulse mb-1" />
                   </div>
-                  <p className="animate-pulse text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+                  <p className="text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
                 </div>
               )
             )}
