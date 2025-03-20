@@ -6,17 +6,19 @@ import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import { SidebarProvider } from '../panels/SidebarProvider';
 
-interface RelevantChunk {
-    content: string;
-    embedding: any;
-    source_details: {
-        file_path: string;
-        file_hash: string;
-        start_line: number;
-        end_line: number;
+interface InlineEditPayload {
+    query: string;
+    relevant_chunks: string[]
+    code_selection: {
+        selected_text?: string
+        file_path?: string
     };
-    metadata: any;
-    search_score: number;
+}
+
+interface RelevantChunksPayload {
+    focus_chunks?: string[];
+    query: string;
+    focus_files?: string[];
 }
 
 export class InlineChatEditManager {
@@ -99,6 +101,7 @@ export class InlineChatEditManager {
 
     public async inlineChat() {
         vscode.commands.registerCommand("deputydev.chatWithDeputy", () => {
+            vscode.commands.executeCommand('workbench.view.extension.deputydev-sidebar-view');
             this.editor = vscode.window.activeTextEditor;
             if (!this.editor) {
                 return;
@@ -129,11 +132,11 @@ export class InlineChatEditManager {
             this.outputChannel.info(`start line = ${start_line}, end line = ${end_line}`)
 
             const inlineChatData = {
-                keyword : activeFileName,
-                path : this.relative_file_path,
-                chunk : {
-                    start_line : start_line + 1,
-                    end_line : end_line + 1
+                keyword: activeFileName,
+                path: this.relative_file_path,
+                chunk: {
+                    start_line: start_line + 1,
+                    end_line: end_line + 1
                 }
             }
 
@@ -141,7 +144,7 @@ export class InlineChatEditManager {
                 id: uuidv4(),
                 command: 'inline-chat-data',
                 data: inlineChatData
-              });
+            });
         })
     }
 
@@ -216,11 +219,27 @@ export class InlineChatEditManager {
             } else {
                 comment_box_thread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
             }
+            this.outputChannel.info("Now getting out from comment box.....")
         });
 
         // Register the command for AI editing
         this.context.subscriptions.push(vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
             this.outputChannel.info(`USER QUERY: ${reply.text}`);
+            this.outputChannel.info("Now inside edit feature.....")
+            this.active_repo = getActiveRepo();
+            const payloadForRelevantChunks: RelevantChunksPayload = {
+                focus_chunks: this.focus_chunks,
+                query: reply.text,
+                focus_files: this.focus_files
+            }
+            const payloadForInlineEdit: InlineEditPayload = {
+                query: reply.text,
+                relevant_chunks: [],
+                code_selection: {
+                    selected_text: this.selected_text,
+                    file_path: this.relative_file_path,
+                },
+            }
             vscode.commands.executeCommand('deputydev.editThisCode', true);
             vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
@@ -228,19 +247,9 @@ export class InlineChatEditManager {
                 cancellable: true
             }, async () => {
                 this.outputChannel.info("Inside function")
-                const relevant_chunks = await this.chatService.processRelevantChunks({
-                    focus_chunks: this.focus_chunks,
-                    query: reply.text,
-                    focus_files: this.focus_files
-                })
-                const job = await this.inlineEditService.generateInlineEdit({
-                    "query": reply.text,
-                    "relevant_chunks": relevant_chunks,
-                    "code_selection": {
-                        "selected_text": this.selected_text,
-                        "file_path": this.relative_file_path,
-                    },
-                })
+                const relevant_chunks = await this.chatService.processRelevantChunks(payloadForRelevantChunks)
+                payloadForInlineEdit.relevant_chunks = relevant_chunks
+                const job = await this.inlineEditService.generateInlineEdit(payloadForInlineEdit)
                 this.outputChannel.info(`Job_id: ${job.job_id}`)
 
                 let uDiff;

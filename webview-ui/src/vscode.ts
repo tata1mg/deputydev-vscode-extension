@@ -230,7 +230,6 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 });
 
 addCommandEventListener("repo-selector-state", ({ data }) => {
-  useChatStore.setState({progressBar: 100})
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
@@ -333,9 +332,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
 
 addCommandEventListener("progress-bar", ({data}) => {
   const progress = data as number;
-  if (data !== 0) {
-    useChatStore.setState({progressBar: progress})
-  }
+  useChatStore.setState({progressBar: progress})
   console.log("progress", data)
 })
 // addCommandEventListener('current-editor-changed', ({ data }) => {
