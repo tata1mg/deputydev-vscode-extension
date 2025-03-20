@@ -169,6 +169,7 @@ export function ChatUI() {
         keyword: "",
         path: "",
         chunks: [],
+        commit_hash: "",
       };
       useChatStore.setState({
         currentEditorReference: [...editorRefs, newChatRefrenceItem],
@@ -201,6 +202,7 @@ export function ChatUI() {
       allChips[selectedChipIndex].chunks = option.chunks
       allChips[selectedChipIndex].path = option.description
       allChips[selectedChipIndex].type = option.icon
+      allChips[selectedChipIndex].commit_hash = option.commit_hash;
       useChatStore.setState({ currentEditorReference: allChips });
       setShowAutocomplete(false);
     }

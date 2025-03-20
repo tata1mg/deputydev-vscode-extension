@@ -29,28 +29,32 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     label: "Directory",
     value: "Directory: ",
     description: "A folder containing files and subfolders",
-    chunks: []
+    chunks: [],
+    commit_hash: "",
   },
   {
     icon: "file",
     label: "File",
     value: "File: ",
     description: "A single file such as a document or script",
-    chunks: []
+    chunks: [],
+    commit_hash: "",
   },
   {
     icon: "function",
     label: "Function",
     value: "Function: ",
     description: "A short piece of reusable code",
-    chunks: []
+    chunks: [],
+    commit_hash: "",
   },
   {
     icon: "class",
     label: "Class",
     value: "Class: ",
     description: "A short piece of reusable class code",
-    chunks: []
+    chunks: [],
+    commit_hash: "",
   },
 ];
 

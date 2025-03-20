@@ -6,6 +6,7 @@ export type AutocompleteOption = {
   value: string;
   description: string;
   chunks: Chunk[];
+  commit_hash: string;
 };
 
 export type FileParts = {
@@ -23,6 +24,10 @@ export type SearchResponseItem = {
 export type Chunk = {
   start_line: number;
   end_line: number;
+  chunk_hash: string;
+  file_hash: string;
+  file_path: string;
+  meta_info?: any;
 };
 
 export type ChatReferenceItem = {
@@ -31,6 +36,7 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
+  commit_hash?: string;
 };
 
 export type ChatType = "ask" | "write";
