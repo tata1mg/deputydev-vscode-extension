@@ -3,13 +3,13 @@ import { API_ENDPOINTS } from "../api/endpoints";
 
 export class HistoryService {
     public async getPastSessions(limit: number, offset: number): Promise<any> {
-        const headers = {
-            "X-Limit" : limit,
-            "X-Offset" : offset,
-        }
         try {
             const response = await api.get(API_ENDPOINTS.PAST_SESSIONS, {
-                headers
+                params: {
+                    limit,
+                    offset,
+                    session_type: "CODE_GENERATION_V2"
+                }
             });
             // console.log("past sessions response", response.data.data)
             return response.data.data;

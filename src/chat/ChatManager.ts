@@ -42,7 +42,6 @@ interface payload {
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
-  relevant_chunks?: any[];
   write_mode?: boolean;
   referenceList?: ChatReferenceItem[];
   tool_use_response?: {
@@ -318,10 +317,10 @@ export class ChatManager {
       // }
 
       if (payload.referenceList) {
-        const relevant_chunks = await this.getFocusChunks(
+        const focus_chunks = await this.getFocusChunks(
           payload,
         );
-        payload.relevant_chunks = relevant_chunks;
+        payload.focus_chunks = focus_chunks;
       }
       delete payload.referenceList;
 
