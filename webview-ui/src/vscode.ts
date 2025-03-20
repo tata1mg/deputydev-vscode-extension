@@ -225,7 +225,6 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 });
 
 addCommandEventListener("repo-selector-state", ({ data }) => {
-  // useChatStore.setState({progressBar: 100})
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
