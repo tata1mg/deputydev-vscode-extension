@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import {FileText, CheckCircle, Loader2, XCircle, Search } from 'lucide-react';
+import {FileText, CheckCircle, Loader2, XCircle, Search , RotateCw} from 'lucide-react';
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { openFile } from "@/commandApi";
 import { reduce } from 'lodash';
+import { useChatStore } from '@/stores/chatStore';
 /**
  *
  * Represents the status of chips
@@ -152,6 +153,61 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
   );
 }
 
+
+export function RetryChip({ error_msg, retry, payload_to_retry }: { 
+  error_msg: string; 
+  retry: boolean; 
+  payload_to_retry: unknown; 
+}) {
+  const { history: messages, sendChatMessage, current, showSkeleton, showSessionsBox } = useChatStore();
+  
+  // Retry function defined within ChatArea component
+  const retryChat = () => {
+    console.log("retrying chat");
+    if (!messages.length) {
+      console.log("No messages in history");
+      return;
+    }
+    // Get the last message from the chat history
+    const lastMsg = messages[messages.length - 1];
+    console.log("Last message:", JSON.stringify(lastMsg));
+
+    if (lastMsg.type === "ERROR") {
+      // The error message should have the payload to retry stored in 'payload_to_retry'
+      const errorData = lastMsg; // Assuming type ChatErrorMessage
+      console.log(
+        "Payload data just before sending:",
+        JSON.stringify(errorData.payload_to_retry, null, 2)
+      );
+      const payload = errorData.payload_to_retry;
+      // Call sendChatMessage with the retry flag set to true,
+      // passing the stored payload so that UI state updates are skipped.
+      sendChatMessage("retry", [], () => {}, true, payload);
+    } else {
+      console.log("No error found to retry.");
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center justify-between w-full px-2 py-2 text-sm rounded border-[1px] border-red-500/40 mt-2"
+      title="Error occurred"
+    >
+      <div className="flex items-center gap-2">
+        <StatusIcon status="error" />
+        <span className="text-red-400">An error occurred</span>
+      </div>
+      {retry && (
+        <button
+          className="text-gray-300 font-bold  hover:bg-gray-500 rounded p-1"
+          onClick={retryChat}
+        >
+          <RotateCw className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 
 
