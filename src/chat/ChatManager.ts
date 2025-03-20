@@ -10,7 +10,6 @@ import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import {
   getActiveRepo,
   getSessionId,
-  setQueryId,
   setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
@@ -34,6 +33,7 @@ export type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   commit_hash: string;
+  value?: string;
 };
 
 interface payload {
@@ -51,6 +51,7 @@ interface payload {
     response: any;
   };
   previous_query_ids?: number[];
+  focus_items?: ChatReferenceItem[];
 }
 
 interface SearchTerm {
@@ -255,6 +256,25 @@ export class ChatManager {
   ) {
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
+      if (payload.referenceList?.length) {
+        payload.focus_items = payload.referenceList;
+        for (let i = 0; i < payload.focus_items.length; i++) {
+          payload.focus_items[i].index = i;
+          const splitKeyword = payload.focus_items[i].keyword?.split(":");
+          
+          // Ensure the splitKeyword has at least two elements before accessing index [1]
+          if (splitKeyword && splitKeyword.length > 1) {
+            payload.focus_items[i].value = splitKeyword[1].trim();
+          } else {
+            // Handle cases where the keyword format is incorrect
+            this.outputChannel.error(`Invalid keyword format: ${payload.focus_items[i].keyword}`);
+            payload.focus_items[i].value = ""; // Default value or handle error accordingly
+          }
+        }
+      }
+      
+      this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
+
 
       //get all relevant previous chat queries if any
       let currentSessionId = getSessionId();
@@ -332,9 +352,6 @@ export class ChatManager {
           case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
               setSessionId(event.content.session_id);
-            }
-            if (event.content?.query_id) {
-              setQueryId(event.content.session_id);
             }
             const sessionid = getSessionId();
             this.outputChannel.info(`Session ID: ${sessionid}`);
@@ -488,6 +505,9 @@ export class ChatManager {
 
     if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);
+      vscode.window.showErrorMessage(
+        "No file updated after search and replace."
+      );
       return null;  
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);

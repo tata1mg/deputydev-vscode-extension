@@ -37,6 +37,8 @@ export type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   commit_hash?: string;
+  value?: string;
+  noEdit?: boolean;
 };
 
 export type ChatType = "ask" | "write";
@@ -57,6 +59,7 @@ export type ChatUserMessage = {
   type: "TEXT_BLOCK";
   content: {
     text: string;
+    focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
   actor: "USER";

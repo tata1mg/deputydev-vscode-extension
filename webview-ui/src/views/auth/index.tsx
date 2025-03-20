@@ -1,5 +1,5 @@
 import { initiateLogin } from "@/commandApi";
-import { BotMessageSquare } from 'lucide-react';
+import { BotMessageSquare, LogIn } from 'lucide-react';
 
 export default function Auth() {
 
@@ -16,9 +16,12 @@ export default function Auth() {
             </span>
             <button
                 onClick={handleLogin}
-                className="border border-black rounded-xl text-xl text-center w-full transition-transform transform hover:scale-105 text-white p-2 shadow-lg hover:shadow-xl active:scale-95 animate-pulse"
+                className="border border-b-2 border-black rounded-xl text-xl text-center max-w-[200px] w-full transition-transform transform hover:scale-105 p-2 shadow-xl hover:shadow-xxl active:scale-95"
             >
-                Sign in
+                <div className="text-md flex items-center justify-center space-x-4">
+                    <LogIn />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient">Sign in</span>
+                </div>
             </button>
         </div>
     );
