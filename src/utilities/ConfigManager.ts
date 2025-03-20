@@ -1,57 +1,68 @@
-import * as fs from "fs";
+import * as vscode from 'vscode';
+import { api } from "../services/api/axios";
+import { API_ENDPOINTS } from "../services/api/endpoints";
 
-class ConfigManager {
-    private static instance: ConfigManager;
-    private config: Record<string, any> = {};
-    private configPath: string = "../../config.json";
-    private inMemory: boolean = false;
+export class ConfigManager {
+  private context: vscode.ExtensionContext;
+  private outputChannel: vscode.LogOutputChannel;
+  private readonly CONFIG_ESSENTIALS_KEY = 'essentialConfigData';
+  private readonly CONFIG_KEY = 'configData';
+  private configEssentials: any = {};
+  private configData: any = {};
 
-    private constructor() {
-        this.loadConfig(); // Load config synchronously when instance is created
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
+    this.context = context;
+    this.outputChannel = outputChannel;
+  }
+
+  /**
+   * Fetches and stores the essential config data in workspace state and constant.
+   */
+  public async fetchAndStoreConfigEssentials(): Promise<void> {
+    try {
+      const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS);
+      this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
+      if (response.data && response.data.is_success) {
+        this.configEssentials = response.data.data;
+        await this.context.workspaceState.update(this.CONFIG_ESSENTIALS_KEY, this.configEssentials);
+        this.outputChannel.info("CONFIG_ESSENTIALS successfully stored.");
+      } else {
+        this.outputChannel.error("Failed to fetch CONFIG_ESSENTIALS: Invalid response format.");
+      }
+    } catch (error) {
+      this.outputChannel.error(`Error fetching CONFIG_ESSENTIALS: ${error}`);
     }
+  }
 
-    public static getInstance(): ConfigManager {
-        if (!ConfigManager.instance) {
-            ConfigManager.instance = new ConfigManager();
-        }
-        return ConfigManager.instance;
+  /**
+   * Fetches and stores the general config data in workspace state and constant.
+   */
+  public async fetchAndStoreConfig(): Promise<void> {
+    try {
+      const response = await api.get(API_ENDPOINTS.CONFIG);
+      if (response.data && response.data.is_success) {
+        this.configData = response.data.data;
+        await this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
+        this.outputChannel.info("CONFIG successfully stored.");
+      } else {
+        this.outputChannel.error("Failed to fetch CONFIG: Invalid response format.");
+      }
+    } catch (error) {
+      this.outputChannel.error(`Error fetching CONFIG: ${error}`);
     }
+  }
 
-    private loadConfig(): void {
-        if (this.inMemory) {
-            this.config = {};
-            return;
-        }
+  /**
+   * Retrieves the stored essential config data from constant or returns a specific value if a key is provided.
+   */
+  public getConfigEssentials(key?: string): any {
+    return key ? this.configEssentials[key] : this.configEssentials;
+  }
 
-        if (fs.existsSync(this.configPath)) {
-            try {
-                const data = fs.readFileSync(this.configPath, "utf-8");
-                this.config = JSON.parse(data);
-            } catch (error) {
-                console.error("Error reading config file:", error);
-            }
-        }
-    }
-
-    public get<T>(key: string, defaultValue?: T): T | undefined {
-        return this.config.hasOwnProperty(key) ? this.config[key] : defaultValue;
-    }
-
-    public set(values: Record<string, any>): void {
-        Object.assign(this.config, values);
-
-        if (!this.inMemory) {
-            try {
-                fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 4), "utf-8");
-            } catch (error) {
-                console.error("Error writing to config file:", error);
-            }
-        }
-    }
-
-    public get configs(): Readonly<Record<string, any>> {
-        return this.config;
-    }
+  /**
+   * Retrieves the stored general config data from constant or returns a specific value if a key is provided.
+   */
+  public getConfig(key?: string): any {
+    return key ? this.configData[key] : this.configData;
+  }
 }
-
-export default ConfigManager.getInstance();

@@ -47,7 +47,7 @@ export function ChatUI() {
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
   const repoSelectorEmbedding = useRepoSelectorStore(
-    (state) => state.repoSelectorDisabled
+    (state) => state.repoSelectorDisabled,
   );
   // const repoSelectorEmbedding = false;
   // const [repoSelectorDisabled] = useState(false);
@@ -74,19 +74,6 @@ export function ChatUI() {
     useChatStore.setState({ showAllSessions: true });
   };
 
-  // Do not block user typing or canceling even if a response is pending.
-  // Instead, we simply block sending a new message.
-  const blockSendMessage = isLoading;
-
-  // The repo selector should be disabled if the repo is embedding, a response is pending, or there is chat history.
-  const disableRepoSelector = isLoading || messages.length > 0;
-  const repoTooltipProps: Partial<Record<string, string>> = disableRepoSelector
-    ? {
-      "data-tooltip-id": "repo-tooltip",
-      "data-tooltip-content": "Create new chat to select new repo.",
-    }
-    : {};
-
   // Auto-resize the textarea.
   const autoResize = () => {
     const el = textareaRef.current;
@@ -96,22 +83,30 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
-    useChatStore.setState({ showSessionsBox: false });
-    if (!userInput.trim() || blockSendMessage) return;
+    if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
-    let message = userInput.trim();
-    setUserInput("");
+    const resetTextareaHeight = () => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "70px";
+      }
+    };
+
+    useChatStore.setState({ showSessionsBox: false });
+
+    const message = userInput.trim();
     const editorReferences = [
       ...useChatStore.getState().currentEditorReference,
     ];
+    setUserInput("");
     useChatStore.setState({ currentEditorReference: [] });
+    resetTextareaHeight();
 
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "70px";
+
+
+    try {
+      await sendChatMessage(message, editorReferences, () => {});
+    } finally {
     }
-
-    await sendChatMessage(message, editorReferences, (data) => { });
   };
 
   const handleDeleteSession = async (sessionId: number) => {
@@ -177,6 +172,7 @@ export function ChatUI() {
         keyword: "",
         path: "",
         chunks: [],
+        commit_hash: "",
       };
       useChatStore.setState({
         currentEditorReference: [...editorRefs, newChatRefrenceItem],
@@ -209,6 +205,7 @@ export function ChatUI() {
       allChips[selectedChipIndex].chunks = option.chunks;
       allChips[selectedChipIndex].path = option.description;
       allChips[selectedChipIndex].type = option.icon;
+      allChips[selectedChipIndex].commit_hash = option.commit_hash;
       useChatStore.setState({ currentEditorReference: allChips });
       setShowAutocomplete(false);
     }
@@ -256,14 +253,14 @@ export function ChatUI() {
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
   return (
-    <div className="relative flex flex-col justify-between h-full">
+    <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
           <div>
-            <div className="mt-8 mb-12">
-              <BotMessageSquare className="w-20 h-20 px-4 " />
-              <h1 className="px-4 text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient">
+            <div className="mb-12 mt-8">
+              <BotMessageSquare className="h-20 w-20 px-4" />
+              <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
                 Develop with DeputyDev
               </h1>
             </div>
@@ -271,7 +268,7 @@ export function ChatUI() {
               <div>
                 <h3 className="px-4 text-lg font-bold">Past Conversations</h3>
                 <div
-                  className="session-box px-4 h-[128px] overflow-y-auto"
+                  className="session-box h-[128px] overflow-y-auto px-4"
                   onScroll={handleScroll}
                 >
                   {!showAllSessions ? (
@@ -280,15 +277,15 @@ export function ChatUI() {
                         <div className="flex gap-2" key={session.id}>
                           <div
                             onClick={() => handleGetSessionChats(session.id)}
-                            className="rounded border text-sm border-gray-500/10  gap-1 p-1 session-title  mb-3 flex justify-between transition-transform transform hover:scale-105  relative opacity-70 hover:opacity-100 bg-gray-500/20  w-[85%] hover:cursor-pointer"
+                            className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                           >
-                            <div className="overflow-hidden whitespace-nowrap text-ellipsis">
+                            <div className="overflow-hidden text-ellipsis whitespace-nowrap">
                               {session.summary}
                             </div>
                             <span>{session.age}</span>
                           </div>
                           <Trash2
-                            className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer "
+                            className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                             onClick={(e) => {
                               handleDeleteSession(session.id);
                             }}
@@ -304,16 +301,16 @@ export function ChatUI() {
                           <div className="flex gap-2" key={session.id}>
                             <div
                               onClick={() => handleGetSessionChats(session.id)}
-                              className="rounded border-[1px]   border-gray-500/10 text-sm p-1 session-title gap-1 mb-3 flex justify-between transition-transform transform hover:scale-105 opacity-70 hover:opacity-100 bg-gray-500/20  w-[85%] relative hover:cursor-pointer"
+                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                             >
-                              <div className="overflow-hidden whitespace-nowrap text-ellipsis">
+                              <div className="overflow-hidden text-ellipsis whitespace-nowrap">
                                 {session.summary}
                               </div>
                               <span>{session.age}</span>
                             </div>
                             <div className="flex-shrink-0">
                               <Trash2
-                                className="m-1 transition-transform transform opacity-50 hover:opacity-70 hover:cursor-pointer"
+                                className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                                 onClick={(e) => {
                                   handleDeleteSession(session.id);
                                 }}
@@ -351,14 +348,14 @@ export function ChatUI() {
         )}
       </div>
 
-      <div className="px-4 overflow-auto h-full mb-[150px]">
+      <div className="mb-[150px] h-full overflow-auto px-4">
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mt-4 mx-2">
-        <div className="relative">
+      <div className="absolute bottom-0 left-0 right-0 mx-2 mt-4">
+        <div className="">
           {showAutocomplete && (
             <div className="w-full">
               <AutocompleteMenu
@@ -387,74 +384,74 @@ export function ChatUI() {
           </div>
 
           {repoSelectorEmbedding && (
-            <div className="w-full mb-[2px]">
+            <div className="mb-[2px] w-full">
               <ProgressBar progress={useChatStore.getState().progressBar} />
             </div>
           )}
           {/* The textarea remains enabled even when a response is pending */}
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            className={`bg-[var(--deputydev-input-background)] scrollbar-thumb-gray-500 p-2 pr-12 border border-gray-300 rounded
-              focus:outline-none focus:ring-1 focus:ring-blue-600 w-full min-h-[70px] max-h-[300px]
-              overflow-y-auto  resize-none ${repoSelectorEmbedding ? "disabled:opacity-50 disabled:cursor-not-allowed" : ""}`}
-            placeholder="Ask anything (⌘L), @ to mention code blocks"
-            value={userInput}
-            onChange={handleTextAreaChange}
-            onKeyDown={(e) => {
-              if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (!isLoading) {
-                  handleSend();
-                }
-              }
-            }}
-            disabled={repoSelectorEmbedding}
-            {...(repoSelectorEmbedding && {
-              "data-tooltip-id": "repo-tooltip",
-              "data-tooltip-content": "Please wait, DeputyDev is initializing.",
-            })}
-            autoFocus
-          />
-
-          {/* The cancel button remains enabled even if a response is pending */}
-          <div className="absolute flex items-center -translate-y-1/2 top-1/2 right-3">
-            {isLoading ? (
-              <button
-                className="flex items-center justify-center w-4 h-4 bg-red-500 border rounded-md"
-                onClick={cancelChat}
-              />
-            ) : (
-              <button
-                className="flex items-center justify-center"
-                onClick={() => {
-                  if (!blockSendMessage) {
+          <div className="relative w-full">
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              className={`scrollbar-thumb-gray-500 relative max-h-[300px] min-h-[70px] w-full resize-none overflow-y-auto rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2 pr-12 focus:border-blue-600/70 focus:outline-none focus:ring-0 active:border-blue-600/70 disabled:cursor-not-allowed disabled:opacity-50`}
+              placeholder="Ask anything (⌘L), @ to mention code blocks"
+              value={userInput}
+              onChange={handleTextAreaChange}
+              onKeyDown={(e) => {
+                if (
+                  !repoSelectorEmbedding &&
+                  e.key === "Enter" &&
+                  !e.shiftKey
+                ) {
+                  e.preventDefault();
+                  if (!isLoading) {
                     handleSend();
                   }
-                }}
-              >
-                <EnterIcon className="w-5 h-5 " />
-              </button>
-            )}
+                }
+              }}
+              disabled={repoSelectorEmbedding}
+              {...(repoSelectorEmbedding && {
+                "data-tooltip-id": "repo-tooltip",
+                "data-tooltip-content":
+                  "Please wait, DeputyDev is initializing.",
+              })}
+            />
+
+            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+              {isLoading ? (
+                <button
+                  className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
+                  onClick={cancelChat}
+                />
+              ) : (
+                <button
+                  className="flex items-center justify-center"
+                  onClick={() => {
+                    if (!isLoading) {
+                      handleSend();
+                    }
+                  }}
+                >
+                  <EnterIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            <Tooltip id="repo-tooltip" />
           </div>
-          <Tooltip id="repo-tooltip" />
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between text-xs mt-1">
-          <div className="flex items-center gap-2">
-            <RepoSelector
-              disabled={disableRepoSelector}
-              tooltipProps={repoTooltipProps}
-            />
+        <div className=" flex items-center justify-between text-xs">
+          <div>
+            <RepoSelector />
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="font-medium ">Chat</span>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <span className="font-medium">Chat</span>
+            <label className="relative inline-flex cursor-pointer items-center">
               <input
                 type="checkbox"
-                className="sr-only peer"
+                className="peer sr-only"
                 checked={chatType === "write"}
                 onChange={() => {
                   if (!isLoading) {
@@ -463,14 +460,9 @@ export function ChatUI() {
                 }}
                 disabled={isLoading}
               />
-              <div
-                className="w-8 h-4 bg-gray-200  rounded-full peer peer-checked:bg-blue-500
-                              after:content-[''] after:absolute after:top-0.5 after:left-0.5
-                              after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all
-                              peer-checked:after:translate-x-4"
-              />
+              <div className="peer h-4 w-8 rounded-full bg-gray-200 after:absolute after:left-0.5 after:top-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-4" />
             </label>
-            <span className="font-medium ">Write</span>
+            <span className="font-medium">Write</span>
           </div>
         </div>
       </div>
