@@ -20,7 +20,12 @@ interface InlineChatReferenceData {
   chunk: {
     start_line: number;
     end_line: number;
+    chunk_hash: string;
+    file_hash: string;
+    file_path: string;
+    meta_info?: any;
   }
+  commit_hash: string;
 }
 
 interface WorkspaceRepo {
@@ -259,6 +264,7 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
       value: item.value,
       description: item.path,
       chunks: item.chunks ? item.chunks : null,
+      commit_hash: item.commit_hash,
     };
   });
   logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
@@ -288,6 +294,7 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
       value: item.value,
       description: item.path,
       chunks: item.chunks ? item.chunks : null,
+      commit_hash: item.commit_hash,
     };
   });
   logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);

@@ -20,7 +20,7 @@ export class AuthenticationManager {
                     if (response.data.encrypted_session_data) {
                         const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                         if (result === "success") {
-                            this.context.globalState.update("authToken", response.data.encrypted_session_data);
+                            this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                             return response.data.status;
                         } else {
                             return 'NOT_AUTHENTICATED';
@@ -59,7 +59,7 @@ export class AuthenticationManager {
                 if (response.data.encrypted_session_data) {
                     const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                     if (result === "success") {
-                        this.context.globalState.update("authToken", response.data.encrypted_session_data);
+                        this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                         return true;
                         // return false;
                     }

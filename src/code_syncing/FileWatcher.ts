@@ -5,14 +5,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
 
-import ConfigManager from '../utilities/ConfigManager'; // Your singleton config manager
 import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
-
+import { ConfigManager } from '../utilities/ConfigManager';
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;
   private activeRepoPath: string;
   private ignoreMatcher: ReturnType<typeof ignore>;
-  private configManager: typeof ConfigManager;
+  private configManager: ConfigManager;
   private outputChannel: vscode.LogOutputChannel;
   private pendingFileChanges: Set<string> = new Set();
   private changeTimeout: NodeJS.Timeout | null = null;
@@ -24,7 +23,7 @@ export class WorkspaceFileWatcher {
    */
   constructor(
     activeRepoPath: string,
-    configManager: typeof ConfigManager,
+    configManager: ConfigManager,
     outputChannel: vscode.LogOutputChannel
   ) {
     this.activeRepoPath = activeRepoPath;
@@ -60,19 +59,18 @@ export class WorkspaceFileWatcher {
 
     // Ignore all files with .git extension but NOT .gitignore or .gitattributes
     patterns.push('**/*.git');
-
     // Additional ignore patterns from configuration.
     const additionalIgnore: string[] =
-      this.configManager.get<string[]>('additionalIgnorePatterns', []) || [];
+      this.configManager.getConfig('additionalIgnorePatterns') || [];
     patterns = patterns.concat(additionalIgnore);
 
     // Exclude directories from configuration.
-    const excludeDirs: string[] = this.configManager.get<string[]>('exclude_dirs', []) || [];
+    const excludeDirs: string[] = this.configManager.getConfig('exclude_dirs') || [];
     const dirPatterns = excludeDirs.map(dir => `${dir.replace(/\\/g, '/')}/**`);
     patterns = patterns.concat(dirPatterns);
 
     // Exclude file extensions or specific filenames from configuration.
-    const excludeExts: string[] = this.configManager.get<string[]>('exclude_exts', []) || [];
+    const excludeExts: string[] = this.configManager.getConfig('exclude_exts') || [];
     const extPatterns = excludeExts.map(ext => {
       // If it starts with a dot, assume it's an extension.
       return ext.startsWith('.') ? `**/*${ext}` : `**/${ext}`;
