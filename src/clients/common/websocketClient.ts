@@ -46,6 +46,7 @@ export class WebSocketClient {
               // Check if the response is an object (update vector store)
               else if (messageData.status === 'Completed')
                 {
+                sendProgress(messageData.progress)
                 this.resolveResponse(messageData.status);
                 this.close();
               }

@@ -443,7 +443,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data.limit,
         data.offset
       );
-      this.outputChannel.info(`Lappa: ${JSON.stringify(response)}`);
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
