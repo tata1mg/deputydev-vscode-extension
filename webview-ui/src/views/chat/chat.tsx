@@ -266,7 +266,7 @@ export function ChatUI() {
             </div>
             {sessions.length > 0 ? (
               <div>
-                <h3 className="px-4 text-lg font-bold">Past Conversations</h3>
+                <h3 className="px-4 text-lg font-bold mb-1">Past Conversations</h3>
                 <div
                   className="session-box h-[128px] overflow-y-auto px-4"
                   onScroll={handleScroll}
