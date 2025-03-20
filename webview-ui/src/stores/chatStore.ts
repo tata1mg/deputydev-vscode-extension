@@ -16,7 +16,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatSessionHistory,Session,sessionChats } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -107,7 +107,9 @@ export const useChatStore = create(
         async sendChatMessage(
           message: string,
           editorReferences: ChatReferenceItem[],
-          chunkCallback: (data: { name: string; data: any }) => void
+          chunkCallback: (data: { name: string; data: any }) => void,
+          retryChat?: boolean,
+          retry_payload?: any,
         ) {
           logToOutput("info", `sendChatMessage: ${message}`);
           const { history, lastToolUseResponse } = get();
@@ -120,13 +122,23 @@ export const useChatStore = create(
             actor: "USER",
           };
 
+          if (!retryChat) {
+            set({
+              history: [...history, userMessage],
+              current: {
+                type: "TEXT_BLOCK",
+                content: { text: "" },
+                actor: "ASSISTANT",
+              }
+            });
+          }
+          
+          // Remove any error messages from history
+          set((state) => ({
+            history: state.history.filter(msg => msg.type !== "ERROR"), 
+          }));
+
           set({
-            history: [...history, userMessage],
-            current: {
-              type: "TEXT_BLOCK",
-              content: { text: "" },
-              actor: "ASSISTANT",
-            },
             isLoading: true,
             showSkeleton: true
           });
@@ -154,21 +166,19 @@ export const useChatStore = create(
             set({ lastToolUseResponse: undefined });
           }
 
-            // If a tool response was stored, add it to the payload
-            if (lastToolUseResponse) {
-              payload.is_tool_response = true;
-              payload.tool_use_response = {
-                tool_name: lastToolUseResponse.tool_name,
-                tool_use_id: lastToolUseResponse.tool_use_id,
-                response: {
-                  user_response: message,
-                },
-              };
-              // Clear it so it doesn't affect subsequent messages.
-              set({ lastToolUseResponse: undefined });
-            }
 
-          const stream = apiChat(payload);
+          
+          let stream;
+          if (retryChat) {
+            logToOutput("info", `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`);
+            stream = apiChat(retry_payload);
+
+          }
+          else {
+            stream = apiChat(payload);
+
+          }
+
           console.log("stream received in FE : ", stream);
 
           try {
@@ -421,7 +431,7 @@ export const useChatStore = create(
                   } else {
                     // For normal tools, create a tool use message.
                     const newToolMsg: ChatToolUseMessage = {
-                      type: "TOOL_USE_REQUEST_BLOCK",
+                      type: "TOOL_USE_REQUEST",
                       content: {
                         tool_name: toolData.tool_name || "",
                         tool_use_id: toolData.tool_use_id || "",
@@ -444,36 +454,22 @@ export const useChatStore = create(
                     tool_use_id: string;
                   };
                   if (tool_name === "ask_user_input") {
-                    // Accumulate JSON and try to extract prompt.
-                    set((state) => {
-                      if (!state.current || state.current.type !== "TEXT_BLOCK")
-                        return state;
-                      const currentAccumulated =
-                        state.current.content.text + delta;
-                      let extractedPrompt = "";
-                      try {
-                        const potentialJsonMatch =
-                          currentAccumulated.match(/\{.*\}/s);
-                        if (potentialJsonMatch) {
-                          const parsedJson = JSON.parse(potentialJsonMatch[0]);
-                          if (parsedJson.prompt) {
-                            extractedPrompt = parsedJson.prompt;
-                          }
-                        }
-                      } catch (e) {
-                        // Continue accumulating if JSON parsing fails.
-                      }
-                      return {
-                        current: {
-                          ...state.current,
-                          text: extractedPrompt || currentAccumulated,
-                        },
-                      };
-                    });
+                     // Accumulate JSON and try to extract prompt.
+                     set((state) => ({
+                      current: state.current
+                        ? {
+                            ...state.current,
+                            content: {
+                              text: (state.current.content.text + delta)
+                              .replace(/^\{"prompt":\s*"/, "") // Remove `{"prompt": "`
+                              .replace(/"}$/, ""), // Remove trailing `"}`
+                          },                          }
+                        : state.current,
+                    }));
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                        if (msg.type === "TOOL_USE_REQUEST") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -529,7 +525,7 @@ export const useChatStore = create(
                   } else {
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                        if (msg.type === "TOOL_USE_REQUEST") {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === tool_use_id) {
                             return {
@@ -558,7 +554,7 @@ export const useChatStore = create(
                   };
                   set((state) => {
                     const newHistory = state.history.map((msg) => {
-                      if (msg.type === "TOOL_USE_REQUEST_BLOCK") {
+                      if (msg.type === "TOOL_USE_REQUEST") {
                         const toolMsg = msg as ChatToolUseMessage;
                         if (
                           toolMsg.content.tool_use_id ===
@@ -583,10 +579,24 @@ export const useChatStore = create(
                   break;
                 }
                 case "error": {
-                  const errorData = event.data as { error?: string };
-                  const err = errorData.error || "Unknown error";
+                  //       chunkCallback({ name: "error", data: { payload_to_retry: payload, error_msg: String(error) ,  retry: true}  });
+
+                  const errorData = event.data as {payload_to_retry: unknown , error_msg: string , retry: boolean} ;
+                  const err = errorData.error_msg || "Unknown error";
+                    logToOutput('info', `payload data: ${JSON.stringify(errorData.payload_to_retry, null,2)}`);
                   logToOutput("error", `Streaming error: ${err}`);
-                  showErrorMessage(`Error: ${err}`);
+                  set((state) => ({
+                    history: [
+                      ...state.history,
+                      {
+                        type: "ERROR",
+                        error_msg : err,
+                        retry: errorData.retry,
+                        payload_to_retry: errorData.payload_to_retry,
+                        actor: "ASSISTANT",
+                      } as ChatErrorMessage,
+                    ],
+                  }));                  
                   set({ isLoading: false, currentChatRequest: undefined });
                   chunkCallback({ name: "error", data: { error: err } });
                   break;
@@ -627,7 +637,7 @@ export const useChatStore = create(
           currentChatRequest?.close();
           set({ currentChatRequest: undefined, isLoading: false });
           logToOutput("info", "User canceled the chat stream");
-        },
+        },      
       };
     }
   ),

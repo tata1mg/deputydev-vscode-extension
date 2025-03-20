@@ -53,7 +53,8 @@ export type ChatMessage =
   | ChatAssistantMessage
   | ChatToolUseMessage
   | ChatThinkingMessage
-  | ChatCodeBlockMessage;
+  | ChatCodeBlockMessage
+  | ChatErrorMessage;
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
@@ -75,11 +76,12 @@ export interface ChatAssistantMessage {
 }
 
 export interface ChatToolUseMessage {
-  type: "TOOL_USE_REQUEST_BLOCK";
+  type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
   content: {
     tool_name: string;
     tool_use_id: string;
-    input_params_json: string;
+    input_params_json: { prompt: string } | string;
+    tool_input_json?: { prompt: string };
     result_json: string;
     status: "pending" | "completed" | "error";
   };
@@ -108,6 +110,14 @@ export interface ChatCodeBlockMessage {
   write_mode: boolean;
   status : "pending" | "completed" | "error";
 
+}
+
+export interface ChatErrorMessage {
+  type: "ERROR";
+  retry: boolean;
+  payload_to_retry: unknown;
+  error_msg: string;
+  actor: "ASSISTANT";
 }
 
 export interface ChatSessionHistory {

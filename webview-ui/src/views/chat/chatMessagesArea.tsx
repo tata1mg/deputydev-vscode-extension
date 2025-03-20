@@ -8,14 +8,20 @@ import {
   SearchedCodebase,
   ThinkingChip,
   FileEditedChip,
+  RetryChip,
 } from "./chatElements/ToolChips";
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
 
 export function ChatArea() {
-  const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
-  console.log("messages in parser", messages)
+  const {
+    history: messages,
+    current,
+    showSkeleton,
+    showSessionsBox,
+  } = useChatStore();
+  console.log("messages in parser", messages);
 
   return (
     <>
@@ -27,7 +33,8 @@ export function ChatArea() {
                 msg.referenceList = msg.content.focus_items;
                 for (let i = 0; i < msg.referenceList.length; i++) {
                   msg.referenceList[i].index = i;
-                  msg.referenceList[i].keyword = `${msg.referenceList[i].type}:${msg.referenceList[i].value}`;
+                  msg.referenceList[i].keyword =
+                    `${msg.referenceList[i].type}:${msg.referenceList[i].value}`;
                 }
               }
               return (
@@ -35,11 +42,11 @@ export function ChatArea() {
                   key={index}
                   className="flex items-start gap-2 rounded-md p-2"
                 >
-                  <div className="h-7 flex items-center justify-center flex-shrink-0">
+                  <div className="flex h-7 flex-shrink-0 items-center justify-center">
                     <CircleUserRound className="text-neutral-600" size={20} />
                   </div>
                   <div
-                    className="flex-1 overflow-hidden max-w-full rounded-lg p-3 border"
+                    className="max-w-full flex-1 overflow-hidden rounded-lg border p-3"
                     style={{
                       backgroundColor: "var(--vscode-editor-background)",
                       borderColor: "var(--vscode-editorWidget-border)",
@@ -58,7 +65,7 @@ export function ChatArea() {
                           chunks={reference.chunks}
                         />
                       ))}
-                      <span className="text-[var(--vscode-editor-foreground)] whitespace-pre-wrap break-words m-0 p-0 font-sans">
+                      <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
                         {msg.content.text}
                       </span>
                     </p>
@@ -68,7 +75,7 @@ export function ChatArea() {
             }
             if (msg.actor === "ASSISTANT") {
               return (
-                <div key={index} className=" markdown-body">
+                <div key={index} className="markdown-body">
                   <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
@@ -110,10 +117,32 @@ export function ChatArea() {
               );
             }
 
-          case "TOOL_USE_REQUEST_BLOCK":
+          case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
                 <SearchedCodebase status={msg.content.status} />
+              </div>
+            );
+
+          case "TOOL_USE_REQUEST_BLOCK":
+            return (
+              <div key={index} className="markdown-body">
+                {msg.content.tool_name === "ask_user_input" ? (
+                  <Markdown>
+                    {msg.content.tool_input_json?.prompt}
+                  </Markdown>
+                ) : null}
+              </div>
+            );
+
+          case "ERROR":
+            return (
+              <div key={index}>
+                <RetryChip
+                  error_msg={msg.error_msg}
+                  retry={msg.retry}
+                  payload_to_retry={msg.payload_to_retry}
+                />
               </div>
             );
 
@@ -122,11 +151,9 @@ export function ChatArea() {
         }
       })}
 
-      {showSkeleton && showSessionsBox === false &&(
-        <Shimmer />
-      )}
+      {showSkeleton && showSessionsBox === false && <Shimmer />}
       {current && typeof current.content?.text === "string" && (
-        <div key="streaming" className=" text-base markdown-body">
+        <div key="streaming" className="markdown-body text-base">
           <Markdown>{current.content.text}</Markdown>
         </div>
       )}
