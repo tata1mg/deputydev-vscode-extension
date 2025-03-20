@@ -14,11 +14,17 @@ import {
   setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
-import { forEach } from "lodash";
+import { forEach, result } from "lodash";
+import { FocusChunksService } from "../services/focusChunks/focusChunksService";
+import { AuthService } from "../services/auth/AuthService";
 
 export type Chunk = {
   start_line: number;
   end_line: number;
+  chunk_hash: string;
+  file_hash: string;
+  file_path: string;
+  meta_info?: any;
 };
 
 export type ChatReferenceItem = {
@@ -27,6 +33,7 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
+  commit_hash: string;
 };
 
 interface payload {
@@ -67,6 +74,8 @@ export class ChatManager {
   private querySolverService = new QuerySolverService();
   private sidebarProvider?: SidebarProvider; // Optional at first
   private historyService = new HistoryService();
+  private focusChunksService = new FocusChunksService();
+  private authService = new AuthService();
 
   onStarted: () => void = () => {};
   onError: (error: Error) => void = () => {};
@@ -193,6 +202,46 @@ export class ChatManager {
     }
   }
 
+  async getFocusChunks(
+    data: payload,
+  ): Promise<string[]> {
+
+
+    let chunkDetails: Array<Chunk> = [];
+
+    this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
+
+    data.referenceList?.forEach((element) => {
+      chunkDetails = chunkDetails.concat(element.chunks);
+    });
+
+    this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
+
+    try {
+      // Retrieve the active repository path.
+      const active_repo = getActiveRepo();
+      if (!active_repo) {
+        throw new Error("Active repository is not defined.");
+      }
+
+      // Call the external function to fetch relevant chunks.
+      const result = await this.focusChunksService.getFocusChunks({
+        auth_token: await this.authService.loadAuthToken(),
+        repo_path: active_repo,
+        chunks: chunkDetails,
+      });
+      // only print few words only
+      this.outputChannel.info(
+        `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
+      );
+      // Extract the content from each chunk in the payload.
+      return result;
+    } catch (error) {
+      this.outputChannel.error(`Error fetching focus chunks: ${error}`);
+      return [];
+    }
+  }
+
   /**
    * apiChat:
    * Expects a payload that includes message_id along with the query with other parameters,
@@ -240,10 +289,17 @@ export class ChatManager {
         relevantHistoryQueryIds
       );
 
-      if (payload.query && currentSessionId !== undefined) {
-        const relevant_chunks = await this.processRelevantChunks(
+      // if (payload.query && currentSessionId !== undefined) {
+      //   const relevant_chunks = await this.processRelevantChunks(
+      //     payload,
+      //     relevantHistoryText
+      //   );
+      //   payload.relevant_chunks = relevant_chunks;
+      // }
+
+      if (payload.referenceList) {
+        const relevant_chunks = await this.getFocusChunks(
           payload,
-          relevantHistoryText
         );
         payload.relevant_chunks = relevant_chunks;
       }
