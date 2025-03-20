@@ -3,6 +3,7 @@ import { X, Pencil } from "lucide-react";
 import { keywordSearch, keywordTypeSearch, logToOutput, openFile } from "@/commandApi";
 import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
 import { Chunk } from "@/types";
+import { log } from "console";
 
 type ReferenceChipProps = {
   chipIndex: number;
@@ -28,6 +29,12 @@ export default function ReferenceChip({
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  useEffect(() => {
+    if (text.split(": ")[1] === "") {
+      setIsEditing(true);
+    }
+  }, [text]);
 
   useEffect(() => {
     return () => {
