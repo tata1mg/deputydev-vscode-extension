@@ -22,7 +22,7 @@ export class ConfigManager {
    */
   public async fetchAndStoreConfigEssentials(): Promise<void> {
     try {
-      const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS);
+      const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS, {params: {consumer: "VSCODE_EXT"}});
       this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
       if (response.data && response.data.is_success) {
         this.configEssentials = response.data.data;
