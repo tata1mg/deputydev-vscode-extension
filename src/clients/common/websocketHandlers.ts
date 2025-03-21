@@ -1,6 +1,6 @@
 import { WebSocketClient, BASE_URL } from "./websocketClient";
-import { getAuthToken } from "../../utilities/contextManager";
 import { API_ENDPOINTS } from "../../services/api/endpoints";
+import { AuthService } from "../../services/auth/AuthService";
 
 // Updated interface for RelevantChunksParams (includes new backend fields)
 
@@ -19,12 +19,9 @@ export interface UpdateVectorStoreParams {
   chunkable_files?: string[];
 }
 
-const fetchAuthToken = (): string | null => {
-  const authToken = getAuthToken();
-  if (!authToken) {
-    console.error("[WebSocket] Missing auth token. Ensure user is logged in.");
-    return null;
-  }
+const fetchAuthToken = async () => {
+  const authService = new AuthService();
+  const authToken = await authService.loadAuthToken();
   return authToken;
 };
 
@@ -37,7 +34,7 @@ const fetchAuthToken = (): string | null => {
 export const fetchRelevantChunks = async (
   params: RelevantChunksParams
 ): Promise<any> => {
-  const authToken = fetchAuthToken();
+  const authToken = await fetchAuthToken();
   if (!authToken) {
     throw new Error("Authentication token is required");
   }
@@ -66,7 +63,8 @@ export const updateVectorStore = async (
   params: UpdateVectorStoreParams,
   waitForResponse: boolean = false
 ): Promise<any> => {
-  const authToken = fetchAuthToken();
+  const authToken = await fetchAuthToken();
+  console.log("getting auth token inside....", authToken)
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store.");
   }
@@ -103,7 +101,7 @@ export const updateVectorStore = async (
 export const updateVectorStoreWithResponse = async (
   params: UpdateVectorStoreParams
 ): Promise<any> => {
-  const authToken = fetchAuthToken();
+  const authToken = await fetchAuthToken();
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
@@ -132,7 +130,7 @@ export const updateVectorStoreWithResponse = async (
 // ): void => {
 //   const authToken = fetchAuthToken();
 //   if (!authToken) {
-//     throw new Error("Authentication token is required 
+//     throw new Error("Authentication token is required
 //   }
 
 //   console.log("🚀 updateVectorStoreFireAndForget with params:", params);

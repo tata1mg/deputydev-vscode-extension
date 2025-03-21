@@ -521,10 +521,14 @@ export class ChatManager {
     file_path_to_diff_map: Record<string, string>
   ): Promise<any> {
     try {
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        "Authorization": `Bearer ${authToken}`
+      }
       const response = await binaryApi.post(API_ENDPOINTS.DIFF_APPLIER, {
         repo_path: repo_path,
         file_path_to_diff_map: file_path_to_diff_map,
-      });
+      }, { headers });
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
       console.error("Error while applying diff:", error);
@@ -547,10 +551,14 @@ export class ChatManager {
     search_terms: SearchTerm[]
   ): Promise<any> {
     try {
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        "Authorization": `Bearer ${authToken}`
+      }
       const response = await binaryApi.post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
         repo_path: repo_path,
         search_terms: search_terms,
-      });
+      }, { headers });
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
       console.error(
