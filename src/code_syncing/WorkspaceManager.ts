@@ -45,6 +45,11 @@ export class WorkspaceManager {
 
     this.updateWorkspaceRepos();
     this.subscribeToWorkspaceFolderChanges();
+    this.configManager.onDidUpdateConfig(() => {
+      this.outputChannel.info('Config updated – reinitializing file watcher');
+      this.initializeFileWatcher(); 
+    });
+    
   }
 
   /**
@@ -184,6 +189,7 @@ export class WorkspaceManager {
     this.sendReposToSidebar();
     this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
+    
   }
 
   /**
@@ -218,3 +224,4 @@ export class WorkspaceManager {
     return this.workspaceRepos;
   }
 }
+

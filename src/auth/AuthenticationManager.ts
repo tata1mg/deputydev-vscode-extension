@@ -1,5 +1,6 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
+import { ConfigManager } from "../utilities/ConfigManager";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 
@@ -8,6 +9,7 @@ export class AuthenticationManager {
     browserClient = new BrowserClient();
     constructor(
         private context: vscode.ExtensionContext,
+        private configManager: ConfigManager,
     ) {}
 
     public async pollSession(supabaseSessionId: string) {
@@ -20,6 +22,7 @@ export class AuthenticationManager {
                     if (response.data.encrypted_session_data) {
                         const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                         if (result === "success") {
+                            this.configManager.fetchAndStoreConfig();
                             this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                             return response.data.status;
                         } else {

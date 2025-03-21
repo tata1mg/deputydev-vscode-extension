@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
 
-import { updateVectorStore , fetchRelevantChunks, RelevantChunksParams, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
+import { updateVectorStore , UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
 import { ConfigManager } from '../utilities/ConfigManager';
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;
@@ -52,7 +52,7 @@ export class WorkspaceFileWatcher {
    */
   private loadIgnorePatterns(): void {
     let patterns: string[] = [];
-
+    const config = this.configManager.getConfig();
     // Load patterns from .gitignore files recursively.
     patterns = patterns.concat(this.loadGitignorePatternsRecursive(this.activeRepoPath, ''));
     patterns.push('.git/');  // Ignore the entire .git directory
@@ -60,17 +60,16 @@ export class WorkspaceFileWatcher {
     // Ignore all files with .git extension but NOT .gitignore or .gitattributes
     patterns.push('**/*.git');
     // Additional ignore patterns from configuration.
-    const additionalIgnore: string[] =
-      this.configManager.getConfig('additionalIgnorePatterns') || [];
+    const additionalIgnore: string[] = config["EXLUDE_PATTERN"] || [];
     patterns = patterns.concat(additionalIgnore);
 
     // Exclude directories from configuration.
-    const excludeDirs: string[] = this.configManager.getConfig('exclude_dirs') || [];
+    const excludeDirs: string[] = config["EXCLUDE_DIRS"] || [];
     const dirPatterns = excludeDirs.map(dir => `${dir.replace(/\\/g, '/')}/**`);
     patterns = patterns.concat(dirPatterns);
 
     // Exclude file extensions or specific filenames from configuration.
-    const excludeExts: string[] = this.configManager.getConfig('exclude_exts') || [];
+    const excludeExts: string[] = config["EXCLUDE_EXTS"]  || [];
     const extPatterns = excludeExts.map(ext => {
       // If it starts with a dot, assume it's an extension.
       return ext.startsWith('.') ? `**/*${ext}` : `**/${ext}`;
@@ -79,6 +78,10 @@ export class WorkspaceFileWatcher {
 
     // Add all gathered patterns to the ignore matcher.
     this.ignoreMatcher.add(patterns);
+    // print all config called values
+    this.outputChannel.info(`Additional ignore patterns loaded: ${additionalIgnore.join(', ')}`);
+    this.outputChannel.info(`Exclude directories loaded: ${excludeDirs.join(', ')}`);
+    this.outputChannel.info(`Exclude extensions loaded: ${excludeExts.join(', ')}`);
     this.outputChannel.info(`Ignore patterns loaded: ${patterns.join(', ')}`);
   }
 

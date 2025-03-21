@@ -12,6 +12,9 @@ export class ConfigManager {
   private configEssentials: any = {};
   private configData: any = {};
 
+  private _onDidUpdateConfig = new vscode.EventEmitter<void>();
+  public readonly onDidUpdateConfig = this._onDidUpdateConfig.event;
+
   constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
     this.context = context;
     this.outputChannel = outputChannel;
@@ -51,7 +54,8 @@ export class ConfigManager {
         refreshCurrentToken(response.headers)
         this.configData = response.data.data;
         await this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
-        this.outputChannel.info("CONFIG successfully stored.");
+        this.outputChannel.appendLine(`main CONFIG fetched: ${JSON.stringify(this.configData, null, 2)}`);
+        this._onDidUpdateConfig.fire();
       } else {
         this.outputChannel.error("Failed to fetch CONFIG: Invalid response format.");
       }
