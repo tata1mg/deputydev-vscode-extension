@@ -143,7 +143,7 @@ export default function ReferenceChip({
         />
       ) : (
         <span onClick={handleEdit} className="flex items-center gap-1 group">
-          {chunks.length
+          {chunks?.length
             ? `@${text}:${getChunkDetail(chunks)}`
             : "@" + text}
           {!displayOnly && (

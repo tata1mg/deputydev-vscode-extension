@@ -209,9 +209,10 @@ export class ChatManager {
     let chunkDetails: Array<Chunk> = [];
 
     this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
-
     data.referenceList?.forEach((element) => {
-      chunkDetails = chunkDetails.concat(element.chunks);
+      if (element.chunks !== null) {
+        chunkDetails = chunkDetails.concat(element.chunks);
+      }
     });
 
     this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
@@ -224,11 +225,11 @@ export class ChatManager {
       }
 
       // Call the external function to fetch relevant chunks.
-      const result = await this.focusChunksService.getFocusChunks({
+      const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
         auth_token: await this.authService.loadAuthToken(),
         repo_path: active_repo,
         chunks: chunkDetails,
-      });
+      }): [];
       // only print few words only
       this.outputChannel.info(
         `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
@@ -237,7 +238,7 @@ export class ChatManager {
       let finalResult: Array<any> = [];
       data.referenceList?.forEach((element) => {
         let finalChunkInfos: Array<any> = [];
-        element.chunks.forEach((chunk) => {
+        element.chunks?.forEach((chunk) => {
           this.outputChannel.info(`chunk: ${JSON.stringify(result)}`);
           let selectedChunkInfo = result.find((res: any) => {
             return res.chunk_hash === chunk.chunk_hash;
@@ -251,7 +252,7 @@ export class ChatManager {
         finalResult.push({
           "type": element.type,
           "value": element.value,
-          "chunks": finalChunkInfos || [],
+          "chunks": finalChunkInfos || null,
           "path": element.path
         });
       });
