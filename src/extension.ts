@@ -36,10 +36,11 @@ export async function activate(context: vscode.ExtensionContext) {
   await configManager.fetchAndStoreConfigEssentials();
 
   // 1) Authentication Flow
-  const authenticationManager = new AuthenticationManager(context);
+  const authenticationManager = new AuthenticationManager(context, configManager);
   authenticationManager.validateCurrentSession().then((status) => {
     outputChannel.info(`Authentication result: ${status}`);
     if (status) {
+      configManager.fetchAndStoreConfig();
       outputChannel.info('User is authenticated.');
       sidebarProvider.sendMessageToSidebar('AUTHENTICATED')
       sidebarProvider.setViewType("chat")

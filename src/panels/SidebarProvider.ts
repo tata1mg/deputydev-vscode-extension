@@ -220,7 +220,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context);
+    const authenticationManager = new AuthenticationManager(this.context , this.configManager);
     const status = await authenticationManager.initiateAuthentication();
     this.sendMessageToSidebar(status);
   }
