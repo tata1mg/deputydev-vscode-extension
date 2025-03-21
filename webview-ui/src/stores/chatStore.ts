@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
   apiChat,
+  apiStopChat,
   apiClearChat,
   apiSaveSession,
   cancelGenerateCode,
@@ -628,12 +629,13 @@ export const useChatStore = create(
         },
 
         cancelChat() {
+          apiStopChat();
           useChatStore.setState({showSkeleton: false})
           const { currentChatRequest } = get();
           currentChatRequest?.close();
           set({ currentChatRequest: undefined, isLoading: false });
           logToOutput("info", "User canceled the chat stream");
-        },      
+        },
       };
     }
   ),
