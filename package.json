@@ -5,11 +5,15 @@
   "version": "0.0.1",
   "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tata1mg/deputydev-vscode-extension"
+  },
   "activationEvents": [
     "onCommand:deputydev.editThisCode",
     "onCommand:deputydev.acceptChanges",
@@ -23,15 +27,15 @@
   "main": "./out/extension.js",
   "contributes": {
     "keybindings": [
-        {
-          "command": "deputydev.editThisCode",
-          "key": "cmd+i",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "deputydev.chatWithDeputy",
-          "key": "cmd+l",
-          "when": "editorHasSelection"
+      {
+        "command": "deputydev.editThisCode",
+        "key": "cmd+i",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "deputydev.chatWithDeputy",
+        "key": "cmd+l",
+        "when": "editorHasSelection"
       }
     ],
     "commands": [
@@ -100,19 +104,19 @@
         "icon": "$(check)"
       },
       {
-				"command": "deputydev.aiEdit",
-				"title": "Modify",
-				"enablement": "!commentIsEmpty"
-			}
+        "command": "deputydev.aiEdit",
+        "title": "Modify",
+        "enablement": "!commentIsEmpty"
+      }
     ],
     "menus": {
-			"comments/commentThread/context": [
-				{
-					"command": "deputydev.aiEdit",
-					"group": "inline@1",
-					"when": "commentController == DeputyDevAI"
-				}
-			],
+      "comments/commentThread/context": [
+        {
+          "command": "deputydev.aiEdit",
+          "group": "inline@1",
+          "when": "commentController == DeputyDevAI"
+        }
+      ],
       "view/title": [
         {
           "command": "deputydev.AddButtonClick",
@@ -174,21 +178,21 @@
         }
       ]
     },
-      "configuration": {
-        "title": "DeputyDev",
-        "properties": {
-          "deputydev.inlineDiff.enable": {
-            "type": "boolean",
-            "default": true,
-            "description": "Enable inline diff in the editor (preview), restart VS Code after changing."
-          },
-          "deputydev.outputChannelName": {
-            "type": "string",
-            "default": "DeputyDev",
-            "description": "Set the name of the output channel."
-          }
+    "configuration": {
+      "title": "DeputyDev",
+      "properties": {
+        "deputydev.inlineDiff.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable inline diff in the editor (preview), restart VS Code after changing."
+        },
+        "deputydev.outputChannelName": {
+          "type": "string",
+          "default": "DeputyDev",
+          "description": "Set the name of the output channel."
         }
       }
+    }
   },
   "scripts": {
     "build:all": "yarn vscode:prepublish && yarn build:ui",
@@ -197,7 +201,7 @@
     "build:ui": "yarn --cwd ./webview-ui run build",
     "watch:ui": "yarn --cwd ./webview-ui run watch",
     "vscode:prepublish": "yarn run compile",
-    "compile": "tsc -p ./",
+    "compile": "node esbuild.js",
     "watch:extension": "tsc -watch -p ./",
     "watch:all": "concurrently \"yarn watch:ui\" \"yarn watch:extension\"",
     "watch": "yarn watch:extension",
@@ -216,6 +220,7 @@
     "@typescript-eslint/eslint-plugin": "^8.21.0",
     "@typescript-eslint/parser": "^8.21.0",
     "concurrently": "^9.1.2",
+    "esbuild": "^0.25.1",
     "eslint": "^9.18.0",
     "event-source-polyfill": "^1.0.31",
     "glob": "^11.0.1",
