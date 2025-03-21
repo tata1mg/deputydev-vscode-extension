@@ -6,7 +6,7 @@ import {
   useChatStore,
   initialAutocompleteOptions,
 } from "../../stores/chatStore";
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, Turtle } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
@@ -67,6 +67,28 @@ export function ChatUI() {
     }, 2000); // 2 seconds delay
 
     return () => clearTimeout(timer); // Cleanup the timer on unmount
+  }, []);
+
+  useEffect(() => {
+    const handleCopy = () => {
+      let copiedText = "";
+
+      const activeElement = document.activeElement;
+
+      if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+          copiedText = activeElement.value.substring(
+              activeElement.selectionStart || 0,
+              activeElement.selectionEnd || 0
+          );
+      } else {
+          copiedText = window.getSelection()?.toString() || "";
+      }
+
+      logToOutput("info", `Copied: ${JSON.stringify(copiedText)}`);
+  };
+
+    document.addEventListener("copy", handleCopy);
+    return () => document.removeEventListener("copy", handleCopy);
   }, []);
 
   // Function to handle showing all sessions
@@ -172,7 +194,6 @@ export function ChatUI() {
         keyword: "",
         path: "",
         chunks: [],
-        commit_hash: "",
       };
       useChatStore.setState({
         currentEditorReference: [...editorRefs, newChatRefrenceItem],
@@ -205,7 +226,7 @@ export function ChatUI() {
       allChips[selectedChipIndex].chunks = option.chunks;
       allChips[selectedChipIndex].path = option.description;
       allChips[selectedChipIndex].type = option.icon;
-      allChips[selectedChipIndex].commit_hash = option.commit_hash;
+      allChips[selectedChipIndex].value = option.value;
       useChatStore.setState({ currentEditorReference: allChips });
       setShowAutocomplete(false);
     }

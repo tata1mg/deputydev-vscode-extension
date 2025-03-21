@@ -6,7 +6,6 @@ export type AutocompleteOption = {
   value: string;
   description: string;
   chunks: Chunk[];
-  commit_hash: string;
 };
 
 export type FileParts = {
@@ -36,7 +35,6 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
-  commit_hash?: string;
   value?: string;
   noEdit?: boolean;
 };
