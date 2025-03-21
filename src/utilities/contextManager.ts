@@ -18,9 +18,9 @@ export function setSidebarProvider(provider: SidebarProvider) {
   sidebarProvider = provider
 }
 
-export function getAuthToken(): string | undefined { 
-    return  extensionContext?.workspaceState.get<string>('authToken');
-}
+// export function getAuthToken(): string | undefined {
+//     return  extensionContext?.workspaceState.get<string>('authToken');
+// }
 
 
 export function getSessionId(): number | undefined {
@@ -58,7 +58,7 @@ export function getActiveRepo(): string | undefined {
 }
 
 export async function clearWorkspaceStorage() {
-  if (!extensionContext) 
+  if (!extensionContext)
    {
     console.log('extensionContext is not defined');
     return;

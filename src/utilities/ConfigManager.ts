@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { api } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
+import { AuthService } from '../services/auth/AuthService';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -39,7 +40,12 @@ export class ConfigManager {
    */
   public async fetchAndStoreConfig(): Promise<void> {
     try {
-      const response = await api.get(API_ENDPOINTS.CONFIG);
+      const authService = new AuthService();
+      const auth_token = await authService.loadAuthToken();
+      const headers = {
+        "Authorization": `Bearer ${auth_token}`
+      }
+      const response = await api.get(API_ENDPOINTS.CONFIG, { headers });
       if (response.data && response.data.is_success) {
         this.configData = response.data.data;
         await this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
