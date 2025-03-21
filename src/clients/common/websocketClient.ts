@@ -10,9 +10,15 @@ export class WebSocketClient {
     private timeout: NodeJS.Timeout | null = null;
     private timeoutDuration: number = 1800000; // 30 minutes timeout
 
-    constructor(baseUrl: string, endpoint: string) {
+    constructor(baseUrl: string, endpoint: string, authToken: string) {
         this.url = `${baseUrl}${endpoint}`;
-        this.socket = new WebSocket(this.url);
+        this.socket = new WebSocket(this.url, {
+            headers: {
+                "Authorization": `Bearer ${authToken}`,
+                "X-Client": "VSCODE_EXT",
+                "X-Client-Version": "0.0.1"
+            }
+        });
 
         // Create a promise that will be resolved when we get a response
         this.responsePromise = new Promise((resolve, reject) => {

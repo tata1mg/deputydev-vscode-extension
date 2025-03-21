@@ -33,7 +33,6 @@ export class AuthService {
     public async storeAuthToken(authToken: string): Promise<any> {
         const headers = {
             "Authorization": `Bearer ${authToken}`,
-            "Type": "extension"
         }
         try {
             const response = await binaryApi.post(API_ENDPOINTS.STORE_AUTH_TOKEN, {}, { headers });
@@ -49,11 +48,8 @@ export class AuthService {
     }
 
     public async loadAuthToken() {
-        const headers = {
-            "Type": "extension"
-        }
         try {
-            const response = await binaryApi.get(API_ENDPOINTS.LOAD_AUTH_TOKEN, { headers });
+            const response = await binaryApi.get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
             if (response.data.message === "success" && response.data.auth_token) {
                 return response.data.auth_token;
             } else {
