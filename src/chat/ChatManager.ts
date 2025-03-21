@@ -251,7 +251,8 @@ export class ChatManager {
         finalResult.push({
           "type": element.type,
           "value": element.value,
-          "chunks": finalChunkInfos || []
+          "chunks": finalChunkInfos || [],
+          "path": element.path
         });
       });
 
