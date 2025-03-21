@@ -49,7 +49,7 @@ export class ConfigManager {
       const headers = {
         "Authorization": `Bearer ${auth_token}`
       }
-      const response = await api.get(API_ENDPOINTS.CONFIG, { headers });
+      const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: "VSCODE_EXT"}, headers });
       if (response.data && response.data.is_success) {
         refreshCurrentToken(response.headers)
         this.configData = response.data.data;
