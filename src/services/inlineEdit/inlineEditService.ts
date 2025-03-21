@@ -1,13 +1,20 @@
 import { api } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
+import { AuthService } from "../auth/AuthService";
+
+const fetchAuthToken = async () => {
+    const authService = new AuthService();
+    const authToken = await authService.loadAuthToken();
+    return authToken;
+};
 
 export class InlineEditService {
     public async generateInlineEdit(payload: any): Promise<any> {
-        const headers = {
-            'X-Client': 'VSCODE_EXT',
-            'X-Client-Version': '0.0.1'
-        }
         try {
+            const authToken = await fetchAuthToken();
+            const headers = {
+                "Authorization": `Bearer ${authToken}`
+            }
             const response = await api.post(API_ENDPOINTS.GENERATE_INLINE_EDIT, payload, { headers });
             return response.data.data;
         } catch (error) {
@@ -18,9 +25,9 @@ export class InlineEditService {
 
     public async getInlineDiffResult(job_id: number): Promise<any> {
         try {
+            const authToken = await fetchAuthToken();
             const headers = {
-                'X-Client': 'VSCODE_EXT',
-                'X-Client-Version': '0.0.1'
+                "Authorization": `Bearer ${authToken}`
             }
             const response = await api.get(API_ENDPOINTS.GET_INLINE_EDIT_RESULT, {
                 headers,
