@@ -16,6 +16,8 @@ import { HistoryService } from "../services/history/HistoryService";
 import { forEach, result } from "lodash";
 import { FocusChunksService } from "../services/focusChunks/focusChunksService";
 import { AuthService } from "../services/auth/AuthService";
+import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
+
 
 export type Chunk = {
   start_line: number;
@@ -75,6 +77,8 @@ export class ChatManager {
   private historyService = new HistoryService();
   private focusChunksService = new FocusChunksService();
   private authService = new AuthService();
+  private currentAbortController: AbortController | null = null; // ✅ Fix: Add this property
+
 
   onStarted: () => void = () => { };
   onError: (error: Error) => void = () => { };
@@ -276,6 +280,10 @@ export class ChatManager {
     chunkCallback: (data: { name: string; data: unknown }) => void
   ) {
     const payload_copy = structuredClone(payload);
+    const abortController = new AbortController();
+    this.currentAbortController = abortController;
+
+    let task: { abortController: AbortController; asyncIterator: AsyncIterableIterator<any> } | undefined;
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
       // if (payload.referenceList?.length) {
@@ -364,12 +372,20 @@ export class ChatManager {
         payload.previous_query_ids = relevantHistoryQueryIds;
       }
 
-      const querySolverIterator =
-        await this.querySolverService.querySolver(payload);
+      const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
+      task = { abortController, asyncIterator: querySolverIterator };
+      registerApiChatTask(task);
+  
+    
       let currentToolRequest: any = null;
       let currentDiffRequest: any = null;
 
       for await (const event of querySolverIterator) {
+        if (abortController.signal.aborted) {
+          console.info('apiChat aborted, exiting event loop.');
+          break;
+        }
+  
         switch (event.type) {
           case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
@@ -845,6 +861,17 @@ export class ChatManager {
   async apiClearChat() {
     // Implementation for clearing chat on the backend.
   }
+
+  async stopChat() {
+    if (this.currentAbortController) {
+      console.info('Stopping chat request...');
+      this.currentAbortController.abort(); // ✅ Immediately cancels API request
+      this.currentAbortController = null; // Reset to allow new requests
+    } else {
+      console.warn('No active chat request to stop.');
+    }
+  }
+  
 
   async apiSaveSession() {
     // Implementation for saving the chat session.

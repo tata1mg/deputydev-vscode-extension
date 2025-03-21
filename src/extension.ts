@@ -201,6 +201,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // add button click
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
+      chatService.stopChat(),
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
       deleteSessionId();
