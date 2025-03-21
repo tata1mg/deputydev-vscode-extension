@@ -29,6 +29,20 @@ export default function ReferenceChip({
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getChunkDetail = (chunks: Chunk[]) => {
+    let start_line:number = chunks[0].start_line;
+    let end_line:number = chunks[0].end_line;
+    for (let i = 1; i < chunks.length; i++) {
+      if (chunks[i].start_line < start_line) {
+        start_line = chunks[i].start_line;
+      }
+      if (chunks[i].end_line > end_line) {
+        end_line = chunks[i].end_line;
+      }
+    }
+    return `${start_line}-${end_line}`;
+  }
   
   useEffect(() => {
     if (text.split(": ")[1] === "") {
@@ -130,7 +144,7 @@ export default function ReferenceChip({
       ) : (
         <span onClick={handleEdit} className="flex items-center gap-1 group">
           {chunks.length
-            ? `@${text}:${chunks[0].start_line}-${chunks[0].end_line}`
+            ? `@${text}:${getChunkDetail(chunks)}`
             : "@" + text}
           {!displayOnly && (
             <Pencil
