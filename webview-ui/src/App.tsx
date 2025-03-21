@@ -1,35 +1,68 @@
 import './App.css';
 import { useEffect, useState } from 'react';
-// import { vscode } from './utilities/vscode';
+import { sendWebviewFocusState, initiateBinary } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
-import Welcome from './views/welcome';
+import Loader from './views/loader';
 import History from './views/history';
+import Auth from './views/auth';
+import { useAuthStore } from './stores/authStore';
 
 function App() {
   const extensionState = useExtensionStore();
-  // call getGlobalState to get the global state
-  
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const setIsAuthenticated = useAuthStore((state) => state.setAuthenticated);
+
   let view;
 
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      const response = event.data || {};
+
+      if (response === "AUTHENTICATED") {
+        // call binary init command api
+        setIsAuthenticated(true);
+        initiateBinary();
+        extensionState.setViewType("chat")
+      }
+    }
+
+    function handleFocus() {
+      sendWebviewFocusState(true);
+    }
+
+
+    window.addEventListener('message', handleMessage); // Listen for messages
+    window.addEventListener('focus', handleFocus);
+
+
+    return () => window.removeEventListener('message', handleMessage);
+  }, [])
+
   switch (extensionState.viewType) {
+    case 'auth':
+      view = <Auth />
+      break;
     case 'chat':
-      view = <Chat />;
+      // TODO: Bypassing auth for development
+      view =  <Chat />;
+      // view = isAuthenticated ? <Chat /> : <Auth />; 
       break;
     case 'setting':
-      view = <Setting />;
+      // view = isAuthenticated ? <Setting /> : <Auth />;  
+      view = <Setting />;  
       break;
-    case 'welcome':
-      view = <Welcome />;
+    case 'loader':
+      view =  <Loader />;
       break;
     case 'history':
-      view = <History />;
+      view = isAuthenticated ? <History /> : <Auth />;
       break;
     default:
       view = null;
   }
-// use background color tailwind white
+  // use background color tailwind white
 
   return <> <div className=' '>  {view}</div></>;
 }

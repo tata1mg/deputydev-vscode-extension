@@ -1,7 +1,34 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@layer base {
+@keyframes gradient {
+  0% {
+      background-position: 0% 50%;
+  }
+  50% {
+      background-position: 100% 50%;
+  }
+  100% {
+      background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
+}
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 2s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+      opacity: 1;
+  }
+}
+/* @layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
@@ -65,10 +92,76 @@
   body {
     @apply  text-foreground;
     padding: 5px 10px;
-    height: 100vh; 
+    height: 100vh;
     display: flex;
     flex-direction: column;
     /* align-items:end; */
     /* might have to remove height */
-  }
+  /* }
+} */
+
+
+
+html {
+  height: 100%;
+}
+
+body {
+  padding: 0;
+  box-sizing: border-box;
+  color: var(--vscode-foreground);
+  font-size: var(--vscode-font-size);
+  font-weight: var(--vscode-font-weight);
+  font-family: var(--vscode-font-family);
+  background-color: var(--deputydev-chat-background);
+  height: 100%;
+  width: 100%;
+}
+
+/******************** Panel Layout Styles ********************/
+.react-app-container {
+  width: 100%;
+  height: 100%;
+}
+
+/******************** VS Code Theme Setup ********************/
+:root {
+  --deputydev-chat-background: var(--vscode-sideBar-background);
+  --deputydev-editor-background: var(--vscode-editor-background);
+  --deputydev-editor-color: var(--vscode-editor-foreground);
+  --deputydev-text-color: var(--vscode-foreground);
+  --deputydev-link-color: var(--vscode-textLink-foreground);
+  --deputydev-link-hover-color: var(--vscode-textLink-activeForeground);
+  --deputydev-caption-color: rgb(180, 180, 180);
+  --deputydev-message-block-user-background: var(
+    --vscode-list-activeSelectionBackground
+  );
+  --deputydev-message-block-user-color: var(
+    --vscode-list-activeSelectionForeground
+  );
+  --deputydev-message-block-bot-background: var(
+    --vscode-list-inactiveSelectionBackground
+  );
+  --deputydev-message-block-bot-color: var(--vscode-foreground);
+  --deputydev-input-color: var(--vscode-input-foreground);
+  --deputydev-input-placeholder: var(--vscode-input-placeholderForeground);
+  --deputydev-input-background: var(--vscode-input-background);
+  --deputydev-tooltip-background: var(--vscode-list-inactiveSelectionBackground);
+  --deputydev-tooltip-color: var(--vscode-foreground);
+  --deputydev-active-selection-background: var(
+    --vscode-list-activeSelectionBackground
+  );
+  --deputydev-active-selection-color: var(
+    --vscode-list-activeSelectionForeground
+  );
+  --deputydev-badge-background: var(--vscode-badge-background);
+  --deputydev-badge-color: var(--vscode-badge-foreground);
+  --deputydev-editor-line-number-color: var(
+    --vscode-editorLineNumber-activeForeground
+  );
+  --deputydev-sidebar-title-color: var(--vscode-sideBarTitle-foreground);
+  --deputydev-icon-color: var(--vscode-icon-foreground);
+  --deputydev-disabled-color: var(--vscode-disabledForeground);
+  /* --border: 0 0% 89.8%; */
+  /* --radius: 0.5rem */
 }

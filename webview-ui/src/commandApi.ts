@@ -1,6 +1,4 @@
-// // from aider composer, will need same/similar commands in our extension
 
-import { ChatReferenceFileItem } from './types';
 import { callCommand } from './vscode';
 
 // export function webviewReady() {
@@ -13,7 +11,7 @@ import { callCommand } from './vscode';
 //   >;
 // }
 
-export function writeFile(params: { path: string; content: string }) {
+export function writeFile(params: { filePath : string; raw_diff: string }) {
   return callCommand('write-file', params);
 }
 
@@ -37,6 +35,18 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
+export function apiStopChat() {
+  return callCommand('api-stop-chat', null);
+}
+
+export function keywordSearch(payload: unknown) {
+  return callCommand('keyword-search', payload);
+}
+
+export function keywordTypeSearch(payload: unknown) {
+  return callCommand('keyword-type-search', payload);
+}
+
 // accept/reject file
 
 /**
@@ -51,6 +61,10 @@ export function acceptFile(path: string) {
  */
 export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
+}
+
+export function openFile(path: string) {
+  return callCommand('open-file', { path });
 }
 
 // generate code
@@ -118,4 +132,32 @@ export function getSecretState(data: { key: string }) {
 
 export function deleteSecretState(data: { key: string }) {
   return callCommand('delete-secret-state', data);
+}
+
+export function initiateLogin() {
+  return callCommand('initiate-login', {})
+}
+
+export function initiateBinary() {
+  return callCommand('initiate-binary', {})
+}
+
+export function sendWebviewFocusState(isFocused: boolean) {
+  return callCommand('webview-focus-state', { focused: isFocused });
+}
+
+export function getSessions(limit: number, offset: number) {
+  return callCommand('get-sessions', {limit, offset});
+}
+
+export function getSessionChats(sessionId: number) {
+  return callCommand('get-session-chats', {sessionId});
+}
+
+export function deleteSession(sessionId: number) {
+  return callCommand('delete-session', {sessionId})
+}
+
+export function sendWorkspaceRepoChange(data : {repoPath: string}) {
+  return callCommand('workspace-repo-change', data)
 }

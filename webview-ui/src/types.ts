@@ -1,54 +1,167 @@
-export type ChatReferenceFileItem = {
-  // this is just fsPath
-  id: string;
-  type: 'file';
-  fsPath: string;
-  path: string;
-  name: string;
+export type ViewType = "chat" | "setting" | "loader" | "history" | "auth";
+
+export type AutocompleteOption = {
+  icon: string;
+  label: string;
+  value: string;
+  description: string;
+  chunks: Chunk[];
 };
 
-export type ChatReferenceSnippetItem = {
-  id: string;
-  type: 'snippet';
-  name: string;
-  content: string;
-  language?: string;
-  path: string;
+export type FileParts = {
+  start_line: number;
+  end_line: number;
 };
 
-export type ChatReferenceItem =
-  | ChatReferenceFileItem
-  | ChatReferenceSnippetItem;
+export type SearchResponseItem = {
+  type: string;
+  value: string;
+  path: string;
+  chunks: FileParts[];
+};
 
-export interface ChatUserMessage {
-  id: string;
-  type: 'user';
-  text: string;
-  displayText: string;
+export type Chunk = {
+  start_line: number;
+  end_line: number;
+  chunk_hash: string;
+  file_hash: string;
+  file_path: string;
+  meta_info?: any;
+};
+
+export type ChatReferenceItem = {
+  index: number;
+  type: "file" | "directory" | "function" | "keyword" | string;
+  keyword: string;
+  path: string;
+  chunks: Chunk[];
+  value?: string;
+  noEdit?: boolean;
+};
+
+export type ChatType = "ask" | "write";
+
+export type ChatChunkMessage = {
+  chunk: string;
+  error: string;
+};
+
+export type ChatMessage =
+  | ChatUserMessage
+  | ChatAssistantMessage
+  | ChatToolUseMessage
+  | ChatThinkingMessage
+  | ChatCodeBlockMessage
+  | ChatErrorMessage;
+
+export type ChatUserMessage = {
+  type: "TEXT_BLOCK";
+  content: {
+    text: string;
+    focus_items?: ChatReferenceItem[];
+  };
   referenceList: ChatReferenceItem[];
-  reflected?: boolean;
-}
+  actor: "USER";
+};
 
 export interface ChatAssistantMessage {
-  id: string;
-  type: 'assistant';
-  text: string;
+  type: "TEXT_BLOCK";
+  content: {
+    text: string;
+  };
   usage?: string;
+  actor: "ASSISTANT";
 }
 
-export type ChatMessage = ChatAssistantMessage | ChatUserMessage;
+export interface ChatToolUseMessage {
+  type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
+  content: {
+    tool_name: string;
+    tool_use_id: string;
+    input_params_json: { prompt: string } | string;
+    tool_input_json?: { prompt: string };
+    result_json: string;
+    status: "pending" | "completed" | "error";
+  };
+}
 
-export type SerializedChatUserMessageChunk =
-  | string
-  | { type: 'mention'; reference: ChatReferenceItem };
+export interface ChatThinkingMessage {
+  type: "THINKING";
+  text: string;
+  completed: boolean;
+  actor?: "ASSISTANT";
+}
 
+export interface ChatCodeBlockMessage {
+  type: "CODE_BLOCK";
+  content: {
+    language: string;
+    file_path?: string;
+    code: string;
+    is_diff?: boolean;
+    diff?: string | null;
+    added_lines?: number | null;
+    removed_lines?: number | null;
+  };
+  completed: boolean;
+  actor: "ASSISTANT";
+  write_mode: boolean;
+  status : "pending" | "completed" | "error";
 
+}
 
-export type DiffViewChange = {
-  type: 'add' | 'accept' | 'reject';
-  path: string;
-  name: string;
-  fsPath: string;
+export interface ChatErrorMessage {
+  type: "ERROR";
+  retry: boolean;
+  payload_to_retry: unknown;
+  error_msg: string;
+  actor: "ASSISTANT";
+}
+
+export interface ChatSessionHistory {
+  id: string;
+  title: string;
+  time: number;
+  data: ChatMessage[];
+}
+
+export interface Session {
+  id: number;
+  summary: string;
+  age: string;
+}
+
+export interface SessionChatContent {
+  text: string;
+  language: string;
+  code: string;
+  filePath: string;
+  toolName: string;
+  toolUseId: string;
+  inputParamsJson: JSON;
+  resultJson: JSON;
+  user: string; // TODO: need to change this
+}
+
+export interface sessionChats {
+  type: string;
+  actor: string;
+  content: SessionChatContent;
+}
+
+export type ChatAutocompleteOptions = AutocompleteOption[];
+
+export type WorkspaceRepo = {
+  repoPath: string;
+  repoName: string;
 };
 
-export type ChatType = 'ask' | 'code';
+export interface WorkspaceStore {
+  workspaceRepos: WorkspaceRepo[];
+  activeRepo: string | null;
+  setWorkspaceRepos: (
+    repos: WorkspaceRepo[],
+    activeRepo: string | null
+  ) => void;
+  setActiveRepo: (repoPath: string) => void;
+}

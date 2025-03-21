@@ -1,1 +1,33 @@
-{"root":["./src/extension.ts","./src/panels/codeeditormenu.ts","./src/panels/inlineoptions.ts","./src/panels/sidebarprovider.ts","./src/utilities/get-nonce.ts","./src/utilities/geturi.ts","./src/utilities/require-config.ts"],"version":"5.7.3"}
+{
+    "root": [
+        "./src/extension.ts",
+        "./src/auth/authenticationmanager.ts",
+        "./src/chat/chatmanager.ts",
+        "./src/clients/browserclient.ts",
+        "./src/diff/diffcontentprovider.ts",
+        "./src/diff/diffmanager.ts",
+        "./src/diff/inlinediffmanager.ts",
+        "./src/diff/sidediffmanager.ts",
+        "./src/embedding/filewatcher.ts",
+        "./src/embedding/webviewfocuslistener.ts",
+        "./src/embedding/workspacemanager copy.ts",
+        "./src/embedding/workspacemanager.ts",
+        "./src/panels/codeeditormenu.ts",
+        "./src/panels/sidebarprovider.ts",
+        "./src/services/api/axios.ts",
+        "./src/services/api/endpoints.ts",
+        "./src/services/auth/authservice.ts",
+        "./src/services/chat/chatservice.ts",
+        "./src/services/websockets/websocketclient copy.ts",
+        "./src/services/websockets/websocketclient.ts",
+        "./src/services/websockets/websockethandlers copy.ts",
+        "./src/services/websockets/websockethandlers.ts",
+        "./src/utilities/configmanager.ts",
+        "./src/utilities/contextmanager.ts",
+        "./src/utilities/disposables.ts",
+        "./src/utilities/get-nonce.ts",
+        "./src/utilities/geturi.ts",
+        "./src/utilities/require-config.ts"
+    ],
+    "version": "5.7.3"
+}

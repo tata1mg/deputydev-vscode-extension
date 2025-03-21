@@ -1,23 +1,44 @@
+// file: webview-ui/src/stores/extensionStore.ts
 import { create } from 'zustand';
-import { combine } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { ViewType } from '@/types';
+import { useAuthStore } from './authStore';
+import { persistStorage } from './lib'; // Ensure this utility is properly implemented
 
-export type ViewType = 'chat' | 'setting' | 'welcome' | 'history';
+interface ExtensionState {
+  isStarted: boolean;
+  viewType: ViewType;
+  setViewType: (viewType: ViewType) => void;
+  initializeViewType: () => void;
+}
 
-const useExtensionStore = create(
-  combine(
-    {
+export const useExtensionStore = create<ExtensionState>()(
+  persist(
+    (set, get) => ({
       isStarted: false,
-      viewType: 'chat' as ViewType, // changed welcome to chat  as default
-      serverUrl:
-        import.meta.env.NODE_ENV === 'development'
-          ? 'http://localhost:5000'
-          : '',
-      errorMessage: '',
-    },
-    (set) => ({
+      viewType: 'loader',
       setViewType: (viewType: ViewType) => set({ viewType }),
+      initializeViewType: () => {
+        const { isAuthenticated } = useAuthStore.getState();
+        const savedViewType = get().viewType;
+        console.log('current view type', savedViewType);
+        if (isAuthenticated) {
+          set({ viewType: savedViewType });
+        }
+      },
     }),
-  ),
+    {
+      name: 'view-state-storage',
+      storage: persistStorage,
+    }
+  )
 );
+
+// Ensure viewType initializes correctly on load
+setTimeout(() => {
+  const { isAuthenticated } = useAuthStore.getState();
+  console.log('isAuthenticated state at extension store', isAuthenticated);
+  useExtensionStore.getState().initializeViewType();
+}, 600);
 
 export default useExtensionStore;
