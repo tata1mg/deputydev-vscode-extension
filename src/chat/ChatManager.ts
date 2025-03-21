@@ -594,6 +594,35 @@ export class ChatManager {
     }
   }
 
+  async fetchFilePathSearcherResult(
+    repo_path: string,
+    directory: string,
+    search_terms?: string[],
+  ): Promise<any> {
+    try {
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        "Authorization": `Bearer ${authToken}`
+      }
+      const response = await binaryApi.post(API_ENDPOINTS.FILE_PATH_SEARCH, {
+        repo_path: repo_path,
+        directory: directory,
+        search_terms: search_terms,
+      }, { headers });
+      return response.status === 200 ? response.data : "failed";
+    } catch (error) {
+      console.error(
+        "Error while fetching focused snippets searcher results:",
+        error
+      );
+      this.outputChannel.error(
+        "Error while fetching focused snippets searcher results:",
+        error
+      );
+      throw error;
+    }
+  }
+
   async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
     this.outputChannel.info(
       `Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`
@@ -746,6 +775,65 @@ export class ChatManager {
         );
 
         return JSON.stringify({ completed: false });
+
+      case "file_path_searcher": {
+        this.outputChannel.info(
+          "The tool use request:",
+          JSON.stringify(toolRequest)
+        );
+        active_repo = this.context.workspaceState.get<string>("activeRepo");
+        if (!active_repo) {
+          throw new Error("Active repository is not defined.");
+        }
+
+        // Parse accumulatedContent to extract the search_terms and directory
+        parsedContent = JSON.parse(toolRequest.accumulatedContent);
+        this.outputChannel.info(
+          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
+        );
+        const search_terms = parsedContent.search_terms || null;
+        const directory = parsedContent.directory;
+
+        this.outputChannel.info(
+          "Running file_path_searcher tool with query"
+        );
+
+        const response = await this.fetchFilePathSearcherResult(
+          active_repo,
+          directory,
+          search_terms,
+        );
+        this.outputChannel.info(
+          `File path searcher result: ${JSON.stringify(response)}`
+        );
+        if (response) {
+          const payloadData = {
+            message_id: message_id,
+            write_mode: toolRequest.write_mode,
+            tool_use_response: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              response: {
+                file_path_search: response,
+              },
+            },
+          };
+
+          chunkCallback({
+            name: "TOOL_USE_RESULT",
+            data: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              result_json: response,
+              status: "completed",
+            },
+          });
+          await this.apiChat(payloadData, chunkCallback);
+          return JSON.stringify({ completed: true });
+        }
+
+        return JSON.stringify({ completed: false });
+      }
 
       default:
         this.outputChannel.warn(`Unknown tool: ${toolRequest.tool_name}`);

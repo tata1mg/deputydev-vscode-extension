@@ -18,5 +18,6 @@ export const API_ENDPOINTS = {
     INIT_BINARY: "/v1/init",
     FOCUS_CHUNKS: "/v1/get-focus-chunks",
     CONFIG: "/end_user/v1/configs/get-configs",
-    CONFIG_ESSENTIALS: "/end_user/v1/configs/get-essential-configs"
+    CONFIG_ESSENTIALS: "/end_user/v1/configs/get-essential-configs",
+    FILE_PATH_SEARCH: "/v1/get-files-in-dir",
 }
