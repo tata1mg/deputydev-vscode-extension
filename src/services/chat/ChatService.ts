@@ -3,7 +3,9 @@ import { createParser, type EventSourceMessage } from 'eventsource-parser';
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
 import {api} from '../api/axios';
-import {getAuthToken,getSessionId} from "../../utilities/contextManager";
+import {getSessionId} from "../../utilities/contextManager";
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
+import { AuthService } from '../auth/AuthService';
 
 
 interface SSEEvent {
@@ -15,8 +17,12 @@ interface SSEEvent {
 export class QuerySolverService {
   public async *querySolver(payload: unknown): AsyncIterableIterator<SSEEvent> {
     // Dynamically retrieve the current session ID for each call
+    const authService = new AuthService();
+    const authToken = await authService.loadAuthToken();
+    if (!authToken) {
+      throw new Error("Missing auth token. Ensure user is logged in.");
+    }
     const currentSessionId = getSessionId();
-    const authToken = getAuthToken();
     let response;
     try {
       response = await api({
@@ -26,7 +32,8 @@ export class QuerySolverService {
           'Content-Type': 'application/json',
           'X-REQUEST-ID': uuidv4(),
           'Accept': 'text/event-stream',
-          'X-Session-Id': currentSessionId
+          'X-Session-Id': currentSessionId,
+          'Authorization': 'Bearer ' + authToken
         },
         data: payload,
         responseType: 'stream'
@@ -35,7 +42,7 @@ export class QuerySolverService {
       console.error('Error in querySolver API call:', error);
       throw error;
     }
-
+    refreshCurrentToken(response.headers)
     const stream = response.data;
     let streamDone = false;
     let streamError: Error | null = null;
