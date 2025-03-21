@@ -64,7 +64,6 @@ export const updateVectorStore = async (
   waitForResponse: boolean = false
 ): Promise<any> => {
   const authToken = await fetchAuthToken();
-  console.log("getting auth token inside....", authToken)
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store.");
   }

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { api } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { AuthService } from '../services/auth/AuthService';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -47,6 +48,7 @@ export class ConfigManager {
       }
       const response = await api.get(API_ENDPOINTS.CONFIG, { headers });
       if (response.data && response.data.is_success) {
+        refreshCurrentToken(response.headers)
         this.configData = response.data.data;
         await this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
         this.outputChannel.info("CONFIG successfully stored.");
