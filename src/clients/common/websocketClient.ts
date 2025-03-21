@@ -1,8 +1,6 @@
 import { WebSocket, RawData } from 'ws';
 import { sendProgress } from '../../utilities/contextManager';
 
-const BASE_URL = "ws://localhost:8001";
-
 export class WebSocketClient {
     private socket: WebSocket;
     private url: string;
@@ -123,4 +121,3 @@ export class WebSocketClient {
     }
 }
 
-export { BASE_URL };

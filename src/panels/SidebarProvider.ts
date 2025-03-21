@@ -17,6 +17,7 @@ import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
+import { DD_HOST } from "../config";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -228,7 +229,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // For Binary init
   private async initiateBinary(data: any) {
     const active_repo = getActiveRepo();
+    //  measure time tken for auth token
+    // start
+    const start = new Date().getTime();
     const auth_token = await this.authService.loadAuthToken();
+    const end = new Date().getTime();
+    const time = end - start;
+    this.outputChannel.info(`Time taken to load auth token: ${time}ms`);
     this.context.workspaceState.update("authToken", auth_token);
     const essential_config = this.configManager.getConfigEssentials();
     this.outputChannel.info(`Essential config: ${JSON.stringify(essential_config)}`);
@@ -239,13 +246,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const payload = {
       config: {
         DEPUTY_DEV: {
-          // HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"],
-          // TIMEOUT: essential_config["HOST_AND_TIMEOUT"]["TIMEOUT"],
-          HOST: "http://localhost:8084",
-          TIMEOUT: 20,
-          LIMIT: 0,
-          LIMIT_PER_HOST: 0,
-          TTL_DNS_CACHE: 10,
+          HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"] ? essential_config["HOST_AND_TIMEOUT"]["HOST"] : DD_HOST ,
         },
       },
     };

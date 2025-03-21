@@ -4,7 +4,6 @@ import * as vscode from 'vscode';
 import { DiffViewManager } from './diff/DiffManager';
 import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff manager
 import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager
-import { registerCodeEditorMenuCommand } from './panels/CodeEditorMenu';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
@@ -57,6 +56,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   })
 
+   
+
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
     .getConfiguration('deputydev')
@@ -102,8 +103,6 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
 
-  //  * 5) Example: Register a code editor context command  (might remove it)
-  registerCodeEditorMenuCommand(context, sidebarProvider);
 
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
