@@ -3,24 +3,41 @@
   "displayName": "DeputyDev",
   "description": "DeputyDev",
   "version": "0.0.1",
+  "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.46.0"
+    "vscode": "^1.96.0"
   },
   "categories": [
     "Other"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tata1mg/deputydev-vscode-extension"
+  },
   "activationEvents": [
     "onCommand:deputydev.editThisCode",
     "onCommand:deputydev.acceptChanges",
     "onCommand:deputydev.rejectChanges",
-    "onCommand:deputydev.acceptAllChanges",
-    "onCommand:deputydev.rejectAllChanges",
+    "onCommand:deputydev.AcceptAllChanges",
+    "onCommand:deputydev.RejectAllChanges",
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
     "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "keybindings": [
+      {
+        "command": "deputydev.editThisCode",
+        "key": "cmd+i",
+        "when": "editorHasSelection"
+      },
+      {
+        "command": "deputydev.chatWithDeputy",
+        "key": "cmd+l",
+        "when": "editorHasSelection"
+      }
+    ],
     "commands": [
       {
         "command": "deputydev.editThisCode",
@@ -48,13 +65,13 @@
         "title": "Reject Changes"
       },
       {
-        "command": "deputydev.acceptAllChanges",
+        "command": "deputydev.AcceptAllChanges",
         "category": "DeputyDev",
         "title": "Accept All Changes",
         "icon": "$(check-all)"
       },
       {
-        "command": "deputydev.rejectAllChanges",
+        "command": "deputydev.RejectAllChanges",
         "category": "DeputyDev",
         "title": "Reject All Changes",
         "icon": "$(close-all)"
@@ -77,17 +94,29 @@
         "icon": "$(settings-gear)"
       },
       {
-        "command": "deputydev.HistoryButtonClick",
-        "title": "History",
-        "icon": "$(history)"
-      },
-      {
         "command": "deputydev.AddButtonClick",
         "title": "New",
         "icon": "$(add)"
+      },
+      {
+        "command": "deputydev.ConfirmModify",
+        "title": "Confirm Modify",
+        "icon": "$(check)"
+      },
+      {
+        "command": "deputydev.aiEdit",
+        "title": "Modify",
+        "enablement": "!commentIsEmpty"
       }
     ],
     "menus": {
+      "comments/commentThread/context": [
+        {
+          "command": "deputydev.aiEdit",
+          "group": "inline@1",
+          "when": "commentController == DeputyDevAI"
+        }
+      ],
       "view/title": [
         {
           "command": "deputydev.AddButtonClick",
@@ -95,14 +124,9 @@
           "group": "navigation@1"
         },
         {
-          "command": "deputydev.HistoryButtonClick",
-          "when": "view == deputydev-sidebar",
-          "group": "navigation@2"
-        },
-        {
           "command": "deputydev.SettingButtonClick",
           "when": "view == deputydev-sidebar",
-          "group": "navigation@3"
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
@@ -119,24 +143,19 @@
       ],
       "editor/title": [
         {
-          "command": "deputydev.acceptChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@1"
+          "command": "deputydev.ConfirmModify",
+          "group": "navigation@1",
+          "when": "isInDiffEditor && resourceScheme == 'deputydev'"
         },
         {
-          "command": "deputydev.rejectChanges",
+          "command": "deputydev.AcceptAllChanges",
           "when": "deputydev.hasChanges",
           "group": "navigation@2"
         },
         {
-          "command": "deputydev.acceptAllChanges",
+          "command": "deputydev.RejectAllChanges",
           "when": "deputydev.hasChanges",
           "group": "navigation@3"
-        },
-        {
-          "command": "deputydev.rejectAllChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@4"
         }
       ]
     },
@@ -160,23 +179,29 @@
       ]
     },
     "configuration": {
-      "title": "Deputydev",
+      "title": "DeputyDev",
       "properties": {
         "deputydev.inlineDiff.enable": {
           "type": "boolean",
           "default": true,
-          "description": "Enable inline diff in the editor(preview), restart vscode after changing"
+          "description": "Enable inline diff in the editor (preview), restart VS Code after changing."
+        },
+        "deputydev.outputChannelName": {
+          "type": "string",
+          "default": "DeputyDev",
+          "description": "Set the name of the output channel."
         }
       }
     }
   },
   "scripts": {
+    "build:all": "yarn vscode:prepublish && yarn build:ui",
     "install:all": "yarn install && yarn --cwd ./webview-ui install",
     "start:ui": "yarn --cwd ./webview-ui run start",
     "build:ui": "yarn --cwd ./webview-ui run build",
     "watch:ui": "yarn --cwd ./webview-ui run watch",
     "vscode:prepublish": "yarn run compile",
-    "compile": "tsc -p ./",
+    "compile": "node esbuild.js",
     "watch:extension": "tsc -watch -p ./",
     "watch:all": "concurrently \"yarn watch:ui\" \"yarn watch:extension\"",
     "watch": "yarn watch:extension",
@@ -184,25 +209,39 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@types/diff": "^7.0.1",
+    "@types/event-source-polyfill": "^1.0.5",
     "@types/glob": "^8.1.0",
+    "@types/lodash": "^4.17.16",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.7",
     "@types/vscode": "^1.96.0",
+    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^8.21.0",
     "@typescript-eslint/parser": "^8.21.0",
     "concurrently": "^9.1.2",
+    "esbuild": "^0.25.1",
     "eslint": "^9.18.0",
+    "event-source-polyfill": "^1.0.31",
     "glob": "^11.0.1",
     "prettier": "^3.4.2",
     "typescript": "^5.7.3",
     "vscode-test": "^1.6.1"
   },
   "dependencies": {
-    "@types/diff": "^7.0.0",
+    "axios": "^1.7.9",
+    "deepmerge": "^4.3.1",
     "diff": "^7.0.0",
+    "eventsource-parser": "^3.0.0",
     "fuse.js": "^7.1.0",
     "globby": "11",
+    "lodash": "^4.17.21",
+    "markdown-it": "^14.1.0",
     "nanoid": "3",
     "path": "^0.12.7",
-    "ts-import": "4.0.0-beta.6"
+    "sse.js": "^2.6.0",
+    "ts-import": "4.0.0-beta.6",
+    "uuid": "^11.0.5",
+    "ws": "^8.18.1"
   }
 }

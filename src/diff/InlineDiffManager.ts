@@ -204,7 +204,6 @@ export class InlineDiffViewManager
         }),
       );
     }
-    this.outputChannel.debug('codelenses for this file', codeLenses);
     return codeLenses;
   }
 
@@ -268,8 +267,7 @@ export class InlineDiffViewManager
       }
     }
 
-    this.outputChannel.debug('deletions', deletions);
-    this.outputChannel.debug('insertions', insertions);
+
     // Apply to editor
     editor.setDecorations(this.deletionDecorationType, deletions);
     editor.setDecorations(this.insertionDecorationType, insertions);
