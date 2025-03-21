@@ -35,7 +35,7 @@ export class ReferenceManager {
         sendMessage({
             id: uuidv4(),
             command: 'keyword-search-response',
-            data: response.response
+            data: response.data
         });
     }
 
@@ -48,7 +48,7 @@ export class ReferenceManager {
         sendMessage({
             id: uuidv4(),
             command: 'keyword-type-search-response',
-            data: response.response
+            data: response.data
         });
     }
 }

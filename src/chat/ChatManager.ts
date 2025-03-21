@@ -32,7 +32,6 @@ export type ChatReferenceItem = {
   keyword: string;
   path: string;
   chunks: Chunk[];
-  commit_hash: string;
   value?: string;
 };
 
@@ -50,7 +49,7 @@ interface payload {
     response: any;
   };
   previous_query_ids?: number[];
-  focus_items?: ChatReferenceItem[];
+  focus_items?: Array<any>;
 }
 
 interface SearchTerm {
@@ -234,8 +233,29 @@ export class ChatManager {
       this.outputChannel.info(
         `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
       );
-      // Extract the content from each chunk in the payload.
-      return result;
+
+      let finalResult: Array<any> = [];
+      data.referenceList?.forEach((element) => {
+        let finalChunkInfos: Array<any> = [];
+        element.chunks.forEach((chunk) => {
+          this.outputChannel.info(`chunk: ${JSON.stringify(result)}`);
+          let selectedChunkInfo = result.find((res: any) => {
+            return res.chunk_hash === chunk.chunk_hash;
+          }
+          );
+          if (selectedChunkInfo) {
+            finalChunkInfos.push(selectedChunkInfo.chunk_info);
+          }
+        });
+
+        finalResult.push({
+          "type": element.type,
+          "value": element.value,
+          "chunks": finalChunkInfos || []
+        });
+      });
+
+      return finalResult;
     } catch (error) {
       this.outputChannel.error(`Error fetching focus chunks: ${error}`);
       return [];
@@ -256,22 +276,22 @@ export class ChatManager {
     const payload_copy = structuredClone(payload);
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
-      if (payload.referenceList?.length) {
-        payload.focus_items = payload.referenceList;
-        for (let i = 0; i < payload.focus_items.length; i++) {
-          payload.focus_items[i].index = i;
-          const splitKeyword = payload.focus_items[i].keyword?.split(":");
+      // if (payload.referenceList?.length) {
+      //   payload.focus_items = payload.referenceList;
+      //   for (let i = 0; i < payload.focus_items.length; i++) {
+      //     payload.focus_items[i].index = i;
+      //     const splitKeyword = payload.focus_items[i].keyword?.split(":");
 
-          // Ensure the splitKeyword has at least two elements before accessing index [1]
-          if (splitKeyword && splitKeyword.length > 1) {
-            payload.focus_items[i].value = splitKeyword[1].trim();
-          } else {
-            // Handle cases where the keyword format is incorrect
-            this.outputChannel.error(`Invalid keyword format: ${payload.focus_items[i].keyword}`);
-            payload.focus_items[i].value = ""; // Default value or handle error accordingly
-          }
-        }
-      }
+      //     // Ensure the splitKeyword has at least two elements before accessing index [1]
+      //     if (splitKeyword && splitKeyword.length > 1) {
+      //       payload.focus_items[i].value = splitKeyword[1].trim();
+      //     } else {
+      //       // Handle cases where the keyword format is incorrect
+      //       this.outputChannel.error(`Invalid keyword format: ${payload.focus_items[i].keyword}`);
+      //       payload.focus_items[i].value = ""; // Default value or handle error accordingly
+      //     }
+      //   }
+      // }
 
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
 
@@ -321,7 +341,7 @@ export class ChatManager {
         const focus_chunks = await this.getFocusChunks(
           payload,
         );
-        payload.focus_chunks = focus_chunks;
+        payload.focus_items = focus_chunks;
       }
       delete payload.referenceList;
 

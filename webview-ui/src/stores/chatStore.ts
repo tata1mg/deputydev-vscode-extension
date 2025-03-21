@@ -30,7 +30,6 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     value: "Directory: ",
     description: "A folder containing files and subfolders",
     chunks: [],
-    commit_hash: "",
   },
   {
     icon: "file",
@@ -38,7 +37,6 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     value: "File: ",
     description: "A single file such as a document or script",
     chunks: [],
-    commit_hash: "",
   },
   {
     icon: "function",
@@ -46,7 +44,6 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     value: "Function: ",
     description: "A short piece of reusable code",
     chunks: [],
-    commit_hash: "",
   },
   {
     icon: "class",
@@ -54,7 +51,6 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     value: "Class: ",
     description: "A short piece of reusable class code",
     chunks: [],
-    commit_hash: "",
   },
 ];
 
