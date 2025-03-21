@@ -1,21 +1,22 @@
 import axios from 'axios';
+import { DD_HOST,BINARY_HOST ,CLIENT_VERSION } from '../../config';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8084',
+    baseURL: DD_HOST,
     headers: {
         'Content-Type': 'application/json',
         'X-Client': 'VSCODE_EXT',
-        'X-Client-Version': '0.0.1',
+        'X-Client-Version': CLIENT_VERSION,
     },
     withCredentials: false
 });
 
 const binaryApi = axios.create({
-    baseURL: 'http://localhost:8001',
+    baseURL: BINARY_HOST,
     headers: {
         'Content-Type': 'application/json',
         'X-Client': 'VSCODE_EXT',
-        'X-Client-Version': '0.0.1',
+        'X-Client-Version': CLIENT_VERSION,
     },
     withCredentials: false
 });

@@ -1,7 +1,7 @@
-import { WebSocketClient, BASE_URL } from "./websocketClient";
+import { WebSocketClient } from "./websocketClient";
 import { API_ENDPOINTS } from "../../services/api/endpoints";
 import { AuthService } from "../../services/auth/AuthService";
-
+import { BINARY_HOST_WS } from "../../config";
 // Updated interface for RelevantChunksParams (includes new backend fields)
 
 export interface RelevantChunksParams {
@@ -39,7 +39,7 @@ export const fetchRelevantChunks = async (
     throw new Error("Authentication token is required");
   }
 
-  const client = new WebSocketClient(BASE_URL, API_ENDPOINTS.RELEVANT_CHUNKS);
+  const client = new WebSocketClient(BINARY_HOST_WS, API_ENDPOINTS.RELEVANT_CHUNKS);
   try {
     return await client.send({
       ...params,
@@ -69,7 +69,7 @@ export const updateVectorStore = async (
   }
 
   console.log("updateVectorStore with params:", params);
-  const client = new WebSocketClient(BASE_URL, API_ENDPOINTS.UPDATE_VECTOR_DB);
+  const client = new WebSocketClient(BINARY_HOST_WS, API_ENDPOINTS.UPDATE_VECTOR_DB);
 
   if (waitForResponse) {
     try {
@@ -106,7 +106,7 @@ export const updateVectorStoreWithResponse = async (
   }
 
   console.log("updateVectorStoreWithResponse with params:", params);
-  const client = new WebSocketClient(BASE_URL, API_ENDPOINTS.UPDATE_VECTOR_DB);
+  const client = new WebSocketClient(BINARY_HOST_WS, API_ENDPOINTS.UPDATE_VECTOR_DB);
 
   try {
     const result = await client.send({
