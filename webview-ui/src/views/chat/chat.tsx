@@ -64,7 +64,7 @@ export function ChatUI() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowDefaultContent(true);
-    }, 2500);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -76,16 +76,16 @@ export function ChatUI() {
       const activeElement = document.activeElement;
 
       if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
-          copiedText = activeElement.value.substring(
-              activeElement.selectionStart || 0,
-              activeElement.selectionEnd || 0
-          );
+        copiedText = activeElement.value.substring(
+          activeElement.selectionStart || 0,
+          activeElement.selectionEnd || 0
+        );
       } else {
-          copiedText = window.getSelection()?.toString() || "";
+        copiedText = window.getSelection()?.toString() || "";
       }
 
       logToOutput("info", `Copied: ${JSON.stringify(copiedText)}`);
-  };
+    };
 
     document.addEventListener("copy", handleCopy);
     return () => document.removeEventListener("copy", handleCopy);
@@ -126,7 +126,7 @@ export function ChatUI() {
 
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } finally {
     }
   };
@@ -279,92 +279,95 @@ export function ChatUI() {
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
           <div>
-            <div className="mb-12 mt-8">
-              <BotMessageSquare className="h-20 w-20 px-4" />
-              <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
-                Develop with DeputyDev
-              </h1>
-            </div>
-            {sessions.length > 0 ? (
-              <div>
-                <h3 className="px-4 text-lg font-bold mb-1">Past Conversations</h3>
-                <div
-                  className="session-box h-[128px] overflow-y-auto px-4"
-                  onScroll={handleScroll}
-                >
-                  {!showAllSessions ? (
-                    <div>
-                      {sessions.slice(0, visibleSessions).map((session) => (
-                        <div className="flex gap-2" key={session.id}>
-                          <div
-                            onClick={() => handleGetSessionChats(session.id)}
-                            className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
-                          >
-                            <div className="overflow-hidden text-ellipsis whitespace-nowrap">
-                              {session.summary}
-                            </div>
-                            <span>{session.age}</span>
-                          </div>
-                          <Trash2
-                            className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                            onClick={(e) => {
-                              handleDeleteSession(session.id);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div>
-                      {sessions
-                        .slice(0, currentSessionsPage * sessionsPerPage)
-                        .map((session) => (
+            <div>
+              <div className="mb-12 mt-8">
+                <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
+                  Develop with DeputyDev
+                </h1>
+              </div>
+              {sessions.length > 0 ? (
+                <div>
+                  <h3 className="px-4 text-lg font-bold mb-1">Past Conversations</h3>
+                  <div
+                    className="session-box h-[128px] overflow-y-auto px-4"
+                    onScroll={handleScroll}
+                  >
+                    {!showAllSessions ? (
+                      <div>
+                        {sessions.slice(0, visibleSessions).map((session) => (
                           <div className="flex gap-2" key={session.id}>
                             <div
                               onClick={() => handleGetSessionChats(session.id)}
-                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
+                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                             >
                               <div className="overflow-hidden text-ellipsis whitespace-nowrap">
                                 {session.summary}
                               </div>
                               <span>{session.age}</span>
                             </div>
-                            <div className="flex-shrink-0">
-                              <Trash2
-                                className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                                onClick={(e) => {
-                                  handleDeleteSession(session.id);
-                                }}
-                              />
-                            </div>
+                            <Trash2
+                              className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                              onClick={(e) => {
+                                handleDeleteSession(session.id);
+                              }}
+                            />
                           </div>
                         ))}
-                    </div>
-                  )}
-                  {sessionsLoading && <div>Loading...</div>}
-                </div>
-                {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions && (
-                  <button
-                    onClick={() => handleShowMore()}
-                    className="px-4"
-                  >
-                    Show More...
-                  </button>
-                )}
-              </div>
-            ) : (
-              showDefaultContent && (
-                <div className="px-4 fade-in">
-                  <div className="flex gap-2 items-center">
-                    <p className="mb-2 text-gray-400 text-lg">
-                      You are ready to go.
-                    </p>
-                    <Check className="text-sm text-green-500 animate-pulse mb-1" />
+                      </div>
+                    ) : (
+                      <div>
+                        {sessions
+                          .slice(0, currentSessionsPage * sessionsPerPage)
+                          .map((session) => (
+                            <div className="flex gap-2" key={session.id}>
+                              <div
+                                onClick={() => handleGetSessionChats(session.id)}
+                                className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
+                              >
+                                <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+                                  {session.summary}
+                                </div>
+                                <span>{session.age}</span>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <Trash2
+                                  className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                                  onClick={(e) => {
+                                    handleDeleteSession(session.id);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                    {sessionsLoading && <div>Loading...</div>}
                   </div>
-                  <p className="text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+                  {!sessionsLoading && !showAllSessions && sessions.length > visibleSessions && (
+                    <button
+                      onClick={() => handleShowMore()}
+                      className="px-4"
+                    >
+                      Show More...
+                    </button>
+                  )}
+                  <p className="text-xs text-gray-500 text-left mt-2 px-4">DeputyDev is powered by AI. It can make mistakes. Please double check all output.</p>
                 </div>
-              )
-            )}
+              ) : (
+                showDefaultContent && (
+                  <div className="px-4 fade-in">
+                    <div className="flex gap-2 items-center">
+                      <p className="mb-2 text-gray-400 text-lg">
+                        You are ready to go.
+                      </p>
+                      <Check className="text-sm text-green-500 animate-pulse mb-1" />
+                    </div>
+                    <p className="text-md">Ask questions about your repository or instantly generate code, tests, and documentation</p>
+                    <p className="text-xs text-gray-500 text-left mt-6">DeputyDev is powered by AI. It can make mistakes. Please double check all output.</p>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -467,23 +470,30 @@ export function ChatUI() {
             <RepoSelector />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Chat</span>
-            <label className="relative inline-flex cursor-pointer items-center">
-              <input
-                type="checkbox"
-                className="peer sr-only"
-                checked={chatType === "write"}
-                onChange={() => {
-                  if (!isLoading) {
-                    setChatType(chatType === "ask" ? "write" : "ask");
-                  }
-                }}
-                disabled={isLoading}
-              />
-              <div className="peer h-4 w-8 rounded-full bg-gray-200 after:absolute after:left-0.5 after:top-0.5 after:h-3 after:w-3 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-500 peer-checked:after:translate-x-4" />
-            </label>
-            <span className="font-medium">Write</span>
+          {/* chat and act toggle */}
+          <div className="rounded-xl h-4 w-18 flex items-center justify-between bg-gray-500">
+            <button
+              className={`font-medium w-[50px] rounded-tl-xl rounded-bl-xl ${chatType === "ask" ? "bg-blue-500 rounded-tr-xl rounded-br-xl h-5" : ""}`}
+              onClick={() => {
+                if (!isLoading) {
+                  setChatType("ask")
+                }
+              }}
+              disabled={isLoading}
+            >
+              Chat
+            </button>
+            <button
+              className={`font-medium w-[50px] rounded-tr-xl rounded-br-xl ${chatType === "write" ? "bg-blue-500 rounded-tl-xl rounded-bl-xl h-5" : ""}`}
+              onClick={() => {
+                if (!isLoading) {
+                  setChatType("write")
+                }
+              }}
+              disabled={isLoading}
+            >
+              Act
+            </button>
           </div>
         </div>
       </div>

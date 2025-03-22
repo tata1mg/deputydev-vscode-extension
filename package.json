@@ -5,7 +5,7 @@
   "version": "0.0.1",
   "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.93.0"
   },
   "categories": [
     "Other"
@@ -89,11 +89,6 @@
         "icon": "$(x)"
       },
       {
-        "command": "deputydev.SettingButtonClick",
-        "title": "Settings",
-        "icon": "$(settings-gear)"
-      },
-      {
         "command": "deputydev.AddButtonClick",
         "title": "New",
         "icon": "$(add)"
@@ -129,14 +124,9 @@
           "group": "navigation@1"
         },
         {
-          "command": "deputydev.SettingButtonClick",
-          "when": "view == deputydev-sidebar",
-          "group": "navigation@2"
-        },
-        {
           "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar",
-          "group": "navigation@3"
+          "group": "navigation@2"
         }
       ],
       "editor/context": [
@@ -174,7 +164,7 @@
         {
           "id": "deputydev-sidebar-view",
           "title": "DeputyDev Extension",
-          "icon": "assets/DD.svg"
+          "icon": "assets/DD_Logo.svg"
         }
       ]
     },
@@ -184,7 +174,7 @@
           "type": "webview",
           "id": "deputydev-sidebar",
           "name": "AI Assistant",
-          "icon": "assets/DD.svg"
+          "icon": "assets/DD_Logo.svg"
         }
       ]
     },

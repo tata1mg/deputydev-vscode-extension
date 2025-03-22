@@ -161,3 +161,11 @@ export function deleteSession(sessionId: number) {
 export function sendWorkspaceRepoChange(data : {repoPath: string}) {
   return callCommand('workspace-repo-change', data)
 }
+
+export function openBrowserPage(url: string) {
+  return callCommand("open-requested-browser-page", {url})
+}
+
+export function signOut() {
+  return callCommand("sign-out", {})
+}

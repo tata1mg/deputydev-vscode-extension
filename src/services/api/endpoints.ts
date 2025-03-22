@@ -4,6 +4,7 @@ export const API_ENDPOINTS = {
     QUERY_SOLVER: "/end_user/v2/code-gen/generate-code",
     STORE_AUTH_TOKEN: "/v1/auth/store_token",
     LOAD_AUTH_TOKEN: "/v1/auth/load_token",
+    DELETE_AUTH_TOKEN: "/v1/auth/delete_token",
     RELEVANT_CHUNKS: "/v1/relevant_chunks",
     UPDATE_VECTOR_DB: "/v1/update_chunks",
     PAST_SESSIONS: "/end_user/v1/history/sessions",

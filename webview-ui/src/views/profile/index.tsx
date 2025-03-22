@@ -1,7 +1,7 @@
-import { getGlobalState } from "@/commandApi";
+import { signOut, getGlobalState, openBrowserPage } from "@/commandApi";
 import { useChatStore } from "@/stores/chatStore";
 import { useEffect, useState } from "react";
-import { UserRoundPen, BookOpenText, LogOut, Pen, Rocket, ChevronDown, ChevronRight } from "lucide-react";
+import { UserRoundPen, BookOpenText, LogOut, Pen, Lightbulb, ChevronDown, ChevronRight, Bug } from "lucide-react";
 
 export default function Profile() {
   const { userData } = useChatStore();
@@ -19,6 +19,18 @@ export default function Profile() {
   const handleUsageClick = () => {
     setDropdownOpen(!dropdownOpen);
   };
+
+  const handleRequestFeatureClick = () => {
+    openBrowserPage("https://forms.gle/Abd1FJJVf3J2daLP7");
+  }
+
+  const handleReportBugClick = () => {
+    openBrowserPage("https://forms.gle/s2Youjzo63YU9k7s9");
+  }
+
+  const handleSignOut = () => {
+    signOut();
+  }
 
   return (
     <div className="px-4 flex flex-col gap-2 mt-2">
@@ -72,17 +84,27 @@ export default function Profile() {
       </button>
       <button
         className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
-        onClick={() => {/* Handle Feature Request button click */ }}
+        onClick={handleRequestFeatureClick}
       >
         <div className="flex gap-2">
-          <Rocket />
+          <Lightbulb />
           <span>Feature Request</span>
         </div>
         <ChevronRight />
       </button>
       <button
         className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
-        onClick={() => {/* Handle Sign Out button click */ }}
+        onClick={handleReportBugClick}
+      >
+        <div className="flex gap-2">
+          <Bug />
+          <span>Report a Bug</span>
+        </div>
+        <ChevronRight />
+      </button>
+      <button
+        className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+        onClick={handleSignOut}
       >
         <div className="flex gap-2">
           <LogOut />
