@@ -421,7 +421,6 @@ export function ChatUI() {
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
             <div className="flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
-              {/* Reference Chips inside the input container */}
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -439,8 +438,6 @@ export function ChatUI() {
                   chunks={chip.chunks}
                 />
               ))}
-
-              {/* Textarea for input */}
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -495,6 +492,7 @@ export function ChatUI() {
             </div>
             <Tooltip id="repo-tooltip" />
           </div>
+          
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
