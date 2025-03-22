@@ -56,10 +56,10 @@ export class InlineChatEditManager {
                     return;
                 }
 
-                const actionEdit = new vscode.CodeAction('Edit ⌘ I', vscode.CodeActionKind.QuickFix);
+                const actionEdit = new vscode.CodeAction('Modify ⌘ I', vscode.CodeActionKind.QuickFix);
                 actionEdit.command = {
                     command: 'deputydev.editThisCode',
-                    title: 'Edit'
+                    title: 'Modify'
                 };
                 codeActions.push(actionEdit);
 
