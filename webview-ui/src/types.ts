@@ -1,4 +1,9 @@
-export type ViewType = "chat" | "setting" | "loader" | "history" | "auth";
+export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile";
+
+export type UserData = {
+  email: string;
+  userName: string;
+}
 
 export type AutocompleteOption = {
   icon: string;

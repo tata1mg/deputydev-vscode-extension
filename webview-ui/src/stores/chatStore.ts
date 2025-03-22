@@ -16,7 +16,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats, UserData } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -78,6 +78,7 @@ export const useChatStore = create(
         | { tool_use_id: string; tool_name: string }
         | undefined,
       progressBar: 0,
+      userData: {} as UserData,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -128,10 +129,10 @@ export const useChatStore = create(
               }
             });
           }
-          
+
           // Remove any error messages from history
           set((state) => ({
-            history: state.history.filter(msg => msg.type !== "ERROR"), 
+            history: state.history.filter(msg => msg.type !== "ERROR"),
           }));
 
           set({
@@ -163,7 +164,7 @@ export const useChatStore = create(
           }
 
 
-          
+
           let stream;
           if (retryChat) {
             logToOutput("info", `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`);
@@ -592,7 +593,7 @@ export const useChatStore = create(
                         actor: "ASSISTANT",
                       } as ChatErrorMessage,
                     ],
-                  }));                  
+                  }));
                   set({ isLoading: false, currentChatRequest: undefined });
                   chunkCallback({ name: "error", data: { error: err } });
                   break;
@@ -633,7 +634,7 @@ export const useChatStore = create(
           currentChatRequest?.close();
           set({ currentChatRequest: undefined, isLoading: false });
           logToOutput("info", "User canceled the chat stream");
-        },      
+        },
       };
     }
   ),

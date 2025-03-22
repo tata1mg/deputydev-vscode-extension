@@ -24,12 +24,12 @@ export async function activate(context: vscode.ExtensionContext) {
     .getConfiguration('deputydev')
     .get<string>('outputChannelName', 'DeputyDev');
   outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
-  
+
   // context reset from past session
   setExtensionContext(context,outputChannel);
   await clearWorkspaceStorage();
-  
-  
+
+
   outputChannel.info('Extension "DeputyDev" is now active!');
   const configManager = new ConfigManager(context, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
@@ -56,7 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   })
 
-   
+
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -204,6 +204,14 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
       deleteSessionId();
+    }),
+  );
+
+  // profile button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.UserProfile', () => {
+      outputChannel.info('Profile button clicked!');
+      sidebarProvider.setViewType('profile');
     }),
   );
 

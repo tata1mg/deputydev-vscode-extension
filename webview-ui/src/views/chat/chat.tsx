@@ -64,9 +64,9 @@ export function ChatUI() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowDefaultContent(true);
-    }, 2000); // 2 seconds delay
+    }, 2500);
 
-    return () => clearTimeout(timer); // Cleanup the timer on unmount
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

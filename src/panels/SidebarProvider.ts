@@ -488,7 +488,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
