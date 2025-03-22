@@ -15,7 +15,7 @@ interface SSEEvent {
 
 
 export class QuerySolverService {
-  public async *querySolver(payload: unknown): AsyncIterableIterator<SSEEvent> {
+  public async *querySolver(payload: unknown, signal?: AbortSignal): AsyncIterableIterator<any> {
     // Dynamically retrieve the current session ID for each call
     const authService = new AuthService();
     const authToken = await authService.loadAuthToken();
@@ -86,11 +86,26 @@ export class QuerySolverService {
       streamError = err;
     });
 
+    // ✅ Abort handling - immediately kill the stream if signal is aborted
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        console.warn('querySolver stream aborted by user');
+        stream.destroy(); // ✅ force close
+        streamDone = true;
+      });
+    }
+
     // Yield events as they are received, and handle any errors that occur
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
         throw streamError;
       }
+      if (signal?.aborted) {
+        console.warn('querySolver aborted during loop');
+        stream.destroy();
+        return;
+      }
+      
       if (eventsQueue.length > 0) {
         yield eventsQueue.shift()!;
       } else {

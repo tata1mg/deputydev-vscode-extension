@@ -35,6 +35,10 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
+export function apiStopChat() {
+  return callCommand('api-stop-chat', null);
+}
+
 export function keywordSearch(payload: unknown) {
   return callCommand('keyword-search', payload);
 }

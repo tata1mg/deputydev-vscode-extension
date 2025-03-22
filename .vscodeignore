@@ -1,0 +1,14 @@
+# .vscodeignore
+node_modules/**
+!.vscode/**
+
+**/*.ts
+**/*.tsx
+**/*.map
+.vscode/
+tests/
+__tests__/
+docs/
+yarn.lock
+package-lock.json
+webview-ui/node_modules/**
