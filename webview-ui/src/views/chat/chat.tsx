@@ -388,7 +388,7 @@ export function ChatUI() {
               />
             </div>
           )}
-          <div className="flex flex-wrap gap-1">
+          {/* <div className="flex flex-wrap gap-1">
             {useChatStore.getState().currentEditorReference?.map((chip) => (
               <ReferenceChip
                 chipIndex={chip.index}
@@ -405,7 +405,7 @@ export function ChatUI() {
                 chunks={chip.chunks}
               />
             ))}
-          </div>
+          </div> */}
 
           {showEmbeddingFailed && (
             <div className="p-4 text-red-500 text-md text-center">
@@ -420,33 +420,59 @@ export function ChatUI() {
           )}
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              className={`scrollbar-thumb-gray-500 relative max-h-[300px] min-h-[70px] w-full resize-none overflow-y-auto rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2 pr-12 focus:border-blue-600/70 focus:outline-none focus:ring-0 active:border-blue-600/70 disabled:cursor-not-allowed disabled:opacity-50`}
-              placeholder="Ask anything (⌘L), @ to mention code blocks"
-              value={userInput}
-              onChange={handleTextAreaChange}
-              onKeyDown={(e) => {
-                if (
-                  !repoSelectorEmbedding &&
-                  e.key === "Enter" &&
-                  !e.shiftKey
-                ) {
-                  e.preventDefault();
-                  if (!isLoading) {
-                    handleSend();
+            <div className="flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+              {/* Reference Chips inside the input container */}
+              {useChatStore.getState().currentEditorReference?.map((chip) => (
+                <ReferenceChip
+                  key={chip.index}
+                  chipIndex={chip.index}
+                  initialText={chip.keyword}
+                  onDelete={() => {
+                    handleChipDelete(chip.index);
+                  }}
+                  autoEdit={
+                    !chip.noEdit &&
+                    chip.index ===
+                      useChatStore.getState().currentEditorReference.length - 1
                   }
+                  setShowAutoComplete={setShowAutocomplete}
+                  chunks={chip.chunks}
+                />
+              ))}
+
+              {/* Textarea for input */}
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                className={`scrollbar-thumb-gray-500 relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-8 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                placeholder={
+                  useChatStore.getState().currentEditorReference?.length
+                    ? ""
+                    : "Ask anything (⌘L), @ to mention code blocks"
                 }
-              }}
-              disabled={repoSelectorEmbedding}
-              {...(repoSelectorEmbedding && {
-                "data-tooltip-id": "repo-tooltip",
-                "data-tooltip-content":
-                  "Please wait, DeputyDev is initializing.",
-              })}
-              autoFocus
-            />
+                value={userInput}
+                onChange={handleTextAreaChange}
+                onKeyDown={(e) => {
+                  if (
+                    !repoSelectorEmbedding &&
+                    e.key === "Enter" &&
+                    !e.shiftKey
+                  ) {
+                    e.preventDefault();
+                    if (!isLoading) {
+                      handleSend();
+                    }
+                  }
+                }}
+                disabled={repoSelectorEmbedding}
+                {...(repoSelectorEmbedding && {
+                  "data-tooltip-id": "repo-tooltip",
+                  "data-tooltip-content":
+                    "Please wait, DeputyDev is initializing.",
+                })}
+                autoFocus
+              />
+            </div>
 
             <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
               {isLoading ? (
