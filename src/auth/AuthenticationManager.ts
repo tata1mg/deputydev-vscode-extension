@@ -39,7 +39,7 @@ export class AuthenticationManager {
                 }
             } catch (error) {
                 console.error('Error while polling session:', error);
-                return 'NOT_AUTHENTICATED';
+                return 'AUTHENTICATION_FAILED';
             }
 
             // Wait for 3 seconds before the next attempt
@@ -47,7 +47,7 @@ export class AuthenticationManager {
         }
 
         console.error("Authentication failed, please try again later.");
-        return 'NOT_AUTHENTICATED';
+        return 'AUTHENTICATION_FAILED';
     };
 
     public async validateCurrentSession() {

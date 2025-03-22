@@ -9,6 +9,7 @@ import History from './views/history';
 import Auth from './views/auth';
 import { useAuthStore } from './stores/authStore';
 import Profile from './views/profile';
+import Error from './views/error';
 
 function App() {
   const extensionState = useExtensionStore();
@@ -62,6 +63,9 @@ function App() {
       break;
     case 'history':
       view = isAuthenticated ? <History /> : <Auth />;
+      break;
+    case 'error':
+      view = <Error />
       break;
     default:
       view = null;

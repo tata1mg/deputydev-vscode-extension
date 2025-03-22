@@ -1,4 +1,4 @@
-export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile";
+export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile" | "error";
 
 export type UserData = {
   email: string;

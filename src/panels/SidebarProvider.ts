@@ -240,7 +240,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async initiateLogin(data: any) {
     const authenticationManager = new AuthenticationManager(this.context , this.configManager);
     const status = await authenticationManager.initiateAuthentication();
-    this.sendMessageToSidebar(status);
+    if (status === "AUTHENTICATION_FAILED") {
+      this.setViewType("error");
+    } else {
+      this.sendMessageToSidebar(status);
+    }
   }
 
   async signOut() {
@@ -513,7 +517,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
