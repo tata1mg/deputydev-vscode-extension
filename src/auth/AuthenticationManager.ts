@@ -22,6 +22,11 @@ export class AuthenticationManager {
                     if (response.data.encrypted_session_data) {
                         const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                         if (result === "success") {
+                            const userData = {
+                                email: response.data.user_email,
+                                userName: response.data.user_name
+                            }
+                            this.context.globalState.update("userData", userData);
                             this.configManager.fetchAndStoreConfig();
                             this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                             return response.data.status;
@@ -56,12 +61,22 @@ export class AuthenticationManager {
         try {
             const response = await this.authService.verifyAuthToken(authToken)
             if (response.data.status === 'VERIFIED') {
+                const userData = {
+                    email: response.data.user_email,
+                    userName: response.data.user_name
+                }
+                this.context.globalState.update("userData", userData)
                 return true;
                 // return false;
             } else if (response.data.status === 'EXPIRED') {
                 if (response.data.encrypted_session_data) {
                     const result = await this.authService.storeAuthToken(response.data.encrypted_session_data)
                     if (result === "success") {
+                        const userData = {
+                            email: response.data.user_email,
+                            userName: response.data.user_name
+                        }
+                        this.context.globalState.update("userData", userData)
                         this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                         return true;
                         // return false;

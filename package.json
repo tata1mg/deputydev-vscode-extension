@@ -95,6 +95,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "deputydev.UserProfile",
+        "title": "Profile",
+        "icon": "$(account)"
+      },
+      {
         "command": "deputydev.ConfirmModify",
         "title": "Confirm Modify",
         "icon": "$(check)"
@@ -123,6 +128,11 @@
           "command": "deputydev.SettingButtonClick",
           "when": "view == deputydev-sidebar",
           "group": "navigation@2"
+        },
+        {
+          "command": "deputydev.UserProfile",
+          "when": "view == deputydev-sidebar",
+          "group": "navigation@3"
         }
       ],
       "editor/context": [
@@ -160,7 +170,7 @@
         {
           "id": "deputydev-sidebar-view",
           "title": "DeputyDev Extension",
-          "icon": "assets/icon.svg"
+          "icon": "assets/DD.svg"
         }
       ]
     },
@@ -170,7 +180,7 @@
           "type": "webview",
           "id": "deputydev-sidebar",
           "name": "AI Assistant",
-          "icon": "assets/icon.svg"
+          "icon": "assets/DD.svg"
         }
       ]
     },
