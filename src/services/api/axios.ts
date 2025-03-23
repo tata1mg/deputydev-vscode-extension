@@ -11,14 +11,17 @@ const api = axios.create({
     withCredentials: false
 });
 
-const binaryApi = axios.create({
-    baseURL: getBinaryHost(),
-    headers: {
+export function binaryApi() {
+    return axios.create({
+      baseURL: getBinaryHost(),
+      headers: {
         'Content-Type': 'application/json',
         'X-Client': CLIENT,
         'X-Client-Version': CLIENT_VERSION,
-    },
-    withCredentials: false
-});
+      },
+      withCredentials: false
+    });
+  }
+  
 
-export { api, binaryApi };
+export { api };

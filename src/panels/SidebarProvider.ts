@@ -264,7 +264,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       data: true,
     });
 
-    const response = await binaryApi.post(API_ENDPOINTS.INIT_BINARY, payload, {
+    const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, {
       headers,
     });
     this.outputChannel.info(response.data.status);

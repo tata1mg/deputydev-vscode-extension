@@ -26,26 +26,7 @@ export class ConfigManager {
   /**
    * Returns mapped OS and architecture values expected by the backend.
    */
-  private getMappedOsAndArch(): { os: string; arch: string } {
-    const rawPlatform = os.platform(); // 'darwin', 'linux', etc.
-    const rawArch = os.arch();         // 'x64', 'arm64', etc.
-
-    const platformMap: Record<string, string> = {
-      darwin: 'Darwin',
-      linux: 'Linux',
-      win32: 'Windows'
-    };
-
-    const archMap: Record<string, string> = {
-      x64: 'x86_64',
-      arm64: 'arm64'
-    };
-
-    const mappedPlatform = platformMap[rawPlatform] || rawPlatform;
-    const mappedArch = archMap[rawArch] || rawArch;
-
-    return { os: mappedPlatform, arch: mappedArch };
-  }
+  
 
 
   /**
@@ -53,11 +34,14 @@ export class ConfigManager {
    */
   public async fetchAndStoreConfigEssentials(): Promise<void> {
     try {
-      const { os: mappedOs, arch: mappedArch } = this.getMappedOsAndArch();
+      const Os = os.platform();
+      const Arch = os.arch();
+
+
       const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS, {params: {
         consumer: CLIENT,
-        os: mappedOs,
-        arch: mappedArch 
+        os: Os,
+        arch: Arch,
       }});
       this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
       if (response.data && response.data.is_success) {
@@ -77,12 +61,24 @@ export class ConfigManager {
    */
   public async fetchAndStoreConfig(): Promise<void> {
     try {
+
+      const Os = os.platform();
+      const Arch = os.arch();
+
+
+     
+      
       const authService = new AuthService();
       const auth_token = await authService.loadAuthToken();
       const headers = {
         "Authorization": `Bearer ${auth_token}`
       }
-      const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: CLIENT}, headers });
+      // const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: CLIENT}, headers });
+      const response = await api.get(API_ENDPOINTS.CONFIG, {params: {
+        consumer: CLIENT,
+        os: Os,
+        arch: Arch,
+      }, headers });
       if (response.data && response.data.is_success) {
         refreshCurrentToken(response.headers)
         this.configData = response.data.data;
