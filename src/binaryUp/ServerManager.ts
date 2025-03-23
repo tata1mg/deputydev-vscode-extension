@@ -305,7 +305,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             const reused = await this.tryReuseExistingServer();
             if (reused) {
                 this.outputChannel.appendLine('✅ Reused existing running server.');
-                return false
+                return true
             }
 
             const port = await this.findAvailablePort(portRange);
