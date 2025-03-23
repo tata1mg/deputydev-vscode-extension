@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
+import { DD_BROWSER_HOST } from '../config';
 
 export class BrowserClient {
     public async initiateExtensionLogin(supabaseSessionId: string) {
         const isExternalAuthRequest = "DeputyDev Extension"
         console.log("opening browser");
-        const authUrl = `https://deputydev.ai/external-auth?supabase_session_id=${supabaseSessionId}&is_external_auth_request=${isExternalAuthRequest}`;
+        const authUrl = `${DD_BROWSER_HOST}/external-auth?supabase_session_id=${supabaseSessionId}&is_external_auth_request=${isExternalAuthRequest}`;
         await vscode.env.openExternal(vscode.Uri.parse(authUrl));
     }
 }

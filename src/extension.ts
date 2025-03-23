@@ -32,12 +32,12 @@ export async function activate(context: vscode.ExtensionContext) {
   setExtensionContext(context,outputChannel);
   await clearWorkspaceStorage();
 
-  
+
   outputChannel.info('Extension "DeputyDev" is now active!');
-  
+
   // 0) Fetch and store essential config data
   const configManager = new ConfigManager(context, outputChannel);
-  await configManager.fetchAndStoreConfigEssentials(); 
+  await configManager.fetchAndStoreConfigEssentials();
   if (await !configManager.getAllConfigEssentials()) {
     outputChannel.error('Failed to fetch essential config data.');
     return;
@@ -70,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext) {
     sidebarProvider.setViewType("chat")
 
   })
-   
+
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -148,7 +148,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
     // 7) Register commands for Accept/Reject etc
-// 
+//
   // Accept changes in the active file
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
@@ -219,6 +219,14 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
       deleteSessionId();
+    }),
+  );
+
+  // profile button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.UserProfile', () => {
+      outputChannel.info('Profile button clicked!');
+      sidebarProvider.setViewType('profile');
     }),
   );
 

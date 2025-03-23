@@ -89,14 +89,14 @@
         "icon": "$(x)"
       },
       {
-        "command": "deputydev.SettingButtonClick",
-        "title": "Settings",
-        "icon": "$(settings-gear)"
-      },
-      {
         "command": "deputydev.AddButtonClick",
         "title": "New",
         "icon": "$(add)"
+      },
+      {
+        "command": "deputydev.UserProfile",
+        "title": "Profile",
+        "icon": "$(account)"
       },
       {
         "command": "deputydev.ConfirmModify",
@@ -124,7 +124,7 @@
           "group": "navigation@1"
         },
         {
-          "command": "deputydev.SettingButtonClick",
+          "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar",
           "group": "navigation@2"
         }
@@ -164,7 +164,7 @@
         {
           "id": "deputydev-sidebar-view",
           "title": "DeputyDev Extension",
-          "icon": "assets/icon.svg"
+          "icon": "assets/DD_Logo.png"
         }
       ]
     },
@@ -174,7 +174,7 @@
           "type": "webview",
           "id": "deputydev-sidebar",
           "name": "AI Assistant",
-          "icon": "assets/icon.svg"
+          "icon": "assets/DD_Logo.png"
         }
       ]
     },

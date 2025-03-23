@@ -56,10 +56,10 @@ export class InlineChatEditManager {
                     return;
                 }
 
-                const actionEdit = new vscode.CodeAction('Edit ⌘ I', vscode.CodeActionKind.QuickFix);
+                const actionEdit = new vscode.CodeAction('Modify ⌘ I', vscode.CodeActionKind.QuickFix);
                 actionEdit.command = {
                     command: 'deputydev.editThisCode',
-                    title: 'Edit'
+                    title: 'Modify'
                 };
                 codeActions.push(actionEdit);
 
@@ -135,8 +135,10 @@ export class InlineChatEditManager {
                 keyword: activeFileName,
                 path: this.relative_file_path,
                 chunk: {
+                    file_path: this.relative_file_path,
                     start_line: start_line + 1,
-                    end_line: end_line + 1
+                    end_line: end_line + 1,
+                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line+1}_${end_line+1}`
                 }
             }
 

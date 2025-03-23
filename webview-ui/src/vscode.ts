@@ -24,7 +24,8 @@ interface InlineChatReferenceData {
     file_hash: string;
     file_path: string;
     meta_info?: any;
-  }
+  },
+  value: string;
 }
 
 interface WorkspaceRepo {
@@ -315,7 +316,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
   const lengthOfCurrentEditorReference = currentEditorReference.length;
   const chatReferenceItem: ChatReferenceItem = {
     index: lengthOfCurrentEditorReference,
-    type: "file",
+    type: "code_snippet",
     keyword: response.keyword,
     path: response.path,
     chunks: [response.chunk],
@@ -332,6 +333,11 @@ addCommandEventListener("progress-bar", ({data}) => {
   useChatStore.setState({progressBar: progress})
   console.log("progress", data)
 })
+
+addCommandEventListener("retry-embedding-failed", ({ data }) => {
+  console.error("Retry embedding failed:", data);
+  useChatStore.setState({showEmbeddingFailed: true});
+});
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

@@ -67,4 +67,16 @@ export class AuthService {
             throw error;
         }
     }
+
+    public async deleteAuthToken() {
+        try {
+            const response = await binaryApi().post(API_ENDPOINTS.DELETE_AUTH_TOKEN);
+            if (response.data.message === "success") {
+                return response.data.message;
+            }
+        } catch (error) {
+            console.error('Error while deleting auth token:', error);
+            throw error;
+        }
+    }
 }
