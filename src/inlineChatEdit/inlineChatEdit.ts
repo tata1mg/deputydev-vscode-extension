@@ -137,9 +137,9 @@ export class InlineChatEditManager {
                 chunk: {
                     file_path: this.relative_file_path,
                     start_line: start_line + 1,
-                    end_line: end_line + 1
-                },
-                value: `${this.relative_file_path}_${activeFileName}_${start_line+1}_${end_line+1}`
+                    end_line: end_line + 1,
+                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line+1}_${end_line+1}`
+                }
             }
 
             this.sidebarProvider.sendMessageToSidebar({
