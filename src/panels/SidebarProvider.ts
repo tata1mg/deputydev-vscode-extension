@@ -309,6 +309,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           this.outputChannel.info(
             `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
           );
+        }).catch((error) => {
+          this.outputChannel.info("Embedding failed 3 times...")
+          this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: "retry-embedding-failed",
+            data: error,
+          })
         });
       }
     }

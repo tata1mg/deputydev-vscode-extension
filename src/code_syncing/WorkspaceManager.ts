@@ -47,9 +47,9 @@ export class WorkspaceManager {
     this.subscribeToWorkspaceFolderChanges();
     this.configManager.onDidUpdateConfig(() => {
       this.outputChannel.info('Config updated – reinitializing file watcher');
-      this.initializeFileWatcher(); 
+      this.initializeFileWatcher();
     });
-    
+
   }
 
   /**
@@ -189,7 +189,7 @@ export class WorkspaceManager {
     this.sendReposToSidebar();
     this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
-    
+
   }
 
   /**
@@ -213,7 +213,14 @@ export class WorkspaceManager {
       });
       this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
     }
-    );
+    ).catch((error) => {
+      this.outputChannel.info("Embedding failed 3 times...")
+      this.sidebarProvider.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "retry-embedding-failed",
+        data: error,
+      })
+    });
   }
 
   /**

@@ -375,8 +375,8 @@ export class ChatManager {
       const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
       task = { abortController, asyncIterator: querySolverIterator };
       registerApiChatTask(task);
-  
-    
+
+
       let currentToolRequest: any = null;
       let currentDiffRequest: any = null;
 
@@ -385,7 +385,7 @@ export class ChatManager {
           console.info('apiChat aborted, exiting event loop.');
           break;
         }
-  
+
         switch (event.type) {
           case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
@@ -871,7 +871,7 @@ export class ChatManager {
       console.warn('No active chat request to stop.');
     }
   }
-  
+
 
   async apiSaveSession() {
     // Implementation for saving the chat session.
