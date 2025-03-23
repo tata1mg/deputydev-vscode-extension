@@ -20,4 +20,6 @@ export const API_ENDPOINTS = {
     CONFIG: "/end_user/v1/configs/get-configs",
     CONFIG_ESSENTIALS: "/end_user/v1/configs/get-essential-configs",
     FILE_PATH_SEARCH: "/v1/get-files-in-dir",
+    PING : "/ping",
+    SHUTDOWN : "/v1/shutdown",
 }
