@@ -86,21 +86,21 @@ export class ServerManager {
     private async downloadFile(url: string, outputPath: string): Promise<void> {
         this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
-        // Make sure the directory exists
-        const dir = path.dirname(outputPath);
-        // Make sure the directory exists or is cleaned
-        if (fs.existsSync(dir)) {
-            if (fs.existsSync(this.binaryPath_root)) {
-                fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
-                this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
-            }
+
+        // Always delete this.binaryPath_root and its contents
+        if (fs.existsSync(this.binaryPath_root)) {
+            fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
+            this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
         }
 
-        // Create the directory again (in case it was deleted)
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-            this.outputChannel.appendLine(`Created directory: ${dir}`);
-        }
+
+         // Ensure the directory for the output path exists
+        const dir = path.dirname(outputPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+                this.outputChannel.appendLine(`Created directory: ${dir}`);
+            }
+            
         return new Promise((resolve, reject) => {
             const file = fs.createWriteStream(outputPath);
             let hasError = false;
