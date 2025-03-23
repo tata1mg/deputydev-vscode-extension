@@ -19,6 +19,8 @@ import { AuthService } from './services/auth/AuthService';
 import { ServerManager } from './binaryUp/ServerManager';
 let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
+import { binaryApi } from './services/api/axios';
+import { API_ENDPOINTS } from './services/api/endpoints';
 
 export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
@@ -237,7 +239,9 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
   outputChannel?.info('Extension "DeputyDev" is now deactivated!');
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
+
 }
 
 
