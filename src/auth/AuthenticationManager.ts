@@ -1,6 +1,7 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { ConfigManager } from "../utilities/ConfigManager";
+import { POLLING_MAX_ATTEMPTS } from "../config";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 
@@ -13,7 +14,7 @@ export class AuthenticationManager {
     ) {}
 
     public async pollSession(supabaseSessionId: string) {
-        const maxAttempts: number = 10;
+        const maxAttempts: number = POLLING_MAX_ATTEMPTS;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);

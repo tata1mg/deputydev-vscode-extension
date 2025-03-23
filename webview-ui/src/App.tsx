@@ -36,7 +36,7 @@ function App() {
 
 
     window.addEventListener('message', handleMessage); // Listen for messages
-    window.addEventListener('focus', handleFocus);
+    // window.addEventListener('focus', handleFocus);
 
 
     return () => window.removeEventListener('message', handleMessage);

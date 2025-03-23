@@ -1,5 +1,7 @@
+import { get } from "lodash";
 import { api, binaryApi } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
+import { getBinaryHost } from "../../config";
 
 export class AuthService {
     public async getSession(supabaseSessionId: string): Promise<any> {
@@ -35,7 +37,7 @@ export class AuthService {
             "Authorization": `Bearer ${authToken}`,
         }
         try {
-            const response = await binaryApi.post(API_ENDPOINTS.STORE_AUTH_TOKEN, {}, { headers });
+            const response = await binaryApi().post(API_ENDPOINTS.STORE_AUTH_TOKEN, {}, { headers });
             if (response.data.message === "success") {
                 return "success";
             } else {
@@ -49,7 +51,12 @@ export class AuthService {
 
     public async loadAuthToken() {
         try {
-            const response = await binaryApi.get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
+            console.log('Loading auth token');
+            console.log("the host name ")
+            const host= getBinaryHost()
+            console.log("the host name is ",host)
+            const response = await binaryApi().get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
+            console.log('Loaded auth token:', response.data);
             if (response.data.message === "success" && response.data.auth_token) {
                 return response.data.auth_token;
             } else {

@@ -12,12 +12,15 @@ import { ReferenceManager } from './references/ReferenceManager';
 import { ConfigManager } from './utilities/ConfigManager';
 import { setExtensionContext, setSidebarProvider, clearWorkspaceStorage } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
-import {deleteSessionId} from './utilities/contextManager';
+import { deleteSessionId } from './utilities/contextManager';
 import { HistoryService } from './services/history/HistoryService';
 import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
 import { AuthService } from './services/auth/AuthService';
+import { ServerManager } from './binaryUp/ServerManager';
 let outputChannel: vscode.LogOutputChannel;
-
+import { getBinaryHost } from './config';
+import { binaryApi } from './services/api/axios';
+import { API_ENDPOINTS } from './services/api/endpoints';
 
 export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
@@ -31,8 +34,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
   outputChannel.info('Extension "DeputyDev" is now active!');
+
+  // 0) Fetch and store essential config data
   const configManager = new ConfigManager(context, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
+  if (await !configManager.getAllConfigEssentials()) {
+    outputChannel.error('Failed to fetch essential config data.');
+    return;
+  }
+
+  // 0.1 download and executes binary
+  const serverManager = new ServerManager(context, outputChannel, configManager);
+  await serverManager.ensureBinaryExists();
+  await serverManager.startServer();
+  outputChannel.info('this binary host now is ' + getBinaryHost());
 
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(context, configManager);
@@ -55,7 +70,6 @@ export async function activate(context: vscode.ExtensionContext) {
     sidebarProvider.setViewType("chat")
 
   })
-
 
 
   //  2) Choose & Initialize a Diff View Manager
@@ -130,54 +144,54 @@ export async function activate(context: vscode.ExtensionContext) {
 
   new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
-  // const relevantPaths = workspaceManager.getWorkspaceRepos();
+  const relevantPaths = workspaceManager.getWorkspaceRepos();
 
 
-  //   7) Register commands for Accept/Reject etc
-
+    // 7) Register commands for Accept/Reject etc
+//
   // Accept changes in the active file
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
-  //     const editor = vscode.window.activeTextEditor;
-  //     if (!editor) {
-  //       vscode.window.showErrorMessage('No active editor to accept changes for.');
-  //       return;
-  //     }
-  //     const fileUri = editor.document.uri;
-  //     outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
-  //     await diffViewManager.acceptFile(fileUri.fsPath);
-  //     vscode.window.showInformationMessage('Changes accepted successfully.');
-  //   })
-  // );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active editor to accept changes for.');
+        return;
+      }
+      const fileUri = editor.document.uri;
+      outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
+      await diffViewManager.acceptFile(fileUri.fsPath);
+      vscode.window.showInformationMessage('Changes accepted successfully.');
+    })
+  );
 
-  // // Reject changes in the active file
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
-  //     const editor = vscode.window.activeTextEditor;
-  //     if (!editor) {
-  //       vscode.window.showErrorMessage('No active editor to reject changes for.');
-  //       return;
-  //     }
-  //     const fileUri = editor.document.uri;
-  //     await diffViewManager.rejectFile(fileUri.fsPath);
-  //     vscode.window.showInformationMessage('Changes rejected successfully.');
-  //   })
-  // );
+  // Reject changes in the active file
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showErrorMessage('No active editor to reject changes for.');
+        return;
+      }
+      const fileUri = editor.document.uri;
+      await diffViewManager.rejectFile(fileUri.fsPath);
+      vscode.window.showInformationMessage('Changes rejected successfully.');
+    })
+  );
 
-  // // If you want commands for accepting or rejecting ALL tracked files:
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
-  //     outputChannel.info(`Accepting changes for all file`);
-  //     await diffViewManager.acceptAllFile();
-  //     vscode.window.showInformationMessage('All changes accepted.');
-  //   })
-  // );
-  // context.subscriptions.push(
-  //   vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
-  //     await diffViewManager.rejectAllFile();
-  //     vscode.window.showInformationMessage('All changes rejected.');
-  //   })
-  // );
+  // If you want commands for accepting or rejecting ALL tracked files:
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
+      outputChannel.info(`Accepting changes for all file`);
+      await diffViewManager.acceptAllFile();
+      vscode.window.showInformationMessage('All changes accepted.');
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
+      await diffViewManager.rejectAllFile();
+      vscode.window.showInformationMessage('All changes rejected.');
+    })
+  );
 
   // Command to open a diff view for any file path + new content
   context.subscriptions.push(
@@ -225,16 +239,17 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`);
 
-
   //  8) Show the output channel if needed & start server
 
   chatService.start();
   outputChannel.show();
 }
 
-export function deactivate() {
+export async function deactivate() {
   outputChannel?.info('Extension "DeputyDev" is now deactivated!');
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
+
 }
 
 
