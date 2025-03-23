@@ -124,6 +124,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "search-file":
           break;
 
+        // opening browser pages
+        case "open-requested-browser-page":
+          promise = this.openBrowserPage(data);
+          break;
+
         // Logging and Messages
         case "log-to-output":
           promise = this.logToOutput(data);
@@ -179,6 +184,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "initiate-binary":
           promise = this.initiateBinary(data);
           break;
+        case "sign-out":
+          promise = this.signOut();
+          break;
         case "get-sessions":
           promise = this.getSessions(data);
           break;
@@ -223,11 +231,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     });
   }
+  // For browser pages
+  async openBrowserPage(data: { url: string }) {
+    await vscode.env.openExternal(vscode.Uri.parse(data.url));
+  }
+
   // For authentication
   private async initiateLogin(data: any) {
     const authenticationManager = new AuthenticationManager(this.context , this.configManager);
     const status = await authenticationManager.initiateAuthentication();
-    this.sendMessageToSidebar(status);
+    if (status === "AUTHENTICATION_FAILED") {
+      this.setViewType("error");
+    } else {
+      this.sendMessageToSidebar(status);
+    }
+  }
+
+  async signOut() {
+    const response = await this.authService.deleteAuthToken();
+    if (response === "success") {
+      this.outputChannel.info("Signed out successfully");
+      this.setViewType("auth");
+    }
   }
 
   // For Binary init
@@ -284,6 +309,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           this.outputChannel.info(
             `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
           );
+        }).catch((error) => {
+          this.outputChannel.info("Embedding failed 3 times...")
+          this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: "retry-embedding-failed",
+            data: error,
+          })
         });
       }
     }
@@ -492,7 +524,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",

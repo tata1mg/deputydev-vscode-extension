@@ -8,6 +8,8 @@ import Loader from './views/loader';
 import History from './views/history';
 import Auth from './views/auth';
 import { useAuthStore } from './stores/authStore';
+import Profile from './views/profile';
+import Error from './views/error';
 
 function App() {
   const extensionState = useExtensionStore();
@@ -47,17 +49,23 @@ function App() {
     case 'chat':
       // TODO: Bypassing auth for development
       view =  <Chat />;
-      // view = isAuthenticated ? <Chat /> : <Auth />; 
+      // view = isAuthenticated ? <Chat /> : <Auth />;
+      break;
+    case 'profile':
+      view = <Profile />
       break;
     case 'setting':
-      // view = isAuthenticated ? <Setting /> : <Auth />;  
-      view = <Setting />;  
+      // view = isAuthenticated ? <Setting /> : <Auth />;
+      view = <Setting />;
       break;
     case 'loader':
       view =  <Loader />;
       break;
     case 'history':
       view = isAuthenticated ? <History /> : <Auth />;
+      break;
+    case 'error':
+      view = <Error />
       break;
     default:
       view = null;
