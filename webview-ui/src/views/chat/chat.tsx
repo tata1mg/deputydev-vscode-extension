@@ -378,7 +378,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mx-2 mt-4">
+      <div className="absolute bottom-0 left-0 right-0 mx-2 mt-3.5">
         <div className="">
           {showAutocomplete && (
             <div className="w-full">
@@ -420,7 +420,7 @@ export function ChatUI() {
           )}
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            <div className="flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+            <div className="flex flex-wrap mb-1 items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -441,7 +441,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`scrollbar-thumb-gray-500 relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-8 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""

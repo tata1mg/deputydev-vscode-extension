@@ -1,8 +1,6 @@
 import axios from "axios";
-import { UsageTrackingRequest } from "../../types";
-
-const RUDDERSTACK_WRITE_KEY = "***REMOVED***"; // Replace with your actual write key
-const RUDDERSTACK_URL = "https://rudderapi.1mg.com/v1/track";
+import { UsageTrackingRequest} from "../../types";
+import {RUDDERSTACK_WRITE_KEY , RUDDERSTACK_URL } from "../../config";
 
 export class UsageTrackingService {
   public async trackUsage(payload: UsageTrackingRequest): Promise<void> {
