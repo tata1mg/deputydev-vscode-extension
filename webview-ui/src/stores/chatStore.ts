@@ -183,7 +183,6 @@ export const useChatStore = create(
           try {
             for await (const event of stream) {
               useChatStore.setState({showSkeleton: false})
-              logToOutput("info", `Event: ${JSON.stringify(event)}`);
               switch (event.name) {
                 case "TEXT_START": {
                   // Initialize a new current message with the desired structure
