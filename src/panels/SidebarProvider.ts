@@ -241,7 +241,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const time = end - start;
     this.outputChannel.info(`Time taken to load auth token: ${time}ms`);
     this.context.workspaceState.update("authToken", auth_token);
-    const essential_config = this.configManager.getConfigEssentials();
+    const essential_config = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`Essential config: ${JSON.stringify(essential_config)}`);
     if (!auth_token) {
       return;
@@ -250,7 +250,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const payload = {
       config: {
         DEPUTY_DEV: {
-          HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"] ? essential_config["HOST_AND_TIMEOUT"]["HOST"] : DD_HOST ,
+          HOST: DD_HOST ,
         },
       },
     };
@@ -264,7 +264,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       data: true,
     });
 
-    const response = await binaryApi.post(API_ENDPOINTS.INIT_BINARY, payload, {
+    const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, {
       headers,
     });
     this.outputChannel.info(response.data.status);

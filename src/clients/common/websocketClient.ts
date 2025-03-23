@@ -1,5 +1,6 @@
 import { WebSocket, RawData } from 'ws';
 import { sendProgress } from '../../utilities/contextManager';
+import { CLIENT_VERSION , CLIENT , WS_TIMEOUT} from '../../config';
 
 export class WebSocketClient {
     private socket: WebSocket;
@@ -8,15 +9,15 @@ export class WebSocketClient {
     private resolveResponse!: (value: any) => void;
     private rejectResponse!: (reason: any) => void;
     private timeout: NodeJS.Timeout | null = null;
-    private timeoutDuration: number = 1800000; // 30 minutes timeout
+    private timeoutDuration: number = WS_TIMEOUT; // 30 minutes timeout
 
     constructor(baseUrl: string, endpoint: string, authToken: string) {
         this.url = `${baseUrl}${endpoint}`;
         this.socket = new WebSocket(this.url, {
             headers: {
                 "Authorization": `Bearer ${authToken}`,
-                "X-Client": "VSCODE_EXT",
-                "X-Client-Version": "0.0.1"
+                "X-Client": CLIENT,
+                "X-Client-Version": CLIENT_VERSION
             }
         });
 
