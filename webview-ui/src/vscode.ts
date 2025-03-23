@@ -336,7 +336,7 @@ addCommandEventListener("progress-bar", ({data}) => {
 
 addCommandEventListener("retry-embedding-failed", ({ data }) => {
   console.error("Retry embedding failed:", data);
-  // You might want to show an error message to the user here
+  useChatStore.setState({showEmbeddingFailed: true});
 });
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;

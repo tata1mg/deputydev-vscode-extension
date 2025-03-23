@@ -43,6 +43,7 @@ export function ChatUI() {
     showAllSessions,
     sessions,
     ChatAutocompleteOptions,
+    showEmbeddingFailed,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
@@ -407,7 +408,13 @@ export function ChatUI() {
             ))}
           </div>
 
-          {repoSelectorEmbedding && (
+          {showEmbeddingFailed && (
+            <div className="p-4 text-red-500 text-md text-center">
+              <p>Indexing Failed !!!</p>
+            </div>
+          )}
+
+          {repoSelectorEmbedding && showEmbeddingFailed  === false && (
             <div className="mb-[2px] w-full">
               <ProgressBar progress={useChatStore.getState().progressBar} />
             </div>

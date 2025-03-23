@@ -80,6 +80,7 @@ export const useChatStore = create(
         | undefined,
       progressBar: 0,
       userData: {} as UserData,
+      showEmbeddingFailed: false,
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
