@@ -5,7 +5,7 @@
   "version": "0.0.1",
   "license": "UNLICENSED",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.91.0"
   },
   "categories": [
     "Other"
@@ -215,7 +215,7 @@
     "@types/lodash": "^4.17.16",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.10.7",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "1.91.0",
     "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^8.21.0",
     "@typescript-eslint/parser": "^8.21.0",
@@ -229,6 +229,7 @@
     "vscode-test": "^1.6.1"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "axios": "^1.7.9",
     "deepmerge": "^4.3.1",
     "diff": "^7.0.0",
@@ -240,6 +241,7 @@
     "nanoid": "3",
     "path": "^0.12.7",
     "sse.js": "^2.6.0",
+    "tar": "^7.4.3",
     "ts-import": "4.0.0-beta.6",
     "uuid": "^11.0.5",
     "ws": "^8.18.1"

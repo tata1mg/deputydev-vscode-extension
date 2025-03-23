@@ -3,6 +3,8 @@ import { api } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { AuthService } from '../services/auth/AuthService';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { CLIENT } from '.././config';
+import * as os from 'os';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -20,12 +22,43 @@ export class ConfigManager {
     this.outputChannel = outputChannel;
   }
 
+
+  /**
+   * Returns mapped OS and architecture values expected by the backend.
+   */
+  private getMappedOsAndArch(): { os: string; arch: string } {
+    const rawPlatform = os.platform(); // 'darwin', 'linux', etc.
+    const rawArch = os.arch();         // 'x64', 'arm64', etc.
+
+    const platformMap: Record<string, string> = {
+      darwin: 'Darwin',
+      linux: 'Linux',
+      win32: 'Windows'
+    };
+
+    const archMap: Record<string, string> = {
+      x64: 'x86_64',
+      arm64: 'arm64'
+    };
+
+    const mappedPlatform = platformMap[rawPlatform] || rawPlatform;
+    const mappedArch = archMap[rawArch] || rawArch;
+
+    return { os: mappedPlatform, arch: mappedArch };
+  }
+
+
   /**
    * Fetches and stores the essential config data in workspace state and constant.
    */
   public async fetchAndStoreConfigEssentials(): Promise<void> {
     try {
-      const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS, {params: {consumer: "VSCODE_EXT"}});
+      const { os: mappedOs, arch: mappedArch } = this.getMappedOsAndArch();
+      const response = await api.get(API_ENDPOINTS.CONFIG_ESSENTIALS, {params: {
+        consumer: CLIENT,
+        os: mappedOs,
+        arch: mappedArch 
+      }});
       this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
       if (response.data && response.data.is_success) {
         this.configEssentials = response.data.data;
@@ -49,7 +82,7 @@ export class ConfigManager {
       const headers = {
         "Authorization": `Bearer ${auth_token}`
       }
-      const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: "VSCODE_EXT"}, headers });
+      const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: CLIENT}, headers });
       if (response.data && response.data.is_success) {
         refreshCurrentToken(response.headers)
         this.configData = response.data.data;
@@ -65,16 +98,46 @@ export class ConfigManager {
   }
 
   /**
-   * Retrieves the stored essential config data from constant or returns a specific value if a key is provided.
+   * Retrieves the entire essential config data from constant.
    */
-  public getConfigEssentials(key?: string): any {
-    return key ? this.configEssentials[key] : this.configEssentials;
+  public getAllConfigEssentials(): Record<string, any> {
+    return this.configEssentials;
   }
 
   /**
-   * Retrieves the stored general config data from constant or returns a specific value if a key is provided.
+   * Retrieves a specific value from the essential config data using the provided key.
+   * Falls back to workspace state if not present in memory.
    */
-  public getConfig(key?: string): any {
-    return key ? this.configData[key] : this.configData;
+  public getConfigEssentialByKey(key: string): any {
+    const value = this.configEssentials[key];
+    if (value !== undefined) {
+      return value;
+    }
+
+    const stored = this.context.workspaceState.get<Record<string, any>>(this.CONFIG_ESSENTIALS_KEY);
+    return stored ? stored[key] : undefined;
+  }
+
+  /**
+   * Retrieves the entire general config data from constant.
+   */
+  public getAllConfig(): Record<string, any> {
+    return this.configData;
+  }
+
+
+
+  /**
+   * Retrieves a specific value from the general config data using the provided key.
+   * Falls back to workspace state if not present in memory.
+   */
+  public getConfigByKey(key: string): any {
+    const value = this.configData[key];
+    if (value !== undefined) {
+      return value;
+    }
+
+    const stored = this.context.workspaceState.get<Record<string, any>>(this.CONFIG_KEY);
+    return stored ? stored[key] : undefined;
   }
 }
