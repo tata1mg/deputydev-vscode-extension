@@ -164,7 +164,7 @@
         {
           "id": "deputydev-sidebar-view",
           "title": "DeputyDev Extension",
-          "icon": "assets/DD_Logo.svg"
+          "icon": "assets/DD_Logo.png"
         }
       ]
     },
@@ -174,7 +174,7 @@
           "type": "webview",
           "id": "deputydev-sidebar",
           "name": "AI Assistant",
-          "icon": "assets/DD_Logo.svg"
+          "icon": "assets/DD_Logo.png"
         }
       ]
     },
