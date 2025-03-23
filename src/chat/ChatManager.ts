@@ -563,7 +563,7 @@ export class ChatManager {
       const headers = {
         "Authorization": `Bearer ${authToken}`
       }
-      const response = await binaryApi.post(API_ENDPOINTS.DIFF_APPLIER, {
+      const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, {
         repo_path: repo_path,
         file_path_to_diff_map: file_path_to_diff_map,
       }, { headers });
@@ -593,7 +593,7 @@ export class ChatManager {
       const headers = {
         "Authorization": `Bearer ${authToken}`
       }
-      const response = await binaryApi.post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+      const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
         repo_path: repo_path,
         search_terms: search_terms,
       }, { headers });
@@ -621,7 +621,7 @@ export class ChatManager {
       const headers = {
         "Authorization": `Bearer ${authToken}`
       }
-      const response = await binaryApi.post(API_ENDPOINTS.FILE_PATH_SEARCH, {
+      const response = await binaryApi().post(API_ENDPOINTS.FILE_PATH_SEARCH, {
         repo_path: repo_path,
         directory: directory,
         search_terms: search_terms,
