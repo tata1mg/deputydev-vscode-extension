@@ -1,7 +1,8 @@
 export const API_ENDPOINTS = {
     GET_SESSION: "/end_user/v1/auth/get-session",
     VERIFY_AUTH_TOKEN: "/end_user/v1/auth/verify-auth-token",
-    QUERY_SOLVER: "/end_user/v2/code-gen/generate-code",
+    QUERY_SOLVER: "/production",
+    //QUERY_SOLVER: "/end_user/v2/code-gen/generate-code-local-connection",
     STORE_AUTH_TOKEN: "/v1/auth/store_token",
     LOAD_AUTH_TOKEN: "/v1/auth/load_token",
     RELEVANT_CHUNKS: "/v1/relevant_chunks",
