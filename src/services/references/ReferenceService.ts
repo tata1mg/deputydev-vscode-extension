@@ -6,7 +6,7 @@ export class ReferenceService {
     console.log(`Keyword Search ${JSON.stringify(payload)}`)
     let response;
     try {
-      response = await binaryApi.post(API_ENDPOINTS.FOCUS_SEARCH, payload);
+      response = await binaryApi().post(API_ENDPOINTS.FOCUS_SEARCH, payload);
       return response.data;
     } catch (error) {
       console.error("Error in getReference API call:", error);
@@ -17,7 +17,7 @@ export class ReferenceService {
     console.log(`Keyword Type Search ${JSON.stringify(payload)}`)
     let response;
     try {
-      response = await binaryApi.post(
+      response = await binaryApi().post(
         API_ENDPOINTS.FOCUS_SEARCH,
         payload
       );
