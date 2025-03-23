@@ -38,8 +38,9 @@ export const fetchRelevantChunks = async (
   if (!authToken) {
     throw new Error("Authentication token is required");
   }
-
-  const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.RELEVANT_CHUNKS, authToken);
+  const Websocket_host = getBinaryWsHost();
+  console.log("websocket host:", Websocket_host);
+  const client = new WebSocketClient(Websocket_host, API_ENDPOINTS.RELEVANT_CHUNKS, authToken);
   try {
     return await client.send({
       ...params

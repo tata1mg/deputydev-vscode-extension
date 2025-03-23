@@ -2,19 +2,15 @@ import * as fs from 'fs';
 import * as https from 'https';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
-import { binaryApi } from '../services/api/axios'; 
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import * as tar from 'tar';
 import { ConfigManager } from '../utilities/ConfigManager';
 import * as crypto from 'crypto';
-import { REGISTRY_FILE, setBinaryInfo } from './BinaryPort';
 import axios from 'axios';
-import { spawn, SpawnOptions, ChildProcess } from 'child_process';
-export let port_no : number = 0;
-import * as os from 'os';
+import { spawn, SpawnOptions } from 'child_process';
+import { FIRST_PING_ATTEMPTS,MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
-
+let BINARY_PORT: number | null = null;
 export class ServerManager {
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.OutputChannel;
@@ -147,56 +143,83 @@ export class ServerManager {
             });
         });
     }
-
 /** Extract a tar file */
 private async decryptAndExtract(encPath: string, extractTo: string): Promise<void> {
     const tempTarPath = path.join(extractTo, 'binary.tar.gz');
     const password = this.essential_config["BINARY"]["password"];
-    const keyHex = this.essential_config["BINARY"]["keyHex"]; 
-    const ivHex = this.essential_config["BINARY"]["IVHex"];
-    if (!password) {
-        vscode.window.showErrorMessage('No password found in config.');
+    const SALT_LENGTH = 16;
+    const IV_LENGTH = 16;
+    const KEY_LENGTH = 32;
+    const HMAC_LENGTH = 32;
+    const ITERATIONS = 100000;
+
+    this.outputChannel.appendLine(`Starting decryption of: ${encPath}`);
+    this.outputChannel.appendLine(`Will extract to: ${extractTo}`);
+    this.outputChannel.appendLine(`Temporary tar path: ${tempTarPath}`);
+
+    const inputBuffer = fs.readFileSync(encPath);
+    this.outputChannel.appendLine(`Read encrypted file. Total size: ${inputBuffer.length} bytes`);
+
+    const salt = inputBuffer.subarray(0, SALT_LENGTH);
+    const iv = inputBuffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
+    const ciphertext = inputBuffer.subarray(SALT_LENGTH + IV_LENGTH, inputBuffer.length - HMAC_LENGTH);
+    const receivedHmac = inputBuffer.subarray(-HMAC_LENGTH);
+
+    this.outputChannel.appendLine(`Parsed salt (${SALT_LENGTH} bytes), IV (${IV_LENGTH} bytes), ciphertext (${ciphertext.length} bytes), HMAC (${HMAC_LENGTH} bytes)`);
+
+    this.outputChannel.appendLine(`Deriving key using PBKDF2...`);
+    const key = crypto.pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, 'sha256');
+    this.outputChannel.appendLine(`Key derivation complete.`);
+
+    this.outputChannel.appendLine(`Verifying HMAC...`);
+    const hmac = crypto.createHmac('sha256', key);
+    hmac.update(ciphertext);
+    const expectedHmac = hmac.digest();
+
+    if (!crypto.timingSafeEqual(receivedHmac, expectedHmac)) {
+        vscode.window.showErrorMessage('Decryption failed: HMAC does not match. File may be tampered.');
+        this.outputChannel.appendLine('HMAC verification failed. Aborting decryption.');
         return;
     }
+    this.outputChannel.appendLine('HMAC verified successfully.');
 
-
-
-
-    const key = Buffer.from(keyHex, 'hex');
-    const iv = Buffer.from(ivHex, 'hex');
-
+    this.outputChannel.appendLine('Decrypting ciphertext...');
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    const input = fs.createReadStream(encPath);
-    const output = fs.createWriteStream(tempTarPath);
+    const decrypted = Buffer.concat([
+        decipher.update(ciphertext),
+        decipher.final()
+    ]);
+    this.outputChannel.appendLine(`Decryption complete. Decrypted size: ${decrypted.length} bytes`);
 
-    this.outputChannel.appendLine('Decrypting with fixed key/iv (no salt)...');
+    this.outputChannel.appendLine(`Writing decrypted tar to: ${tempTarPath}`);
+    fs.writeFileSync(tempTarPath, decrypted);
+    this.outputChannel.appendLine('Decrypted tar file written.');
 
-    await new Promise<void>((resolve, reject) => {
-        input.pipe(decipher).pipe(output)
-            .on('finish', () => {
-                this.outputChannel.appendLine('Decryption complete.');
-                resolve();
-            })
-            .on('error', reject);
-    });
-
-    this.outputChannel.appendLine(`Extracting to ${extractTo}...`);
+    this.outputChannel.appendLine(`Starting extraction of tar file to: ${extractTo}`);
     try {
         await tar.x({ file: tempTarPath, cwd: extractTo });
         this.outputChannel.appendLine('Extraction complete.');
 
-        const binaryPath = path.join(this.binaryPath_root, this.essential_config["BINARY"]["service_path"] ); // or your actual binary name
+        const binaryPath = path.join(this.binaryPath_root, this.essential_config["BINARY"]["service_path"]);
+        this.outputChannel.appendLine(`Setting executable permission on: ${binaryPath}`);
         fs.chmodSync(binaryPath, 0o755);
-        this.outputChannel.appendLine(`Set executable permission on: ${binaryPath}`);
+        this.outputChannel.appendLine(`Executable permission set.`);
 
+        this.outputChannel.appendLine(`Cleaning up: ${encPath}`);
         fs.unlinkSync(encPath);
+        this.outputChannel.appendLine(`Deleted: ${encPath}`);
+
+        this.outputChannel.appendLine(`Cleaning up: ${tempTarPath}`);
         fs.unlinkSync(tempTarPath);
-        this.outputChannel.appendLine(`Cleaned up: ${encPath}, ${tempTarPath}`);
+        this.outputChannel.appendLine(`Deleted: ${tempTarPath}`);
+
+        this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
     } catch (err) {
-        this.outputChannel.appendLine(`Extraction failed: ${err}`);
+        this.outputChannel.appendLine(`❌ Extraction failed: ${err}`);
         throw err;
     }
 }
+
 
     
 
@@ -217,7 +240,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     }
 
     private async findAvailablePort([min, max]: number[]): Promise<number | null> {
-        const maxAttempts = 20;
+        const maxAttempts = MAX_PORT_ATTEMPTS;
 
         for (let i = 0; i < maxAttempts; i++) {
             const port = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -232,12 +255,8 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
 
     private async tryReuseExistingServer(): Promise<boolean> {
-        if (!fs.existsSync(REGISTRY_FILE)) return false;
-
         try {
-            const content = fs.readFileSync(REGISTRY_FILE, 'utf-8');
-            const registry = JSON.parse(content);
-            const existingPort = registry?.binary?.port;
+            const existingPort = getBinaryPort();
 
             if (!existingPort) return false;
 
@@ -245,7 +264,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             if (response?.status === 200) {
                 vscode.window.showInformationMessage('Server is already running.');
                 this.outputChannel.appendLine(`🔄 Reusing running server at port ${existingPort}`);
-                port_no = existingPort;
+                setBinaryPort(existingPort);
                 return true;
             }
         } catch (err) {
@@ -266,7 +285,6 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     /** Start the server */
     public async startServer(): Promise<void> {
         this.outputChannel.appendLine('Sthe registry file path is ');
-        this.outputChannel.appendLine(REGISTRY_FILE);
         const serviceExecutable = this.getServiceExecutablePath();
         const portRange: number[] | undefined = this.essential_config?.["BINARY"]?.["port_range"];
         this.outputChannel.appendLine(`Starting server with binary: ${serviceExecutable}`);
@@ -296,29 +314,22 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 this.outputChannel.appendLine('❌ No available port found in range.');
                 return;
             }
-            port_no = port;
+            setBinaryPort(port);
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
             
-            let spawnOptions: SpawnOptions;
-            
-            const command = `nohup "${serviceExecutable}" ${port} > /dev/null 2>&1 < /dev/null &`;
-
-            const serverProcess = spawn('sh', ['-c', command], {
-              detached: true,
-              stdio: 'ignore',
-            });
-            serverProcess.unref();
-            
-            
-
+            const spawnOptions: SpawnOptions = {
+                stdio: ['ignore', 'pipe', 'pipe','inherit'],
+                detached: false,                   // Important: this keeps child tied to parent
+                shell: false                       // Don't launch via shell
+              };
+              
+              const serverProcess = spawn(serviceExecutable, [port.toString()], spawnOptions);              
 
             serverProcess.stdout?.on('data', (data) => this.outputChannel.appendLine(`Server: ${data}`));
             serverProcess.stderr?.on('data', (data) => this.outputChannel.appendLine(`Server Error: ${data}`));
             // Write to registry before launching
             if (serverProcess.pid !== undefined) {
-                setBinaryInfo(port, serverProcess.pid);
             } else {
-                setBinaryInfo(port);
                 this.outputChannel.appendLine('❌ Failed to retrieve server process PID just saving pid.');
             }
 
@@ -353,7 +364,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Poll /ping endpoint until server responds */
     private async waitForServer(port:number): Promise<boolean> {
-        const maxAttempts = 150;
+        const maxAttempts = FIRST_PING_ATTEMPTS;
         let attempt = 0;
 
         while (attempt < maxAttempts) {
