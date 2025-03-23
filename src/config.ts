@@ -44,17 +44,17 @@ let MainConfig: object | {} = {};
 let EssentialConfig: object | {} = {};
 
 
-export function setMainConfig(config: Record<string, any>) {
-  EssentialConfig = config;
+export function setMainConfig(config: any) {
+  MainConfig = config;
 }
 
 export function setEssentialConfig(config: any) {
-  setMainConfig(config);
+  EssentialConfig = config;
 }
 
 
 export function getMainConfig(): any {
-  return EssentialConfig;
+  return MainConfig;
 }
 
 export function getEssentialConfig(): any {
