@@ -27,6 +27,12 @@ export function CodeActionPanel({
   const combined = { language, filepath, is_diff, content, inline };
 
   const handleCopy = () => {
+    const usageTrackingData: UsageTrackingRequest = {
+      event_type: "copied",
+      file_path: filepath || "",
+      lines: content.split("\n").length,
+    };
+    usageTracking(usageTrackingData);
     navigator.clipboard.writeText(content);
     alert("Code copied to clipboard!");
   };
