@@ -106,18 +106,22 @@ export const updateVectorStoreWithResponse = async (
   console.log("updateVectorStoreWithResponse with params:", params);
   const client = new WebSocketClient(BINARY_HOST_WS, API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
-  try {
-    const result = await client.send({
-      ...params,
-      sync: true
-    });
-    console.log("✅ Response received from WebSocket:", result);
-    return result;
-  } catch (error) {
-    console.error("❌ Error updating vector store:", error);
-    throw error;
-  } finally {
-    client.close();
+  let attempts = 0;
+  while (attempts < 3) {
+    try {
+      const result = await client.send({
+        ...params,
+        sync: true
+      });
+      console.log("✅ Response received from WebSocket:", result);
+      return result;
+    } catch (error) {
+      attempts++;
+      console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
+      if (attempts === 3) {
+        throw new Error(`Failed to update vector store after 3 attempts: ${error}`);
+      }
+    }
   }
 };
 
