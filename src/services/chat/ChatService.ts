@@ -1,4 +1,3 @@
-// file: webview-ui/src/services/querySolverService.ts
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
 import {api} from '../api/axios';
@@ -9,6 +8,9 @@ import { RawData } from "ws";
 import { BaseWebSocketClient } from "../../clients/baseClients/baseWebsocketClient";
 import { DD_HOST_WS } from '../../config';
 
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
 
 interface StreamEvent {
   type: string;
@@ -16,16 +18,37 @@ interface StreamEvent {
 }
 
 export class QuerySolverService {
+  private async getDeputyDevRulesContent(): Promise<string | null> {
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+      return null;
+    }
+
+    const rootPath = workspaceFolders[0].uri.fsPath;
+    const filePath = path.join(rootPath, ".deputydevrules");
+
+    try {
+      if (fs.existsSync(filePath)) {
+        console.log("Reading .deputydevrules file from workspace");
+        return fs.readFileSync(filePath, "utf8");
+      }
+      console.log("No .deputydevrules file found in workspace");
+    } catch (error) {
+      console.error("Error reading .deputydevrules file:", error);
+    }
+    return null;
+  }
+
   public async *querySolver(
-    payload: unknown,
+    payload: Record<string, any>,
     signal?: AbortSignal
   ): AsyncIterableIterator<any> {
-    // Dynamically retrieve the current session ID for each call
     const authService = new AuthService();
     const authToken = await authService.loadAuthToken();
     if (!authToken) {
       throw new Error("Missing auth token. Ensure user is logged in.");
     }
+
     const currentSessionId = getSessionId();
     let streamDone = false;
     let streamError: Error | null = null;
@@ -67,7 +90,6 @@ export class QuerySolverService {
     websocketClient.send(dataToSend);
     console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
-    // ✅ Abort handling - immediately kill the stream if signal is aborted
     if (signal) {
       signal.addEventListener('abort', () => {
         console.warn('querySolver stream aborted by user');
@@ -76,7 +98,6 @@ export class QuerySolverService {
       });
     }
 
-    // Yield events as they are received, and handle any errors that occur
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
         throw streamError;
@@ -90,7 +111,6 @@ export class QuerySolverService {
       if (eventsQueue.length > 0) {
         yield eventsQueue.shift()!;
       } else {
-        // Wait a short period before checking the queue again
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
