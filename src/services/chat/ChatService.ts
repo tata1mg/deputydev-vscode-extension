@@ -1,14 +1,16 @@
 // file: webview-ui/src/services/querySolverService.ts
-import { createParser, type EventSourceMessage } from 'eventsource-parser';
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
 import {api} from '../api/axios';
 import {getSessionId} from "../../utilities/contextManager";
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
+import { RawData } from "ws";
+import { BaseWebSocketClient } from "../../clients/baseClients/baseWebsocketClient";
+import { DD_HOST_WS } from '../../config';
 
 
-interface SSEEvent {
+interface StreamEvent {
   type: string;
   content?: any; // content can be undefined or empty
 }
@@ -23,74 +25,51 @@ export class QuerySolverService {
       throw new Error("Missing auth token. Ensure user is logged in.");
     }
     const currentSessionId = getSessionId();
-    let response;
-    try {
-      response = await api({
-        url: API_ENDPOINTS.QUERY_SOLVER,
-        method: 'get',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-REQUEST-ID': uuidv4(),
-          'Accept': 'text/event-stream',
-          'X-Session-Id': currentSessionId,
-          'Authorization': 'Bearer ' + authToken
-        },
-        data: payload,
-        responseType: 'stream'
-      });
-    } catch (error) {
-      console.error('Error in querySolver API call:', error);
-      throw error;
-    }
-    refreshCurrentToken(response.headers)
-    const stream = response.data;
     let streamDone = false;
     let streamError: Error | null = null;
-    const eventsQueue: SSEEvent[] = [];
+    const eventsQueue: StreamEvent[] = [];
 
-    // Parser: push every event with its type and content (if any)
-    const parser = createParser({
-      onEvent: (event: EventSourceMessage) => {
-        try {
-          if (!event.data) return;
-          const parsedData = JSON.parse(event.data);
-          eventsQueue.push({ type: parsedData.type, content: parsedData.content });
-        } catch (error) {
-          console.warn('SSE Parsing Error:', error);
+    // websocket stream message hadler
+    const handleMessage = (event: RawData): "RESOLVE" | "REJECT" | "WAIT" => {
+      try {
+        const messageData = JSON.parse(event.toString());
+        console.log("Received WebSocket message in parser:", messageData);
+        if (messageData.type === 'STREAM_END') {
+          streamDone = true;
+          return "RESOLVE";
+        } else if (messageData.type === 'ERROR') {
+          streamDone = true;
+          streamError = Error("Some error");
+          return "REJECT";
         }
-      },
-      onRetry: (interval: number) => {
-        console.warn(`SSE: Server requested retry after ${interval}ms`);
-      },
-      onError: (error: Error) => {
-        console.error('SSE Parser Error:', error);
-        streamDone = true;
-        streamError = error;
-      },
-      onComment: (comment: string) => {
-        console.debug('SSE Comment:', comment);
-      },
-    });
+        eventsQueue.push({ type: messageData.type, content: messageData.content })
+      }
+      catch (error) {
+        console.error("❌ Error parsing WebSocket message:", error);
+        return "REJECT";
+      }
+      return "WAIT";
+    }
 
-    stream.on('data', (chunk: Buffer) => {
-      parser.feed(chunk.toString());
-    });
+    let websocketClient = new BaseWebSocketClient(
+      DD_HOST_WS,
+      API_ENDPOINTS.QUERY_SOLVER,
+      authToken,
+      handleMessage,
+      {...(currentSessionId ? {"X-Session-ID" : currentSessionId.toString()} : {})}
+    );
 
-    stream.on('end', () => {
-      streamDone = true;
-    });
+    let dataToSend: any = payload;
 
-    stream.on('error', (err: any) => {
-      console.error('Stream Error:', err);
-      streamDone = true;
-      streamError = err;
-    });
+    //refreshCurrentToken(response.headers);
+    websocketClient.send(dataToSend);
+    console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
     // ✅ Abort handling - immediately kill the stream if signal is aborted
     if (signal) {
       signal.addEventListener('abort', () => {
         console.warn('querySolver stream aborted by user');
-        stream.destroy(); // ✅ force close
+        websocketClient.close();
         streamDone = true;
       });
     }
@@ -102,7 +81,7 @@ export class QuerySolverService {
       }
       if (signal?.aborted) {
         console.warn('querySolver aborted during loop');
-        stream.destroy();
+        websocketClient.close();
         return;
       }
       
@@ -113,5 +92,7 @@ export class QuerySolverService {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
+
+    websocketClient.close();
   }
 }
