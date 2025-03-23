@@ -1,9 +1,7 @@
+import { UsageTrackingRequest } from "@/types";
 import { SnippetReference } from "./CodeBlockStyle";
 
-import {
-  writeFile
-} from '@/commandApi';
-
+import { logToOutput, usageTracking, writeFile } from "@/commandApi";
 
 export interface CodeActionPanelProps {
   language: string;
@@ -15,10 +13,6 @@ export interface CodeActionPanelProps {
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
 }
-
-
-
-
 
 export function CodeActionPanel({
   language,
@@ -34,83 +28,103 @@ export function CodeActionPanel({
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
-    alert('Code copied to clipboard!');
+    alert("Code copied to clipboard!");
+  };
+
+  const handleUsageTracking = (filePath: string, diff: string) => {
+    const lines = diff.split("\n");
+    let numLines = 0;
+    for (const line of lines) {
+      let current_line = line.trim();
+      if (
+        !current_line.startsWith("++") &&
+        !current_line.startsWith("--") &&
+        current_line.length > 0
+      ) {
+        if (line.startsWith("+") || line.startsWith("-")) {
+          numLines++;
+        }
+      }
+    }
+    const usageTrackingData: UsageTrackingRequest = {
+      event_type: "generated",
+      file_path: filePath,
+      lines: numLines,
+    };
+    usageTracking(usageTrackingData);
   };
 
   const handleApply = (filePath: string, diff: string) => {
-    console.log('Apply clicked:', diff);
+    handleUsageTracking(filePath, diff);
     writeFile({ filePath: filePath, raw_diff: diff });
-    alert('Apply diff logic to be implemented.');
+    alert("Apply diff logic to be implemented.");
   };
-  
-  
 
   const handleInsert = () => {
-    console.log('Insert clicked:', content);
-    alert('Insert logic to be implemented.');
+    console.log("Insert clicked:", content);
+    alert("Insert logic to be implemented.");
   };
 
   const snippet = {
     language,
     path: filepath,
     is_diff,
-    content
+    content,
   };
 
   const isApplyDisabled = !diff;
 
   // Extract the filename from the full path
-  const filename = filepath ? filepath.split('/').pop() : '';
+  const filename = filepath ? filepath.split("/").pop() : "";
 
   return (
-    <div className="bg-gray-900 border border-gray-500 rounded-md w-full overflow-hidden">
-      <div className="flex justify-between items-center bg-neutral-700 px-3 py-1 border-gray-500 border-b h-8 text-neutral-300 text-xs">
+    <div className="w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
+      <div className="flex h-8 items-center justify-between border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
         {is_diff && filepath ? (
           <span>
-            Edit: <span className="font-medium">{filename}</span>{' '}
-            <span className="text-green-400">+{added_lines || 0}</span>{' '}
+            Edit: <span className="font-medium">{filename}</span>{" "}
+            <span className="text-green-400">+{added_lines || 0}</span>{" "}
             <span className="text-red-400">-{removed_lines || 0}</span>
           </span>
         ) : (
-          <span>{language || 'plaintext'}</span>
+          <span>{language || "plaintext"}</span>
         )}
 
         <div className="flex gap-2">
           <button
-            className="text-neutral-300 hover:text-white text-xs active:scale-90 transition-transform duration-150"
+            className="text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90"
             onClick={handleCopy}
           >
             Copy
           </button>
 
-          {is_diff ? (
-            <button
-              className={`text-neutral-300 hover:text-white text-xs active:scale-90 transition-transform duration-150 ${
-                isApplyDisabled ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              onClick={() => {
-                if (filepath && diff) {
-                  handleApply(filepath, diff);
-                } else {
-                  alert('File path or diff is missing!');
-                }
-              }}              
-              disabled={isApplyDisabled}
-            >
-              Apply
-            </button>
-          ) :  null
+          {
+            is_diff ? (
+              <button
+                className={`text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90 ${
+                  isApplyDisabled ? "cursor-not-allowed opacity-50" : ""
+                }`}
+                onClick={() => {
+                  if (filepath && diff) {
+                    handleApply(filepath, diff);
+                  } else {
+                    alert("File path or diff is missing!");
+                  }
+                }}
+                disabled={isApplyDisabled}
+              >
+                Apply
+              </button>
+            ) : null
 
-          // (
-          //   <button
-          //     className="text-neutral-300 hover:text-white text-xs active:scale-90 transition-transform duration-150"
-          //     onClick={handleInsert}
-          //   >
-          //     Insert
-          //   </button>
-          // )
-
-          
+            // (
+            //   <button
+            //     className="text-neutral-300 hover:text-white text-xs active:scale-90 transition-transform duration-150"
+            //     onClick={handleInsert}
+            //   >
+            //     Insert
+            //   </button>
+            // )
           }
         </div>
       </div>

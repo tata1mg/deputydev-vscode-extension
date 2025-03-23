@@ -15,9 +15,11 @@ interface StreamEvent {
   content?: any; // content can be undefined or empty
 }
 
-
 export class QuerySolverService {
-  public async *querySolver(payload: unknown, signal?: AbortSignal): AsyncIterableIterator<any> {
+  public async *querySolver(
+    payload: unknown,
+    signal?: AbortSignal
+  ): AsyncIterableIterator<any> {
     // Dynamically retrieve the current session ID for each call
     const authService = new AuthService();
     const authToken = await authService.loadAuthToken();
@@ -84,12 +86,12 @@ export class QuerySolverService {
         websocketClient.close();
         return;
       }
-      
+
       if (eventsQueue.length > 0) {
         yield eventsQueue.shift()!;
       } else {
         // Wait a short period before checking the queue again
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
 
