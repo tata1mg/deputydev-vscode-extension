@@ -275,7 +275,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const payload = {
       config: {
         DEPUTY_DEV: {
-          HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"] ? essential_config["HOST_AND_TIMEOUT"]["HOST"] : DD_HOST ,
+          // HOST: essential_config["HOST_AND_TIMEOUT"]["HOST"] ? essential_config["HOST_AND_TIMEOUT"]["HOST"] : DD_HOST ,
+          HOST: DD_HOST ,
         },
       },
     };
