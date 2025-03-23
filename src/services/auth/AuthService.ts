@@ -70,7 +70,7 @@ export class AuthService {
 
     public async deleteAuthToken() {
         try {
-            const response = await binaryApi.post(API_ENDPOINTS.DELETE_AUTH_TOKEN);
+            const response = await binaryApi().post(API_ENDPOINTS.DELETE_AUTH_TOKEN);
             if (response.data.message === "success") {
                 return response.data.message;
             }
