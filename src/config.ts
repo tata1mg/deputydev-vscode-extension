@@ -4,6 +4,7 @@ export const CLIENT = "VSCODE_EXT";
 export const CLIENT_VERSION = "0.0.1";
 // export const DD_HOST = "https://api.deputydev.ai";
 export const DD_HOST = "http://localhost:8084";
+export const DD_HOST_WS = "ws://localhost:8084";
 
 
 // from essential config
