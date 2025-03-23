@@ -286,25 +286,6 @@ export class ChatManager {
     let task: { abortController: AbortController; asyncIterator: AsyncIterableIterator<any> } | undefined;
     try {
       this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
-      // if (payload.referenceList?.length) {
-      //   payload.focus_items = payload.referenceList;
-      //   for (let i = 0; i < payload.focus_items.length; i++) {
-      //     payload.focus_items[i].index = i;
-      //     const splitKeyword = payload.focus_items[i].keyword?.split(":");
-
-      //     // Ensure the splitKeyword has at least two elements before accessing index [1]
-      //     if (splitKeyword && splitKeyword.length > 1) {
-      //       payload.focus_items[i].value = splitKeyword[1].trim();
-      //     } else {
-      //       // Handle cases where the keyword format is incorrect
-      //       this.outputChannel.error(`Invalid keyword format: ${payload.focus_items[i].keyword}`);
-      //       payload.focus_items[i].value = ""; // Default value or handle error accordingly
-      //     }
-      //   }
-      // }
-
-      this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
-
 
       //get all relevant previous chat queries if any
       let currentSessionId = getSessionId();
@@ -339,14 +320,6 @@ export class ChatManager {
         relevantHistoryQueryIds
       );
 
-      // if (payload.query && currentSessionId !== undefined) {
-      //   const relevant_chunks = await this.processRelevantChunks(
-      //     payload,
-      //     relevantHistoryText
-      //   );
-      //   payload.relevant_chunks = relevant_chunks;
-      // }
-
       if (payload.referenceList) {
         const focus_chunks = await this.getFocusChunks(
           payload,
@@ -375,8 +348,8 @@ export class ChatManager {
       const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
       task = { abortController, asyncIterator: querySolverIterator };
       registerApiChatTask(task);
-  
-    
+
+
       let currentToolRequest: any = null;
       let currentDiffRequest: any = null;
 
@@ -385,7 +358,7 @@ export class ChatManager {
           console.info('apiChat aborted, exiting event loop.');
           break;
         }
-  
+
         switch (event.type) {
           case "RESPONSE_METADATA": {
             if (event.content?.session_id) {
@@ -871,7 +844,7 @@ export class ChatManager {
       console.warn('No active chat request to stop.');
     }
   }
-  
+
 
   async apiSaveSession() {
     // Implementation for saving the chat session.
