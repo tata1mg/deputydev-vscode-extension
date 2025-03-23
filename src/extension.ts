@@ -21,6 +21,7 @@ let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
 import { binaryApi } from './services/api/axios';
 import { API_ENDPOINTS } from './services/api/endpoints';
+import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 
 export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
@@ -116,6 +117,10 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );
+
+  const pinger = new BackgroundPinger(sidebarProvider,serverManager, outputChannel, configManager);
+  pinger.start();
+
 
 
   chatService.setSidebarProvider(sidebarProvider);
