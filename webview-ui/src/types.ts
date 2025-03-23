@@ -172,7 +172,7 @@ export interface WorkspaceStore {
 }
 
 export type UsageTrackingRequest = {
-  event_type: "accepted" | "generated";
+  event_type: "accepted" | "generated" | "copied";
   lines: number;
   file_path: string;
 };
