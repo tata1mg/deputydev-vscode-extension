@@ -52,7 +52,7 @@ export class WorkspaceFileWatcher {
    */
   private loadIgnorePatterns(): void {
     let patterns: string[] = [];
-    const config = this.configManager.getConfig();
+    const config = this.configManager.getAllConfig();
     // Load patterns from .gitignore files recursively.
     patterns = patterns.concat(this.loadGitignorePatternsRecursive(this.activeRepoPath, ''));
     patterns.push('.git/');  // Ignore the entire .git directory

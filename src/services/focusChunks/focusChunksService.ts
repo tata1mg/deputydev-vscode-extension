@@ -6,7 +6,7 @@ export class FocusChunksService {
     console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
     try {
-      response = await binaryApi.post(
+      response = await binaryApi().post(
         API_ENDPOINTS.FOCUS_CHUNKS,
         payload
       );
