@@ -83,6 +83,7 @@ export class QuerySolverService {
     // Yield events as they are received, and handle any errors that occur
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
+        websocketClient.close();
         throw streamError;
       }
       if (signal?.aborted) {
