@@ -61,7 +61,7 @@ export default function Profile() {
           onClick={() => {/* Handle Email button click */ }}
         >
           <div className="flex gap-2">
-            <UserRoundPen />
+            <img src="https://onemg.gumlet.io/dd_profile_24_03.png" alt="profile" className="w-6 h-6" />
             <span>{userData.email}</span>
           </div>
         </button>
@@ -109,7 +109,7 @@ export default function Profile() {
           onClick={handleSignOut}
         >
           <div className="flex gap-2">
-            <LogOut />
+            <img src="https://onemg.gumlet.io/dd_signout_24_03.png" alt="signout" className="w-6 h-6" />
             <span>Sign out</span>
           </div>
         </button>
