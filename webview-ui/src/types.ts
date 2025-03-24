@@ -170,3 +170,9 @@ export interface WorkspaceStore {
   ) => void;
   setActiveRepo: (repoPath: string) => void;
 }
+
+export type UsageTrackingRequest = {
+  event_type: "accepted" | "generated" | "copied";
+  lines: number;
+  file_path: string;
+};

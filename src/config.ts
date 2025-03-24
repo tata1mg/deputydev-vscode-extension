@@ -16,7 +16,8 @@ export const DD_BROWSER_HOST = "https://deputydev.ai";
 
 export const FIRST_PING_ATTEMPTS = 150;
 export const MAX_PORT_ATTEMPTS = 20;
-
+export const RUDDERSTACK_WRITE_KEY = "123"; // this is a dummy key
+export const RUDDERSTACK_URL = "https://rudderapi.1mg.com/v1/track";  
 
 // local binary host
 let BINARY_PORT: number | null = null;

@@ -1,18 +1,20 @@
 // File: src/diff/InlineDiffManager.ts
 
-import { DiffViewManager } from './DiffManager';
-import * as vscode from 'vscode';
-import { diffLines } from 'diff';
+import { DiffViewManager } from "./DiffManager";
+import * as vscode from "vscode";
+import { diffLines } from "diff";
+import { UsageTrackingRequest } from "../types";
+import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 
 type RemovedChange = {
-  type: 'removed';
+  type: "removed";
   line: number;
   count: number;
   value: string;
 };
 
 type AddedChange = {
-  type: 'added';
+  type: "added";
   line: number;
   count: number;
   value: string;
@@ -22,7 +24,7 @@ type Change =
   | RemovedChange
   | AddedChange
   | {
-      type: 'modified';
+      type: "modified";
       removed: RemovedChange;
       added: AddedChange;
     };
@@ -35,12 +37,10 @@ export class InlineDiffViewManager
   private insertionDecorationType: vscode.TextEditorDecorationType;
   // These properties store decoration types used to visually differentiate deleted and inserted content in the editor.
 
-
   private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
-// _onDidChangeCodeLenses is an event emitter to notify when the CodeLens should be updated.
-// onDidChangeCodeLenses exposes this event so other components can subscribe to it.
-
+  // _onDidChangeCodeLenses is an event emitter to notify when the CodeLens should be updated.
+  // onDidChangeCodeLenses exposes this event so other components can subscribe to it.
 
   private fileChangeMap = new Map<
     string,
@@ -53,128 +53,142 @@ export class InlineDiffViewManager
 
   // fileChangeMap keeps track of the file changes.
 
-
   constructor(
     private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel,
+    private outputChannel: vscode.LogOutputChannel
   ) {
     super();
 
     // Set initial context value
-    vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
+    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
 
     this.deletionDecorationType = vscode.window.createTextEditorDecorationType({
-      light: { backgroundColor: '#fddbe2' },
-      dark: { backgroundColor: '#3e1c23' },
+      light: { backgroundColor: "#fddbe2" },
+      dark: { backgroundColor: "#3e1c23" },
       isWholeLine: true,
     });
 
-    this.insertionDecorationType = vscode.window.createTextEditorDecorationType({
-      light: { backgroundColor: '#e6fde8' },
-      dark: { backgroundColor: '#1c331e' },
-      isWholeLine: true,
-    });
+    this.insertionDecorationType = vscode.window.createTextEditorDecorationType(
+      {
+        light: { backgroundColor: "#e6fde8" },
+        dark: { backgroundColor: "#1c331e" },
+        isWholeLine: true,
+      }
+    );
 
     this.disposables.push(
       this.deletionDecorationType,
       this.insertionDecorationType,
 
       vscode.workspace.onDidCloseTextDocument((doc) => {
-        if (doc.uri.scheme === 'file' || doc.uri.scheme === 'untitled') {
+        if (doc.uri.scheme === "file" || doc.uri.scheme === "untitled") {
           const uri = doc.uri.toString();
           if (!this.fileChangeMap.has(uri)) {
             return;
           }
           this.fileChangeMap.delete(uri);
           this._onDidChange.fire({
-            type: 'reject',
-            path: doc.uri.scheme === 'file' ? doc.uri.fsPath : doc.uri.path,
+            type: "reject",
+            path: doc.uri.scheme === "file" ? doc.uri.fsPath : doc.uri.path,
           });
-          this.outputChannel.debug(`Cleaned up decorations for ${doc.uri.fsPath}`);
+          this.outputChannel.debug(
+            `Cleaned up decorations for ${doc.uri.fsPath}`
+          );
         }
       }),
 
       // Listens for the event onDidCloseTextDocument, triggered when a document is closed in the editor.Checks if the closed document belongs to either file or untitled schemes.
       // If the document is tracked in fileChangeMap, it:Removes its entry from fileChangeMap.,Fires a change event (_onDidChange) of type 'reject' to indicate the file's changes are no longer valid.
 
-
-      
       // Provide code lenses for file/untitled URIs
       vscode.languages.registerCodeLensProvider(
-        [{ scheme: 'file' }, { scheme: 'untitled' }],
-        this,
+        [{ scheme: "file" }, { scheme: "untitled" }],
+        this
       ),
       this._onDidChangeCodeLenses,
-      // CodeLensProvider for files and untitled documents.. Associates the current instance of InlineDiffViewManager (this) as the provider, 
-      // enabling it to generate and manage CodeLens annotations in the supported documents.Registers a 
-
-
+      // CodeLensProvider for files and untitled documents.. Associates the current instance of InlineDiffViewManager (this) as the provider,
+      // enabling it to generate and manage CodeLens annotations in the supported documents.Registers a
 
       // Registering Commands
 
-      
       // uriStr: string: The string representation of the file's URI where the diff chunk exists.
       // i: number: The index of the specific diff chunk to be accepted.
 
       // Accept single diff chunk
-      vscode.commands.registerCommand('deputydev.AcceptChange', (uriStr: string, i: number) => {
-        if (typeof uriStr !== 'string') {
-          const uri = vscode.window.activeTextEditor?.document.uri;
-          if (!uri) return;
-          uriStr = uri.toString();
+      vscode.commands.registerCommand(
+        "deputydev.AcceptChange",
+        (uriStr: string, i: number) => {
+          if (typeof uriStr !== "string") {
+            const uri = vscode.window.activeTextEditor?.document.uri;
+            if (!uri) return;
+            uriStr = uri.toString();
+          }
+          this.acceptChange(uriStr, i);
         }
-        this.acceptChange(uriStr, i);
-      }),
-      
+      ),
+
       // Reject single diff chunk
-      vscode.commands.registerCommand('deputydev.RejectChange', (uriStr: string, i: number) => {
-        if (typeof uriStr !== 'string') {
-          const uri = vscode.window.activeTextEditor?.document.uri;
-          if (!uri) return;
-          uriStr = uri.toString();
+      vscode.commands.registerCommand(
+        "deputydev.RejectChange",
+        (uriStr: string, i: number) => {
+          if (typeof uriStr !== "string") {
+            const uri = vscode.window.activeTextEditor?.document.uri;
+            if (!uri) return;
+            uriStr = uri.toString();
+          }
+          this.rejectChange(uriStr, i);
         }
-        this.rejectChange(uriStr, i);
-      }),
+      ),
 
       // Accept all changes in a file
-      vscode.commands.registerCommand('deputydev.AcceptAllChanges', (uri: vscode.Uri) => {
-        this.acceptAllChanges(uri);
-      }),
+      vscode.commands.registerCommand(
+        "deputydev.AcceptAllChanges",
+        (uri: vscode.Uri) => {
+          this.acceptAllChanges(uri);
+        }
+      ),
 
       // Reject all changes in a file
-      vscode.commands.registerCommand('deputydev.RejectAllChanges', (uri: vscode.Uri) => {
-        this.rejectAllChanges(uri);
-      }),
+      vscode.commands.registerCommand(
+        "deputydev.RejectAllChanges",
+        (uri: vscode.Uri) => {
+          this.rejectAllChanges(uri);
+        }
+      ),
 
       // When active editor changes, re-draw decorations
       // if tab or file change. The extension checks the current opened file's URI in fileChangeMap. deputydev.hasChanges - > True if there are changes in the file, False otherwise.
- 
-      vscode.window.onDidChangeActiveTextEditor((editor) => {
 
-        
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
         if (editor) {
           const uri = editor.document.uri.toString();
           const fileChange = this.fileChangeMap.get(uri);
           vscode.commands.executeCommand(
-            'setContext',
-            'deputydev.hasChanges',
-            fileChange !== undefined && fileChange.changes.length > 0,
+            "setContext",
+            "deputydev.hasChanges",
+            fileChange !== undefined && fileChange.changes.length > 0
           );
           if (fileChange) {
-            this.outputChannel.debug('filechange here', fileChange);
+            this.outputChannel.debug("filechange here", fileChange);
             this.drawChanges(editor, fileChange);
           }
         } else {
-          vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
+          vscode.commands.executeCommand(
+            "setContext",
+            "deputydev.hasChanges",
+            false
+          );
         }
-      }),
+      })
     );
   }
 
   /**
    * Provide code lenses for each chunk so the user can individually accept/reject.
    */
-  async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
+  async provideCodeLenses(
+    document: vscode.TextDocument
+  ): Promise<vscode.CodeLens[]> {
     const uri = document.uri.toString();
     const fileChange = this.fileChangeMap.get(uri);
     if (!fileChange) {
@@ -184,24 +198,25 @@ export class InlineDiffViewManager
 
     for (let i = 0; i < fileChange.changes.length; i++) {
       const change = fileChange.changes[i];
-      const line = change.type === 'modified' ? change.removed.line : change.line;
+      const line =
+        change.type === "modified" ? change.removed.line : change.line;
 
       const range = new vscode.Range(
         new vscode.Position(line, 0),
-        new vscode.Position(line, 0),
+        new vscode.Position(line, 0)
       );
 
       codeLenses.push(
         new vscode.CodeLens(range, {
-          title: 'Accept',
-          command: 'deputydev.AcceptChange',
+          title: "Accept",
+          command: "deputydev.AcceptChange",
           arguments: [document.uri.toString(), i],
         }),
         new vscode.CodeLens(range, {
-          title: 'Reject',
-          command: 'deputydev.RejectChange',
+          title: "Reject",
+          command: "deputydev.RejectChange",
           arguments: [document.uri.toString(), i],
-        }),
+        })
       );
     }
     return codeLenses;
@@ -215,13 +230,13 @@ export class InlineDiffViewManager
     editor: vscode.TextEditor,
     fileChange: { changes: Change[] },
     index?: number,
-    count?: number,
+    count?: number
   ) {
     // If we accepted/rejected a chunk, remove it and adjust subsequent line indices of other changes
     if (index !== undefined && count !== undefined) {
       for (let i = index + 1; i < fileChange.changes.length; i++) {
         const change = fileChange.changes[i];
-        if (change.type === 'modified') {
+        if (change.type === "modified") {
           change.removed.line -= count;
           change.added.line -= count;
         } else {
@@ -236,18 +251,18 @@ export class InlineDiffViewManager
     let insertions: vscode.DecorationOptions[] = [];
 
     for (const change of fileChange.changes) {
-      if (change.type === 'removed') {
+      if (change.type === "removed") {
         deletions.push({
           range: new vscode.Range(
             new vscode.Position(change.line, 0),
-            new vscode.Position(change.line + change.count - 1, 0),
+            new vscode.Position(change.line + change.count - 1, 0)
           ),
         });
-      } else if (change.type === 'added') {
+      } else if (change.type === "added") {
         insertions.push({
           range: new vscode.Range(
             new vscode.Position(change.line, 0),
-            new vscode.Position(change.line + change.count - 1, 0),
+            new vscode.Position(change.line + change.count - 1, 0)
           ),
         });
       } else {
@@ -255,18 +270,20 @@ export class InlineDiffViewManager
         deletions.push({
           range: new vscode.Range(
             new vscode.Position(change.removed.line, 0),
-            new vscode.Position(change.removed.line + change.removed.count - 1, 0),
+            new vscode.Position(
+              change.removed.line + change.removed.count - 1,
+              0
+            )
           ),
         });
         insertions.push({
           range: new vscode.Range(
             new vscode.Position(change.added.line, 0),
-            new vscode.Position(change.added.line + change.added.count - 1, 0),
+            new vscode.Position(change.added.line + change.added.count - 1, 0)
           ),
         });
       }
     }
-
 
     // Apply to editor
     editor.setDecorations(this.deletionDecorationType, deletions);
@@ -280,20 +297,21 @@ export class InlineDiffViewManager
    */
   private getChangeIndex(
     editor: vscode.TextEditor,
-    fileChange: { changes: Change[] },
+    fileChange: { changes: Change[] }
   ): number {
     const line = editor.selection.active.line;
 
     for (let i = 0; i < fileChange.changes.length; i++) {
       const change = fileChange.changes[i];
-      if (change.type === 'added' || change.type === 'removed') {
+      if (change.type === "added" || change.type === "removed") {
         if (line >= change.line && line < change.line + change.count) {
           return i;
         }
       } else {
         // 'modified'
         const start = change.removed.line;
-        const end = change.removed.line + change.removed.count + change.added.count;
+        const end =
+          change.removed.line + change.removed.count + change.added.count;
         if (line >= start && line < end) {
           return i;
         }
@@ -306,7 +324,7 @@ export class InlineDiffViewManager
    * Accept a single chunk (removed, added, or modified).
    */
   private async acceptChange(uri: string, i?: number) {
-    this.outputChannel.debug(`Accept change: ${uri}, index=${i}`);
+    this.outputChannel.info(`Accept change: ${uri}, index=${i}`);
 
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.uri.toString() !== uri) {
@@ -319,7 +337,7 @@ export class InlineDiffViewManager
     }
 
     let index: number;
-    if (typeof i === 'number') {
+    if (typeof i === "number") {
       index = i;
     } else {
       index = this.getChangeIndex(editor, fileChange);
@@ -330,25 +348,37 @@ export class InlineDiffViewManager
 
     const change = fileChange.changes[index];
 
+    const usageTrackingData: UsageTrackingRequest = {
+      event_type: "accepted",
+      file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(uri)),
+      lines:
+        change.type === "modified"
+          ? change.removed.count + change.added.count
+          : change.count,
+    };
+    const usageTrackingManager = new UsageTrackingManager
+    usageTrackingManager.trackUsage(usageTrackingData);
+
+
     let range: vscode.Range;
-    let value = '';
+    let value = "";
     let count = 0;
 
-    if (change.type === 'removed') {
+    if (change.type === "removed") {
       // Remove the old lines
       range = new vscode.Range(
         new vscode.Position(change.line, 0),
-        new vscode.Position(change.line + change.count, 0),
+        new vscode.Position(change.line + change.count, 0)
       );
       count = change.count;
-    } else if (change.type === 'added') {
+    } else if (change.type === "added") {
       // The lines are already added in the editor content, so do nothing
       count = 0;
     } else {
       // 'modified': remove old lines, replace with new
       range = new vscode.Range(
         new vscode.Position(change.removed.line, 0),
-        new vscode.Position(change.added.line + change.added.count, 0),
+        new vscode.Position(change.added.line + change.added.count, 0)
       );
       value = change.added.value;
       count = change.removed.count;
@@ -366,10 +396,14 @@ export class InlineDiffViewManager
 
     // If no more changes remain, update context, remove from map, save
     if (fileChange.changes.length === 0) {
-      vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
+      vscode.commands.executeCommand(
+        "setContext",
+        "deputydev.hasChanges",
+        false
+      );
       this.fileChangeMap.delete(uri);
       this._onDidChange.fire({
-        type: 'accept',
+        type: "accept",
         path: editor.document.uri.fsPath,
       });
       await this.saveDocument(editor);
@@ -393,7 +427,7 @@ export class InlineDiffViewManager
     }
 
     let index: number;
-    if (typeof i === 'number') {
+    if (typeof i === "number") {
       index = i;
     } else {
       index = this.getChangeIndex(editor, fileChange);
@@ -405,24 +439,24 @@ export class InlineDiffViewManager
     const change = fileChange.changes[index];
 
     let range: vscode.Range;
-    let value = '';
+    let value = "";
     let count = 0;
 
-    if (change.type === 'removed') {
+    if (change.type === "removed") {
       // Already removed from the editor, so do nothing to revert
       count = 0;
-    } else if (change.type === 'added') {
+    } else if (change.type === "added") {
       // Remove the newly added lines
       range = new vscode.Range(
         new vscode.Position(change.line, 0),
-        new vscode.Position(change.line + change.count, 0),
+        new vscode.Position(change.line + change.count, 0)
       );
       count = change.count;
     } else {
       // 'modified': remove the newly added lines, restore old
       range = new vscode.Range(
         new vscode.Position(change.removed.line, 0),
-        new vscode.Position(change.added.line + change.added.count, 0),
+        new vscode.Position(change.added.line + change.added.count, 0)
       );
       value = change.removed.value;
       count = change.added.count;
@@ -438,18 +472,24 @@ export class InlineDiffViewManager
 
     // If no changes remain, remove from map, close or save
     if (fileChange.changes.length === 0) {
-      vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
+      vscode.commands.executeCommand(
+        "setContext",
+        "deputydev.hasChanges",
+        false
+      );
       this.fileChangeMap.delete(uri);
       this._onDidChange.fire({
-        type: 'reject',
+        type: "reject",
         path: editor.document.uri.fsPath,
       });
 
       // If it's a real file, save it. If untitled, close.
-      if (editor.document.uri.scheme === 'file') {
+      if (editor.document.uri.scheme === "file") {
         await this.saveDocument(editor);
       } else {
-        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+        await vscode.commands.executeCommand(
+          "workbench.action.closeActiveEditor"
+        );
       }
     }
   }
@@ -469,13 +509,13 @@ export class InlineDiffViewManager
 
     for (let i = fileChange.changes.length - 1; i >= 0; i--) {
       const change = fileChange.changes[i];
-      if (change.type === 'added') {
+      if (change.type === "added") {
         // Already in editor, do nothing
-      } else if (change.type === 'removed') {
+      } else if (change.type === "removed") {
         // Remove these lines from the editor
         edit.delete(
           uri,
-          new vscode.Range(change.line, 0, change.line + change.count, 0),
+          new vscode.Range(change.line, 0, change.line + change.count, 0)
         );
       } else {
         // 'modified': remove old lines
@@ -485,8 +525,8 @@ export class InlineDiffViewManager
             change.removed.line,
             0,
             change.removed.line + change.removed.count,
-            0,
-          ),
+            0
+          )
         );
       }
     }
@@ -494,11 +534,11 @@ export class InlineDiffViewManager
     await vscode.workspace.applyEdit(edit);
     this.fileChangeMap.delete(uri.toString());
     this._onDidChange.fire({
-      type: 'accept',
+      type: "accept",
       path: uri.fsPath,
     });
 
-    vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
+    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
     await this.saveDocument(editor);
     this._onDidChangeCodeLenses.fire();
   }
@@ -518,13 +558,13 @@ export class InlineDiffViewManager
 
     for (let i = fileChange.changes.length - 1; i >= 0; i--) {
       const change = fileChange.changes[i];
-      if (change.type === 'added') {
+      if (change.type === "added") {
         // Remove the newly added lines
         edit.delete(
           uri,
-          new vscode.Range(change.line, 0, change.line + change.count, 0),
+          new vscode.Range(change.line, 0, change.line + change.count, 0)
         );
-      } else if (change.type === 'removed') {
+      } else if (change.type === "removed") {
         // Already absent from the editor, so do nothing
       } else {
         // 'modified': remove newly added lines
@@ -534,8 +574,8 @@ export class InlineDiffViewManager
             change.added.line,
             0,
             change.added.line + change.added.count,
-            0,
-          ),
+            0
+          )
         );
       }
     }
@@ -543,16 +583,17 @@ export class InlineDiffViewManager
     await vscode.workspace.applyEdit(edit);
     this.fileChangeMap.delete(uri.toString());
     this._onDidChange.fire({
-      type: 'reject',
+      type: "reject",
       path: uri.fsPath,
     });
 
-    vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', false);
-    if (editor.document.uri.scheme === 'file') {
+    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
+    if (editor.document.uri.scheme === "file") {
       await this.saveDocument(editor);
-
     } else {
-      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+      await vscode.commands.executeCommand(
+        "workbench.action.closeActiveEditor"
+      );
     }
     this._onDidChangeCodeLenses.fire();
   }
@@ -579,7 +620,7 @@ export class InlineDiffViewManager
         await vscode.workspace.fs.stat(uri);
       } catch {
         // file doesn't exist => treat as untitled
-        uri = uri.with({ scheme: 'untitled' });
+        uri = uri.with({ scheme: "untitled" });
       }
 
       const document = await vscode.workspace.openTextDocument(uri);
@@ -589,13 +630,13 @@ export class InlineDiffViewManager
       });
 
       const lineEol =
-        vscode.EndOfLine.CRLF === editor.document.eol ? '\r\n' : '\n';
+        vscode.EndOfLine.CRLF === editor.document.eol ? "\r\n" : "\n";
       const modifiedContent = data.content.replace(/\r?\n/g, lineEol);
       const currentContent = editor.document.getText();
       const differences = diffLines(currentContent, modifiedContent);
-      this.outputChannel.debug('diffs', differences);
+      this.outputChannel.debug("diffs", differences);
       let lineNumber = 0;
-      let combineContent = '';
+      let combineContent = "";
       const changes: Change[] = [];
       let lastRemoved: RemovedChange | undefined;
 
@@ -604,7 +645,7 @@ export class InlineDiffViewManager
 
         if (part.removed) {
           lastRemoved = {
-            type: 'removed',
+            type: "removed",
             line: lineNumber,
             count: part.count!,
             value: part.value,
@@ -615,14 +656,14 @@ export class InlineDiffViewManager
           }
         } else if (part.added) {
           const added: AddedChange = {
-            type: 'added',
+            type: "added",
             line: lineNumber,
             count: part.count!,
             value: part.value,
           };
           if (lastRemoved) {
             currentChange = {
-              type: 'modified',
+              type: "modified",
               removed: lastRemoved,
               added,
             };
@@ -647,7 +688,7 @@ export class InlineDiffViewManager
       const edit = new vscode.WorkspaceEdit();
       const fullRange = new vscode.Range(
         new vscode.Position(0, 0),
-        new vscode.Position(editor.document.lineCount, 0),
+        new vscode.Position(editor.document.lineCount, 0)
       );
       edit.replace(editor.document.uri, fullRange, combineContent);
       await vscode.workspace.applyEdit(edit);
@@ -658,9 +699,13 @@ export class InlineDiffViewManager
         modifiedContent: modifiedContent,
         changes,
       });
-      this._onDidChange.fire({ type: 'add', path: uri.fsPath });
+      this._onDidChange.fire({ type: "add", path: uri.fsPath });
 
-      vscode.commands.executeCommand('setContext', 'deputydev.hasChanges', true);
+      vscode.commands.executeCommand(
+        "setContext",
+        "deputydev.hasChanges",
+        true
+      );
       this.drawChanges(editor, { changes });
 
       this.outputChannel.debug(`Applied inline diff for ${data.path}`);

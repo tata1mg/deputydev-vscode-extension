@@ -18,6 +18,7 @@ import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
 import { DD_HOST } from "../config";
+import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -35,7 +36,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private historyService: HistoryService,
     private authService: AuthService,
     private codeReferenceService: ReferenceManager,
-    private configManager: ConfigManager
+    private configManager: ConfigManager,
+    private trackingManager: UsageTrackingManager
   ) {}
 
   public resolveWebviewView(
@@ -106,6 +108,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             data,
             sendMessage
           );
+          break;
+        case "usage-tracking":
+          promise = this.trackingManager.trackUsage(data);
           break;
 
         // File Operations
