@@ -194,7 +194,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.initiateLogin(data);
           break;
         case "initiate-binary":
-          promise = this.initiateBinary(data);
+          promise = this.initiateBinary();
           break;
         case "sign-out":
           promise = this.signOut();
@@ -268,19 +268,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // For Binary init
-  public async initiateBinary(data: any) {
+  public async initiateBinary() {
     const active_repo = getActiveRepo();
     //  measure time tken for auth token
     // start
-    const start = new Date().getTime();
-    let auth_token = await this.authService.loadAuthToken()
-    if (!auth_token) {
-      auth_token = await this.context.workspaceState.get("authToken");
-    }
+    const auth_token = await this.authService.loadAuthToken()
+    // if (!auth_token) {
+    //   auth_token = await this.context.workspaceState.get("authToken");
+    // }
     // const auth_token = await this.authService.loadAuthToken()
-    const end = new Date().getTime();
-    const time = end - start;
-    this.outputChannel.info(`Time taken to load auth token: ${time}ms`);
     this.context.workspaceState.update("authToken", auth_token);
     const essential_config = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`Essential config: ${JSON.stringify(essential_config)}`);
