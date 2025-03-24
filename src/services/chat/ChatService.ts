@@ -34,12 +34,19 @@ export class QuerySolverService {
       try {
         const messageData = JSON.parse(event.toString());
         console.log("Received WebSocket message in parser:", messageData);
+        if (messageData.type === 'STREAM_START') {
+          if (messageData.new_session_data) {
+            refreshCurrentToken({
+              "new_session_data": messageData.new_session_data
+            });
+          }
+        }
         if (messageData.type === 'STREAM_END') {
           streamDone = true;
           return "RESOLVE";
-        } else if (messageData.type === 'ERROR') {
+        } else if (messageData.type === 'STREAM_ERROR') {
           streamDone = true;
-          streamError = Error("Some error");
+          streamError = Error(messageData.message);
           return "REJECT";
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content })
@@ -61,7 +68,6 @@ export class QuerySolverService {
 
     let dataToSend: any = payload;
 
-    //refreshCurrentToken(response.headers);
     websocketClient.send(dataToSend);
     console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
