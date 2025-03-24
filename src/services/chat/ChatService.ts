@@ -40,12 +40,11 @@ export class QuerySolverService {
               "new_session_data": messageData.new_session_data
             });
           }
-        }
-        if (messageData.type === 'STREAM_END') {
+        } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
           return "RESOLVE";
         } else if (messageData.type === 'STREAM_ERROR') {
-          streamDone = true;
+          console.error("❌ Error in WebSocket stream here:", messageData.message);
           streamError = Error(messageData.message);
           return "REJECT";
         }
