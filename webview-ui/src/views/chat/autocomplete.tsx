@@ -26,7 +26,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
           <li
             key={index}
             className=" hover:text-[--vscode-list-activeSelectionForeground]  flex items-center gap-3 px-3 py-2 rounded-sm transition-all duration-150 hover:bg-[var(--deputydev-active-selection-background)] cursor-pointer"
-            onClick={() => onSelect(option)}
+            onMouseDown={() => onSelect(option)}
           >
             <div className="p-1 bg-[#333]/80  rounded-md">
               {iconMap[option.icon as keyof typeof iconMap]}

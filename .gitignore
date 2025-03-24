@@ -3,3 +3,4 @@ node_modules
 out
 *.local
 webview-ui/.env
+.deputydevrules

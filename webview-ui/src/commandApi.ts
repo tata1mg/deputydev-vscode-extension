@@ -1,4 +1,5 @@
 
+import { UsageTrackingRequest } from './types';
 import { callCommand } from './vscode';
 
 // export function webviewReady() {
@@ -41,6 +42,10 @@ export function apiStopChat() {
 
 export function keywordSearch(payload: unknown) {
   return callCommand('keyword-search', payload);
+}
+
+export function usageTracking(payload: UsageTrackingRequest) {
+  return callCommand('usage-tracking', payload);
 }
 
 export function keywordTypeSearch(payload: unknown) {
