@@ -4,6 +4,7 @@
   "description": "DeputyDev",
   "version": "0.0.1",
   "license": "UNLICENSED",
+  "publisher": "Tata1mg",
   "engines": {
     "vscode": "^1.91.0"
   },

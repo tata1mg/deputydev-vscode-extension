@@ -1,21 +1,26 @@
 // File: src/extension.ts
 
-import * as vscode from 'vscode';
-import { DiffViewManager } from './diff/DiffManager';
-import { InlineDiffViewManager } from './diff/InlineDiffManager'; //inline diff manager
-import { DiffEditorViewManager } from './diff/SideDiffManager'; // side-by-side diff manager
-import { SidebarProvider } from './panels/SidebarProvider';
-import { WorkspaceManager } from './code_syncing/WorkspaceManager';
-import { AuthenticationManager } from './auth/AuthenticationManager';
-import { ChatManager } from './chat/ChatManager';
-import { ReferenceManager } from './references/ReferenceManager';
-import { ConfigManager } from './utilities/ConfigManager';
-import { setExtensionContext, setSidebarProvider, clearWorkspaceStorage } from './utilities/contextManager';
-import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
-import { deleteSessionId } from './utilities/contextManager';
-import { HistoryService } from './services/history/HistoryService';
-import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
-import { AuthService } from './services/auth/AuthService';
+import * as vscode from "vscode";
+import { DiffViewManager } from "./diff/DiffManager";
+import { InlineDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
+import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
+import { SidebarProvider } from "./panels/SidebarProvider";
+import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
+import { AuthenticationManager } from "./auth/AuthenticationManager";
+import { ChatManager } from "./chat/ChatManager";
+import { ReferenceManager } from "./references/ReferenceManager";
+import { ConfigManager } from "./utilities/ConfigManager";
+import {
+  setExtensionContext,
+  setSidebarProvider,
+  clearWorkspaceStorage,
+} from "./utilities/contextManager";
+import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
+import {  deleteSessionId  } from "./utilities/contextManager";
+import { HistoryService } from "./services/history/HistoryService";
+import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
+import { AuthService } from "./services/auth/AuthService";
+import { UsageTrackingManager } from "./usageTracking/UsageTrackingManager";
 import { ServerManager } from './binaryUp/ServerManager';
 let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
@@ -25,14 +30,15 @@ import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 
 export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
-    .getConfiguration('deputydev')
-    .get<string>('outputChannelName', 'DeputyDev');
-  outputChannel = vscode.window.createOutputChannel(outputChannelName, { log: true });
+    .getConfiguration("deputydev")
+    .get<string>("outputChannelName", "DeputyDev");
+  outputChannel = vscode.window.createOutputChannel(outputChannelName, {
+    log: true,
+  });
 
   // context reset from past session
-  setExtensionContext(context,outputChannel);
+  setExtensionContext(context, outputChannel);
   await clearWorkspaceStorage();
-
 
   outputChannel.info('Extension "DeputyDev" is now active!');
 
@@ -51,39 +57,43 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel.info('this binary host now is ' + getBinaryHost());
 
   // 1) Authentication Flow
-  const authenticationManager = new AuthenticationManager(context, configManager);
-  authenticationManager.validateCurrentSession().then((status) => {
-    outputChannel.info(`Authentication result: ${status}`);
-    if (status) {
-      configManager.fetchAndStoreConfig();
-      outputChannel.info('User is authenticated.');
-      sidebarProvider.sendMessageToSidebar('AUTHENTICATED')
-      sidebarProvider.setViewType("chat")
-    } else {
-      outputChannel.info('User is not authenticated.');
-      sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
-      sidebarProvider.setViewType("auth")
-    }
-  }).catch((error) => {
-    outputChannel.error(`Authentication failed: ${error}`);
-    sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED')
-    // sidebarProvider.setViewType("auth")
-    sidebarProvider.setViewType("chat")
-
-  })
-
+  const authenticationManager = new AuthenticationManager(
+    context,
+    configManager
+  );
+  authenticationManager
+    .validateCurrentSession()
+    .then((status) => {
+      outputChannel.info(`Authentication result: ${status}`);
+      if (status) {
+        configManager.fetchAndStoreConfig();
+        outputChannel.info("User is authenticated.");
+        sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
+        sidebarProvider.setViewType("chat");
+      } else {
+        outputChannel.info("User is not authenticated.");
+        sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
+        sidebarProvider.setViewType("auth");
+      }
+    })
+    .catch((error) => {
+      outputChannel.error(`Authentication failed: ${error}`);
+      sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
+      // sidebarProvider.setViewType("auth")
+      sidebarProvider.setViewType("chat");
+    });
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
-    .getConfiguration('deputydev')
-    .get('inlineDiff.enable');
+    .getConfiguration("deputydev")
+    .get("inlineDiff.enable");
 
   let diffViewManager: DiffViewManager;
   if (inlineDiffEnable) {
     // inline diff view manager
     const inlineDiffViewManager = new InlineDiffViewManager(
       context,
-      outputChannel,
+      outputChannel
     );
     context.subscriptions.push(inlineDiffViewManager);
     diffViewManager = inlineDiffViewManager;
@@ -91,7 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // diff editor diff manager
     const diffEditorDiffManager = new DiffEditorViewManager(
       context,
-      outputChannel,
+      outputChannel
     );
     context.subscriptions.push(diffEditorDiffManager);
     diffViewManager = diffEditorDiffManager;
@@ -99,10 +109,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const referenceService = new ReferenceManager(context, outputChannel);
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
+  const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
 
   const historyService = new HistoryService();
   const authService = new AuthService();
-
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -113,9 +123,24 @@ export async function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService, referenceService,configManager);
+  const sidebarProvider = new SidebarProvider(
+    context,
+    context.extensionUri,
+    diffViewManager,
+    outputChannel,
+    chatService,
+    historyService,
+    authService,
+    referenceService,
+    configManager,
+    usageTrackingManager
+  );
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
+    vscode.window.registerWebviewViewProvider(
+      "deputydev-sidebar",
+      sidebarProvider,
+      { webviewOptions: { retainContextWhenHidden: true } }
+    )
   );
 
   const pinger = new BackgroundPinger(sidebarProvider,serverManager, outputChannel, configManager);
@@ -126,28 +151,36 @@ export async function activate(context: vscode.ExtensionContext) {
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
 
-
-  const inlineChatEditManager = new InlineChatEditManager(context, outputChannel, chatService, sidebarProvider);
+  const inlineChatEditManager = new InlineChatEditManager(
+    context,
+    outputChannel,
+    chatService,
+    sidebarProvider
+  );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
   inlineChatEditManager.inlineChatEditQuickFixes();
 
-
-
   //  6) Register "closeApp" command
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.closeApp', () => {
-      vscode.commands.executeCommand('workbench.action.closeWindow');
+    vscode.commands.registerCommand("deputydev.closeApp", () => {
+      vscode.commands.executeCommand("workbench.action.closeWindow");
     })
   );
 
+  const workspaceManager = new WorkspaceManager(
+    context,
+    sidebarProvider,
+    outputChannel,
+    configManager
+  );
 
-
-  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel,configManager);
-
-
-
-  new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
+  new WebviewFocusListener(
+    context,
+    sidebarProvider,
+    workspaceManager,
+    outputChannel
+  );
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
@@ -200,28 +233,30 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Command to open a diff view for any file path + new content
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.openDiffView', async (path: string, content: string) => {
-      if (!diffViewManager) {
-        vscode.window.showErrorMessage('Diff view manager is not initialized.');
-        return;
+    vscode.commands.registerCommand(
+      "deputydev.openDiffView",
+      async (path: string, content: string) => {
+        if (!diffViewManager) {
+          vscode.window.showErrorMessage(
+            "Diff view manager is not initialized."
+          );
+          return;
+        }
+        try {
+          await diffViewManager.openDiffView({ path, content });
+          vscode.window.showInformationMessage(`Diff view opened for ${path}`);
+        } catch (error) {
+          outputChannel.error(`Failed to open diff view: ${error}`);
+          vscode.window.showErrorMessage("Failed to open diff view.");
+        }
       }
-      try {
-        await diffViewManager.openDiffView({ path, content });
-        vscode.window.showInformationMessage(`Diff view opened for ${path}`);
-      } catch (error) {
-        outputChannel.error(`Failed to open diff view: ${error}`);
-        vscode.window.showErrorMessage('Failed to open diff view.');
-      }
-    })
+    )
   );
-
-
 
   // add button click
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
-      chatService.stopChat(),
-      outputChannel.info('Add button clicked!');
+    vscode.commands.registerCommand("deputydev.AddButtonClick", () => {
+      chatService.stopChat(), outputChannel.info("Add button clicked!");
       sidebarProvider.newChat();
       deleteSessionId();
     }),
@@ -237,12 +272,15 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // setting button click
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.SettingButtonClick', () => {
-      outputChannel.info('Setting button clicked!');
-      sidebarProvider.setViewType('setting');
-    }),
+    vscode.commands.registerCommand("deputydev.SettingButtonClick", () => {
+      outputChannel.info("Setting button clicked!");
+      sidebarProvider.setViewType("setting");
+    })
   );
   outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`);
+  outputChannel.info(
+    `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
+  );
 
   //  8) Show the output channel if needed & start server
 
@@ -256,5 +294,3 @@ export async function deactivate() {
   deleteSessionId();
 
 }
-
-
