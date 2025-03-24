@@ -25,6 +25,7 @@ export class ServerManager {
         this.configManager = configManager;
         this.essential_config = this.configManager.getAllConfigEssentials();
         this.binaryPath_root = path.join(this.context.globalStorageUri.fsPath, 'binary'); // root Path to extracted dir
+        this.outputChannel.appendLine(`Binary root path: ${this.binaryPath_root}`);
         this.binaryPath = path.join(
             this.binaryPath_root,
             this.essential_config["BINARY"]["directory"]
