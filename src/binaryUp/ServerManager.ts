@@ -8,7 +8,7 @@ import { ConfigManager } from '../utilities/ConfigManager';
 import * as crypto from 'crypto';
 import axios from 'axios';
 import { spawn, SpawnOptions } from 'child_process';
-import { FIRST_PING_ATTEMPTS,MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
+import { MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
 let BINARY_PORT: number | null = null;
 export class ServerManager {
@@ -25,6 +25,7 @@ export class ServerManager {
         this.configManager = configManager;
         this.essential_config = this.configManager.getAllConfigEssentials();
         this.binaryPath_root = path.join(this.context.globalStorageUri.fsPath, 'binary'); // root Path to extracted dir
+        this.outputChannel.appendLine(`Binary root path: ${this.binaryPath_root}`);
         this.binaryPath = path.join(
             this.binaryPath_root,
             this.essential_config["BINARY"]["directory"]
@@ -86,21 +87,21 @@ export class ServerManager {
     private async downloadFile(url: string, outputPath: string): Promise<void> {
         this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
-        // Make sure the directory exists
-        const dir = path.dirname(outputPath);
-        // Make sure the directory exists or is cleaned
-        if (fs.existsSync(dir)) {
-            if (fs.existsSync(this.binaryPath_root)) {
-                fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
-                this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
-            }
+
+        // Always delete this.binaryPath_root and its contents
+        if (fs.existsSync(this.binaryPath_root)) {
+            fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
+            this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
         }
 
-        // Create the directory again (in case it was deleted)
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-            this.outputChannel.appendLine(`Created directory: ${dir}`);
-        }
+
+         // Ensure the directory for the output path exists
+        const dir = path.dirname(outputPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+                this.outputChannel.appendLine(`Created directory: ${dir}`);
+            }
+            
         return new Promise((resolve, reject) => {
             const file = fs.createWriteStream(outputPath);
             let hasError = false;
@@ -283,7 +284,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
 
     /** Start the server */
-    public async startServer(): Promise<void> {
+    public async startServer(): Promise<boolean> {
         this.outputChannel.appendLine('Sthe registry file path is ');
         const serviceExecutable = this.getServiceExecutablePath();
         const portRange: number[] | undefined = this.essential_config?.["BINARY"]?.["port_range"];
@@ -292,27 +293,27 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
         if (!serviceExecutable || !fs.existsSync(serviceExecutable)) {
             vscode.window.showErrorMessage('Server binary not found.');
             this.outputChannel.appendLine('❌ Server binary not found at path: ' + serviceExecutable);
-            return;
+            return false;;
         }
 
         if (!portRange || portRange.length !== 2) {
             vscode.window.showErrorMessage('Invalid or missing port range in config.');
             this.outputChannel.appendLine('❌ Missing or invalid port range in config.');
-            return;
+            return false;
         }
 
         try {
             const reused = await this.tryReuseExistingServer();
             if (reused) {
                 this.outputChannel.appendLine('✅ Reused existing running server.');
-                return;
+                return true
             }
 
             const port = await this.findAvailablePort(portRange);
             if (!port) {
                 vscode.window.showErrorMessage('No available port found to start server.');
                 this.outputChannel.appendLine('❌ No available port found in range.');
-                return;
+                return false;
             }
             setBinaryPort(port);
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
@@ -323,7 +324,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 shell: false                       // Don't launch via shell
               };
               
-              const serverProcess = spawn(serviceExecutable, [port.toString()], spawnOptions);              
+            const serverProcess =  spawn(serviceExecutable, [port.toString()], spawnOptions);              
 
             serverProcess.stdout?.on('data', (data) => this.outputChannel.appendLine(`Server: ${data}`));
             serverProcess.stderr?.on('data', (data) => this.outputChannel.appendLine(`Server Error: ${data}`));
@@ -339,14 +340,17 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             if (serverStarted) {
                 vscode.window.showInformationMessage('Server started successfully!');
                 this.outputChannel.appendLine('✅ Server started successfully!');
+                return true;
             } else {
                 vscode.window.showErrorMessage('Server failed to start.');
                 this.outputChannel.appendLine('❌ Server failed to respond after launch.');
+                return false;
             }
 
         } catch (err) {
             this.outputChannel.appendLine(`❌ Exception during server startup: ${err}`);
             vscode.window.showErrorMessage('Error starting the server.');
+            return false;
         }
     }
 
@@ -364,7 +368,11 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Poll /ping endpoint until server responds */
     private async waitForServer(port:number): Promise<boolean> {
-        const maxAttempts = FIRST_PING_ATTEMPTS;
+        const maxAttempts = this.essential_config["BINARY"]["max_init_retry"];
+        this.outputChannel.appendLine(`🔄 Waiting for server to respond on port ${port}...`)
+        // hlog max attempts
+
+        this.outputChannel.appendLine(`Max attempts: ${maxAttempts}`)
         let attempt = 0;
 
         while (attempt < maxAttempts) {
