@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Pencil } from "lucide-react";
-import { keywordSearch, keywordTypeSearch, logToOutput, openFile } from "@/commandApi";
+import {
+  keywordSearch,
+  keywordTypeSearch,
+  logToOutput,
+  openFile,
+} from "@/commandApi";
 import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
 import { Chunk } from "@/types";
-import { log } from "console";
 
 type ReferenceChipProps = {
   chipIndex: number;
@@ -31,8 +35,8 @@ export default function ReferenceChip({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const getChunkDetail = (chunks: Chunk[]) => {
-    let start_line:number = chunks[0].start_line;
-    let end_line:number = chunks[0].end_line;
+    let start_line: number = chunks[0].start_line;
+    let end_line: number = chunks[0].end_line;
     for (let i = 1; i < chunks.length; i++) {
       if (chunks[i].start_line < start_line) {
         start_line = chunks[i].start_line;
@@ -42,8 +46,8 @@ export default function ReferenceChip({
       }
     }
     return `${start_line}-${end_line}`;
-  }
-  
+  };
+
   useEffect(() => {
     if (text.split(": ")[1] === "") {
       setIsEditing(true);
@@ -92,14 +96,16 @@ export default function ReferenceChip({
       const valueArr = value.split(": ");
       if (
         ["file", "directory", "function", "class"].includes(
-          valueArr[0].toLowerCase()
+          valueArr[0].toLowerCase(),
         )
       ) {
+        setShowAutoComplete(true);
         keywordTypeSearch({
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
         });
       } else {
+        setShowAutoComplete(true);
         keywordSearch({ keyword: value });
       }
     }, 0);
@@ -112,7 +118,10 @@ export default function ReferenceChip({
     }
   };
 
-  const handleBlur = () => setIsEditing(false);
+  const handleBlur = () => {
+    setIsEditing(false);
+    setShowAutoComplete(false);
+  };
 
   const handleDisplayClick = () => {
     if (displayOnly) {
@@ -125,10 +134,10 @@ export default function ReferenceChip({
       onClick={handleDisplayClick}
       className={`inline-flex items-center ${
         displayOnly
-          ? "px-1.5 py-0 text-xs cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)] space-x-1.5"
-          : "px-2 py-0.5 text-xs cursor-pointer hover:bg-[var(--vscode-editor-hoverHighlightBackground)] space-x-1.5" // Changed to smaller padding and text size
-      } bg-[var(--vscode-editor-background)] border border-[var(--vscode-editorWidget-border)] text-[var(--vscode-editor-foreground)] rounded-md font-normal transition-colors ${
-        !displayOnly && "mr-0.5 mb-0.5" // Reduced margins
+          ? "cursor-pointer space-x-1.5 px-1.5 py-0 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+          : "cursor-pointer space-x-1.5 px-2 py-0.5 text-xs hover:bg-[var(--vscode-editor-hoverHighlightBackground)]" // Changed to smaller padding and text size
+      } rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] font-normal text-[var(--vscode-editor-foreground)] transition-colors ${
+        !displayOnly && "mb-0.5 mr-0.5" // Reduced margins
       } shadow-sm`}
     >
       {isEditing && !displayOnly ? (
@@ -139,17 +148,15 @@ export default function ReferenceChip({
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           autoFocus
-          className="bg-transparent border-none focus:outline-none w-auto px-1 text-xs text-[var(--vscode-input-foreground)] caret-[var(--vscode-editor-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] focus:ring-1 focus:ring-[var(--vscode-focusBorder)] rounded-sm" // Smaller text and reduced focus ring
+          className="w-auto rounded-sm border-none bg-transparent px-1 text-xs text-[var(--vscode-input-foreground)] placeholder-[var(--vscode-input-placeholderForeground)] caret-[var(--vscode-editor-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--vscode-focusBorder)]" // Smaller text and reduced focus ring
         />
       ) : (
-        <span onClick={handleEdit} className="flex items-center gap-1 group">
-          {chunks?.length
-            ? `@${text}:${getChunkDetail(chunks)}`
-            : "@" + text}
+        <span onClick={handleEdit} className="group flex items-center gap-1">
+          {chunks?.length ? `@${text}:${getChunkDetail(chunks)}` : "@" + text}
           {!displayOnly && (
             <Pencil
               size={12}
-              className="text-[var(--vscode-icon-foreground)] opacity-0 group-hover:opacity-70 transition-opacity"
+              className="text-[var(--vscode-icon-foreground)] opacity-0 transition-opacity group-hover:opacity-70"
             />
           )}
         </span>
@@ -161,7 +168,7 @@ export default function ReferenceChip({
             e.stopPropagation();
             onDelete();
           }}
-          className="text-[var(--vscode-icon-foreground)] hover:bg-[var(--vscode-toolbar-hoverBackground)] rounded-full p-0.5 transition-colors"
+          className="rounded-full p-0.5 text-[var(--vscode-icon-foreground)] transition-colors hover:bg-[var(--vscode-toolbar-hoverBackground)]"
         >
           <X size={14} className="hover:text-[var(--vscode-errorForeground)]" />
         </button>

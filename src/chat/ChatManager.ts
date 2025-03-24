@@ -345,7 +345,10 @@ export class ChatManager {
         payload.previous_query_ids = relevantHistoryQueryIds;
       }
 
+      this.outputChannel.info(`apiChat payload after processing: ${JSON.stringify(payload)}`);
       const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
+      this.outputChannel.info('apiChat started, waiting for events...');
+      this.outputChannel.info('querySolverIterator:', querySolverIterator);
       task = { abortController, asyncIterator: querySolverIterator };
       registerApiChatTask(task);
 
