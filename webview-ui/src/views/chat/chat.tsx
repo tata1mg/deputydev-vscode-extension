@@ -61,6 +61,20 @@ export function ChatUI() {
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
+  const [showProgressBar, setShowProgressBar] = useState(false);
+
+  useEffect(() => {
+    if (showEmbeddingFailed) {
+      setShowProgressBar(false); // Close immediately if showEmbeddingFailed is true
+    } else if (!repoSelectorEmbedding) {
+      setShowProgressBar(true);
+      const timer = setTimeout(() => {
+        setShowProgressBar(false);
+      }, 1500);
+
+      return () => clearTimeout(timer); // Cleanup timeout on unmount
+    }
+  }, [repoSelectorEmbedding, showEmbeddingFailed]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -413,7 +427,7 @@ export function ChatUI() {
             </div>
           )}
 
-          {repoSelectorEmbedding && showEmbeddingFailed  === false && (
+          {showProgressBar && (
             <div className="mb-[2px] w-full">
               <ProgressBar progress={useChatStore.getState().progressBar} />
             </div>

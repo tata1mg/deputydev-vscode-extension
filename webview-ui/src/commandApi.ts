@@ -174,3 +174,7 @@ export function openBrowserPage(url: string) {
 export function signOut() {
   return callCommand("sign-out", {})
 }
+
+export function getProfileUiData() {
+  return callCommand('fetch-profile-ui-data', {});
+}

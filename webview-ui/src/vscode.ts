@@ -5,7 +5,7 @@ import { useAuthStore } from "./stores/authStore";
 import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem } from "@/types";
+import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv } from "@/types";
 import { logToOutput, getSessions , initiateBinary} from "./commandApi";
 
 type Resolver = {
@@ -338,6 +338,10 @@ addCommandEventListener("retry-embedding-failed", ({ data }) => {
   console.error("Retry embedding failed:", data);
   useChatStore.setState({showEmbeddingFailed: true});
 });
+
+addCommandEventListener("profile-ui-data", ({data}) => {
+  useChatStore.setState({profileUiData: data as ProfileUiDiv[]})
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

@@ -26,6 +26,7 @@ let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
 import { binaryApi } from './services/api/axios';
 import { API_ENDPOINTS } from './services/api/endpoints';
+import { ProfileUiService } from './services/profileUi/profileUiService';
 import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 
 export async function activate(context: vscode.ExtensionContext) {
@@ -113,6 +114,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const historyService = new HistoryService();
   const authService = new AuthService();
+  const profileService = new ProfileUiService();
+
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -133,6 +136,7 @@ export async function activate(context: vscode.ExtensionContext) {
     authService,
     referenceService,
     configManager,
+    profileService,
     usageTrackingManager
   );
   context.subscriptions.push(
