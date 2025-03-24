@@ -136,8 +136,8 @@ export async function activate(context: vscode.ExtensionContext) {
     authService,
     referenceService,
     configManager,
-    usageTrackingManager,
-    profileService
+    profileService,
+    usageTrackingManager
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
