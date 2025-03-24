@@ -5,6 +5,14 @@ export type UserData = {
   userName: string;
 }
 
+export type ProfileUiDiv = {
+  label: string;
+  type: string;
+  icon: string;
+  url?: string;
+  data?: string;
+}
+
 export type AutocompleteOption = {
   icon: string;
   label: string;
