@@ -67,7 +67,16 @@ export class QuerySolverService {
 
     let dataToSend: any = payload;
 
-    websocketClient.send(dataToSend);
+    websocketClient.send(dataToSend).then(
+      (response) => {
+        websocketClient.close();
+      }
+    ).catch(
+      (error) => {
+        streamError = error;
+        websocketClient.close();
+      }
+    );
     console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
     // ✅ Abort handling - immediately kill the stream if signal is aborted
