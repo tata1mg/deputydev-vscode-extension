@@ -80,8 +80,8 @@ export async function activate(context: vscode.ExtensionContext) {
     .catch((error) => {
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-      // sidebarProvider.setViewType("auth")
-      sidebarProvider.setViewType("chat");
+      sidebarProvider.setViewType("auth")
+      // sidebarProvider.setViewType("chat");
     });
 
   //  2) Choose & Initialize a Diff View Manager
