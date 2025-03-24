@@ -34,12 +34,18 @@ export class QuerySolverService {
       try {
         const messageData = JSON.parse(event.toString());
         console.log("Received WebSocket message in parser:", messageData);
-        if (messageData.type === 'STREAM_END') {
+        if (messageData.type === 'STREAM_START') {
+          if (messageData.new_session_data) {
+            refreshCurrentToken({
+              "new_session_data": messageData.new_session_data
+            });
+          }
+        } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
           return "RESOLVE";
-        } else if (messageData.type === 'ERROR') {
-          streamDone = true;
-          streamError = Error("Some error");
+        } else if (messageData.type === 'STREAM_ERROR') {
+          console.error("❌ Error in WebSocket stream here:", messageData.message);
+          streamError = Error(messageData.message);
           return "REJECT";
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content })
@@ -61,8 +67,16 @@ export class QuerySolverService {
 
     let dataToSend: any = payload;
 
-    //refreshCurrentToken(response.headers);
-    websocketClient.send(dataToSend);
+    websocketClient.send(dataToSend).then(
+      (response) => {
+        websocketClient.close();
+      }
+    ).catch(
+      (error) => {
+        streamError = error;
+        websocketClient.close();
+      }
+    );
     console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
     // ✅ Abort handling - immediately kill the stream if signal is aborted
@@ -77,6 +91,7 @@ export class QuerySolverService {
     // Yield events as they are received, and handle any errors that occur
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
+        websocketClient.close();
         throw streamError;
       }
       if (signal?.aborted) {
