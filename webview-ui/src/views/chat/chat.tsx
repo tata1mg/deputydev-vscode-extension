@@ -20,7 +20,6 @@ import {
   logToOutput,
 } from "@/commandApi";
 
-import { BotMessageSquare } from "lucide-react";
 import Markdown from "react-markdown";
 import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
 import "../../styles/markdown-body.css";
@@ -293,7 +292,6 @@ export function ChatUI() {
         {showSessionsBox && messages.length === 0 && (
           <div>
             <div className="mb-12 mt-8">
-              <BotMessageSquare className="h-20 w-20 px-4" />
               <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
                 Develop with DeputyDev
               </h1>
