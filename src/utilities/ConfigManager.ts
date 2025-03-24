@@ -5,6 +5,7 @@ import { AuthService } from '../services/auth/AuthService';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { CLIENT } from '.././config';
 import * as os from 'os';
+import { setEssentialConfig, setMainConfig } from '../config';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -46,7 +47,8 @@ export class ConfigManager {
       this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
       if (response.data && response.data.is_success) {
         this.configEssentials = response.data.data;
-        await this.context.workspaceState.update(this.CONFIG_ESSENTIALS_KEY, this.configEssentials);
+        this.context.workspaceState.update(this.CONFIG_ESSENTIALS_KEY, this.configEssentials);
+        setEssentialConfig(this.configEssentials);
         this.outputChannel.info("CONFIG_ESSENTIALS successfully stored.");
       } else {
         this.outputChannel.error("Failed to fetch CONFIG_ESSENTIALS: Invalid response format.");
@@ -82,7 +84,8 @@ export class ConfigManager {
       if (response.data && response.data.is_success) {
         refreshCurrentToken(response.headers)
         this.configData = response.data.data;
-        await this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
+        this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
+        setMainConfig(this.configData);
         this.outputChannel.appendLine(`main CONFIG fetched: ${JSON.stringify(this.configData, null, 2)}`);
         this._onDidUpdateConfig.fire();
       } else {

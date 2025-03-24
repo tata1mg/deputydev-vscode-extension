@@ -261,12 +261,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // For Binary init
-  private async initiateBinary(data: any) {
+  public async initiateBinary(data: any) {
     const active_repo = getActiveRepo();
     //  measure time tken for auth token
     // start
     const start = new Date().getTime();
-    const auth_token = await this.authService.loadAuthToken();
+    let auth_token = await this.authService.loadAuthToken()
+    if (!auth_token) {
+      auth_token = await this.context.workspaceState.get("authToken");
+    }
+    // const auth_token = await this.authService.loadAuthToken()
     const end = new Date().getTime();
     const time = end - start;
     this.outputChannel.info(`Time taken to load auth token: ${time}ms`);
@@ -529,7 +533,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
