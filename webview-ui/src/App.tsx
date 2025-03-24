@@ -10,6 +10,7 @@ import Auth from './views/auth';
 import { useAuthStore } from './stores/authStore';
 import Profile from './views/profile';
 import Error from './views/error';
+import ForceUpgradeView from './views/forceUpgradeView';
 
 function App() {
   const extensionState = useExtensionStore();
