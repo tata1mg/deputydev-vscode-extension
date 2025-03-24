@@ -21,6 +21,7 @@ let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
 import { binaryApi } from './services/api/axios';
 import { API_ENDPOINTS } from './services/api/endpoints';
+import { ProfileUiService } from './services/profileUi/profileUiService';
 
 export async function activate(context: vscode.ExtensionContext) {
   const outputChannelName = vscode.workspace
@@ -101,6 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const historyService = new HistoryService();
   const authService = new AuthService();
+  const profileService = new ProfileUiService();
 
 
   // //  * 3) Register Custom TextDocumentContentProvider
@@ -112,7 +114,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
-  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService, referenceService,configManager);
+  const sidebarProvider = new SidebarProvider(context, context.extensionUri, diffViewManager, outputChannel, chatService, historyService, authService, referenceService,configManager, profileService);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, { webviewOptions: { retainContextWhenHidden: true } })
   );

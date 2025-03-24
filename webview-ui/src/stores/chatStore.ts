@@ -17,7 +17,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats, UserData } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats, UserData, ProfileUiDiv } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -81,6 +81,7 @@ export const useChatStore = create(
       progressBar: 0,
       userData: {} as UserData,
       showEmbeddingFailed: false,
+      profileUiData: [] as ProfileUiDiv[],
     },
     (set, get) => {
       // Helper to generate an incremental message ID.

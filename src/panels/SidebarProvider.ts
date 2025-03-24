@@ -18,6 +18,7 @@ import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
 import { DD_HOST } from "../config";
+import { ProfileUiService } from "../services/profileUi/profileUiService";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -35,7 +36,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private historyService: HistoryService,
     private authService: AuthService,
     private codeReferenceService: ReferenceManager,
-    private configManager: ConfigManager
+    private configManager: ConfigManager,
+    private profileService: ProfileUiService
   ) {}
 
   public resolveWebviewView(
@@ -122,6 +124,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.getOpenedFiles();
           break;
         case "search-file":
+          break;
+
+        // Profile UI data
+        case "fetch-profile-ui-data":
+          promise = this.fetchProfileUiData();
           break;
 
         // opening browser pages
@@ -540,6 +547,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  fetchProfileUiData() {
+    this.profileService.getProfileUi().then((response) => {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "profile-ui-data",
+        data: response.ui_profile_data,
+      });
+    });
+  }
 
 
   newChat() {
