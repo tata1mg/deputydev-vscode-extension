@@ -55,9 +55,9 @@ export default function Profile() {
         <ChevronLeft />
         <span>Back</span>
       </button>
-      <div className="px-4 flex flex-col gap-2 mt-2">
+      <div className="px-4 flex flex-col mt-2">
         <button
-          className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+          className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
           onClick={() => {/* Handle Email button click */ }}
         >
           <div className="flex gap-2">
@@ -71,7 +71,7 @@ export default function Profile() {
               return (
                 <div key={index}>
                   <button
-                    className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                    className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
                     onClick={handleUsageClick}
                   >
                     <div className="flex gap-2">
@@ -89,7 +89,7 @@ export default function Profile() {
               return (
                 <button
                   key={index}
-                  className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                  className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
                   onClick={() => item.url && openBrowserPage(item.url)}
                 >
                   <div className="flex gap-2">
@@ -105,7 +105,7 @@ export default function Profile() {
         </div>
         }
         <button
-          className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+          className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
           onClick={handleSignOut}
         >
           <div className="flex gap-2">

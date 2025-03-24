@@ -1,4 +1,5 @@
 // Progress.tsx
+import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
 import React from 'react';
 
 interface ProgressProps {
@@ -6,18 +7,21 @@ interface ProgressProps {
 }
 
 const ProgressBar: React.FC<ProgressProps> = ({ progress }) => {
+    const repoSelectorEmbedding = useRepoSelectorStore(
+        (state) => state.repoSelectorDisabled,
+      );
     return (
         <div className="w-full flex items-center mb-2">
             <div className="bg-gray-200 rounded h-6 flex-grow relative">
                 <div
                     className="h-6 rounded absolute"
                     style={{
-                        width: `${progress}%`,
-                        background: 'linear-gradient(to right, #4F46E5, #3B82F6)', // Example gradient colors
+                        width: repoSelectorEmbedding ? `${progress}%` : '100%',
+                        background: repoSelectorEmbedding ? 'linear-gradient(to right, #4F46E5, #3B82F6)' : 'green',
                     }}
                 />
-                <span className="text-xs text-black absolute left-2 top-1">Indexing codebase...</span>
-                <span className="text-xs text-black absolute right-2 top-1">{Math.floor(progress)}%</span>
+                <span className={`text-xs ${repoSelectorEmbedding ? 'text-black' : 'text-white'} absolute left-2 top-1`}>{repoSelectorEmbedding ? "Indexing codebase..." : "Completed"}</span>
+                <span className="text-xs text-black absolute right-2 top-1">{repoSelectorEmbedding ? `${Math.floor(progress)}%` : ""}</span>
             </div>
         </div>
     );
