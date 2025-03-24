@@ -77,6 +77,6 @@ Select the code block, click on bulb icon or press ⌘L. Click on chat. This wil
 
 Learn how to customize AI behavior in DeputyDev using project-specific rules
 
-Using rules in Cursor you can control the behavior of the underlying model. You can think of it as instructions and/or a system prompt for LLMs.
+Using rules in DeputyDev you can control the behavior of the underlying model. You can think of it as instructions and/or a system prompt for LLMs.
 
 Here is a template you can use - [https://gist.github.com/vishalof1mg/385e2c74d047dd50f5b48cd263f36d27](https://gist.github.com/vishalof1mg/385e2c74d047dd50f5b48cd263f36d27)
