@@ -457,7 +457,7 @@ export function ChatUI() {
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""
-                    : "Ask anything (⌘L), @ to mention code blocks"
+                    : "Ask DeputyDev to do anything, @ to mention"
                 }
                 value={userInput}
                 onChange={handleTextAreaChange}
@@ -504,7 +504,7 @@ export function ChatUI() {
             </div>
             <Tooltip id="repo-tooltip" />
           </div>
-          
+
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
