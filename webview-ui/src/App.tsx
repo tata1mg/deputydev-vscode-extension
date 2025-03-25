@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { sendWebviewFocusState } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
@@ -24,9 +24,7 @@ function App() {
       const response = event.data || {};
 
       if (response === "AUTHENTICATED") {
-        // call binary init command api
         setIsAuthenticated(true);
-        // initiateBinary();
         extensionState.setViewType("chat")
       }
     }
