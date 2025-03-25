@@ -82,6 +82,7 @@ export const useChatStore = create(
       userData: {} as UserData,
       showEmbeddingFailed: false,
       profileUiData: [] as ProfileUiDiv[],
+      forceUpgradeData: {} as { url: string; upgradeVersion: string },
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -183,7 +184,6 @@ export const useChatStore = create(
 
           try {
             for await (const event of stream) {
-              useChatStore.setState({showSkeleton: false})
               switch (event.name) {
                 case "TEXT_START": {
                   // Initialize a new current message with the desired structure
@@ -199,6 +199,7 @@ export const useChatStore = create(
                 }
 
                 case "TEXT_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const textChunk = (event.data as any)?.text || "";
 
                   set((state) => ({
@@ -258,6 +259,7 @@ export const useChatStore = create(
                 }
 
                 case "THINKING_BLOCK_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const thinkingDelta =
                     (event.data as any)?.thinking_delta || "";
 
@@ -329,6 +331,7 @@ export const useChatStore = create(
                 }
 
                 case "CODE_BLOCK_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const codeData = event.data as { code_delta?: string };
                   const codeDelta = codeData.code_delta || "";
 
@@ -448,6 +451,7 @@ export const useChatStore = create(
                   break;
                 }
                 case "TOOL_USE_REQUEST_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const { delta, tool_use_id, tool_name } = event.data as {
                     tool_name: string;
                     delta: string;
@@ -628,6 +632,7 @@ export const useChatStore = create(
             logToOutput("error", `Error: ${String(err)}`);
             showErrorMessage(`Error: ${String(err)}`);
             set({ isLoading: false });
+            useChatStore.setState({showSkeleton: false})
           }
         },
 

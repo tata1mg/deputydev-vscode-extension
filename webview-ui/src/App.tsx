@@ -68,6 +68,9 @@ function App() {
     case 'error':
       view = <Error />
       break;
+    case 'force-upgrade':
+      view = <ForceUpgradeView />
+      break;
     default:
       view = null;
   }

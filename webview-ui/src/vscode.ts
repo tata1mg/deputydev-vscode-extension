@@ -342,6 +342,12 @@ addCommandEventListener("retry-embedding-failed", ({ data }) => {
 addCommandEventListener("profile-ui-data", ({data}) => {
   useChatStore.setState({profileUiData: data as ProfileUiDiv[]})
 })
+
+addCommandEventListener("force-upgrade-data", ({data}) => {
+
+  useChatStore.setState({forceUpgradeData: data as { url: string; upgradeVersion: string }})
+  useExtensionStore.setState({ viewType: "force-upgrade" })
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

@@ -9,12 +9,12 @@ export const DD_HOST_WS = "wss://cnkilg390a.execute-api.ap-south-1.amazonaws.com
 
 // move this to config based, please add these in config.json
 export const POLLING_MAX_ATTEMPTS = 10;
-export const WS_TIMEOUT = 1800000; 
+export const WS_TIMEOUT = 1800000;
 
 
 export const MAX_PORT_ATTEMPTS = 20;
 export const RUDDERSTACK_WRITE_KEY = "123"; // this is a dummy key
-export const RUDDERSTACK_URL = "https://rudderapi.1mg.com/v1/track";  
+export const RUDDERSTACK_URL = "https://rudderapi.1mg.com/v1/track";
 
 export const BINARY_BG_PING_INTERVAL_MS = 5000;
 // local binary host
