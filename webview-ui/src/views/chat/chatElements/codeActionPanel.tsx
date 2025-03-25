@@ -30,7 +30,7 @@ export function CodeActionPanel({
     const usageTrackingData: UsageTrackingRequest = {
       event: "copied",
       properties: {
-        filepath: filepath || "",
+        file_path: filepath || "",
         lines: content.split("\n").length,
       },
     };
@@ -57,7 +57,7 @@ export function CodeActionPanel({
     const usageTrackingData: UsageTrackingRequest = {
       event: "generated",
       properties: {
-        filepath: filepath || "",
+        file_path: filepath || "",
         lines: numLines,
       },
     };
