@@ -11,7 +11,7 @@ export default function ForceUpgradeView() {
               You need to install the updated version of the DeputyDev to continue using the application.
           </p>
           <div>
-            <button className="border border-gray-500/10 bg-gray-500/20 w-[100px]"
+            <button className="rounded h-8 text-md border border-gray-500/10 bg-gray-500/20 w-[100px]"
               onClick={() => forceUpgradeData.url && openBrowserPage(forceUpgradeData.url)}
             >
                 Visit here
