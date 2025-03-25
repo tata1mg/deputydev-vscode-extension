@@ -188,7 +188,7 @@ export interface WorkspaceStore {
 export interface UsageTrackingProperties {
   session_id?: number;
   lines: number;
-  filepath: string;
+  file_path: string;
   timestamp?: string;
 }
 
