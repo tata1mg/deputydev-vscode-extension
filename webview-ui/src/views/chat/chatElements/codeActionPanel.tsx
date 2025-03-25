@@ -28,9 +28,11 @@ export function CodeActionPanel({
 
   const handleCopy = () => {
     const usageTrackingData: UsageTrackingRequest = {
-      event_type: "copied",
-      file_path: filepath || "",
-      lines: content.split("\n").length,
+      event: "copied",
+      properties: {
+        filepath: filepath || "",
+        lines: content.split("\n").length,
+      },
     };
     usageTracking(usageTrackingData);
     navigator.clipboard.writeText(content);
@@ -53,9 +55,11 @@ export function CodeActionPanel({
       }
     }
     const usageTrackingData: UsageTrackingRequest = {
-      event_type: "generated",
-      file_path: filePath,
-      lines: numLines,
+      event: "generated",
+      properties: {
+        filepath: filepath || "",
+        lines: numLines,
+      },
     };
     usageTracking(usageTrackingData);
   };
