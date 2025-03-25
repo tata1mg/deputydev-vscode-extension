@@ -28,7 +28,7 @@ export class BackgroundPinger {
 
         this.outputChannel.appendLine('🔁 Starting background server pinger...');
         const BINARI_MAX_FAILURES = this.configManager.getAllConfigEssentials()["BINARY"]["max_alive_retry"]
-        
+
         this.interval = setInterval(async () => {
             try {
                 const response = await binaryApi().get(API_ENDPOINTS.PING);
@@ -49,7 +49,7 @@ export class BackgroundPinger {
                 await this.serverManager.ensureBinaryExists();
                 const server_status =  await this.serverManager.startServer();
                 if(server_status){
-                    await this.sideBarProvider.initiateBinary("restart");
+                    await this.sideBarProvider.initiateBinary();
                     this.sideBarProvider.setViewType("chat");
 
                 }else{
