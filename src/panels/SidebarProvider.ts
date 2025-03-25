@@ -193,9 +193,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "initiate-login":
           promise = this.initiateLogin(data);
           break;
-        case "initiate-binary":
-          promise = this.initiateBinary();
-          break;
         case "sign-out":
           promise = this.signOut();
           break;
