@@ -2,6 +2,7 @@ import { api } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
+import { ApiErrorHandler } from "../api/apiErrorHandler";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -10,6 +11,8 @@ const fetchAuthToken = async () => {
 };
 
 export class ProfileUiService {
+    private apiErrorHandler = new ApiErrorHandler();
+
     public async getProfileUi(): Promise<any> {
         try {
             const authToken = await fetchAuthToken();
@@ -21,8 +24,7 @@ export class ProfileUiService {
             // console.log("response for profileui",response)
             return response.data.data;
         } catch (error) {
-            console.error('Error while fetch profile ui data: ', error);
-            throw error; // Throw the error to be handled by the caller
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 }

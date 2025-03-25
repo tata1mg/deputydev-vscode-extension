@@ -51,6 +51,14 @@ export function sendProgress(progress: number) {
   })
 }
 
+export function sendForceUgradeData(data: {url: string, upgradeVersion: string}) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "force-upgrade-data",
+    data: data,
+  })
+}
+
 
 
 export function getActiveRepo(): string | undefined {
