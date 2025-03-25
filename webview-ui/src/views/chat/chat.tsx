@@ -514,9 +514,9 @@ export function ChatUI() {
           </div>
 
           {/* chat and act toggle */}
-          <div className="rounded-xl h-4 w-18 flex items-center justify-between bg-gray-500">
+          <div className="rounded-xl h-4 w-18 flex items-center justify-between bg-[--deputydev-input-background]">
             <button
-              className={`font-medium w-[50px] rounded-tl-xl rounded-bl-xl ${chatType === "ask" ? "bg-blue-500 rounded-tr-xl rounded-br-xl h-5" : ""}`}
+              className={`transition-all duration-200 ease-in-out font-medium w-[50px] rounded-tl-xl rounded-bl-xl ${chatType === "ask" ? "bg-blue-500/70 rounded-tr-xl rounded-br-xl h-5" : ""}`}
               onClick={() => {
                 if (!isLoading) {
                   setChatType("ask")
@@ -527,7 +527,7 @@ export function ChatUI() {
               Chat
             </button>
             <button
-              className={`font-medium w-[50px] rounded-tr-xl rounded-br-xl ${chatType === "write" ? "bg-blue-500 rounded-tl-xl rounded-bl-xl h-5" : ""}`}
+              className={`transition-all duration-200 ease-in-out font-medium w-[50px] rounded-tr-xl rounded-br-xl ${chatType === "write" ? "bg-blue-500/70 rounded-tl-xl rounded-bl-xl h-5" : ""}`}
               onClick={() => {
                 if (!isLoading) {
                   setChatType("write")

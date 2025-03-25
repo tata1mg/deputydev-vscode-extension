@@ -104,12 +104,12 @@ export default function Profile() {
       </div>
       ) : (
         <div className="px-4 flex flex-col mt-4 gap-2 animate-pulse">
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
-          <div className="h-10 rounded bg-gray-300 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
         </div>
       )}
     </div>
