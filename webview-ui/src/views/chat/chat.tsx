@@ -26,9 +26,10 @@ import "../../styles/markdown-body.css";
 import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
 import { AutocompleteMenu } from "./autocomplete";
-import { isEqual as lodashIsEqual } from "lodash";
+import { isEqual as lodashIsEqual, set } from "lodash";
 import { ChatUserMessage } from "@/types";
 import ProgressBar from "./chatElements/progressBar";
+import { keywordSearch, keywordTypeSearch } from "@/commandApi";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -53,6 +54,7 @@ export function ChatUI() {
   // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const sessionsPerPage = 20;
@@ -89,10 +91,13 @@ export function ChatUI() {
 
       const activeElement = document.activeElement;
 
-      if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+      if (
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement
+      ) {
         copiedText = activeElement.value.substring(
           activeElement.selectionStart || 0,
-          activeElement.selectionEnd || 0
+          activeElement.selectionEnd || 0,
         );
       } else {
         copiedText = window.getSelection()?.toString() || "";
@@ -138,7 +143,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
+      await sendChatMessage(message, editorReferences, () => {});
     } finally {
     }
   };
@@ -192,28 +197,47 @@ export function ChatUI() {
     getSessionChats(sessionId);
   };
 
+  const handleTextAreaKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!isLoading) {
+        handleSend();
+      }
+    }
+    if (e.key === "Backspace" && userInput === "@") {
+      setShowAutocomplete(false);
+      setUserInput("");
+    }
+  };
+
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (e.target.value.endsWith("@")) {
-      setShowAutocomplete(true);
+    if (chipEditMode) {
+      const value = e.target.value.split("@")[1];
+      const valueArr = value.split(": ");
+      if (
+        ["file", "directory", "function", "class"].includes(
+          valueArr[0].toLowerCase(),
+        )
+      ) {
+        setShowAutocomplete(true);
+        keywordTypeSearch({
+          type: valueArr[0].toLowerCase(),
+          keyword: valueArr[1],
+        });
+      } else {
+        setShowAutocomplete(true);
+        keywordSearch({ keyword: value });
+      }
+    } else if (e.target.value.endsWith("@")) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
-      setUserInput(e.target.value.substring(0, e.target.value.length - 1));
-      const editorRefs = useChatStore.getState().currentEditorReference;
-      const newChatRefrenceItem: ChatReferenceItem = {
-        index: editorRefs.length,
-        type: "keyword",
-        keyword: "",
-        path: "",
-        chunks: [],
-      };
-      useChatStore.setState({
-        currentEditorReference: [...editorRefs, newChatRefrenceItem],
-      });
-    } else {
-      setShowAutocomplete(false);
-      setUserInput(e.target.value);
+      setShowAutocomplete(true);
+      setChipEditMode(true);
     }
+    setUserInput(e.target.value);
     autoResize();
   };
 
@@ -225,24 +249,42 @@ export function ChatUI() {
   };
 
   const handleAutoCompleteSelect = (option: AutocompleteOption) => {
-    const selectedChipIndex = useChatStore.getState().chipIndexBeingEdited;
     const currentAutocompleteOptions =
       useChatStore.getState().ChatAutocompleteOptions;
     if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
-      const allChips = [...useChatStore.getState().currentEditorReference];
-      allChips[selectedChipIndex].keyword = option.value;
-      useChatStore.setState({ currentEditorReference: allChips });
+      setUserInput(userInput.split("@")[0] + `@${option.value}`);
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
-      allChips[selectedChipIndex].keyword = option.icon + ": " + option.value;
-      allChips[selectedChipIndex].chunks = option.chunks;
-      allChips[selectedChipIndex].path = option.description;
-      allChips[selectedChipIndex].type = option.icon;
-      allChips[selectedChipIndex].value = option.value;
-      useChatStore.setState({ currentEditorReference: allChips });
+      const newChatRefrenceItem: ChatReferenceItem = {
+        index: allChips.length,
+        type: option.icon,
+        keyword: option.icon + ": " + option.value,
+        path: option.description,
+        chunks: option.chunks,
+        value: option.value,
+      };
+      useChatStore.setState({
+        currentEditorReference: [...allChips, newChatRefrenceItem],
+      });
       setShowAutocomplete(false);
+      setUserInput(userInput.split("@")[0]);
+      setChipEditMode(false);
     }
+    console.log("Ref: ", textareaRef);
+    console.log("Ref Current: ", textareaRef.current);
   };
+  
+  useEffect(() => {
+    console.log(`Lappa ${userInput}`,textareaRef.current)
+    setTimeout(() => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }, 100);
+  }, [userInput]);
+
   // Updated auto-scroll logic with debounce to prevent conflicting manual scrolls
   useEffect(() => {
     const container = messagesEndRef.current?.parentElement;
@@ -420,7 +462,7 @@ export function ChatUI() {
           </div> */}
 
           {showEmbeddingFailed && (
-            <div className="p-4 text-red-500 text-md text-center">
+            <div className="text-md p-4 text-center text-red-500">
               <p>Indexing Failed !!!</p>
             </div>
           )}
@@ -432,7 +474,7 @@ export function ChatUI() {
           )}
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            <div className="flex flex-wrap mb-1 items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+            <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -461,18 +503,7 @@ export function ChatUI() {
                 }
                 value={userInput}
                 onChange={handleTextAreaChange}
-                onKeyDown={(e) => {
-                  if (
-                    !repoSelectorEmbedding &&
-                    e.key === "Enter" &&
-                    !e.shiftKey
-                  ) {
-                    e.preventDefault();
-                    if (!isLoading) {
-                      handleSend();
-                    }
-                  }
-                }}
+                onKeyDown={handleTextAreaKeyDown}
                 disabled={repoSelectorEmbedding}
                 {...(repoSelectorEmbedding && {
                   "data-tooltip-id": "repo-tooltip",
@@ -504,7 +535,6 @@ export function ChatUI() {
             </div>
             <Tooltip id="repo-tooltip" />
           </div>
-
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
@@ -514,12 +544,12 @@ export function ChatUI() {
           </div>
 
           {/* chat and act toggle */}
-          <div className="rounded-xl h-4 w-18 flex items-center justify-between bg-gray-500">
+          <div className="w-18 flex h-4 items-center justify-between rounded-xl bg-gray-500">
             <button
-              className={`font-medium w-[50px] rounded-tl-xl rounded-bl-xl ${chatType === "ask" ? "bg-blue-500 rounded-tr-xl rounded-br-xl h-5" : ""}`}
+              className={`w-[50px] rounded-bl-xl rounded-tl-xl font-medium ${chatType === "ask" ? "h-5 rounded-br-xl rounded-tr-xl bg-blue-500" : ""}`}
               onClick={() => {
                 if (!isLoading) {
-                  setChatType("ask")
+                  setChatType("ask");
                 }
               }}
               disabled={isLoading}
@@ -527,10 +557,10 @@ export function ChatUI() {
               Chat
             </button>
             <button
-              className={`font-medium w-[50px] rounded-tr-xl rounded-br-xl ${chatType === "write" ? "bg-blue-500 rounded-tl-xl rounded-bl-xl h-5" : ""}`}
+              className={`w-[50px] rounded-br-xl rounded-tr-xl font-medium ${chatType === "write" ? "h-5 rounded-bl-xl rounded-tl-xl bg-blue-500" : ""}`}
               onClick={() => {
                 if (!isLoading) {
-                  setChatType("write")
+                  setChatType("write");
                 }
               }}
               disabled={isLoading}

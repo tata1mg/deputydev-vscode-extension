@@ -26,9 +26,9 @@ export class UsageTrackingManager {
     this.outputChannel?.info("Stopping deputydev usage tracking service...");
   }
   async trackUsage(payload: UsageTrackingRequest) {
-    payload.event_id = uuidv4();
-    payload.timestamp = new Date().toISOString();
-    payload.session_id = getSessionId();
+    payload.anonymous_id = uuidv4();
+    payload.properties.timestamp = new Date().toISOString();
+    payload.properties.session_id = getSessionId();
     this.outputChannel?.info(
       `Usage Tracking Payload: ${JSON.stringify(payload)}`
     );
