@@ -49,15 +49,15 @@ function App() {
       break;
     case 'chat':
       // TODO: Bypassing auth for development
-      view =  <Chat />;
-      // view = isAuthenticated ? <Chat /> : <Auth />;
+      // view =  <Chat />;
+      view = isAuthenticated ? <Chat /> : <Auth />;
       break;
     case 'profile':
-      view = <Profile />
+      view = isAuthenticated ? <Profile /> : <Auth />;
       break;
     case 'setting':
-      // view = isAuthenticated ? <Setting /> : <Auth />;
-      view = <Setting />;
+      view = isAuthenticated ? <Setting /> : <Auth />;
+      // view = <Setting />;
       break;
     case 'loader':
       view =  <Loader />;
