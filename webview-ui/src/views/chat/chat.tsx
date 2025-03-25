@@ -311,15 +311,15 @@ export function ChatUI() {
                         <div className="flex gap-2" key={session.id}>
                           <div
                             onClick={() => handleGetSessionChats(session.id)}
-                            className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
+                            className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                           >
-                            <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+                            <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
                               {session.summary}
                             </div>
-                            <span>{session.age}</span>
+                            <span className="text-xs mt-1">{session.age}</span>
                           </div>
                           <Trash2
-                            className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                            className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                             onClick={(e) => {
                               handleDeleteSession(session.id);
                             }}
@@ -337,14 +337,14 @@ export function ChatUI() {
                               onClick={() => handleGetSessionChats(session.id)}
                               className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                             >
-                              <div className="overflow-hidden text-ellipsis whitespace-nowrap">
+                              <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
                                 {session.summary}
                               </div>
-                              <span>{session.age}</span>
+                              <span className="text-xs mt-1">{session.age}</span>
                             </div>
                             <div className="flex-shrink-0">
                               <Trash2
-                                className="m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                                className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                                 onClick={(e) => {
                                   handleDeleteSession(session.id);
                                 }}
