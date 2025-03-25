@@ -584,7 +584,7 @@ export const useChatStore = create(
                 }
                 case "error": {
                   //       chunkCallback({ name: "error", data: { payload_to_retry: payload, error_msg: String(error) ,  retry: true}  });
-
+                  useChatStore.setState({showSkeleton: false})
                   const errorData = event.data as {payload_to_retry: unknown , error_msg: string , retry: boolean} ;
                   const err = errorData.error_msg || "Unknown error";
                     logToOutput('info', `payload data: ${JSON.stringify(errorData.payload_to_retry, null,2)}`);
