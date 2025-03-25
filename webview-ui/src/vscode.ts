@@ -6,7 +6,7 @@ import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv } from "@/types";
-import { logToOutput, getSessions , initiateBinary} from "./commandApi";
+import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
