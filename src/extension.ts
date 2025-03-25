@@ -71,6 +71,7 @@ export async function activate(context: vscode.ExtensionContext) {
         outputChannel.info("User is authenticated.");
         sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
         sidebarProvider.setViewType("chat");
+        sidebarProvider.initiateBinary();
       } else {
         outputChannel.info("User is not authenticated.");
         sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
@@ -154,6 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
+  // authenticationManager.setSidebarProvider(sidebarProvider);
 
   const inlineChatEditManager = new InlineChatEditManager(
     context,

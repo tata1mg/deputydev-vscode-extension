@@ -256,6 +256,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.setViewType("error");
     } else {
       this.sendMessageToSidebar(status);
+      this.initiateBinary();
     }
   }
 
@@ -269,6 +270,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For Binary init
   public async initiateBinary() {
+    this.outputChannel.info("Initiating Binary**********************************")
     const active_repo = getActiveRepo();
     //  measure time tken for auth token
     // start

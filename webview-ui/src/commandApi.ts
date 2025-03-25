@@ -143,9 +143,9 @@ export function initiateLogin() {
   return callCommand('initiate-login', {})
 }
 
-export function initiateBinary() {
-  return callCommand('initiate-binary', {})
-}
+// export function initiateBinary() {
+//   return callCommand('initiate-binary', {})
+// }
 
 export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand('webview-focus-state', { focused: isFocused });

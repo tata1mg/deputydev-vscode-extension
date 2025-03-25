@@ -291,95 +291,100 @@ export function ChatUI() {
         {/* Past Sessions */}
         {showSessionsBox && messages.length === 0 && (
           <div>
-            <div className="mb-12 mt-8">
-              <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
-                Develop with DeputyDev
-              </h1>
-            </div>
-            {sessions.length > 0 ? (
-              <div>
-                <h3 className="mb-1 px-4 text-lg font-bold">
-                  Past Conversations
-                </h3>
-                <div
-                  className="session-box h-[128px] overflow-y-auto px-4"
-                  onScroll={handleScroll}
-                >
-                  {!showAllSessions ? (
-                    <div>
-                      {sessions.slice(0, visibleSessions).map((session) => (
-                        <div className="flex gap-2" key={session.id}>
-                          <div
-                            onClick={() => handleGetSessionChats(session.id)}
-                            className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
-                          >
-                            <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
-                              {session.summary}
-                            </div>
-                            <span className="text-xs mt-1">{session.age}</span>
-                          </div>
-                          <Trash2
-                            className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                            onClick={(e) => {
-                              handleDeleteSession(session.id);
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div>
-                      {sessions
-                        .slice(0, currentSessionsPage * sessionsPerPage)
-                        .map((session) => (
+            <div>
+              <div className="mb-12 mt-8">
+                <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
+                  Develop with DeputyDev
+                </h1>
+              </div>
+              {sessions.length > 0 ? (
+                <div>
+                  <h3 className="mb-1 px-4 text-lg font-bold">
+                    Past Conversations
+                  </h3>
+                  <div
+                    className="session-box h-[128px] overflow-y-auto px-4"
+                    onScroll={handleScroll}
+                  >
+                    {!showAllSessions ? (
+                      <div>
+                        {sessions.slice(0, visibleSessions).map((session) => (
                           <div className="flex gap-2" key={session.id}>
                             <div
                               onClick={() => handleGetSessionChats(session.id)}
-                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
+                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                             >
                               <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
                                 {session.summary}
                               </div>
                               <span className="text-xs mt-1">{session.age}</span>
                             </div>
-                            <div className="flex-shrink-0">
-                              <Trash2
-                                className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                                onClick={(e) => {
-                                  handleDeleteSession(session.id);
-                                }}
-                              />
-                            </div>
+                            <Trash2
+                              className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                              onClick={(e) => {
+                                handleDeleteSession(session.id);
+                              }}
+                            />
                           </div>
                         ))}
-                    </div>
-                  )}
-                  {sessionsLoading && <div>Loading...</div>}
-                </div>
-                {!sessionsLoading &&
-                  !showAllSessions &&
-                  sessions.length > visibleSessions && (
-                    <button onClick={() => handleShowMore()} className="px-4">
-                      Show More...
-                    </button>
-                  )}
-              </div>
-            ) : (
-              showDefaultContent && (
-                <div className="px-4 fade-in">
-                  <div className="flex items-center gap-2">
-                    <p className="mb-2 text-lg text-gray-400">
-                      You are ready to go.
-                    </p>
-                    <Check className="mb-1 animate-pulse text-sm text-green-500" />
+                      </div>
+                    ) : (
+                      <div>
+                        {sessions
+                          .slice(0, currentSessionsPage * sessionsPerPage)
+                          .map((session) => (
+                            <div className="flex gap-2" key={session.id}>
+                              <div
+                                onClick={() => handleGetSessionChats(session.id)}
+                                className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
+                              >
+                                <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                                  {session.summary}
+                                </div>
+                                <span className="text-xs mt-1">{session.age}</span>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <Trash2
+                                  className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                                  onClick={(e) => {
+                                    handleDeleteSession(session.id);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                    {sessionsLoading && <div>Loading...</div>}
                   </div>
-                  <p className="text-md">
-                    Ask questions about your repository or instantly generate
-                    code, tests, and documentation
-                  </p>
+                  {!sessionsLoading &&
+                    !showAllSessions &&
+                    sessions.length > visibleSessions && (
+                      <button onClick={() => handleShowMore()} className="px-4">
+                        Show More...
+                      </button>
+                    )}
                 </div>
-              )
-            )}
+              ) : (
+                showDefaultContent && (
+                  <div className="px-4 fade-in h-[128px]">
+                    <div className="flex items-center gap-2">
+                      <p className="mb-2 text-lg text-gray-400">
+                        You are ready to go.
+                      </p>
+                      <Check className="mb-1 animate-pulse text-sm text-green-500" />
+                    </div>
+                    <p className="text-md">
+                      Ask questions about your repository or instantly generate
+                      code, tests, and documentation
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+            <div className="p-4">
+              <p className="text-xs text-gray-500 text-left mt-4">DeputyDev is powered by AI. It can make mistakes. Please double check all output.</p>
+            </div>
           </div>
         )}
       </div>
@@ -444,7 +449,7 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                      useChatStore.getState().currentEditorReference.length - 1
+                    useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
