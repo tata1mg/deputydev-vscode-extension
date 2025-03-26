@@ -6,7 +6,7 @@ import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv } from "@/types";
-import { logToOutput, getSessions , initiateBinary} from "./commandApi";
+import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -326,6 +326,12 @@ addCommandEventListener("retry-embedding-failed", ({ data }) => {
 
 addCommandEventListener("profile-ui-data", ({data}) => {
   useChatStore.setState({profileUiData: data as ProfileUiDiv[]})
+})
+
+addCommandEventListener("force-upgrade-data", ({data}) => {
+
+  useChatStore.setState({forceUpgradeData: data as { url: string; upgradeVersion: string }})
+  useExtensionStore.setState({ viewType: "force-upgrade" })
 })
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;

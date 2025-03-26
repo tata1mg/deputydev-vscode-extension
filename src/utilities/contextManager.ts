@@ -49,6 +49,18 @@ export function sendProgress(progress: number) {
   })
 }
 
+export function sendForceUpgrade() {
+  sidebarProvider?.sendMessageToSidebar("force-upgrade-needed");
+}
+
+export function sendForceUgradeData(data: {url: string, upgradeVersion: string}) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "force-upgrade-data",
+    data: data,
+  })
+}
+
 
 
 export function getActiveRepo(): string | undefined {
@@ -71,5 +83,6 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("chat-storage", undefined);
   await extensionContext.workspaceState.update("repo-selector-storage", false);
   await extensionContext.workspaceState.update("sessionId", undefined);
+  await extensionContext.workspaceState.update("force-upgrade-storage", undefined);
 }
 

@@ -1,9 +1,11 @@
-import { get } from "lodash";
 import { api, binaryApi } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { getBinaryHost } from "../../config";
+import { ApiErrorHandler } from "../api/apiErrorHandler";
 
 export class AuthService {
+    private apiErrorHandler = new ApiErrorHandler();
+
     public async getSession(supabaseSessionId: string): Promise<any> {
         const headers = {
             "Content-Type": "application/json",
@@ -13,7 +15,7 @@ export class AuthService {
             const response = await api.get(API_ENDPOINTS.GET_SESSION, { headers });
             return response.data;
         } catch (error) {
-            throw error; // Throw the error to be handled by the caller
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 
@@ -26,7 +28,7 @@ export class AuthService {
             const response = await api.post(API_ENDPOINTS.VERIFY_AUTH_TOKEN, {}, { headers });
             return response.data;
         } catch (error) {
-            throw error; // Throw the error to be handled by the caller
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 
@@ -42,13 +44,13 @@ export class AuthService {
                 return "failed";
             }
         } catch (error) {
-            throw error;
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 
     public async loadAuthToken() {
         try {
-            const host= getBinaryHost()
+            const host = getBinaryHost()
             const response = await binaryApi().get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
             if (response.data.message === "success" && response.data.auth_token) {
                 return response.data.auth_token;
@@ -56,7 +58,7 @@ export class AuthService {
                 return null
             }
         } catch (error) {
-            throw error;
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 
@@ -67,7 +69,7 @@ export class AuthService {
                 return response.data.message;
             }
         } catch (error) {
-            throw error;
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 }
