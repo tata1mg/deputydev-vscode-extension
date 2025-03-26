@@ -51,19 +51,16 @@ const resolvers: Record<string, Resolver> = {};
 const events: Record<string, EventListener[]> = {};
 
 window.addEventListener("message", (event) => {
-  console.log("message", event.data);
   const { id, command, data } = event.data;
   if (command === "result") {
     const resolver = resolvers[id];
     resolver.resolve(data);
-    console.log("result resolver finisihed", data);
     delete resolvers[id];
     return;
   }
 
   if (command === "chunk") {
     const resolver = resolvers[id];
-    console.log("chunk", data, id);
     resolver.chunk?.(data);
     return;
   }
@@ -96,11 +93,11 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === "get-workspace-state") {
-    console.log("callCommand: waiting 5 seconds before sending workspace state request...");
+    // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
 
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        console.log("callCommand: 5 seconds elapsed, now sending workspace state request...");
+        // console.log("callCommand: 0.5 seconds elapsed, now sending workspace state request...");
 
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
@@ -110,7 +107,6 @@ export function callCommand(
     });
 
   } else {
-    console.log("callCommand - Sending:", { id, command, data });
     vscode.postMessage({ id, command, data });
 
     if (!options?.stream) {
@@ -216,15 +212,14 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
   // Log entire repos array
-  console.log("Received Repositories:");
+  // console.log("Received Repositories:");
 
-  // Log each repo individually for better readability
-  repos.forEach((repo, index) => {
-    console.log(`Repo ${index + 1}:`, repo);
-  });
+  // repos.forEach((repo, index) => {
+  //   console.log(`Repo ${index + 1}:`, repo);
+  // });
 
   // Log activeRepo
-  console.log("Active Repo:", activeRepo);
+  // console.log("Active Repo:", activeRepo);
 
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
@@ -236,16 +231,6 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
 addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
-  // Log entire repos array
-  console.log("Received Repositories:", repos);
-
-  // Log each repo individually for better readability
-  repos.forEach((repo, index) => {
-    console.log(`Repo ${index + 1}:`, repo);
-  });
-
-  // Log activeRepo
-  console.log("Active Repo:", activeRepo);
 
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
@@ -331,7 +316,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
 addCommandEventListener("progress-bar", ({data}) => {
   const progress = data as number;
   useChatStore.setState({progressBar: progress})
-  console.log("progress", data)
+  // console.log("progress", data)
 })
 
 addCommandEventListener("retry-embedding-failed", ({ data }) => {

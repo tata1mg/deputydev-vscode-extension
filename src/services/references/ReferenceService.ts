@@ -6,7 +6,7 @@ export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
 
   public async keywordSearch(payload: unknown): Promise<any> {
-    console.log(`Keyword Search ${JSON.stringify(payload)}`)
+    // console.log(`Keyword Search ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi().post(API_ENDPOINTS.FOCUS_SEARCH, payload);
@@ -16,7 +16,7 @@ export class ReferenceService {
     }
   }
   public async keywordTypeSearch(payload: unknown): Promise<any> {
-    console.log(`Keyword Type Search ${JSON.stringify(payload)}`)
+    // console.log(`Keyword Type Search ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi().post(

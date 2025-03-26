@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import {  getEssentialConfig, CLIENT } from '../config';
-
+import {  getEssentialConfig } from '../config/configSetGet';
+import { CLIENT } from '../config';
 export class BrowserClient {
     public async initiateExtensionLogin(supabaseSessionId: string) {
         console.log("opening browser");

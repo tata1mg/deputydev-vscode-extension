@@ -9,19 +9,22 @@ import * as crypto from 'crypto';
 import axios from 'axios';
 import { spawn, SpawnOptions } from 'child_process';
 import { MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
+import { Logger } from '../utilities/Logger';
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
 let BINARY_PORT: number | null = null;
 export class ServerManager {
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.OutputChannel;
+    private logger: Logger;
     private configManager: ConfigManager;
     private essential_config: any;
     private binaryPath_root: string;
     private binaryPath: string;
 
-    constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel, configManager: ConfigManager) {
+    constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel, logger: Logger , configManager: ConfigManager) {
         this.context = context;
         this.outputChannel = outputChannel;
+        this.logger = logger;
         this.configManager = configManager;
         this.essential_config = this.configManager.getAllConfigEssentials();
         this.binaryPath_root = path.join(this.context.globalStorageUri.fsPath, 'binary'); // root Path to extracted dir
@@ -48,7 +51,7 @@ export class ServerManager {
             this.outputChannel.appendLine('Server binary already exists.');
             return true;
         }
-
+        this.logger.warn(`Binary not found. Downloading and extracting...`);
         this.outputChannel.appendLine('Binary not found. Downloading and extracting...');
         return await this.downloadAndExtractBinary();
     }
@@ -66,12 +69,14 @@ export class ServerManager {
             const downloadPath = path.join(this.binaryPath, fileName);
 
             await this.downloadFile(fileUrl, downloadPath);
+            this.logger.info(`Downloaded binary`);
             this.outputChannel.appendLine('Downloaded binary.');
             await this.decryptAndExtract(downloadPath, this.binaryPath);
-            vscode.window.showInformationMessage('Server binary downloaded and extracted successfully.');
+            this.logger.info(`Extracted binary`);
             return true;
         } catch (err) {
-            vscode.window.showErrorMessage(`Error downloading/extracting binary: ${err}`);
+            this.outputChannel.appendLine(`Error downloading/extracting binary: ${err}`);
+            this.logger.error(`Error downloading/extracting binary: ${err}`);
             return false;
         }
     }
@@ -111,7 +116,7 @@ export class ServerManager {
                     this.outputChannel.appendLine(`Failed to download file. HTTP Status: ${response.statusCode}`);
                     return reject(`HTTP ${response.statusCode}`);
                 }
-
+                this.logger.info(`Download started`);
                 this.outputChannel.appendLine('Download in progress...');
                 response.pipe(file);
 
@@ -264,11 +269,13 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             const response = await axios.get('http://localhost:' + existingPort + API_ENDPOINTS.PING);
             if (response?.status === 200) {
                 vscode.window.showInformationMessage('Server is already running.');
+                this.logger.info(`Reusing running local server at port ${existingPort}`);
                 this.outputChannel.appendLine(`🔄 Reusing running server at port ${existingPort}`);
                 setBinaryPort(existingPort);
                 return true;
             }
         } catch (err) {
+            this.logger.warn("Failed to ping existing local server. Will launch new one.");
             this.outputChannel.appendLine(`⚠️ Failed to ping existing server. Will launch new one. Error: ${err}`);
         }
 
@@ -316,6 +323,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 return false;
             }
             setBinaryPort(port);
+            this.logger.info(`Starting server on port: ${port}`);
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
             
             const spawnOptions: SpawnOptions = {
@@ -338,7 +346,8 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
             const serverStarted = await this.waitForServer(port);
             if (serverStarted) {
-                vscode.window.showInformationMessage('Server started successfully!');
+                this.logger.info('Server started successfully.');
+                // vscode.window.showInformationMessage('Server started successfully!');
                 this.outputChannel.appendLine('✅ Server started successfully!');
                 return true;
             } else {
@@ -379,10 +388,12 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             try {
                 const response = await axios.get('http://localhost:' + port + API_ENDPOINTS.PING);
                 if (response.status === 200) {
+                    this.logger.info('Server is running.');
                     this.outputChannel.appendLine('Server is running.');
                     return true;
                 }
             } catch (error) {
+                this.logger.warn(`Ping attempt ${attempt + 1} failed. Retrying...`);
                 this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Retrying...`);
             }
             attempt++;

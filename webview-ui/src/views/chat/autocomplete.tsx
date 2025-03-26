@@ -35,7 +35,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
               <span className="text-sm font-medium">
                 {option.label}
               </span>
-              <p className="text-xs break-all whitespace-normal opacity-70">
+              <p className="text-xs break-words whitespace-normal opacity-70">
                 {option.description}
               </p>
             </div>
