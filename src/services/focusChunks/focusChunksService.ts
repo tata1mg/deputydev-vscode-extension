@@ -1,9 +1,11 @@
 import { binaryApi } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
+import { ApiErrorHandler } from "../api/apiErrorHandler";
 
 export class FocusChunksService {
+  private apiErrorHandler = new ApiErrorHandler();
   public async getFocusChunks(payload: unknown): Promise<any> {
-    console.log(`get focus chunks ${JSON.stringify(payload)}`)
+    // console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi().post(
@@ -12,8 +14,7 @@ export class FocusChunksService {
       );
       return response.data;
     } catch (error) {
-      console.error("Error in getReference API call:", error);
-      throw error;
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 }

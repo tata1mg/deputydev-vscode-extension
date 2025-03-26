@@ -1,7 +1,8 @@
 import { UsageTrackingRequest } from "@/types";
 import { SnippetReference } from "./CodeBlockStyle";
 
-import { logToOutput, usageTracking, writeFile } from "@/commandApi";
+import { checkDiffApplicable, logToOutput, usageTracking, writeFile } from "@/commandApi";
+import { useEffect, useState } from "react";
 
 export interface CodeActionPanelProps {
   language: string;
@@ -25,6 +26,18 @@ export function CodeActionPanel({
   removed_lines,
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
+  const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkApplicability = async () => {
+      if (is_diff && filepath && diff) {
+        const applicable = await checkDiffApplicable({ filePath: filepath, raw_diff: diff });
+        setIsApplicable(applicable);
+      }
+    };
+
+    checkApplicability();
+  }, [is_diff, filepath, diff]);
 
   const handleCopy = () => {
     const usageTrackingData: UsageTrackingRequest = {
@@ -71,7 +84,7 @@ export function CodeActionPanel({
   };
 
   const handleInsert = () => {
-    console.log("Insert clicked:", content);
+    // console.log("Insert clicked:", content);
     alert("Insert logic to be implemented.");
   };
 
@@ -90,7 +103,7 @@ export function CodeActionPanel({
   return (
     <div className="w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
       <div className="flex h-8 items-center justify-between border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
-        {is_diff && filepath ? (
+        {is_diff && filepath && diff && isApplicable ? (
           <span>
             Edit: <span className="font-medium">{filename}</span>{" "}
             <span className="text-green-400">+{added_lines || 0}</span>{" "}
@@ -109,7 +122,7 @@ export function CodeActionPanel({
           </button>
 
           {
-            is_diff ? (
+            is_diff && filepath && diff && isApplicable ? (
               <button
                 className={`text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90 ${
                   isApplyDisabled ? "cursor-not-allowed opacity-50" : ""

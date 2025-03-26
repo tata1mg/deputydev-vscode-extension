@@ -39,7 +39,7 @@ export const fetchRelevantChunks = async (
     throw new Error("Authentication token is required");
   }
   const Websocket_host = getBinaryWsHost();
-  console.log("websocket host:", Websocket_host);
+  // console.log("websocket host:", Websocket_host);
   const client = new WebSocketClient(Websocket_host, API_ENDPOINTS.RELEVANT_CHUNKS, authToken);
   try {
     return await client.send({
@@ -68,7 +68,7 @@ export const updateVectorStore = async (
     throw new Error("Authentication token is required while updating vector store.");
   }
 
-  console.log("updateVectorStore with params:", params);
+  // console.log("updateVectorStore with params:", params);
   const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
   if (waitForResponse) {
@@ -104,7 +104,7 @@ export const updateVectorStoreWithResponse = async (
     throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
 
-  console.log("updateVectorStoreWithResponse with params:", params);
+  // console.log("updateVectorStoreWithResponse with params:", params);
   const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
   let attempts = 0;
@@ -114,7 +114,7 @@ export const updateVectorStoreWithResponse = async (
         ...params,
         sync: true
       });
-      console.log("✅ Response received from WebSocket:", result);
+      // console.log("✅ Response received from WebSocket:", result);
       return result;
     } catch (error) {
       attempts++;

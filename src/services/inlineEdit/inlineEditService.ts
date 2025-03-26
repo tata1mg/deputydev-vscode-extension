@@ -2,6 +2,7 @@ import { api } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
+import { ApiErrorHandler } from "../api/apiErrorHandler";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -10,6 +11,8 @@ const fetchAuthToken = async () => {
 };
 
 export class InlineEditService {
+    private apiErrorHandler = new ApiErrorHandler();
+
     public async generateInlineEdit(payload: any): Promise<any> {
         try {
             const authToken = await fetchAuthToken();
@@ -20,8 +23,7 @@ export class InlineEditService {
             refreshCurrentToken(response.headers)
             return response.data.data;
         } catch (error) {
-            console.error('Error while generating inline diff: ', error);
-            throw error; // Throw the error to be handled by the caller
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 
@@ -36,11 +38,10 @@ export class InlineEditService {
                 params: { job_id }
             });
             refreshCurrentToken(response.headers)
-            console.log(response.data.data)
+            // console.log(response.data.data)
             return response.data.data;
         } catch (error) {
-            console.error('Error while fetching inline diff result: ', error);
-            throw error; // Throw the error to be handled by the caller
+            this.apiErrorHandler.handleApiError(error);
         }
     }
 }

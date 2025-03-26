@@ -17,7 +17,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats, UserData, ProfileUiDiv } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats,ChatCompleteMessage, UserData, ProfileUiDiv } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -82,6 +82,7 @@ export const useChatStore = create(
       userData: {} as UserData,
       showEmbeddingFailed: false,
       profileUiData: [] as ProfileUiDiv[],
+      forceUpgradeData: {} as { url: string; upgradeVersion: string },
     },
     (set, get) => {
       // Helper to generate an incremental message ID.
@@ -179,11 +180,10 @@ export const useChatStore = create(
 
           }
 
-          console.log("stream received in FE : ", stream);
+          // console.log("stream received in FE : ", stream);
 
           try {
             for await (const event of stream) {
-              useChatStore.setState({showSkeleton: false})
               switch (event.name) {
                 case "TEXT_START": {
                   // Initialize a new current message with the desired structure
@@ -199,6 +199,7 @@ export const useChatStore = create(
                 }
 
                 case "TEXT_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const textChunk = (event.data as any)?.text || "";
 
                   set((state) => ({
@@ -258,6 +259,7 @@ export const useChatStore = create(
                 }
 
                 case "THINKING_BLOCK_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const thinkingDelta =
                     (event.data as any)?.thinking_delta || "";
 
@@ -329,6 +331,7 @@ export const useChatStore = create(
                 }
 
                 case "CODE_BLOCK_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const codeData = event.data as { code_delta?: string };
                   const codeDelta = codeData.code_delta || "";
 
@@ -348,7 +351,6 @@ export const useChatStore = create(
                 }
 
                 case "CODE_BLOCK_END": {
-                  console.log("Raw event data:", event.data);
                   const endData = event.data as {
                     diff: string | null;
                     added_lines: number | null;
@@ -376,6 +378,23 @@ export const useChatStore = create(
                   break;
                 }
 
+                case "QUERY_COMPLETE": {
+                  useChatStore.setState({showSkeleton: false})
+                  set((state) => ({
+                    history: [
+                      ...state.history,
+                      {
+                        type: "QUERY_COMPLETE",
+                        actor: "ASSISTANT",
+                      } as ChatCompleteMessage,
+                    ],
+                  }));
+  
+                  logToOutput("info", `query complete ${JSON.stringify(event.data)}`);
+
+                  chunkCallback({ name: "QUERY_COMPLETE", data: event.data });
+                  break;
+                }
 
 
                 case "APPLY_DIFF_RESULT": {
@@ -448,6 +467,7 @@ export const useChatStore = create(
                   break;
                 }
                 case "TOOL_USE_REQUEST_DELTA": {
+                  useChatStore.setState({showSkeleton: false})
                   const { delta, tool_use_id, tool_name } = event.data as {
                     tool_name: string;
                     delta: string;
@@ -580,7 +600,7 @@ export const useChatStore = create(
                 }
                 case "error": {
                   //       chunkCallback({ name: "error", data: { payload_to_retry: payload, error_msg: String(error) ,  retry: true}  });
-
+                  useChatStore.setState({showSkeleton: false})
                   const errorData = event.data as {payload_to_retry: unknown , error_msg: string , retry: boolean} ;
                   const err = errorData.error_msg || "Unknown error";
                     logToOutput('info', `payload data: ${JSON.stringify(errorData.payload_to_retry, null,2)}`);
@@ -628,17 +648,29 @@ export const useChatStore = create(
             logToOutput("error", `Error: ${String(err)}`);
             showErrorMessage(`Error: ${String(err)}`);
             set({ isLoading: false });
+            useChatStore.setState({showSkeleton: false})
           }
         },
 
         cancelChat() {
           apiStopChat();
-          useChatStore.setState({showSkeleton: false})
-          const { currentChatRequest } = get();
-          currentChatRequest?.close();
-          set({ currentChatRequest: undefined, isLoading: false });
+          useChatStore.setState((state) => {
+            const newHistory = [...state.history];
+            if (state.current) {
+              newHistory.push(state.current); 
+            }
+        
+            return {
+              history: newHistory,
+              current: undefined,
+              currentChatRequest: undefined,
+              isLoading: false,
+              showSkeleton: false,
+            };
+          });
+        
           logToOutput("info", "User canceled the chat stream");
-        },
+        }        
       };
     }
   ),

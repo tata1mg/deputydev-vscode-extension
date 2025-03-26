@@ -60,16 +60,16 @@ export class WorkspaceFileWatcher {
     // Ignore all files with .git extension but NOT .gitignore or .gitattributes
     patterns.push('**/*.git');
     // Additional ignore patterns from configuration.
-    const additionalIgnore: string[] = config["EXLUDE_PATTERN"] || [];
+    const additionalIgnore: string[] = config?.["VSCODE_IGNORE_FILES"]?.["EXLUDE_PATTERN"] || [];
     patterns = patterns.concat(additionalIgnore);
 
     // Exclude directories from configuration.
-    const excludeDirs: string[] = config["EXCLUDE_DIRS"] || [];
+    const excludeDirs: string[] = config?.["VSCODE_IGNORE_FILES"]?.["EXCLUDE_DIRS"] || [];
     const dirPatterns = excludeDirs.map(dir => `${dir.replace(/\\/g, '/')}/**`);
     patterns = patterns.concat(dirPatterns);
 
     // Exclude file extensions or specific filenames from configuration.
-    const excludeExts: string[] = config["EXCLUDE_EXTS"]  || [];
+    const excludeExts: string[] = config?.["VSCODE_IGNORE_FILES"]?.["EXCLUDE_EXTS"]  || [];
     const extPatterns = excludeExts.map(ext => {
       // If it starts with a dot, assume it's an extension.
       return ext.startsWith('.') ? `**/*${ext}` : `**/${ext}`;

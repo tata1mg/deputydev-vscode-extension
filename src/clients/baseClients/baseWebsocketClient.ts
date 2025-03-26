@@ -41,13 +41,11 @@ export class BaseWebSocketClient {
     messageHandler: (event: RawData) => "RESOLVE" | "REJECT" | "WAIT"
   ) {
     this.socket.on("open", () => {
-      console.log(`✅ Connected to WebSocket: ${this.url}`);
     });
 
     this.socket.on("message", async (event: RawData) => {
       try {
         const messageData = JSON.parse(event.toString());
-        console.log("Received WebSocket message:", messageData);
 
         let messgaeHandlerResult = await messageHandler(event);
         if (messgaeHandlerResult === "RESOLVE") {
@@ -65,9 +63,6 @@ export class BaseWebSocketClient {
     });
 
     this.socket.on("close", (code, reason) => {
-      console.log(
-        `⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`
-      );
       // Only reject if we haven't resolved yet
       if (this.timeout !== null) {
         this.rejectResponse(
@@ -109,7 +104,6 @@ export class BaseWebSocketClient {
       });
     }
 
-    console.log("Sending data to WebSocket:", data);
     // Send the data
     this.socket.send(JSON.stringify(data));
 
