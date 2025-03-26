@@ -16,6 +16,10 @@ export function writeFile(params: { filePath : string; raw_diff: string }) {
   return callCommand('write-file', params);
 }
 
+export function checkDiffApplicable(params: { filePath: string; raw_diff: string }) {
+  return callCommand('check-diff-applicable', params);
+}
+
 // chat api calls
 
 export function apiChat(payload: unknown) {
@@ -143,9 +147,6 @@ export function initiateLogin() {
   return callCommand('initiate-login', {})
 }
 
-export function initiateBinary() {
-  return callCommand('initiate-binary', {})
-}
 
 export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand('webview-focus-state', { focused: isFocused });
@@ -177,4 +178,8 @@ export function signOut() {
 
 export function getProfileUiData() {
   return callCommand('fetch-profile-ui-data', {});
+}
+
+export function showUserLogs() {
+  return callCommand('show-logs', {});
 }

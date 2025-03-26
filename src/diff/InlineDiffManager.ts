@@ -707,9 +707,25 @@ export class InlineDiffViewManager
         "deputydev.hasChanges",
         true
       );
+      // Highlight changes visually
       this.drawChanges(editor, { changes });
 
+      // ✅ Scroll to the first diff line
+      if (changes.length > 0) {
+        const firstChange = changes[0];
+        let line = 0;
+        if (firstChange.type === "modified") {
+          line = firstChange.removed.line;
+        } else {
+          line = firstChange.line;
+        }
+        const rangeToReveal = new vscode.Range(line, 0, line, 0);
+        editor.revealRange(rangeToReveal, vscode.TextEditorRevealType.InCenter);
+      }
+
+      // Log success
       this.outputChannel.debug(`Applied inline diff for ${data.path}`);
+
     } catch (error) {
       this.outputChannel.error(`Error applying inline diff: ${error}`);
       throw error;

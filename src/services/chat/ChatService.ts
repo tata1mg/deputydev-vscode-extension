@@ -29,10 +29,10 @@ export class QuerySolverService {
 
     try {
       if (fs.existsSync(filePath)) {
-        console.log("Reading .deputydevrules file from workspace");
+        // console.log("Reading .deputydevrules file from workspace");
         return fs.readFileSync(filePath, "utf8");
       }
-      console.log("No .deputydevrules file found in workspace");
+      // console.log("No .deputydevrules file found in workspace");
     } catch (error) {
       console.error("Error reading .deputydevrules file:", error);
     }
@@ -58,7 +58,7 @@ export class QuerySolverService {
     const handleMessage = (event: RawData): "RESOLVE" | "REJECT" | "WAIT" => {
       try {
         const messageData = JSON.parse(event.toString());
-        console.log("Received WebSocket message in parser:", messageData);
+        // console.log("Received WebSocket message in parser:", messageData);
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
             refreshCurrentToken({
@@ -102,7 +102,7 @@ export class QuerySolverService {
         websocketClient.close();
       }
     );
-    console.log("QuerySolverService: querySolver sent data:", dataToSend);
+    // console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
     if (signal) {
       signal.addEventListener('abort', () => {

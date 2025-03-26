@@ -20,6 +20,7 @@ import { ConfigManager } from "../utilities/ConfigManager";
 import { DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
+import { Logger } from "../utilities/Logger";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -33,6 +34,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private readonly _extensionUri: vscode.Uri,
     private readonly diffViewManager: DiffViewManager,
     private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly logger: Logger,
     private chatService: ChatManager,
     private historyService: HistoryService,
     private authService: AuthService,
@@ -85,12 +87,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // Depending on `command`, handle each case
       switch (command) {
         case "api-chat":
-          console.log("api-chat data:", data);
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
         case 'api-stop-chat': // ✅ Add logic to stop chat
-          console.log('Stopping chat...');
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         // case 'api-clear-chat':
@@ -169,11 +169,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         case "get-workspace-state":
-          console.log("[DEBUG] Handling get-workspace-state request:", data);
           promise = this.getWorkspaceState(data);
-          promise.then((res: any) =>
-            console.log("[DEBUG] Workspace state retrieved:", res)
-          );
           break;
 
         case "delete-workspace-state":
@@ -192,9 +188,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "initiate-login":
           promise = this.initiateLogin(data);
-          break;
-        case "initiate-binary":
-          promise = this.initiateBinary();
           break;
         case "sign-out":
           promise = this.signOut();
@@ -225,6 +218,25 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "open-file":
           this.openFile(data.path);
+          break;
+
+        case "check-diff-applicable": {
+          try {
+            const diffRecord = (await this.chatService.getModifiedRequest({
+              filepath: data.filePath,
+              raw_diff: data.raw_diff,
+            })) as Record<string, string>;
+            // check diffRecord has keys and values
+            promise = Object.keys(diffRecord).length > 0;
+          } catch (error) {
+            console.error("Error while checking diff applicability:", error);
+          }
+          break;
+        }
+
+        case "show-logs":
+          promise = this.showLogs();
+          break;
       }
 
       if (promise) {
@@ -236,9 +248,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             data: result,
           });
         } catch (err) {
-          vscode.window.showErrorMessage(
-            "Error handling sidebar message: " + String(err)
-          );
+          // vscode.window.showErrorMessage(
+          //   "Error handling sidebar message: " + String(err)
+          // );
         }
       }
     });
@@ -250,18 +262,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context , this.configManager);
+    const authenticationManager = new AuthenticationManager(this.context , this.configManager,this.logger);
     const status = await authenticationManager.initiateAuthentication();
     if (status === "AUTHENTICATION_FAILED") {
       this.setViewType("error");
     } else {
       this.sendMessageToSidebar(status);
+      this.initiateBinary();
     }
   }
 
   async signOut() {
     const response = await this.authService.deleteAuthToken();
     if (response === "success") {
+      this.logger.info("Signed out successfully");
       this.outputChannel.info("Signed out successfully");
       this.setViewType("auth");
     }
@@ -269,6 +283,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For Binary init
   public async initiateBinary() {
+    this.outputChannel.info("Initiating Binary**********************************")
     const active_repo = getActiveRepo();
     //  measure time tken for auth token
     // start
@@ -283,6 +298,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (!auth_token) {
       return;
     }
+    this.logger.info("Initiating binary...");
     this.outputChannel.info("Initiating binary...");
     const payload = {
       config: {
@@ -307,6 +323,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.outputChannel.info(response.data.status);
     if (response.data.status === "Completed") {
       if (active_repo) {
+        this.logger.info(`Embedding creation with repo ${active_repo}`);
         this.outputChannel.info(`Embedding creation with repo ${active_repo}`);
         const params = { repo_path: active_repo };
         this.outputChannel.info(
@@ -322,6 +339,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
           );
         }).catch((error) => {
+          this.logger.info("Embedding failed 3 times...");
           this.outputChannel.info("Embedding failed 3 times...")
           this.sendMessageToSidebar({
             id: uuidv4(),
@@ -445,12 +463,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // Global State Management
 
   private async setGlobalState(data: { key: string; value: any }) {
-    console.log("setGlobalState:", data);
     return this.context.globalState.update(data.key, data.value);
   }
 
   private async getGlobalState(data: { key: string }) {
-    console.log("this is the saved", this.context.globalState.get(data.key));
     return this.context.globalState.get(data.key);
   }
 
@@ -484,6 +500,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async deleteSecretState(data: { key: string }) {
     return this.context.secrets.delete(data.key);
+  }
+
+  private async showLogs() {
+    await this.logger.showCurrentProcessLogs();
   }
 
   async getSessions(data: { limit: number; offset: number }) {
@@ -536,7 +556,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader" | "force-upgrade") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
@@ -669,7 +689,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (this._view) {
       this._view.webview.postMessage(message);
     } else {
-      console.log("Sidebar is not initialized. Cannot send message.");
       this.pendingMessages.push(message);
     }
   }

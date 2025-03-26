@@ -1,6 +1,6 @@
 import './App.css';
-import { useEffect, useState } from 'react';
-import { sendWebviewFocusState, initiateBinary } from "@/commandApi";
+import { useEffect } from 'react';
+import { sendWebviewFocusState } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -10,11 +10,15 @@ import Auth from './views/auth';
 import { useAuthStore } from './stores/authStore';
 import Profile from './views/profile';
 import Error from './views/error';
+import ForceUpgradeView from './views/forceUpgradeView';
+import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 
 function App() {
   const extensionState = useExtensionStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setIsAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const showForceUpgrade = useForceUpgradeStore((state) => state.showForceUpgrade);
+  const setShowForceUpgrade = useForceUpgradeStore((state) => state.setShowForceUpgrade);
 
   let view;
 
@@ -22,10 +26,13 @@ function App() {
     function handleMessage(event: MessageEvent) {
       const response = event.data || {};
 
+      if (response === "force-upgrade-needed") {
+        extensionState.setViewType("force-upgrade");
+        setShowForceUpgrade(true);
+      }
+
       if (response === "AUTHENTICATED") {
-        // call binary init command api
         setIsAuthenticated(true);
-        initiateBinary();
         extensionState.setViewType("chat")
       }
     }
@@ -43,29 +50,29 @@ function App() {
   }, [])
 
   switch (extensionState.viewType) {
+    case 'force-upgrade':
+      view = <ForceUpgradeView />
+      break;
     case 'auth':
-      view = <Auth />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Auth />
       break;
     case 'chat':
-      // TODO: Bypassing auth for development
-      // view =  <Chat />;
-      view = isAuthenticated ? <Chat /> : <Auth />;
+      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Chat /> : <Auth />)
       break;
     case 'profile':
-      view = isAuthenticated ? <Profile /> : <Auth />;
+      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Profile /> : <Auth />)
       break;
     case 'setting':
-      view = isAuthenticated ? <Setting /> : <Auth />;
-      // view = <Setting />;
+      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
       break;
     case 'loader':
       view =  <Loader />;
       break;
     case 'history':
-      view = isAuthenticated ? <History /> : <Auth />;
+      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <History /> : <Auth />)
       break;
     case 'error':
-      view = <Error />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Error />
       break;
     default:
       view = null;

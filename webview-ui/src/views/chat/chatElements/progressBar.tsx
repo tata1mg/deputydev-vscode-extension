@@ -1,5 +1,6 @@
 // Progress.tsx
 import { useRepoSelectorStore } from '@/stores/repoSelectorStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import React from 'react';
 
 interface ProgressProps {
@@ -7,6 +8,8 @@ interface ProgressProps {
 }
 
 const ProgressBar: React.FC<ProgressProps> = ({ progress }) => {
+    const { activeRepo } = useWorkspaceStore();
+    const repoName = activeRepo?.split('/').pop();
     const repoSelectorEmbedding = useRepoSelectorStore(
         (state) => state.repoSelectorDisabled,
       );
@@ -20,7 +23,7 @@ const ProgressBar: React.FC<ProgressProps> = ({ progress }) => {
                         background: repoSelectorEmbedding ? 'linear-gradient(to right, #4F46E5, #3B82F6)' : 'green',
                     }}
                 />
-                <span className={`text-xs ${repoSelectorEmbedding ? 'text-black' : 'text-white'} absolute left-2 top-1`}>{repoSelectorEmbedding ? "Indexing codebase..." : "Completed"}</span>
+                <span className={`text-xs ${repoSelectorEmbedding ? 'text-black' : 'text-white'} absolute left-2 top-1`}>{repoSelectorEmbedding ? `Indexing ${repoName}` : "Completed"}</span>
                 <span className="text-xs text-black absolute right-2 top-1">{repoSelectorEmbedding ? `${Math.floor(progress)}%` : ""}</span>
             </div>
         </div>
