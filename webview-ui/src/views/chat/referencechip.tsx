@@ -69,7 +69,6 @@ export default function ReferenceChip({
   useEffect(() => {
     if (autoEdit) {
       setIsEditing(true);
-      useChatStore.setState({ chipIndexBeingEdited: chipIndex });
     }
   }, [autoEdit]);
 
