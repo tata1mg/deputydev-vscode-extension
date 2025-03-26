@@ -64,7 +64,7 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("authToken", false);
   await extensionContext.workspaceState.update("essentialConfigData", undefined);
   await extensionContext.workspaceState.update("configData", undefined);
-  await extensionContext.workspaceState.update("auth-storage", false);
+  await extensionContext.workspaceState.update("auth-storage", undefined);
   await extensionContext.workspaceState.update("workspace-storage", undefined);
   await extensionContext.workspaceState.update("view-state-storage", undefined);
   await extensionContext.workspaceState.update("chat-type-storage", undefined);

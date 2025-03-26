@@ -236,9 +236,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             data: result,
           });
         } catch (err) {
-          vscode.window.showErrorMessage(
-            "Error handling sidebar message: " + String(err)
-          );
+          // vscode.window.showErrorMessage(
+          //   "Error handling sidebar message: " + String(err)
+          // );
         }
       }
     });

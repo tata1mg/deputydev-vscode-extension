@@ -508,7 +508,7 @@ export function ChatUI() {
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs gap-1">
           <div>
             <RepoSelector />
           </div>
