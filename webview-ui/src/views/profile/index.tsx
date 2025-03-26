@@ -1,4 +1,4 @@
-import { signOut, getGlobalState, openBrowserPage, getProfileUiData } from "@/commandApi";
+import { signOut, getGlobalState, openBrowserPage, getProfileUiData ,showUserLogs} from "@/commandApi";
 import { useChatStore } from "@/stores/chatStore";
 import { useEffect, useState } from "react";
 import { UserRoundPen, BookOpenText, LogOut, Pen, Lightbulb, ChevronDown, ChevronRight, ChevronLeft, Bug } from "lucide-react";
@@ -41,6 +41,10 @@ export default function Profile() {
 
   const handleSignOut = () => {
     signOut();
+  }
+
+  const handleShowLogs = () => {
+    showUserLogs();
   }
 
   const handleBack = () => {
@@ -104,6 +108,15 @@ export default function Profile() {
           })}
         </div>
         }
+        <button
+          className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
+          onClick={handleShowLogs}
+        >
+        <div className="flex gap-2">
+            <img src="https://icons.veryicon.com/png/128/photographic/huide-icon-design/system-log-13.png" alt="show logs" className="w-6 h-6" />
+            <span>Show Logs</span>
+          </div>
+        </button>
         <button
           className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
           onClick={handleSignOut}

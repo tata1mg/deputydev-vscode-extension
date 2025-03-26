@@ -516,7 +516,6 @@ export class ChatManager {
       [payload_key]: raw_udiff,
     });
 
-    console.log("result of binary search and replace", result);
 
     if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);

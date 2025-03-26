@@ -150,7 +150,7 @@ export function ChatUI() {
         .sessions.filter((session) => session.id !== sessionId),
     });
     await deleteSession(sessionId);
-    console.log(`Delete session ${sessionId}`);
+    // console.log(`Delete session ${sessionId}`);
   };
 
   const fetchSessions = async (pageNumber: number) => {
@@ -279,7 +279,7 @@ export function ChatUI() {
 
   // Scroll to bottom when new messages arrive (if auto-scroll is enabled)
   useEffect(() => {
-    console.log("messages updated:", messages);
+    // console.log("messages updated:", messages);
     if (isAutoScrollEnabled) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
@@ -508,7 +508,7 @@ export function ChatUI() {
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs gap-1">
           <div>
             <RepoSelector />
           </div>

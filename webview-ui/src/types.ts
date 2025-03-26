@@ -65,7 +65,8 @@ export type ChatMessage =
   | ChatToolUseMessage
   | ChatThinkingMessage
   | ChatCodeBlockMessage
-  | ChatErrorMessage;
+  | ChatErrorMessage
+  | ChatCompleteMessage;
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
@@ -130,6 +131,12 @@ export interface ChatErrorMessage {
   error_msg: string;
   actor: "ASSISTANT";
 }
+
+export interface ChatCompleteMessage {
+  type: "QUERY_COMPLETE";
+  actor: "ASSISTANT";
+}
+
 
 export interface ChatSessionHistory {
   id: string;
