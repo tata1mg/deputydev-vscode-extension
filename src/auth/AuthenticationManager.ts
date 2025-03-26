@@ -2,6 +2,7 @@ import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { ConfigManager } from "../utilities/ConfigManager";
 import { POLLING_MAX_ATTEMPTS } from "../config";
+import { Logger } from "../utilities/Logger";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 
@@ -11,6 +12,7 @@ export class AuthenticationManager {
     constructor(
         private context: vscode.ExtensionContext,
         private configManager: ConfigManager,
+        private logger: Logger
     ) {}
 
     public async pollSession(supabaseSessionId: string) {
@@ -39,15 +41,14 @@ export class AuthenticationManager {
                     }
                 }
             } catch (error) {
-                console.error('Error while polling session:', error);
+                this.logger.error('Error while polling session:', error);
                 return 'AUTHENTICATION_FAILED';
             }
 
             // Wait for 3 seconds before the next attempt
             await new Promise(resolve => setTimeout(resolve, 3000));
         }
-
-        console.error("Authentication failed, please try again later.");
+        this.logger.error("Authentication failed, please try again later.");
         return 'AUTHENTICATION_FAILED';
     };
 
@@ -91,7 +92,6 @@ export class AuthenticationManager {
                 // return true;
             }
         } catch (error) {
-            console.error("Authentication failed, please try again later.")
             return false;
         }
     }

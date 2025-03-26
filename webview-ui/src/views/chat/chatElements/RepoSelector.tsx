@@ -21,7 +21,7 @@ const RepoSelector = () => {
     const selectedRepo = workspaceRepos.find(repo => repo.repoPath === selectedRepoPath);
 
     if (selectedRepo) {
-      console.log('selectedRepoPath', selectedRepoPath, 'selectedRepo', selectedRepo);
+      // console.log('selectedRepoPath', selectedRepoPath, 'selectedRepo', selectedRepo);
       setActiveRepo(selectedRepoPath);
       sendWorkspaceRepoChange({ repoPath: selectedRepoPath }); // Notify VS Code about the change
     }
@@ -38,7 +38,7 @@ const RepoSelector = () => {
         value={activeRepo || ''}
         onChange={handleChange}
         disabled={disableRepoSelector}
-      >
+      > 
         {workspaceRepos.length === 0 ? (
           <option value="" disabled>No repositories available</option>
         ) : (

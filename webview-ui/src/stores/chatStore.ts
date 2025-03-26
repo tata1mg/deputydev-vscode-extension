@@ -17,7 +17,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats, UserData, ProfileUiDiv } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats,ChatCompleteMessage, UserData, ProfileUiDiv } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -179,7 +179,7 @@ export const useChatStore = create(
 
           }
 
-          console.log("stream received in FE : ", stream);
+          // console.log("stream received in FE : ", stream);
 
           try {
             for await (const event of stream) {
@@ -348,7 +348,6 @@ export const useChatStore = create(
                 }
 
                 case "CODE_BLOCK_END": {
-                  console.log("Raw event data:", event.data);
                   const endData = event.data as {
                     diff: string | null;
                     added_lines: number | null;
@@ -376,6 +375,23 @@ export const useChatStore = create(
                   break;
                 }
 
+                case "QUERY_COMPLETE": {
+                  useChatStore.setState({showSkeleton: false})
+                  set((state) => ({
+                    history: [
+                      ...state.history,
+                      {
+                        type: "QUERY_COMPLETE",
+                        actor: "ASSISTANT",
+                      } as ChatCompleteMessage,
+                    ],
+                  }));
+  
+                  logToOutput("info", `query complete ${JSON.stringify(event.data)}`);
+
+                  chunkCallback({ name: "QUERY_COMPLETE", data: event.data });
+                  break;
+                }
 
 
                 case "APPLY_DIFF_RESULT": {
@@ -633,12 +649,23 @@ export const useChatStore = create(
 
         cancelChat() {
           apiStopChat();
-          useChatStore.setState({showSkeleton: false})
-          const { currentChatRequest } = get();
-          currentChatRequest?.close();
-          set({ currentChatRequest: undefined, isLoading: false });
+          useChatStore.setState((state) => {
+            const newHistory = [...state.history];
+            if (state.current) {
+              newHistory.push(state.current); 
+            }
+        
+            return {
+              history: newHistory,
+              current: undefined,
+              currentChatRequest: undefined,
+              isLoading: false,
+              showSkeleton: false,
+            };
+          });
+        
           logToOutput("info", "User canceled the chat stream");
-        },
+        }        
       };
     }
   ),

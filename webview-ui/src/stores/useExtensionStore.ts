@@ -21,7 +21,7 @@ export const useExtensionStore = create<ExtensionState>()(
       initializeViewType: () => {
         const { isAuthenticated } = useAuthStore.getState();
         const savedViewType = get().viewType;
-        console.log('current view type', savedViewType);
+        // console.log('current view type', savedViewType);
         if (isAuthenticated) {
           set({ viewType: savedViewType });
         }
@@ -37,7 +37,7 @@ export const useExtensionStore = create<ExtensionState>()(
 // Ensure viewType initializes correctly on load
 setTimeout(() => {
   const { isAuthenticated } = useAuthStore.getState();
-  console.log('isAuthenticated state at extension store', isAuthenticated);
+  // console.log('isAuthenticated state at extension store', isAuthenticated);
   useExtensionStore.getState().initializeViewType();
 }, 600);
 
