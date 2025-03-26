@@ -16,6 +16,10 @@ export function writeFile(params: { filePath : string; raw_diff: string }) {
   return callCommand('write-file', params);
 }
 
+export function checkDiffApplicable(params: { filePath: string; raw_diff: string }) {
+  return callCommand('check-diff-applicable', params);
+}
+
 // chat api calls
 
 export function apiChat(payload: unknown) {
