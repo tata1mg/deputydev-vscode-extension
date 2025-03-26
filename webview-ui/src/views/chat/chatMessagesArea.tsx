@@ -137,11 +137,7 @@ export function ChatArea() {
 
             case "QUERY_COMPLETE":
               return (
-<<<<<<< HEAD
                 <div key={index} className="flex items-center -mt-2 space-x-2 text-green-500 font-medium">
-=======
-                <div key={index} className="flex items-center  space-x-2 text-green-500 font-medium">
->>>>>>> 5707cae (logger fix and minor fixes)
                   <span>✓</span>
                   <span>Task Completed</span>
                 </div>
