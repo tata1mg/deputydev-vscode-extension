@@ -100,7 +100,7 @@ export default function Profile() {
           onClick={handleShowLogs}
         >
         <div className="flex gap-2">
-            <img src="https://icons.veryicon.com/png/128/photographic/huide-icon-design/system-log-13.png" alt="show logs" className="w-6 h-6" />
+            <img src="https://onemg.gumlet.io/dd_stat_logo_26_03.png" alt="show logs" className="w-6 h-6" />
             <span>Show Logs</span>
           </div>
         </button>

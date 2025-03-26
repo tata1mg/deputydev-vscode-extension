@@ -359,7 +359,7 @@ export function ChatUI() {
   };
 
   useEffect(() => {
-    console.log(`Lappa ${userInput}`, textareaRef.current);
+    // console.log(`Lappa ${userInput}`, textareaRef.current);
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
