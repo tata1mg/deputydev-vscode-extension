@@ -20,7 +20,6 @@ import { ConfigManager } from "../utilities/ConfigManager";
 import { DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
-import { c } from "tar";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
