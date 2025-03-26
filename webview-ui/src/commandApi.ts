@@ -182,3 +182,7 @@ export function signOut() {
 export function getProfileUiData() {
   return callCommand('fetch-profile-ui-data', {});
 }
+
+export function showUserLogs() {
+  return callCommand('show-logs', {});
+}
