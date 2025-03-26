@@ -8,10 +8,8 @@ let sidebarProvider: SidebarProvider | null = null;
 
 export function setExtensionContext(
   context: vscode.ExtensionContext,
-  outputChannel: vscode.LogOutputChannel,
 ) {
   extensionContext = context;
-  logOutputChannel = outputChannel;
 }
 
 export function setSidebarProvider(provider: SidebarProvider) {
@@ -72,13 +70,13 @@ export function getActiveRepo(): string | undefined {
 export async function clearWorkspaceStorage() {
   if (!extensionContext)
    {
-    console.log('extensionContext is not defined');
+    // console.log('extensionContext is not defined');
     return;
    }
   await extensionContext.workspaceState.update("authToken", false);
   await extensionContext.workspaceState.update("essentialConfigData", undefined);
   await extensionContext.workspaceState.update("configData", undefined);
-  await extensionContext.workspaceState.update("auth-storage", false);
+  await extensionContext.workspaceState.update("auth-storage", undefined);
   await extensionContext.workspaceState.update("workspace-storage", undefined);
   await extensionContext.workspaceState.update("view-state-storage", undefined);
   await extensionContext.workspaceState.update("chat-type-storage", undefined);

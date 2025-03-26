@@ -13,8 +13,6 @@ export const WS_TIMEOUT = 1800000;
 
 
 export const MAX_PORT_ATTEMPTS = 20;
-export const RUDDERSTACK_WRITE_KEY = "123"; // this is a dummy key
-export const RUDDERSTACK_URL = "https://rudderapi.1mg.com/v1/track";
 
 export const BINARY_BG_PING_INTERVAL_MS = 5000;
 // local binary host
@@ -32,8 +30,6 @@ export function getBinaryPort(): number | null {
 
 export function getBinaryHost(): string {
   const port = getBinaryPort();
-  console.log(`this is the binary host of the exnetion`);
-  console.log(`http://localhost:${port}`);
   return `http://localhost:${port}`;
 }
 
@@ -42,24 +38,5 @@ export function getBinaryWsHost(): string {
   return `ws://localhost:${port}`;
 }
 
-let MainConfig: object | {} = {};
-let EssentialConfig: object | {} = {};
 
-
-export function setMainConfig(config: any) {
-  MainConfig = config;
-}
-
-export function setEssentialConfig(config: any) {
-  EssentialConfig = config;
-}
-
-
-export function getMainConfig(): any {
-  return MainConfig;
-}
-
-export function getEssentialConfig(): any {
-  return EssentialConfig;
-}
 

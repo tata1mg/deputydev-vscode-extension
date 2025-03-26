@@ -50,12 +50,8 @@ export class AuthService {
 
     public async loadAuthToken() {
         try {
-            console.log('Loading auth token');
-            console.log("the host name ")
             const host = getBinaryHost()
-            console.log("the host name is ", host)
             const response = await binaryApi().get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
-            console.log('Loaded auth token:', response.data);
             if (response.data.message === "success" && response.data.auth_token) {
                 return response.data.auth_token;
             } else {

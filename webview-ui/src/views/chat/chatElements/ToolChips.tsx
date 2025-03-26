@@ -163,28 +163,27 @@ export function RetryChip({ error_msg, retry, payload_to_retry }: {
   
   // Retry function defined within ChatArea component
   const retryChat = () => {
-    console.log("retrying chat");
     if (!messages.length) {
-      console.log("No messages in history");
+      // console.log("No messages in history");
       return;
     }
     // Get the last message from the chat history
     const lastMsg = messages[messages.length - 1];
-    console.log("Last message:", JSON.stringify(lastMsg));
+    // console.log("Last message:", JSON.stringify(lastMsg));
 
     if (lastMsg.type === "ERROR") {
       // The error message should have the payload to retry stored in 'payload_to_retry'
       const errorData = lastMsg; // Assuming type ChatErrorMessage
-      console.log(
-        "Payload data just before sending:",
-        JSON.stringify(errorData.payload_to_retry, null, 2)
-      );
+      // console.log(
+      //   "Payload data just before sending:",
+      //   JSON.stringify(errorData.payload_to_retry, null, 2)
+      // );
       const payload = errorData.payload_to_retry;
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
       sendChatMessage("retry", [], () => {}, true, payload);
     } else {
-      console.log("No error found to retry.");
+      // console.log("No error found to retry.");
     }
   };
 

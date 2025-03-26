@@ -1,6 +1,7 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
+import * as os from "os";
 import { DiffViewManager } from "./diff/DiffManager";
 import { InlineDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
 import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
@@ -22,37 +23,43 @@ import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
 import { AuthService } from "./services/auth/AuthService";
 import { UsageTrackingManager } from "./usageTracking/UsageTrackingManager";
 import { ServerManager } from './binaryUp/ServerManager';
-let outputChannel: vscode.LogOutputChannel;
 import { getBinaryHost } from './config';
 import { binaryApi } from './services/api/axios';
 import { API_ENDPOINTS } from './services/api/endpoints';
 import { ProfileUiService } from './services/profileUi/profileUiService';
 import { BackgroundPinger } from './binaryUp/BackgroundPinger';
-
+import { createOutputChannel } from './utilities/outputChannelFlag';
+import {Logger} from './utilities/Logger';
 export async function activate(context: vscode.ExtensionContext) {
-  const outputChannelName = vscode.workspace
-    .getConfiguration("deputydev")
-    .get<string>("outputChannelName", "DeputyDev");
-  outputChannel = vscode.window.createOutputChannel(outputChannelName, {
-    log: true,
-  });
+
+  // if playform is windows then return and error
+  if (os.platform()  === 'win32') {
+    vscode.window.showErrorMessage('DeputyDev is not supported on Windows. Please use MacOS');
+    return;
+  }
+  const ENABLE_OUTPUT_CHANNEL = false;
+  const outputChannel = createOutputChannel("DeputyDev",ENABLE_OUTPUT_CHANNEL );
+  const logger = new Logger(context);
 
   // context reset from past session
-  setExtensionContext(context, outputChannel);
+  setExtensionContext(context);
   await clearWorkspaceStorage();
 
-  outputChannel.info('Extension "DeputyDev" is now active!');
 
-  // 0) Fetch and store essential config data
-  const configManager = new ConfigManager(context, outputChannel);
+  // // 0) Fetch and store essential config data
+  const configManager = new ConfigManager(context,logger,outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
   if (await !configManager.getAllConfigEssentials()) {
-    outputChannel.error('Failed to fetch essential config data.');
     return;
   }
 
+  logger.info(`Extension "DeputyDev" is now active!`);
+  outputChannel.info('Extension "DeputyDev" is now active!');
+  const config = configManager.getAllConfigEssentials();
+  // outputChannel.info(`Essential Config: ${JSON.stringify(config)}`);
+
   // 0.1 download and executes binary
-  const serverManager = new ServerManager(context, outputChannel, configManager);
+  const serverManager = new ServerManager(context, outputChannel,logger, configManager );
   await serverManager.ensureBinaryExists();
   await serverManager.startServer();
   outputChannel.info('this binary host now is ' + getBinaryHost());
@@ -60,7 +67,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(
     context,
-    configManager
+    configManager,
+    logger
   );
   authenticationManager
     .validateCurrentSession()
@@ -131,6 +139,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.extensionUri,
     diffViewManager,
     outputChannel,
+    logger,
     chatService,
     historyService,
     authService,
@@ -147,7 +156,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const pinger = new BackgroundPinger(sidebarProvider, serverManager, outputChannel, configManager);
+  const pinger = new BackgroundPinger(sidebarProvider,serverManager, outputChannel,logger, configManager);
   pinger.start();
 
 
@@ -159,6 +168,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const inlineChatEditManager = new InlineChatEditManager(
     context,
     outputChannel,
+    logger,
     chatService,
     sidebarProvider
   );
@@ -290,11 +300,9 @@ export async function activate(context: vscode.ExtensionContext) {
   //  8) Show the output channel if needed & start server
 
   chatService.start();
-  outputChannel.show();
 }
 
 export async function deactivate() {
-  outputChannel?.info('Extension "DeputyDev" is now deactivated!');
   await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 
