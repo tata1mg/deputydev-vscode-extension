@@ -41,11 +41,11 @@ export function setSessionId(value: number) {
 }
 
 
-export function sendProgress(progress: number) {
+export function sendProgress(progressBarData: {repo: string, progress: number, status: string }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: "progress-bar",
-    data: progress,
+    data: progressBarData,
   })
 }
 

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
-import {useExtensionStore} from "./stores/useExtensionStore";
+import { useExtensionStore } from "./stores/useExtensionStore";
 import { useAuthStore } from "./stores/authStore";
 import { useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv } from "@/types";
+import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv, ProgressBarData } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 
 type Resolver = {
@@ -310,27 +310,44 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem]
   })
-  console.dir(useChatStore.getState().currentEditorReference, {depth: null})
+  console.dir(useChatStore.getState().currentEditorReference, { depth: null })
 })
 
-addCommandEventListener("progress-bar", ({data}) => {
-  const progress = data as number;
-  useChatStore.setState({progressBar: progress})
-  // console.log("progress", data)
+addCommandEventListener("progress-bar", ({ data }) => {
+  const progressBarData = data as ProgressBarData;
+  const incomingProgressBarRepo = progressBarData.repo;
+  const currentProgressBars = useChatStore.getState().progressBars;
+  // Check if the repo is present in the currentProgressBars array
+  const isRepoPresent = currentProgressBars.some(bar => bar.repo === incomingProgressBarRepo);
+  if (!isRepoPresent) {
+    // If the repo is not present, add it to the array
+    useChatStore.setState({
+      progressBars: [...currentProgressBars, progressBarData]
+    });
+  } else {
+    // If the repo is present, update the progress
+    useChatStore.setState({
+      progressBars: currentProgressBars.map(bar =>
+        bar.repo === incomingProgressBarRepo
+          ? { ...progressBarData } // Replace the existing bar with progressBarData
+          : bar
+      )
+    });
+  }
 })
 
 addCommandEventListener("retry-embedding-failed", ({ data }) => {
   console.error("Retry embedding failed:", data);
-  useChatStore.setState({showEmbeddingFailed: true});
+  useChatStore.setState({ showEmbeddingFailed: true });
 });
 
-addCommandEventListener("profile-ui-data", ({data}) => {
-  useChatStore.setState({profileUiData: data as ProfileUiDiv[]})
+addCommandEventListener("profile-ui-data", ({ data }) => {
+  useChatStore.setState({ profileUiData: data as ProfileUiDiv[] })
 })
 
-addCommandEventListener("force-upgrade-data", ({data}) => {
+addCommandEventListener("force-upgrade-data", ({ data }) => {
 
-  useChatStore.setState({forceUpgradeData: data as { url: string; upgradeVersion: string }})
+  useChatStore.setState({ forceUpgradeData: data as { url: string; upgradeVersion: string } })
   useExtensionStore.setState({ viewType: "force-upgrade" })
 })
 // addCommandEventListener('current-editor-changed', ({ data }) => {

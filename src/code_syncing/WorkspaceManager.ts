@@ -197,6 +197,15 @@ export class WorkspaceManager {
    */
   private async sendWebSocketUpdate(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
+    const chatStorage = this.context.workspaceState.get("chat-storage") as string;
+    const parsedChatStorage = JSON.parse(chatStorage);
+    const progressBars = parsedChatStorage?.state?.progressBars as { repo: string, progress: number, status: string }[];
+
+    const isRepoPresent = progressBars.some(bar => bar.repo === this.activeRepo);
+    if (isRepoPresent) {
+      return;
+    }
+
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.sidebarProvider.sendMessageToSidebar({

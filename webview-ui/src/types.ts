@@ -6,6 +6,12 @@ export type UserData = {
   userName: string;
 };
 
+export type ProgressBarData = {
+  repo: string;
+  progress: number;
+  status: string;
+}
+
 export type ProfileUiDiv = {
   label: string;
   type: string;
