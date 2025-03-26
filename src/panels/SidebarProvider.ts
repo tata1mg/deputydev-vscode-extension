@@ -221,6 +221,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "open-file":
           this.openFile(data.path);
+          break;
+
+        case "check-diff-applicable": {
+          try {
+            const diffRecord = (await this.chatService.getModifiedRequest({
+              filepath: data.filePath,
+              raw_diff: data.raw_diff,
+            })) as Record<string, string>;
+            // check diffRecord has keys and values
+            promise = Object.keys(diffRecord).length > 0; 
+          } catch (error) {
+            console.error("Error while checking diff applicability:", error);
+          }
+          break;
+        }
           
         case "show-logs":
           promise = this.showLogs();
