@@ -30,6 +30,7 @@ import { isEqual as lodashIsEqual, set } from "lodash";
 import { ChatUserMessage } from "@/types";
 import ProgressBar from "./chatElements/progressBar";
 import { keywordSearch, keywordTypeSearch } from "@/commandApi";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -43,7 +44,7 @@ export function ChatUI() {
     showAllSessions,
     sessions,
     ChatAutocompleteOptions,
-    showEmbeddingFailed,
+    progressBars
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
@@ -52,6 +53,7 @@ export function ChatUI() {
   );
   // const repoSelectorEmbedding = false;
   // const [repoSelectorDisabled] = useState(false);
+  const { activeRepo } = useWorkspaceStore();
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipEditMode, setChipEditMode] = useState(false);
@@ -62,20 +64,6 @@ export function ChatUI() {
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
-  const [showProgressBar, setShowProgressBar] = useState(false);
-
-  useEffect(() => {
-    if (showEmbeddingFailed) {
-      setShowProgressBar(false); // Close immediately if showEmbeddingFailed is true
-    } else if (!repoSelectorEmbedding) {
-      setShowProgressBar(true);
-      const timer = setTimeout(() => {
-        setShowProgressBar(false);
-      }, 1500);
-
-      return () => clearTimeout(timer); // Cleanup timeout on unmount
-    }
-  }, [repoSelectorEmbedding, showEmbeddingFailed]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,7 +131,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } finally {
     }
   };
@@ -273,9 +261,9 @@ export function ChatUI() {
     console.log("Ref: ", textareaRef);
     console.log("Ref Current: ", textareaRef.current);
   };
-  
+
   useEffect(() => {
-    console.log(`Lappa ${userInput}`,textareaRef.current)
+    console.log(`Lappa ${userInput}`, textareaRef.current)
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
@@ -466,17 +454,14 @@ export function ChatUI() {
             ))}
           </div> */}
 
-          {showEmbeddingFailed && (
-            <div className="text-md p-4 text-center text-red-500">
-              <p>Indexing Failed !!!</p>
-            </div>
-          )}
 
-          {showProgressBar && (
+
+          {activeRepo &&
             <div className="mb-[2px] w-full">
-              <ProgressBar progress={useChatStore.getState().progressBar} />
+              <ProgressBar progressBars={progressBars} />
             </div>
-          )}
+          }
+
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
             <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
