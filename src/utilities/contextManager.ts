@@ -85,5 +85,6 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("chat-storage", undefined);
   await extensionContext.workspaceState.update("repo-selector-storage", false);
   await extensionContext.workspaceState.update("sessionId", undefined);
+  await extensionContext.workspaceState.update("force-upgrade-storage", undefined);
 }
 
