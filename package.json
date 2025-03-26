@@ -8,12 +8,13 @@
   "engines": {
     "vscode": "^1.91.0"
   },
+  "icon": "assets/DD_Logo.png",
   "categories": [
     "Other"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/tata1mg/deputydev-vscode-extension"
+    "url": "https://github.com/tata1mg/"
   },
   "activationEvents": [
     "onCommand:deputydev.editThisCode",
@@ -164,7 +165,7 @@
       "activitybar": [
         {
           "id": "deputydev-sidebar-view",
-          "title": "DeputyDev Extension",
+          "title": "DeputyDev",
           "icon": "assets/DD_Logo.png"
         }
       ]

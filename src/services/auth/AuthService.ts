@@ -13,7 +13,6 @@ export class AuthService {
             const response = await api.get(API_ENDPOINTS.GET_SESSION, { headers });
             return response.data;
         } catch (error) {
-            console.error('Error while fetching session:', error);
             throw error; // Throw the error to be handled by the caller
         }
     }
@@ -27,7 +26,6 @@ export class AuthService {
             const response = await api.post(API_ENDPOINTS.VERIFY_AUTH_TOKEN, {}, { headers });
             return response.data;
         } catch (error) {
-            console.error('Error while verifying current session:', error);
             throw error; // Throw the error to be handled by the caller
         }
     }
@@ -44,26 +42,20 @@ export class AuthService {
                 return "failed";
             }
         } catch (error) {
-            console.error('Error while storing auth token:', error);
             throw error;
         }
     }
 
     public async loadAuthToken() {
         try {
-            console.log('Loading auth token');
-            console.log("the host name ")
             const host= getBinaryHost()
-            console.log("the host name is ",host)
             const response = await binaryApi().get(API_ENDPOINTS.LOAD_AUTH_TOKEN);
-            console.log('Loaded auth token:', response.data);
             if (response.data.message === "success" && response.data.auth_token) {
                 return response.data.auth_token;
             } else {
                 return null
             }
         } catch (error) {
-            console.error('Error while loading auth token:', error);
             throw error;
         }
     }
@@ -75,7 +67,6 @@ export class AuthService {
                 return response.data.message;
             }
         } catch (error) {
-            console.error('Error while deleting auth token:', error);
             throw error;
         }
     }

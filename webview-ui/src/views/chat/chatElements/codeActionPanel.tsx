@@ -80,7 +80,7 @@ export function CodeActionPanel({
   };
 
   const handleInsert = () => {
-    console.log("Insert clicked:", content);
+    // console.log("Insert clicked:", content);
     alert("Insert logic to be implemented.");
   };
 
