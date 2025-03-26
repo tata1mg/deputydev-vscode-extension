@@ -535,7 +535,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader" | "force-upgrade") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",

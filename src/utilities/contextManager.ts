@@ -51,6 +51,10 @@ export function sendProgress(progress: number) {
   })
 }
 
+export function sendForceUpgrade() {
+  sidebarProvider?.sendMessageToSidebar("force-upgrade-needed");
+}
+
 export function sendForceUgradeData(data: {url: string, upgradeVersion: string}) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
