@@ -91,7 +91,7 @@ export class ConfigManager {
         this.configData = response.data.data;
         this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
         setMainConfig(this.configData);
-        this.logger.deleteLogsOlderThan(this.configData["LOGS_RETENTION_DAYS"]);
+        this.logger.deleteLogsOlderThan(this.configData["VSCODE_LOGS_RETENTION_DAYS"]);
         this.logger.info(`fetched main config`);
         // this.outputChannel.appendLine(`main CONFIG fetched: ${JSON.stringify(this.configData, null, 2)}`);
         this._onDidUpdateConfig.fire();
