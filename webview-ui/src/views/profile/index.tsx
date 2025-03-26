@@ -123,6 +123,8 @@ export default function Profile() {
           <div className="h-10 rounded bg-gray-500 w-full"></div>
           <div className="h-10 rounded bg-gray-500 w-full"></div>
           <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="h-10 rounded bg-gray-500 w-full"></div>
         </div>
       )}
     </div>
