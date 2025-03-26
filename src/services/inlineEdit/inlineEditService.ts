@@ -36,7 +36,7 @@ export class InlineEditService {
                 params: { job_id }
             });
             refreshCurrentToken(response.headers)
-            console.log(response.data.data)
+            // console.log(response.data.data)
             return response.data.data;
         } catch (error) {
             console.error('Error while fetching inline diff result: ', error);

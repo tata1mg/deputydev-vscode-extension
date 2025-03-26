@@ -33,13 +33,13 @@ export class WebSocketClient {
 
     private setupEventListeners() {
         this.socket.on('open', () => {
-            console.log(`✅ Connected to WebSocket: ${this.url}`);
+            // console.log(`✅ Connected to WebSocket: ${this.url}`);
         });
 
         this.socket.on('message', (event: RawData) => {
             try {
               const messageData = JSON.parse(event.toString());
-              console.log("Received WebSocket message:", messageData);
+            //   console.log("Received WebSocket message:", messageData);
               // Check if the response is an array (relevant chunks)
               if (Array.isArray(messageData)) {
                 this.resolveResponse(messageData);
@@ -72,7 +72,7 @@ export class WebSocketClient {
 
 
         this.socket.on('close', (code, reason) => {
-            console.log(`⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`);
+            // console.log(`⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`);
             // Only reject if we haven't resolved yet
             if (this.timeout !== null) {
                 this.rejectResponse(new Error(`WebSocket closed unexpectedly: ${reason}`));

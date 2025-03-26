@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from "../api/endpoints";
 
 export class FocusChunksService {
   public async getFocusChunks(payload: unknown): Promise<any> {
-    console.log(`get focus chunks ${JSON.stringify(payload)}`)
+    // console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
     try {
       response = await binaryApi().post(
