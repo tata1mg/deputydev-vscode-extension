@@ -198,6 +198,38 @@ export function ChatUI() {
     getSessionChats(sessionId);
   };
 
+  // const handleTextAreaKeyDown = (
+  //   e: React.KeyboardEvent<HTMLTextAreaElement>,
+  // ) => {
+  //   if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
+  //     e.preventDefault();
+  //     if (!isLoading) {
+  //       handleSend();
+  //     }
+  //   }
+  //   if (e.key === "Backspace" && userInput.endsWith("@")) {
+  //     setShowAutocomplete(false);
+  //     setChipEditMode(false);
+  //     setUserInput(userInput.slice(0,-1));
+  //   }
+  //   if (e.key === "Backspace" && userInput === "") {
+  //     backspaceCountRef.current += 1;
+  //     if (backspaceCountRef.current === 2) {
+  //       const allChips = [...useChatStore.getState().currentEditorReference];
+  //       if (allChips.length) {
+  //         allChips.pop();
+  //         useChatStore.setState({ currentEditorReference: allChips });
+  //         setTimeout(() => {
+  //           const textarea = textareaRef.current;
+  //           if (textarea) {
+  //             textarea.focus();
+  //           }
+  //         }, 10);
+  //       }
+  //     }
+  //     setTimeout(() => (backspaceCountRef.current = 0), 300);
+  //   }
+  // };
   const handleTextAreaKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
@@ -207,30 +239,45 @@ export function ChatUI() {
         handleSend();
       }
     }
-    if (e.key === "Backspace" && userInput === "@") {
-      setShowAutocomplete(false);
-      setChipEditMode(false);
-      setUserInput("");
-    }
-    if (e.key === "Backspace" && userInput === "") {
-      backspaceCountRef.current += 1;
-      if (backspaceCountRef.current === 2) {
-        const allChips = [...useChatStore.getState().currentEditorReference];
-        if (allChips.length) {
-          allChips.pop();
-          useChatStore.setState({ currentEditorReference: allChips });
-          setTimeout(() => {
-            const textarea = textareaRef.current;
-            if (textarea) {
-              textarea.focus();
-            }
-          }, 10);
-        }
+
+    if (e.key === "Backspace") {
+      const textarea = e.currentTarget;
+      const isEntireTextSelected =
+        textarea.selectionStart === 0 &&
+        textarea.selectionEnd === textarea.value.length;
+
+      if (isEntireTextSelected) {
+        setUserInput("");
+        setChipEditMode(false);
+        setShowAutocomplete(false);
       }
-      setTimeout(() => (backspaceCountRef.current = 0), 300);
+
+      if (userInput.endsWith("@") && !isEntireTextSelected) {
+        e.preventDefault();
+        setShowAutocomplete(false);
+        setChipEditMode(false);
+        setUserInput(userInput.slice(0, -1));
+      }
+
+      if (userInput === "" && !isEntireTextSelected) {
+        backspaceCountRef.current += 1;
+        if (backspaceCountRef.current === 2) {
+          const allChips = [...useChatStore.getState().currentEditorReference];
+          if (allChips.length) {
+            allChips.pop();
+            useChatStore.setState({ currentEditorReference: allChips });
+            setTimeout(() => {
+              const textarea = textareaRef.current;
+              if (textarea) {
+                textarea.focus();
+              }
+            }, 10);
+          }
+        }
+        setTimeout(() => (backspaceCountRef.current = 0), 300);
+      }
     }
   };
-
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (chipEditMode) {
       const value = e.target.value.split("@")[1];
@@ -247,9 +294,12 @@ export function ChatUI() {
         });
       } else {
         setShowAutocomplete(true);
-        keywordSearch({ keyword: value });
+        if (value !== "") {
+          keywordSearch({ keyword: value });
+        }
       }
-    } else if (e.target.value.endsWith("@")) {
+    }
+    if (e.target.value.endsWith("@")) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -274,23 +324,38 @@ export function ChatUI() {
       setUserInput(userInput.split("@")[0] + `@${option.value}`);
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
-      const newChatRefrenceItem: ChatReferenceItem = {
-        index: allChips.length,
-        type: option.icon,
-        keyword: option.icon + ": " + option.value,
-        path: option.description,
-        chunks: option.chunks,
-        value: option.value,
-      };
-      useChatStore.setState({
-        currentEditorReference: [...allChips, newChatRefrenceItem],
-      });
-      setShowAutocomplete(false);
-      setUserInput(userInput.split("@")[0]);
-      setChipEditMode(false);
+      const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
+      if (chipIndexBeingEdited == -1) {
+        const newChatRefrenceItem: ChatReferenceItem = {
+          index: allChips.length,
+          type: option.icon,
+          keyword: option.icon + ": " + option.value,
+          path: option.description,
+          chunks: option.chunks,
+          value: option.value,
+        };
+        useChatStore.setState({
+          currentEditorReference: [...allChips, newChatRefrenceItem],
+        });
+        setShowAutocomplete(false);
+        setUserInput(userInput.split("@")[0]);
+        setChipEditMode(false);
+      } else {
+        allChips[chipIndexBeingEdited].keyword =
+          option.icon + ": " + option.value;
+        allChips[chipIndexBeingEdited].type = option.icon;
+        allChips[chipIndexBeingEdited].path = option.description;
+        allChips[chipIndexBeingEdited].chunks = option.chunks;
+        allChips[chipIndexBeingEdited].value = option.value;
+      }
     }
-    console.log("Ref: ", textareaRef);
-    console.log("Ref Current: ", textareaRef.current);
+    useChatStore.setState({ chipIndexBeingEdited: -1 });
+    setTimeout(() => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.focus();
+      }
+    }, 10);
   };
 
   useEffect(() => {
