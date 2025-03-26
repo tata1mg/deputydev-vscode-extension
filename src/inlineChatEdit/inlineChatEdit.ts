@@ -5,7 +5,7 @@ import { InlineEditService } from '../services/inlineEdit/inlineEditService';
 import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import { SidebarProvider } from '../panels/SidebarProvider';
-
+import { Logger } from '../utilities/Logger';
 interface InlineEditPayload {
     query: string;
     relevant_chunks: string[]
@@ -29,6 +29,7 @@ export class InlineChatEditManager {
     private endLineOfSelectedText: number | undefined;
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.LogOutputChannel;
+    private logger: Logger;
     private selected_text: string | undefined;
     private focus_chunks: string[] | undefined;
     private file_path: string | undefined;
@@ -38,11 +39,13 @@ export class InlineChatEditManager {
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
+        logger: Logger,
         private chatService: ChatManager,
         private sidebarProvider: SidebarProvider
     ) {
         this.context = context;
         this.outputChannel = outputChannel;
+        this.logger = logger;
     }
 
     public async inlineChatEditQuickFixes() {
@@ -153,6 +156,7 @@ export class InlineChatEditManager {
     public async inlineEdit() {
         // Register the command for inline editing
         vscode.commands.registerCommand('deputydev.editThisCode', (collapse: boolean = false) => {
+            this.logger.info('Edit command triggered');
             this.outputChannel.info('Edit command triggered');
             const commentController = vscode.comments.createCommentController('DeputyDevAI', 'DeputyDevAI Inline Edit');
 

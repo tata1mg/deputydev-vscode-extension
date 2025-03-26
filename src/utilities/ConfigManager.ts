@@ -3,23 +3,26 @@ import { api } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { AuthService } from '../services/auth/AuthService';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
-import { CLIENT } from '.././config';
+import { CLIENT } from '../config';
 import * as os from 'os';
-import { setEssentialConfig, setMainConfig } from '../config';
+import { setEssentialConfig, setMainConfig } from '../config/configSetGet';
+import { Logger } from './Logger';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
-  private outputChannel: vscode.LogOutputChannel;
   private readonly CONFIG_ESSENTIALS_KEY = 'essentialConfigData';
   private readonly CONFIG_KEY = 'configData';
   private configEssentials: any = {};
   private configData: any = {};
+  private logger: Logger;
+  private outputChannel : vscode.LogOutputChannel;
 
   private _onDidUpdateConfig = new vscode.EventEmitter<void>();
   public readonly onDidUpdateConfig = this._onDidUpdateConfig.event;
 
-  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
+  constructor(context: vscode.ExtensionContext, logger: Logger, outputChannel: vscode.LogOutputChannel) {
     this.context = context;
+    this.logger = logger;
     this.outputChannel = outputChannel;
   }
 
@@ -44,17 +47,19 @@ export class ConfigManager {
         os: Os,
         arch: Arch,
       }});
-      this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
+      // this.outputChannel.info(`CONFIG_ESSENTIALS response: ${JSON.stringify(response.data)}`);
       if (response.data && response.data.is_success) {
         this.configEssentials = response.data.data;
         this.context.workspaceState.update(this.CONFIG_ESSENTIALS_KEY, this.configEssentials);
         setEssentialConfig(this.configEssentials);
+        this.logger.info(`fetched configs`);
         this.outputChannel.info("CONFIG_ESSENTIALS successfully stored.");
       } else {
-        this.outputChannel.error("Failed to fetch CONFIG_ESSENTIALS: Invalid response format.");
+        // this.outputChannel.error("Failed to fetch CONFIG_ESSENTIALS: Invalid response format.");
       }
     } catch (error) {
-      this.outputChannel.error(`Error fetching CONFIG_ESSENTIALS: ${error}`);
+      this.logger.error(`Error fetching configs`);
+      // this.outputChannel.error(`Error fetching CONFIG_ESSENTIALS: ${error}`);
     }
   }
 
@@ -86,13 +91,16 @@ export class ConfigManager {
         this.configData = response.data.data;
         this.context.workspaceState.update(this.CONFIG_KEY, this.configData);
         setMainConfig(this.configData);
-        this.outputChannel.appendLine(`main CONFIG fetched: ${JSON.stringify(this.configData, null, 2)}`);
+        this.logger.deleteLogsOlderThan(this.configData["LOGS_RETENTION_DAYS"]);
+        this.logger.info(`fetched main config`);
+        // this.outputChannel.appendLine(`main CONFIG fetched: ${JSON.stringify(this.configData, null, 2)}`);
         this._onDidUpdateConfig.fire();
       } else {
-        this.outputChannel.error("Failed to fetch CONFIG: Invalid response format.");
+        // this.outputChannel.error("Failed to fetch CONFIG: Invalid response format.");
       }
     } catch (error) {
-      this.outputChannel.error(`Error fetching CONFIG: ${error}`);
+      this.logger.error(`Error fetching main config`);
+      // this.outputChannel.error(`Error fetching CONFIG: ${error}`);
     }
   }
 

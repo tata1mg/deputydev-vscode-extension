@@ -21,7 +21,7 @@ export function ChatArea() {
     showSkeleton,
     showSessionsBox,
   } = useChatStore();
-  console.log("messages in parser", messages);
+  // console.log("messages in parser", messages);
 
   return (
     <>
@@ -135,6 +135,19 @@ export function ChatArea() {
               </div>
             );
 
+            case "QUERY_COMPLETE":
+              return (
+<<<<<<< HEAD
+                <div key={index} className="flex items-center -mt-2 space-x-2 text-green-500 font-medium">
+=======
+                <div key={index} className="flex items-center  space-x-2 text-green-500 font-medium">
+>>>>>>> 5707cae (logger fix and minor fixes)
+                  <span>✓</span>
+                  <span>Task Completed</span>
+                </div>
+              );
+            
+
           case "ERROR":
             return (
               <div key={index}>
@@ -145,6 +158,7 @@ export function ChatArea() {
                 />
               </div>
             );
+
 
           default:
             return null;

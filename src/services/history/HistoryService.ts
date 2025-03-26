@@ -27,7 +27,6 @@ export class HistoryService {
             refreshCurrentToken(response.headers);
             return response.data.data;
         } catch (error) {
-            console.error('Error while fetching session:', error);
             throw error; // Throw the error to be handled by the caller
         }
     }
