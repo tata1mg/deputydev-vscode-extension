@@ -16,7 +16,7 @@ import {
   clearWorkspaceStorage,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
-import {  deleteSessionId  } from "./utilities/contextManager";
+import { deleteSessionId } from "./utilities/contextManager";
 import { HistoryService } from "./services/history/HistoryService";
 import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
 import { AuthService } from "./services/auth/AuthService";
@@ -82,7 +82,6 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
       sidebarProvider.setViewType("auth")
-      // sidebarProvider.setViewType("chat");
     });
 
   //  2) Choose & Initialize a Diff View Manager
@@ -148,7 +147,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const pinger = new BackgroundPinger(sidebarProvider,serverManager, outputChannel, configManager);
+  const pinger = new BackgroundPinger(sidebarProvider, serverManager, outputChannel, configManager);
   pinger.start();
 
 
@@ -191,8 +190,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
 
-    // 7) Register commands for Accept/Reject etc
-//
+  // 7) Register commands for Accept/Reject etc
+  //
   // Accept changes in the active file
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
