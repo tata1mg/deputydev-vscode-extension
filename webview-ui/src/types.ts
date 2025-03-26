@@ -1,9 +1,10 @@
 export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile" | "error" | "force-upgrade";
 
+
 export type UserData = {
   email: string;
   userName: string;
-}
+};
 
 export type ProfileUiDiv = {
   label: string;
@@ -11,7 +12,7 @@ export type ProfileUiDiv = {
   icon: string;
   url?: string;
   data?: string;
-}
+};
 
 export type AutocompleteOption = {
   icon: string;
@@ -120,8 +121,7 @@ export interface ChatCodeBlockMessage {
   completed: boolean;
   actor: "ASSISTANT";
   write_mode: boolean;
-  status : "pending" | "completed" | "error";
-
+  status: "pending" | "completed" | "error";
 }
 
 export interface ChatErrorMessage {
@@ -181,13 +181,20 @@ export interface WorkspaceStore {
   activeRepo: string | null;
   setWorkspaceRepos: (
     repos: WorkspaceRepo[],
-    activeRepo: string | null
+    activeRepo: string | null,
   ) => void;
   setActiveRepo: (repoPath: string) => void;
 }
 
-export type UsageTrackingRequest = {
-  event_type: "accepted" | "generated" | "copied";
+export interface UsageTrackingProperties {
+  session_id?: number;
   lines: number;
   file_path: string;
+  timestamp?: string;
+}
+
+export type UsageTrackingRequest = {
+  anonymous_id?: String;
+  event: "accepted" | "generated" | "copied";
+  properties: UsageTrackingProperties;
 };

@@ -349,16 +349,17 @@ export class InlineDiffViewManager
     const change = fileChange.changes[index];
 
     const usageTrackingData: UsageTrackingRequest = {
-      event_type: "accepted",
-      file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(uri)),
-      lines:
-        change.type === "modified"
-          ? change.removed.count + change.added.count
-          : change.count,
+      event: "accepted",
+      properties: {
+        file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(uri)),
+        lines:
+          change.type === "modified"
+            ? change.removed.count + change.added.count
+            : change.count,
+      },
     };
-    const usageTrackingManager = new UsageTrackingManager
+    const usageTrackingManager = new UsageTrackingManager();
     usageTrackingManager.trackUsage(usageTrackingData);
-
 
     let range: vscode.Range;
     let value = "";
