@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { sendWebviewFocusState } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
@@ -11,12 +11,14 @@ import { useAuthStore } from './stores/authStore';
 import Profile from './views/profile';
 import Error from './views/error';
 import ForceUpgradeView from './views/forceUpgradeView';
+import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 
 function App() {
   const extensionState = useExtensionStore();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setIsAuthenticated = useAuthStore((state) => state.setAuthenticated);
-  const [showForceUpgrade, setShowForceUpgrade] = useState(false);
+  const showForceUpgrade = useForceUpgradeStore((state) => state.showForceUpgrade);
+  const setShowForceUpgrade = useForceUpgradeStore((state) => state.setShowForceUpgrade);
 
   let view;
 
