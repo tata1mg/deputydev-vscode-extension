@@ -8,8 +8,8 @@ export const DD_HOST_WS = "wss://cnkilg390a.execute-api.ap-south-1.amazonaws.com
 
 
 // move this to config based, please add these in config.json
-export const POLLING_MAX_ATTEMPTS = 10;
-export const WS_TIMEOUT = 1800000; 
+export const POLLING_MAX_ATTEMPTS = 20;
+export const WS_TIMEOUT = 1800000;
 
 
 export const MAX_PORT_ATTEMPTS = 20;

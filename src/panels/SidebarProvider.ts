@@ -189,9 +189,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "initiate-login":
           promise = this.initiateLogin(data);
           break;
-        case "initiate-binary":
-          promise = this.initiateBinary();
-          break;
         case "sign-out":
           promise = this.signOut();
           break;
@@ -230,13 +227,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               raw_diff: data.raw_diff,
             })) as Record<string, string>;
             // check diffRecord has keys and values
-            promise = Object.keys(diffRecord).length > 0; 
+            promise = Object.keys(diffRecord).length > 0;
           } catch (error) {
             console.error("Error while checking diff applicability:", error);
           }
           break;
         }
-          
+
         case "show-logs":
           promise = this.showLogs();
           break;
@@ -271,6 +268,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.setViewType("error");
     } else {
       this.sendMessageToSidebar(status);
+      this.initiateBinary();
     }
   }
 
@@ -285,6 +283,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For Binary init
   public async initiateBinary() {
+    this.outputChannel.info("Initiating Binary**********************************")
     const active_repo = getActiveRepo();
     //  measure time tken for auth token
     // start
@@ -557,7 +556,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader") {
+  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader" | "force-upgrade") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",

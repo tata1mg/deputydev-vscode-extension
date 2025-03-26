@@ -42,7 +42,6 @@ export class AuthenticationManager {
                 }
             } catch (error) {
                 this.logger.error('Error while polling session:', error);
-                return 'AUTHENTICATION_FAILED';
             }
 
             // Wait for 3 seconds before the next attempt
@@ -92,7 +91,8 @@ export class AuthenticationManager {
                 // return true;
             }
         } catch (error) {
-            return false;
+            this.logger.error("Authentication failed, please try again later.")
+            throw error
         }
     }
 

@@ -17,7 +17,7 @@ import {
   clearWorkspaceStorage,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
-import {  deleteSessionId  } from "./utilities/contextManager";
+import { deleteSessionId } from "./utilities/contextManager";
 import { HistoryService } from "./services/history/HistoryService";
 import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
 import { AuthService } from "./services/auth/AuthService";
@@ -31,7 +31,7 @@ import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { createOutputChannel } from './utilities/outputChannelFlag';
 import {Logger} from './utilities/Logger';
 export async function activate(context: vscode.ExtensionContext) {
-  
+
   // if playform is windows then return and error
   if (os.platform()  === 'win32') {
     vscode.window.showErrorMessage('DeputyDev is not supported on Windows. Please use MacOS');
@@ -79,6 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
         outputChannel.info("User is authenticated.");
         sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
         sidebarProvider.setViewType("chat");
+        sidebarProvider.initiateBinary();
       } else {
         outputChannel.info("User is not authenticated.");
         sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
@@ -89,7 +90,6 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
       sidebarProvider.setViewType("auth")
-      // sidebarProvider.setViewType("chat");
     });
 
   //  2) Choose & Initialize a Diff View Manager
@@ -163,6 +163,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
+  // authenticationManager.setSidebarProvider(sidebarProvider);
 
   const inlineChatEditManager = new InlineChatEditManager(
     context,
@@ -199,8 +200,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
 
-    // 7) Register commands for Accept/Reject etc
-//
+  // 7) Register commands for Accept/Reject etc
+  //
   // Accept changes in the active file
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
