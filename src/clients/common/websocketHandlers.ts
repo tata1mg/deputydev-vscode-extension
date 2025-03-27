@@ -11,6 +11,8 @@ export interface RelevantChunksParams {
   focus_files?: string[];
   focus_directories?: string[];
   perform_chunking?: boolean;
+  session_id?: number;
+  session_type?: string;
 }
 
 // Updated interface for UpdateVectorStoreParams (includes new backend field)

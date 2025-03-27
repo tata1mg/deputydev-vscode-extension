@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../api/endpoints";
 import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
+import { SESSION_TYPE } from "../../constants";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -19,7 +20,9 @@ export class ProfileUiService {
             const headers = {
                 "Authorization": `Bearer ${authToken}`
             }
-            const response = await api.get(API_ENDPOINTS.PROFILE_UI, {headers});
+            const response = await api.get(API_ENDPOINTS.PROFILE_UI, {headers, params: {
+                session_type: SESSION_TYPE
+            }});
             refreshCurrentToken(response.headers)
             // console.log("response for profileui",response)
             return response.data.data;

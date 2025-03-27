@@ -253,9 +253,9 @@ export class InlineChatEditManager {
                 cancellable: true
             }, async () => {
                 this.outputChannel.info("Inside function")
-                const relevant_chunks = await this.chatService.processRelevantChunks(payloadForRelevantChunks)
-                payloadForInlineEdit.relevant_chunks = relevant_chunks
-                const job = await this.inlineEditService.generateInlineEdit(payloadForInlineEdit)
+                const relevantChunksData = await this.chatService.processRelevantChunksForInlineEdit(payloadForRelevantChunks)
+                payloadForInlineEdit.relevant_chunks = relevantChunksData.relevantChunks;
+                const job = await this.inlineEditService.generateInlineEdit(payloadForInlineEdit, sessionId: relevantChunksData.receivedSessionId);
                 this.outputChannel.info(`Job_id: ${job.job_id}`)
 
                 let uDiff;
