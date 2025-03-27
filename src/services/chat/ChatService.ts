@@ -11,6 +11,7 @@ import { DD_HOST_WS } from '../../config';
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import { SESSION_TYPE } from '../../constants';
 
 interface StreamEvent {
   type: string;
@@ -87,7 +88,7 @@ export class QuerySolverService {
       API_ENDPOINTS.QUERY_SOLVER,
       authToken,
       handleMessage,
-      {...(currentSessionId ? {"X-Session-ID" : currentSessionId.toString()} : {})}
+      {...(currentSessionId ? {"X-Session-ID" : currentSessionId.toString()} : {}), "X-Session-Type": SESSION_TYPE}
     );
 
     let dataToSend: any = payload;
