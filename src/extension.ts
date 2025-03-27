@@ -34,7 +34,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // if playform is windows then return and error
   if (os.platform()  === 'win32') {
-    vscode.window.showErrorMessage('DeputyDev is not supported on Windows. Please use MacOS');
+    vscode.window.showWarningMessage('DeputyDev is not supported on Windows. Please use MacOS');
     return;
   }
   const ENABLE_OUTPUT_CHANNEL = false;
@@ -76,17 +76,20 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.info(`Authentication result: ${status}`);
       if (status) {
         configManager.fetchAndStoreConfig();
+        logger.info("User is authenticated.");
         outputChannel.info("User is authenticated.");
         sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
         sidebarProvider.setViewType("chat");
         sidebarProvider.initiateBinary();
       } else {
+        logger.info("User is not authenticated.");
         outputChannel.info("User is not authenticated.");
         sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
         sidebarProvider.setViewType("auth");
       }
     })
     .catch((error) => {
+      logger.error(`Authentication failed, Please try again`);
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
       sidebarProvider.setViewType("auth")
@@ -299,7 +302,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //  8) Show the output channel if needed & start server
 
-  chatService.start();
+  // chatService.start();
 }
 
 export async function deactivate() {

@@ -90,7 +90,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-        case 'api-stop-chat': // ✅ Add logic to stop chat
+        case 'api-stop-chat': 
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         // case 'api-clear-chat':
@@ -135,8 +135,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "fetch-profile-ui-data":
           promise = this.fetchProfileUiData();
           break;
-
-        // opening browser pages
         case "open-requested-browser-page":
           promise = this.openBrowserPage(data);
           break;
@@ -150,6 +148,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "show-info-message":
           promise = this.showInfoMessage(data);
+          break;
+        case "show-logs":
+          promise = this.showLogs();
           break;
 
         // Global State Management
@@ -189,6 +190,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "initiate-login":
           promise = this.initiateLogin(data);
           break;
+
         case "sign-out":
           promise = this.signOut();
           break;
@@ -234,9 +236,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
 
-        case "show-logs":
-          promise = this.showLogs();
-          break;
+
       }
 
       if (promise) {
@@ -460,6 +460,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     vscode.window.showInformationMessage(data.message);
   }
 
+  private async showLogs() {
+    await this.logger.showCurrentProcessLogs();
+  }
+
   // Global State Management
 
   private async setGlobalState(data: { key: string; value: any }) {
@@ -502,9 +506,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
-  private async showLogs() {
-    await this.logger.showCurrentProcessLogs();
-  }
 
   async getSessions(data: { limit: number; offset: number }) {
     try {
