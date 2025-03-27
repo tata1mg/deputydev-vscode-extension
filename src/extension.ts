@@ -37,7 +37,7 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.showWarningMessage('DeputyDev is not supported on Windows. Please use MacOS');
     return;
   }
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev",ENABLE_OUTPUT_CHANNEL );
   const logger = new Logger(context);
 
