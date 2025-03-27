@@ -1,5 +1,5 @@
 // file: webview-ui/src/components/Chat.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
 import {
   useChatSettingStore,
@@ -48,12 +48,24 @@ export function ChatUI() {
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
-  const repoSelectorEmbedding = useRepoSelectorStore(
-    (state) => state.repoSelectorDisabled,
-  );
-  // const repoSelectorEmbedding = false;
-  // const [repoSelectorDisabled] = useState(false);
   const { activeRepo } = useWorkspaceStore();
+
+  // if activeRepo is in progressBars array with status "In progress" and if it doesn't exists at all then repoSelector is disabled
+  // the ProgressBarData is this:
+  // export type ProgressBarData = {
+  //   repo: string;
+  //   progress: number;
+  //   status: string;
+  // }
+  //  repoSelectorEmbedding will be based on this above data now the one below
+  const repoSelectorEmbedding = useMemo(() => {
+    if (!activeRepo) return true;
+    const activeProgress = progressBars.find(bar => bar.repo === activeRepo);
+    return activeProgress?.status !== "Completed";
+  }, [activeRepo, progressBars]);
+
+  console.log("repoSelectorEmbedding", repoSelectorEmbedding);
+  // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipEditMode, setChipEditMode] = useState(false);
