@@ -44,6 +44,9 @@ export class WorkspaceManager {
     });
 
     this.updateWorkspaceRepos();
+    setTimeout(() => {
+      this.updateWorkspaceRepos();
+    }, 500);
     this.subscribeToWorkspaceFolderChanges();
     this.configManager.onDidUpdateConfig(() => {
       this.outputChannel.info('Config updated – reinitializing file watcher');
