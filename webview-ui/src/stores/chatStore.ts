@@ -17,7 +17,7 @@ import {
 
 import { persistStorage } from "./lib";
 import pick from "lodash/pick";
-import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats,ChatCompleteMessage, UserData, ProfileUiDiv } from "@/types";
+import { AutocompleteOption, ChatReferenceItem , ChatType, ChatAssistantMessage, ChatUserMessage , ChatToolUseMessage,ChatThinkingMessage,ChatCodeBlockMessage,ChatMessage,ChatErrorMessage,ChatSessionHistory,Session,sessionChats,ChatCompleteMessage, UserData, ProfileUiDiv, ProgressBarData } from "@/types";
 import { log } from "console";
 
 // =============================================================================
@@ -78,7 +78,7 @@ export const useChatStore = create(
       lastToolUseResponse: undefined as
         | { tool_use_id: string; tool_name: string }
         | undefined,
-      progressBar: 0,
+      progressBars: [] as ProgressBarData[],
       userData: {} as UserData,
       showEmbeddingFailed: false,
       profileUiData: [] as ProfileUiDiv[],
@@ -389,7 +389,7 @@ export const useChatStore = create(
                       } as ChatCompleteMessage,
                     ],
                   }));
-  
+
                   logToOutput("info", `query complete ${JSON.stringify(event.data)}`);
 
                   chunkCallback({ name: "QUERY_COMPLETE", data: event.data });
@@ -657,9 +657,9 @@ export const useChatStore = create(
           useChatStore.setState((state) => {
             const newHistory = [...state.history];
             if (state.current) {
-              newHistory.push(state.current); 
+              newHistory.push(state.current);
             }
-        
+
             return {
               history: newHistory,
               current: undefined,
@@ -668,9 +668,9 @@ export const useChatStore = create(
               showSkeleton: false,
             };
           });
-        
+
           logToOutput("info", "User canceled the chat stream");
-        }        
+        }
       };
     }
   ),
