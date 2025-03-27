@@ -43,7 +43,7 @@ export class Logger {
 
     this.logFilePath = path.join(logDir, 'debug.log');
 
-    // console.log('The debug log filepath is:', this.logFilePath);
+    console.log('The debug log filepath is:', this.logFilePath);
 
   }
 

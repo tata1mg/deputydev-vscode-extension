@@ -64,6 +64,8 @@ export function ChatUI() {
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
+  const [showProgressBar, setShowProgressBar] = useState(false);
+  const backspaceCountRef = useRef(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,6 +187,38 @@ export function ChatUI() {
     getSessionChats(sessionId);
   };
 
+  // const handleTextAreaKeyDown = (
+  //   e: React.KeyboardEvent<HTMLTextAreaElement>,
+  // ) => {
+  //   if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
+  //     e.preventDefault();
+  //     if (!isLoading) {
+  //       handleSend();
+  //     }
+  //   }
+  //   if (e.key === "Backspace" && userInput.endsWith("@")) {
+  //     setShowAutocomplete(false);
+  //     setChipEditMode(false);
+  //     setUserInput(userInput.slice(0,-1));
+  //   }
+  //   if (e.key === "Backspace" && userInput === "") {
+  //     backspaceCountRef.current += 1;
+  //     if (backspaceCountRef.current === 2) {
+  //       const allChips = [...useChatStore.getState().currentEditorReference];
+  //       if (allChips.length) {
+  //         allChips.pop();
+  //         useChatStore.setState({ currentEditorReference: allChips });
+  //         setTimeout(() => {
+  //           const textarea = textareaRef.current;
+  //           if (textarea) {
+  //             textarea.focus();
+  //           }
+  //         }, 10);
+  //       }
+  //     }
+  //     setTimeout(() => (backspaceCountRef.current = 0), 300);
+  //   }
+  // };
   const handleTextAreaKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
@@ -194,12 +228,45 @@ export function ChatUI() {
         handleSend();
       }
     }
-    if (e.key === "Backspace" && userInput === "@") {
-      setShowAutocomplete(false);
-      setUserInput("");
+
+    if (e.key === "Backspace") {
+      const textarea = e.currentTarget;
+      const isEntireTextSelected =
+        textarea.selectionStart === 0 &&
+        textarea.selectionEnd === textarea.value.length;
+
+      if (isEntireTextSelected) {
+        setUserInput("");
+        setChipEditMode(false);
+        setShowAutocomplete(false);
+      }
+
+      if (userInput.endsWith("@") && !isEntireTextSelected) {
+        e.preventDefault();
+        setShowAutocomplete(false);
+        setChipEditMode(false);
+        setUserInput(userInput.slice(0, -1));
+      }
+
+      if (userInput === "" && !isEntireTextSelected) {
+        backspaceCountRef.current += 1;
+        if (backspaceCountRef.current === 2) {
+          const allChips = [...useChatStore.getState().currentEditorReference];
+          if (allChips.length) {
+            allChips.pop();
+            useChatStore.setState({ currentEditorReference: allChips });
+            setTimeout(() => {
+              const textarea = textareaRef.current;
+              if (textarea) {
+                textarea.focus();
+              }
+            }, 10);
+          }
+        }
+        setTimeout(() => (backspaceCountRef.current = 0), 300);
+      }
     }
   };
-
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (chipEditMode) {
       const value = e.target.value.split("@")[1];
@@ -216,9 +283,12 @@ export function ChatUI() {
         });
       } else {
         setShowAutocomplete(true);
-        keywordSearch({ keyword: value });
+        if (value !== "") {
+          keywordSearch({ keyword: value });
+        }
       }
-    } else if (e.target.value.endsWith("@")) {
+    }
+    if (e.target.value.endsWith("@")) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -243,32 +313,46 @@ export function ChatUI() {
       setUserInput(userInput.split("@")[0] + `@${option.value}`);
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
-      const newChatRefrenceItem: ChatReferenceItem = {
-        index: allChips.length,
-        type: option.icon,
-        keyword: option.icon + ": " + option.value,
-        path: option.description,
-        chunks: option.chunks,
-        value: option.value,
-      };
-      useChatStore.setState({
-        currentEditorReference: [...allChips, newChatRefrenceItem],
-      });
-      setShowAutocomplete(false);
-      setUserInput(userInput.split("@")[0]);
-      setChipEditMode(false);
+      const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
+      if (chipIndexBeingEdited == -1) {
+        const newChatRefrenceItem: ChatReferenceItem = {
+          index: allChips.length,
+          type: option.icon,
+          keyword: option.icon + ": " + option.value,
+          path: option.description,
+          chunks: option.chunks,
+          value: option.value,
+        };
+        useChatStore.setState({
+          currentEditorReference: [...allChips, newChatRefrenceItem],
+        });
+        setShowAutocomplete(false);
+        setUserInput(userInput.split("@")[0]);
+        setChipEditMode(false);
+      } else {
+        allChips[chipIndexBeingEdited].keyword =
+          option.icon + ": " + option.value;
+        allChips[chipIndexBeingEdited].type = option.icon;
+        allChips[chipIndexBeingEdited].path = option.description;
+        allChips[chipIndexBeingEdited].chunks = option.chunks;
+        allChips[chipIndexBeingEdited].value = option.value;
+      }
     }
-    console.log("Ref: ", textareaRef);
-    console.log("Ref Current: ", textareaRef.current);
-  };
-
-  useEffect(() => {
-    console.log(`Lappa ${userInput}`, textareaRef.current)
+    useChatStore.setState({ chipIndexBeingEdited: -1 });
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
         textarea.focus();
-        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }, 10);
+  };
+
+  useEffect(() => {
+    // console.log(`Lappa ${userInput}`, textareaRef.current);
+    setTimeout(() => {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        textarea.focus();
       }
     }, 100);
   }, [userInput]);
@@ -344,13 +428,15 @@ export function ChatUI() {
                               onClick={() => handleGetSessionChats(session.id)}
                               className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                             >
-                              <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                              <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
                                 {session.summary}
                               </div>
-                              <span className="text-xs mt-1">{session.age}</span>
+                              <span className="mt-1 text-xs">
+                                {session.age}
+                              </span>
                             </div>
                             <Trash2
-                              className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                              className="m-1 transform text-xs opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                               onClick={(e) => {
                                 handleDeleteSession(session.id);
                               }}
@@ -365,17 +451,21 @@ export function ChatUI() {
                           .map((session) => (
                             <div className="flex gap-2" key={session.id}>
                               <div
-                                onClick={() => handleGetSessionChats(session.id)}
+                                onClick={() =>
+                                  handleGetSessionChats(session.id)
+                                }
                                 className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
                               >
-                                <div className="text-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                                <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
                                   {session.summary}
                                 </div>
-                                <span className="text-xs mt-1">{session.age}</span>
+                                <span className="mt-1 text-xs">
+                                  {session.age}
+                                </span>
                               </div>
                               <div className="flex-shrink-0">
                                 <Trash2
-                                  className="text-xs m-1 transform opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
+                                  className="m-1 transform text-xs opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
                                   onClick={(e) => {
                                     handleDeleteSession(session.id);
                                   }}
@@ -397,7 +487,7 @@ export function ChatUI() {
                 </div>
               ) : (
                 showDefaultContent && (
-                  <div className="px-4 fade-in h-[128px]">
+                  <div className="h-[128px] px-4 fade-in">
                     <div className="flex items-center gap-2">
                       <p className="mb-2 text-lg text-gray-400">
                         You are ready to go.
@@ -413,7 +503,10 @@ export function ChatUI() {
               )}
             </div>
             <div className="p-4">
-              <p className="text-xs text-gray-500 text-left mt-4">DeputyDev is powered by AI. It can make mistakes. Please double check all output.</p>
+              <p className="mt-4 text-left text-xs text-gray-500">
+                DeputyDev is powered by AI. It can make mistakes. Please double
+                check all output.
+              </p>
             </div>
           </div>
         )}
@@ -476,7 +569,7 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
+                      useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
@@ -528,16 +621,16 @@ export function ChatUI() {
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between text-xs gap-1">
+        <div className="flex items-center justify-between gap-1 text-xs">
           <div>
             <RepoSelector />
           </div>
 
           {/* chat and act toggle */}
 
-          <div className="rounded-xl h-4 w-18 flex items-center justify-between bg-[--deputydev-input-background]">
+          <div className="w-18 flex h-4 items-center justify-between rounded-xl bg-[--deputydev-input-background]">
             <button
-              className={`transition-all duration-200 ease-in-out font-medium w-[50px] rounded-tl-xl rounded-bl-xl ${chatType === "ask" ? "bg-blue-500/70 rounded-tr-xl rounded-br-xl h-5" : ""}`}
+              className={`w-[50px] rounded-bl-xl rounded-tl-xl font-medium transition-all duration-200 ease-in-out ${chatType === "ask" ? "h-5 rounded-br-xl rounded-tr-xl bg-blue-500/70" : ""}`}
               onClick={() => {
                 if (!isLoading) {
                   setChatType("ask");
@@ -548,8 +641,7 @@ export function ChatUI() {
               Chat
             </button>
             <button
-
-              className={`transition-all duration-200 ease-in-out font-medium w-[50px] rounded-tr-xl rounded-br-xl ${chatType === "write" ? "bg-blue-500/70 rounded-tl-xl rounded-bl-xl h-5" : ""}`}
+              className={`w-[50px] rounded-br-xl rounded-tr-xl font-medium transition-all duration-200 ease-in-out ${chatType === "write" ? "h-5 rounded-bl-xl rounded-tl-xl bg-blue-500/70" : ""}`}
               onClick={() => {
                 if (!isLoading) {
                   setChatType("write");
