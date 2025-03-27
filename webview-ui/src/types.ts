@@ -1,5 +1,5 @@
 export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile" | "error" | "force-upgrade";
-
+export type ProgressStatus = "Completed" | "Failed" | "In Progress";
 
 export type UserData = {
   email: string;
@@ -9,7 +9,7 @@ export type UserData = {
 export type ProgressBarData = {
   repo: string;
   progress: number;
-  status: string;
+  status: ProgressStatus;
 }
 
 export type ProfileUiDiv = {
