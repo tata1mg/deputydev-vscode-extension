@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../api/endpoints";
 import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
+import { SESSION_TYPE } from "../../constants";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -23,7 +24,7 @@ export class HistoryService {
                 params: {
                     limit,
                     offset,
-                    session_type: "CODE_GENERATION_V2",
+                    session_type: SESSION_TYPE,
                 }, headers
             });
             refreshCurrentToken(response.headers);
@@ -38,7 +39,8 @@ export class HistoryService {
             const authToken = await fetchAuthToken();
             const headers = {
                 "X-Session-ID": sessionId,
-                "Authorization": `Bearer ${authToken}`
+                "Authorization": `Bearer ${authToken}`,
+                "X-Session-Type": SESSION_TYPE
             };
             const response = await api.get(API_ENDPOINTS.PAST_CHATS, {
                 headers
@@ -55,7 +57,8 @@ export class HistoryService {
             const authToken = await fetchAuthToken();
             const headers = {
                 "X-Session-ID": sessionId,
-                "Authorization": `Bearer ${authToken}`
+                "Authorization": `Bearer ${authToken}`,
+                "X-Session-Type": SESSION_TYPE
             };
             const response = await api.put(API_ENDPOINTS.DELETE_SESSION, {}, { headers });
             refreshCurrentToken(response.headers);
@@ -70,7 +73,8 @@ export class HistoryService {
             const authToken = await fetchAuthToken();
             const headers = {
                 "X-Session-ID": sessionId,
-                "Authorization": `Bearer ${authToken}`
+                "Authorization": `Bearer ${authToken}`,
+                "X-Session-Type": SESSION_TYPE
             };
             const response = await api.post(API_ENDPOINTS.RELEVANT_CHAT_HISTORY, {
                 query
