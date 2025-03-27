@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../api/endpoints";
 import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
+import { SESSION_TYPE } from "../../constants";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -13,11 +14,13 @@ const fetchAuthToken = async () => {
 export class InlineEditService {
     private apiErrorHandler = new ApiErrorHandler();
 
-    public async generateInlineEdit(payload: any): Promise<any> {
+    public async generateInlineEdit(payload: any, sessionId: number | undefined): Promise<any> {
         try {
             const authToken = await fetchAuthToken();
             const headers = {
-                "Authorization": `Bearer ${authToken}`
+                "Authorization": `Bearer ${authToken}`,
+                "X-Session-Type": SESSION_TYPE,
+                ...(sessionId && { "X-Session-ID": sessionId })
             }
             const response = await api.post(API_ENDPOINTS.GENERATE_INLINE_EDIT, payload, { headers });
             refreshCurrentToken(response.headers)
