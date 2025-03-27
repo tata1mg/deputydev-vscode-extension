@@ -6,7 +6,7 @@ import {
   useChatStore,
   initialAutocompleteOptions,
 } from "../../stores/chatStore";
-import { Trash2, Check, Turtle } from "lucide-react";
+import { Trash2, Check } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
@@ -50,21 +50,12 @@ export function ChatUI() {
   const visibleSessions = 3;
   const { activeRepo } = useWorkspaceStore();
 
-  // if activeRepo is in progressBars array with status "In progress" and if it doesn't exists at all then repoSelector is disabled
-  // the ProgressBarData is this:
-  // export type ProgressBarData = {
-  //   repo: string;
-  //   progress: number;
-  //   status: string;
-  // }
-  //  repoSelectorEmbedding will be based on this above data now the one below
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
     const activeProgress = progressBars.find(bar => bar.repo === activeRepo);
     return activeProgress?.status !== "Completed";
   }, [activeRepo, progressBars]);
 
-  console.log("repoSelectorEmbedding", repoSelectorEmbedding);
   // const [repoSelectorDisabled] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -76,7 +67,6 @@ export function ChatUI() {
   const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
-  const [showProgressBar, setShowProgressBar] = useState(false);
   const backspaceCountRef = useRef(0);
 
   useEffect(() => {
