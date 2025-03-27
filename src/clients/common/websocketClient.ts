@@ -41,7 +41,8 @@ export class WebSocketClient {
                 const messageData = JSON.parse(event.toString());
                 //   console.log("Received WebSocket message:", messageData);
                 // Check if the response is an array (relevant chunks)
-                if (Array.isArray(messageData)) {
+                // Check if response has relevant_chunks key
+                if (messageData.relevant_chunks && Array.isArray(messageData.relevant_chunks)) {
                     this.resolveResponse(messageData);
                     this.close();
                 }
