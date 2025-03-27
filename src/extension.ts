@@ -22,32 +22,32 @@ import { HistoryService } from "./services/history/HistoryService";
 import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
 import { AuthService } from "./services/auth/AuthService";
 import { UsageTrackingManager } from "./usageTracking/UsageTrackingManager";
-import { ServerManager } from './binaryUp/ServerManager';
-import { getBinaryHost } from './config';
-import { binaryApi } from './services/api/axios';
-import { API_ENDPOINTS } from './services/api/endpoints';
-import { ProfileUiService } from './services/profileUi/profileUiService';
-import { BackgroundPinger } from './binaryUp/BackgroundPinger';
-import { createOutputChannel } from './utilities/outputChannelFlag';
-import {Logger} from './utilities/Logger';
+import { ServerManager } from "./binaryUp/ServerManager";
+import { getBinaryHost } from "./config";
+import { binaryApi } from "./services/api/axios";
+import { API_ENDPOINTS } from "./services/api/endpoints";
+import { ProfileUiService } from "./services/profileUi/profileUiService";
+import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
+import { createOutputChannel } from "./utilities/outputChannelFlag";
+import { Logger } from "./utilities/Logger";
 export async function activate(context: vscode.ExtensionContext) {
-
   // if playform is windows then return and error
-  if (os.platform()  === 'win32') {
-    vscode.window.showWarningMessage('DeputyDev is not supported on Windows. Please use MacOS');
+  if (os.platform() === "win32") {
+    vscode.window.showWarningMessage(
+      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
+    );
     return;
   }
   const ENABLE_OUTPUT_CHANNEL = false;
-  const outputChannel = createOutputChannel("DeputyDev",ENABLE_OUTPUT_CHANNEL );
+  const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger(context);
 
   // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
 
-
   // // 0) Fetch and store essential config data
-  const configManager = new ConfigManager(context,logger,outputChannel);
+  const configManager = new ConfigManager(context, logger, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
   if (await !configManager.getAllConfigEssentials()) {
     return;
@@ -59,10 +59,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // outputChannel.info(`Essential Config: ${JSON.stringify(config)}`);
 
   // 0.1 download and executes binary
-  const serverManager = new ServerManager(context, outputChannel,logger, configManager );
+  const serverManager = new ServerManager(
+    context,
+    outputChannel,
+    logger,
+    configManager
+  );
   await serverManager.ensureBinaryExists();
   await serverManager.startServer();
-  outputChannel.info('this binary host now is ' + getBinaryHost());
+  outputChannel.info("this binary host now is " + getBinaryHost());
 
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(
@@ -92,7 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
       logger.error(`Authentication failed, Please try again`);
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-      sidebarProvider.setViewType("auth")
+      sidebarProvider.setViewType("auth");
     });
 
   //  2) Choose & Initialize a Diff View Manager
@@ -127,7 +132,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const authService = new AuthService();
   const profileService = new ProfileUiService();
 
-
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
   // const providerReg = vscode.workspace.registerTextDocumentContentProvider(
@@ -159,10 +163,14 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  const pinger = new BackgroundPinger(sidebarProvider,serverManager, outputChannel,logger, configManager);
+  const pinger = new BackgroundPinger(
+    sidebarProvider,
+    serverManager,
+    outputChannel,
+    logger,
+    configManager
+  );
   pinger.start();
-
-
 
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
@@ -202,50 +210,53 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
-
   // 7) Register commands for Accept/Reject etc
   //
   // Accept changes in the active file
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
+    vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showErrorMessage('No active editor to accept changes for.');
+        vscode.window.showErrorMessage(
+          "No active editor to accept changes for."
+        );
         return;
       }
       const fileUri = editor.document.uri;
       outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
       await diffViewManager.acceptFile(fileUri.fsPath);
-      vscode.window.showInformationMessage('Changes accepted successfully.');
+      vscode.window.showInformationMessage("Changes accepted successfully.");
     })
   );
 
   // Reject changes in the active file
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
+    vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) {
-        vscode.window.showErrorMessage('No active editor to reject changes for.');
+        vscode.window.showErrorMessage(
+          "No active editor to reject changes for."
+        );
         return;
       }
       const fileUri = editor.document.uri;
       await diffViewManager.rejectFile(fileUri.fsPath);
-      vscode.window.showInformationMessage('Changes rejected successfully.');
+      vscode.window.showInformationMessage("Changes rejected successfully.");
     })
   );
 
   // If you want commands for accepting or rejecting ALL tracked files:
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
+    vscode.commands.registerCommand("deputydev.acceptAllChanges", async () => {
       outputChannel.info(`Accepting changes for all file`);
       await diffViewManager.acceptAllFile();
-      vscode.window.showInformationMessage('All changes accepted.');
+      vscode.window.showInformationMessage("All changes accepted.");
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
+    vscode.commands.registerCommand("deputydev.rejectAllChanges", async () => {
       await diffViewManager.rejectAllFile();
-      vscode.window.showInformationMessage('All changes rejected.');
+      vscode.window.showInformationMessage("All changes rejected.");
     })
   );
 
@@ -277,15 +288,15 @@ export async function activate(context: vscode.ExtensionContext) {
       chatService.stopChat(), outputChannel.info("Add button clicked!");
       sidebarProvider.newChat();
       deleteSessionId();
-    }),
+    })
   );
 
   // profile button click
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.UserProfile', () => {
-      outputChannel.info('Profile button clicked!');
-      sidebarProvider.setViewType('profile');
-    }),
+    vscode.commands.registerCommand("deputydev.UserProfile", () => {
+      outputChannel.info("Profile button clicked!");
+      sidebarProvider.setViewType("profile");
+    })
   );
 
   // setting button click
@@ -295,7 +306,9 @@ export async function activate(context: vscode.ExtensionContext) {
       sidebarProvider.setViewType("setting");
     })
   );
-  outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`);
+  outputChannel.info(
+    `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
+  );
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );
@@ -308,5 +321,4 @@ export async function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
   await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
-
 }
