@@ -17,6 +17,7 @@ import { forEach, result } from "lodash";
 import { FocusChunksService } from "../services/focusChunks/focusChunksService";
 import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
+import { SESSION_TYPE } from "../constants";
 
 
 export type Chunk = {
@@ -145,10 +146,10 @@ export class ChatManager {
     this.outputChannel.info("Stopping deputydev binary service...");
   }
 
-  async processRelevantChunks(
+  async processRelevantChunksForInlineEdit(
     data: payload,
     relevantHistoryText?: string
-  ): Promise<string[]> {
+  ): Promise<{ relevantChunks: any[]; receivedSessionId: number | undefined }> {
     const focus_files = [] as string[];
     const focus_directories = [] as string[];
     const focus_chunks = [] as string[];
@@ -190,18 +191,26 @@ export class ChatManager {
         focus_files: focus_files,
         focus_directories: focus_directories,
         focus_chunks: focus_chunks,
+        session_type: SESSION_TYPE,
         // focus_chunks: data.focus_chunks || [],
         // focus_files: data.focus_files || [],
       });
+
+      let relevantChunks = result.relevant_chunks;
+      let receivedSessionId = result.session_id;
+
       // only print few words only
       this.outputChannel.info(
-        `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
+        `Relevant chunks: ${JSON.stringify(relevantChunks.slice(0, 1))}`
       );
       // Extract the content from each chunk in the payload.
-      return result;
+      return {
+        relevantChunks,
+        receivedSessionId,
+      }
     } catch (error) {
       this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
-      return [];
+      return { relevantChunks: [], receivedSessionId: undefined };
     }
   }
 
@@ -487,6 +496,7 @@ export class ChatManager {
       // Signal end of stream.
       chunkCallback({ name: "end", data: {} });
     } catch (error) {
+      console.error(error)
       this.outputChannel.info('the payload before sending to UI', JSON.stringify(payload_copy));
       chunkCallback({ name: "error", data: { payload_to_retry: payload_copy, error_msg: String(error) ,  retry: true}  });
       this.outputChannel.error(`Error during apiChat: ${error}`);
@@ -544,6 +554,11 @@ export class ChatManager {
       }, { headers });
       return response.status === 200 ? response.data : "failed";
     } catch (error) {
+      console.log({
+        repo_path: repo_path,
+        file_path_to_diff_map: file_path_to_diff_map,
+      });
+      console.log(error)
       console.error("Error while applying diff:", error);
       throw error;
     }
@@ -636,7 +651,7 @@ export class ChatManager {
     };
 
     switch (toolRequest.tool_name) {
-      case "related_code_searcher":
+      case "related_code_searcher": {
         this.outputChannel.info(
           "The tool use request:",
           JSON.stringify(toolRequest)
@@ -657,6 +672,11 @@ export class ChatManager {
         this.outputChannel.info(
           "Running related_code_searcher tool with query"
         );
+
+        let currentSessionId = getSessionId();
+        if (!currentSessionId) {
+          throw new Error("Session ID is not defined for related_code_searcher");
+        }
         // Call the external function to fetch relevant chunks.
         const result = await fetchRelevantChunks({
           repo_path: active_repo,
@@ -666,9 +686,13 @@ export class ChatManager {
           focus_chunks: [],
           // Uncomment and use focusFiles if needed:
           // focus_files: focusFiles,
+          session_id: currentSessionId,
+          session_type: SESSION_TYPE,
         });
 
-        if (result) {
+        let relevantChunks = result.relevant_chunks;
+
+        if (relevantChunks) {
           const payloadData = {
             message_id: message_id,
             write_mode: toolRequest.write_mode,
@@ -676,7 +700,7 @@ export class ChatManager {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               response: {
-                RELEVANT_CHUNKS: result,
+                RELEVANT_CHUNKS: relevantChunks,
               },
             },
           };
@@ -686,7 +710,7 @@ export class ChatManager {
             data: {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
-              result_json: result,
+              result_json: relevantChunks,
               status: "completed",
             },
           });
@@ -699,10 +723,11 @@ export class ChatManager {
         }
 
         this.outputChannel.info(
-          `Code searcher result: ${JSON.stringify(result)}`
+          `Code searcher result: ${JSON.stringify(relevantChunks)}`
         );
 
         return JSON.stringify({ completed: false });
+      }
 
       case "focused_snippets_searcher":
         this.outputChannel.info(
