@@ -330,14 +330,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           `📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`
         );
         await updateVectorStoreWithResponse(params).then((response) => {
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: "repo-selector-state",
-            data: false,
-          });
-          this.outputChannel.info(
-            `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
-          );
+          // this.sendMessageToSidebar({
+          //   id: uuidv4(),
+          //   command: "repo-selector-state",
+          //   data: false,
+          // });
+          // this.outputChannel.info(
+          //   `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
+          // );
         }).catch((error) => {
           this.logger.info("Embedding failed 3 times...");
           this.outputChannel.info("Embedding failed 3 times...")

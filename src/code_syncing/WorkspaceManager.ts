@@ -201,9 +201,11 @@ export class WorkspaceManager {
     const parsedChatStorage = JSON.parse(chatStorage);
     const progressBars = parsedChatStorage?.state?.progressBars as { repo: string, progress: number, status: string }[];
 
-    const isRepoPresent = progressBars.some(bar => bar.repo === this.activeRepo);
-    if (isRepoPresent) {
-      return;
+    const repoSpecificEmbeddingProgress = progressBars.find(bar => bar.repo === this.activeRepo);
+    if (repoSpecificEmbeddingProgress) {
+      if (repoSpecificEmbeddingProgress.status === "In Progress" || repoSpecificEmbeddingProgress.status === "Completed") {
+        return;
+      }
     }
 
 
@@ -215,12 +217,12 @@ export class WorkspaceManager {
     });
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await updateVectorStoreWithResponse(params).then((response) => {
-      this.sidebarProvider.sendMessageToSidebar({
-        id: uuidv4(),
-        command: 'repo-selector-state',
-        data: false
-      });
-      this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
+      // this.sidebarProvider.sendMessageToSidebar({
+      //   id: uuidv4(),
+      //   command: 'repo-selector-state',
+      //   data: false
+      // });
+      // this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
     }
     ).catch((error) => {
       this.outputChannel.info("Embedding failed 3 times...")

@@ -17,8 +17,8 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progressBars }) => {
                 .map(bar => (
                     <div key={bar.repo} className="bg-gray-200 rounded h-7 flex-grow relative">
                         {bar.status === "Completed" ? (
-                            <div className="bg-gray-200 rounded h-7 p-1 w-full flex justify-center">
-                                <span className='text-green-600'>Indexing Completed</span>
+                            <div className="bg-green-600 rounded h-7 p-1 w-full flex justify-center">
+                                <span>Indexing completed for {repoName}</span>
                             </div>
                         ) : (
                             <>
