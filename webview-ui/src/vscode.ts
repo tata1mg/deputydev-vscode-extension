@@ -195,12 +195,19 @@ addCommandEventListener("new-chat", async () => {
   getSessions(20, 0); 
   const currentViewType = useExtensionStore.getState().viewType;
   if (currentViewType !== "chat") {
+  getSessions(20, 0);
+
+  const chatStore = useChatStore.getState();
+  const extensionStore = useExtensionStore.getState();
+
+  if (extensionStore.viewType !== "chat") {
     useExtensionStore.setState({ viewType: "chat" });
+    
   } else {
     useChatStore.getState().clearChat();
     callCommand("delete-session-id", null);
   }
-});
+}});
 
 addCommandEventListener("set-view-type", ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
