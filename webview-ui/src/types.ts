@@ -103,6 +103,7 @@ export interface ChatToolUseMessage {
     tool_input_json?: { prompt: string };
     result_json: string;
     status: "pending" | "completed" | "error";
+    write_mode?: boolean;
   };
 }
 
@@ -114,7 +115,7 @@ export interface ChatThinkingMessage {
 }
 
 export interface ChatCodeBlockMessage {
-  type: "CODE_BLOCK";
+  type: "CODE_BLOCK" | "CODE_BLOCK_STREAMING";
   content: {
     language: string;
     file_path?: string;

@@ -88,12 +88,14 @@ export function ChatArea() {
               </div>
             );
 
-          case "CODE_BLOCK":
+          case "CODE_BLOCK_STREAMING":
             if (msg.write_mode && msg.content.is_diff) {
               return (
                 <div key={index}>
                   <FileEditedChip
                     filepath={msg.content.file_path}
+                    language={msg.content.language}
+                    content={msg.content.code}
                     added_lines={msg.content.added_lines}
                     removed_lines={msg.content.removed_lines}
                     status={msg.status}
@@ -117,6 +119,87 @@ export function ChatArea() {
               );
             }
 
+          // case "CODE_BLOCK":
+          //   if (msg.content.is_diff) {
+          //     return (
+          //       <div key={index}>
+          //         <FileEditedChip
+          //           filepath={msg.content.file_path}
+          //           language={msg.content.language}
+          //           content={msg.content.code}
+          //           added_lines={msg.content.added_lines}
+          //           removed_lines={msg.content.removed_lines}
+          //           status={"idle"}
+          //           past_session={true}
+          //         />
+          //       </div>
+          //     );
+          //   } else {
+          //     return (
+          //       <div key={index} className="text-white">
+          //         <CodeActionPanel
+          //           language={msg.content.language}
+          //           filepath={msg.content.file_path}
+          //           is_diff={msg.content.is_diff} // ✅ fixed here
+          //           content={msg.content.code}
+          //           inline={false}
+          //           diff={msg.content.diff}
+          //           added_lines={msg.content.added_lines}
+          //           removed_lines={msg.content.removed_lines}
+          //         />
+          //       </div>
+          //     );
+          //   }
+
+          case "CODE_BLOCK":
+          case "CODE_BLOCK_STREAMING": {
+            
+            const isStreaming = msg.type === "CODE_BLOCK_STREAMING";
+            const isDiff = msg.content.is_diff;
+            const showFileEditedChip = isDiff;
+            console.log(
+              "isStreaming",
+              isStreaming,
+              "isDiff",
+              isDiff,
+              "msg.content.is_diff",
+              msg.content.is_diff,
+              "write mode",
+              msg.write_mode,
+            );
+
+            if (showFileEditedChip) {
+              return (
+                <div key={index}>
+                  <FileEditedChip
+                    filepath={msg.content.file_path}
+                    language={msg.content.language}
+                    content={msg.content.code}
+                    added_lines={msg.content.added_lines}
+                    removed_lines={msg.content.removed_lines}
+                    status={isStreaming ? msg.status : "idle"}
+                    past_session={!isStreaming}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <div key={index} className="text-white">
+                <CodeActionPanel
+                  language={msg.content.language}
+                  filepath={msg.content.file_path}
+                  is_diff={msg.content.is_diff}
+                  content={msg.content.code}
+                  inline={false}
+                  diff={msg.content.diff}
+                  added_lines={msg.content.added_lines}
+                  removed_lines={msg.content.removed_lines}
+                />
+              </div>
+            );
+          }
+
           case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
@@ -128,21 +211,21 @@ export function ChatArea() {
             return (
               <div key={index} className="markdown-body">
                 {msg.content.tool_name === "ask_user_input" ? (
-                  <Markdown>
-                    {msg.content.tool_input_json?.prompt}
-                  </Markdown>
+                  <Markdown>{msg.content.tool_input_json?.prompt}</Markdown>
                 ) : null}
               </div>
             );
 
-            case "QUERY_COMPLETE":
-              return (
-                <div key={index} className="flex items-center space-x-2 text-green-500 font-medium">
-                  <span>✓</span>
-                  <span>Task Completed</span>
-                </div>
-              );
-            
+          case "QUERY_COMPLETE":
+            return (
+              <div
+                key={index}
+                className="flex items-center space-x-2 font-medium text-green-500"
+              >
+                <span>✓</span>
+                <span>Task Completed</span>
+              </div>
+            );
 
           case "ERROR":
             return (
@@ -154,7 +237,6 @@ export function ChatArea() {
                 />
               </div>
             );
-
 
           default:
             return null;
