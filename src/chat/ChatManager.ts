@@ -560,11 +560,12 @@ export class ChatManager {
 
     async handleModifiedFiles(
         modifiedFiles: Record<string, string>,
-        active_repo: string
+        active_repo: string,
+        session_id?: number
     ): Promise<void> {
         for (const [relative_path, content] of Object.entries(modifiedFiles)) {
             const fullPath = join(active_repo, relative_path);
-            await this.diffViewManager.openDiffView({ path: fullPath, content });
+            await this.diffViewManager.openDiffView({ path: fullPath, content }, session_id);
         }
     }
 
