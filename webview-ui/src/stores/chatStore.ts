@@ -70,7 +70,6 @@ export const useChatStore = create(
       isLoading: false,
       showSessionsBox: true,
       showAllSessions: false,
-      sessions: [] as Session[],
       showSkeleton: false,
       currentEditorReference: [] as ChatReferenceItem[],
       ChatAutocompleteOptions: initialAutocompleteOptions,
@@ -88,11 +87,6 @@ export const useChatStore = create(
       // Helper to generate an incremental message ID.
 
       return {
-        async clearSessions() {
-          set({
-            sessions: [],
-          })
-        },
         async clearChat() {
           set({
             history: [],
