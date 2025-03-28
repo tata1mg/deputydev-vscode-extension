@@ -230,7 +230,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               raw_diff: data.raw_diff,
             })) as Record<string, string>;
             // check diffRecord has keys and values
-            promise = Object.keys(diffRecord).length > 0;
+            promise = diffRecord && Object.keys(diffRecord).length > 0;
           } catch (error) {
             console.error("Error while checking diff applicability:", error);
           }
