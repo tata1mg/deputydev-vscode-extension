@@ -418,7 +418,7 @@ export function ChatUI() {
                     Past Conversations
                   </h3>
                   <div
-                    className="session-box h-[128px] overflow-y-auto px-4"
+                    className={`session-box ${showAllSessions ? "h-[200px]" : "h-[128px]"} overflow-y-auto px-4`}
                     onScroll={handleScroll}
                   >
                     {!showAllSessions ? (
