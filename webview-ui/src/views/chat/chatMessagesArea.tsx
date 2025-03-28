@@ -88,36 +88,36 @@ export function ChatArea() {
               </div>
             );
 
-          case "CODE_BLOCK_STREAMING":
-            if (msg.write_mode && msg.content.is_diff) {
-              return (
-                <div key={index}>
-                  <FileEditedChip
-                    filepath={msg.content.file_path}
-                    language={msg.content.language}
-                    content={msg.content.code}
-                    added_lines={msg.content.added_lines}
-                    removed_lines={msg.content.removed_lines}
-                    status={msg.status}
-                  />
-                </div>
-              );
-            } else {
-              return (
-                <div key={index} className="text-white">
-                  <CodeActionPanel
-                    language={msg.content.language}
-                    filepath={msg.content.file_path}
-                    is_diff={msg.content.is_diff} // ✅ fixed here
-                    content={msg.content.code}
-                    inline={false}
-                    diff={msg.content.diff}
-                    added_lines={msg.content.added_lines}
-                    removed_lines={msg.content.removed_lines}
-                  />
-                </div>
-              );
-            }
+          // case "CODE_BLOCK_STREAMING":
+          //   if (msg.write_mode && msg.content.is_diff) {
+          //     return (
+          //       <div key={index}>
+          //         <FileEditedChip
+          //           filepath={msg.content.file_path}
+          //           language={msg.content.language}
+          //           content={msg.content.code}
+          //           added_lines={msg.content.added_lines}
+          //           removed_lines={msg.content.removed_lines}
+          //           status={msg.status}
+          //         />
+          //       </div>
+          //     );
+          //   } else {
+          //     return (
+          //       <div key={index} className="text-white">
+          //         <CodeActionPanel
+          //           language={msg.content.language}
+          //           filepath={msg.content.file_path}
+          //           is_diff={msg.content.is_diff} // ✅ fixed here
+          //           content={msg.content.code}
+          //           inline={false}
+          //           diff={msg.content.diff}
+          //           added_lines={msg.content.added_lines}
+          //           removed_lines={msg.content.removed_lines}
+          //         />
+          //       </div>
+          //     );
+          //   }
 
           // case "CODE_BLOCK":
           //   if (msg.content.is_diff) {
@@ -150,23 +150,13 @@ export function ChatArea() {
           //       </div>
           //     );
           //   }
-
+          case "CODE_BLOCK_STREAMING":
           case "CODE_BLOCK":
-          case "CODE_BLOCK_STREAMING": {
+           {
             
             const isStreaming = msg.type === "CODE_BLOCK_STREAMING";
             const isDiff = msg.content.is_diff;
-            const showFileEditedChip = isDiff;
-            console.log(
-              "isStreaming",
-              isStreaming,
-              "isDiff",
-              isDiff,
-              "msg.content.is_diff",
-              msg.content.is_diff,
-              "write mode",
-              msg.write_mode,
-            );
+            const showFileEditedChip = isDiff && msg.write_mode;
 
             if (showFileEditedChip) {
               return (
