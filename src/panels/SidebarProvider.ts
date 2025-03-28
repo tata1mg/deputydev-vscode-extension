@@ -301,7 +301,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
-    this.logger.info("🚀 Initiating binary...");
+    this.logger.info(" Initiating local server...");
     this.outputChannel.info("🚀 Initiating binary...");
 
     const payload = {
@@ -327,7 +327,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
 
       if (response.data.status === "Completed" && activeRepo) {
-        this.logger.info(`📁 Creating embedding for repo: ${activeRepo}`);
+        this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
         const params = { repo_path: activeRepo };
@@ -336,7 +336,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
-          this.logger.warn("❗ Embedding failed after 3 attempts.");
+          this.logger.warn("Embedding failed after 3 attempts.");
           this.outputChannel.warn("❗ Embedding failed after 3 attempts.");
 
           this.sendMessageToSidebar({
@@ -347,7 +347,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
       }
     } catch (error) {
-      this.logger.error("🚨 Binary initialization failed:", error);
+      this.logger.error("Binary initialization failed");
       this.outputChannel.error("🚨 Binary initialization failed.");
     }
   }
