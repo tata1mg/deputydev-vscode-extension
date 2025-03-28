@@ -28,7 +28,9 @@ export class UsageTrackingManager {
   async trackUsage(payload: UsageTrackingRequest) {
     payload.anonymous_id = uuidv4();
     payload.properties.timestamp = new Date().toISOString();
-    payload.properties.session_id = getSessionId();
+    payload.properties.session_id = payload.properties.session_id
+      ? payload.properties.session_id
+      : getSessionId();
     this.outputChannel?.info(
       `Usage Tracking Payload: ${JSON.stringify(payload)}`
     );

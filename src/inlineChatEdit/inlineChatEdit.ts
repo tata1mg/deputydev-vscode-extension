@@ -284,7 +284,7 @@ export class InlineChatEditManager {
                 if (!this.active_repo) {
                     return
                 }
-                this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo)
+                this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo, job.session_id)
             });
         }));
     }

@@ -81,7 +81,7 @@ export abstract class DiffViewManager {
   };
 
   // Show inline or side-by-side diff for given path+content
-  abstract openDiffView(data: { path: string; content: string }): Promise<void>;
+  abstract openDiffView(data: { path: string; content: string }, session_id?: number): Promise<void>;
 
   // Accept *all* changes in all tracked files
   abstract acceptAllFile(): Promise<void>;
