@@ -274,7 +274,7 @@ export class ChatManager {
 
 
             this.outputChannel.info("Payload prepared for QuerySolverService.");
-            console.log(payload)
+            // console.log(payload)
             this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);
 
 
