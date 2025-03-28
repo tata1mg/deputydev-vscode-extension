@@ -303,7 +303,7 @@ export class InlineChatEditManager {
                     }
                 }
             } catch (error) {
-                console.error('Error while polling session:', error);
+                // console.error('Error while polling session:', error);
             }
 
             // Wait for 3 seconds before the next attempt

@@ -76,7 +76,7 @@ export class WebSocketClient {
                     console.warn("Received unknown message format:", messageData);
                 }
             } catch (error) {
-                console.error("❌ Error parsing WebSocket message:", error);
+                // console.error("❌ Error parsing WebSocket message:", error);
                 this.rejectResponse(error);
                 this.close();
             }

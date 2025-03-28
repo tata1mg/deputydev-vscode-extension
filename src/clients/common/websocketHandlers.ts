@@ -48,7 +48,7 @@ export const fetchRelevantChunks = async (
       ...params
     });
   } catch (error) {
-    console.error("Error fetching relevant chunks:", error);
+    // console.error("Error fetching relevant chunks:", error);
     throw error;
   } finally {
     client.close();
@@ -79,7 +79,7 @@ export const updateVectorStore = async (
         ...params
       });
     } catch (error) {
-      console.error("Error updating vector store:", error);
+      // console.error("Error updating vector store:", error);
       throw error;
     } finally {
       client.close();
@@ -92,7 +92,7 @@ export const updateVectorStore = async (
         auth_token: authToken,
       })
       .catch((error) => {
-        console.error("Error updating vector store (fire-and-forget):", error);
+        // console.error("Error updating vector store (fire-and-forget):", error);
       });
     return { status: "sent" };
   }
@@ -120,7 +120,7 @@ export const updateVectorStoreWithResponse = async (
       return result;
     } catch (error) {
       attempts++;
-      console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
+      // console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
       if (attempts === 3) {
         throw new Error(`Failed to update vector store after 3 attempts: ${error}`);
       }
@@ -156,15 +156,15 @@ export const updateVectorStoreWithResponse = async (
 export const subscribeToRelevantChunks = (
   callback: (data: any) => void
 ): void => {
-  console.warn(
-    "subscribeToRelevantChunks is deprecated. Use async fetchRelevantChunks instead."
-  );
+  // console.warn(
+  //   "subscribeToRelevantChunks is deprecated. Use async fetchRelevantChunks instead."
+  // );
 };
 
 export const subscribeToVectorStoreUpdates = (
   callback: (data: any) => void
 ): void => {
-  console.warn(
-    "subscribeToVectorStoreUpdates is deprecated. Use async updateVectorStore instead."
-  );
+  // console.warn(
+  //   "subscribeToVectorStoreUpdates is deprecated. Use async updateVectorStore instead."
+  // );
 };

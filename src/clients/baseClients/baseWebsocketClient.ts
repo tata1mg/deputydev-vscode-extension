@@ -24,7 +24,7 @@ export class BaseWebSocketClient {
         Authorization: `Bearer ${authToken}`,
         "X-Client": CLIENT,
         "X-Client-Version": CLIENT_VERSION,
-        ...(extraHeaders || {}), 
+        ...(extraHeaders || {}),
       },
     });
 
@@ -57,7 +57,7 @@ export class BaseWebSocketClient {
           this.close();
         }
       } catch (error) {
-        console.error("❌ Error parsing WebSocket message:", error);
+        // console.error("❌ Error parsing WebSocket message:", error);
         this.rejectResponse(error);
         this.close();
       }

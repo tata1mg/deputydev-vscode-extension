@@ -12,7 +12,7 @@ export async function refreshCurrentToken(responseHeaders: any) {
                     return;
                 }
             } catch (error) {
-                console.error("Error while updating refreshed Token: ", error)
+                // console.error("Error while updating refreshed Token: ", error)
             }
         }
     }
