@@ -90,7 +90,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-        case 'api-stop-chat': 
+        case 'api-stop-chat':
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         // case 'api-clear-chat':
@@ -229,7 +229,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               raw_diff: data.raw_diff,
             })) as Record<string, string>;
             // check diffRecord has keys and values
-            promise = Object.keys(diffRecord).length > 0;
+            promise = diffRecord && Object.keys(diffRecord).length > 0;
           } catch (error) {
             console.error("Error while checking diff applicability:", error);
           }
