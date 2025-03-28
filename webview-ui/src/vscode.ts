@@ -7,6 +7,7 @@ import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv, ProgressBarData } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
+import { useSessionsStore } from "./stores/sessionsStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -189,16 +190,14 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener("new-chat", async () => {
-  const chatStore = useChatStore.getState();
-  const extensionStore = useExtensionStore.getState();
-
-  chatStore.clearSessions();
-  getSessions(20, 0);
-
-  if (extensionStore.viewType !== "chat") {
+  useSessionsStore.getState().clearCurrentSessionsPage();
+  useSessionsStore.getState().clearSessions();
+  getSessions(20, 0); 
+  const currentViewType = useExtensionStore.getState().viewType;
+  if (currentViewType !== "chat") {
     useExtensionStore.setState({ viewType: "chat" });
   } else {
-    chatStore.clearChat();
+    useChatStore.getState().clearChat();
     callCommand("delete-session-id", null);
   }
 });
@@ -225,9 +224,14 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 });
 
 addCommandEventListener("sessions-history", ({ data }) => {
-  useChatStore.setState((prevState) => ({
-    sessions: [...prevState.sessions, ...(data as Session[])],
-  }));
+  // Check if data is not empty before setting it
+  if (data && Array.isArray(data) && data.length > 0) {
+    // Append new sessions to the existing ones
+    useSessionsStore.getState().setSessions((prevSessions) => [
+      ...prevSessions,
+      ...data as Session[],
+    ]);
+  }
 });
 
 addCommandEventListener("keyword-search-response", ({ data }) => {

@@ -32,6 +32,7 @@ import { ChatUserMessage } from "@/types";
 import ProgressBar from "./chatElements/progressBar";
 import { keywordSearch, keywordTypeSearch } from "@/commandApi";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useSessionsStore } from "@/stores/sessionsStore";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -43,10 +44,10 @@ export function ChatUI() {
     cancelChat,
     showSessionsBox,
     showAllSessions,
-    sessions,
     ChatAutocompleteOptions,
     progressBars
   } = useChatStore();
+  const { sessions, sessionsPerPage, setCurrentSessionsPage, currentSessionsPage } = useSessionsStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
   const { activeRepo } = useWorkspaceStore();
@@ -63,9 +64,7 @@ export function ChatUI() {
   const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const sessionsPerPage = 20;
   const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [currentSessionsPage, setCurrentSessionsPage] = useState(1);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
   const backspaceCountRef = useRef(0);
@@ -142,13 +141,12 @@ export function ChatUI() {
   };
 
   const handleDeleteSession = async (sessionId: number) => {
-    useChatStore.setState({
-      sessions: useChatStore
+    useSessionsStore.setState({
+      sessions: useSessionsStore
         .getState()
         .sessions.filter((session) => session.id !== sessionId),
     });
     await deleteSession(sessionId);
-    // console.log(`Delete session ${sessionId}`);
   };
 
   const fetchSessions = async (pageNumber: number) => {
@@ -159,13 +157,13 @@ export function ChatUI() {
     setSessionsLoading(false);
   };
   useEffect(() => {
-    fetchSessions(currentSessionsPage);
-  }, [currentSessionsPage]);
+    fetchSessions(1);
+  }, []);
 
   // Scroll handler for past sessions
-  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+  const handleSessionsScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight - 5 && !sessionsLoading) {
+    if ((scrollTop + clientHeight) > (scrollHeight - 5) && !sessionsLoading) {
       setCurrentSessionsPage((prev) => prev + 1);
       fetchSessions(currentSessionsPage + 1);
     }
@@ -420,7 +418,7 @@ export function ChatUI() {
                   </h3>
                   <div
                     className={`session-box ${showAllSessions ? "h-[200px]" : "h-[128px]"} overflow-y-auto px-4`}
-                    onScroll={handleScroll}
+                    onScroll={handleSessionsScroll}
                   >
                     {!showAllSessions ? (
                       <div>
@@ -559,70 +557,70 @@ export function ChatUI() {
             <div className="text-sm w-full text-center mb-[4px]">To proceed, please import a project into your workspace!</div>
           )}
 
-              {/* The textarea remains enabled even when a response is pending */}
-              <div className="relative w-full">
-                <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
-                  {useChatStore.getState().currentEditorReference?.map((chip) => (
-                    <ReferenceChip
-                      key={chip.index}
-                      chipIndex={chip.index}
-                      initialText={chip.keyword}
-                      onDelete={() => {
-                        handleChipDelete(chip.index);
-                      }}
-                      autoEdit={
-                        !chip.noEdit &&
-                        chip.index ===
-                        useChatStore.getState().currentEditorReference.length - 1
-                      }
-                      setShowAutoComplete={setShowAutocomplete}
-                      chunks={chip.chunks}
-                    />
-                  ))}
-                  <textarea
-                    ref={textareaRef}
-                    rows={1}
-                    className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
-                    placeholder={
-                      useChatStore.getState().currentEditorReference?.length
-                        ? ""
-                        : "Ask DeputyDev to do anything, @ to mention"
-                    }
-                    value={userInput}
-                    onChange={handleTextAreaChange}
-                    onKeyDown={handleTextAreaKeyDown}
-                    disabled={repoSelectorEmbedding}
-                    {...(repoSelectorEmbedding && activeRepo && {
-                      "data-tooltip-id": "repo-tooltip",
-                      "data-tooltip-content":
-                        "Please wait, DeputyDev is initializing.",
-                    })}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
-                  {isLoading ? (
-                    <button
-                      className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
-                      onClick={cancelChat}
-                    />
-                  ) : (
-                    <button
-                      className="flex items-center justify-center"
-                      onClick={() => {
-                        if (!isLoading) {
-                          handleSend();
-                        }
-                      }}
-                    >
-                      <EnterIcon className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-                <Tooltip id="repo-tooltip" />
-              </div>
+          {/* The textarea remains enabled even when a response is pending */}
+          <div className="relative w-full">
+            <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+              {useChatStore.getState().currentEditorReference?.map((chip) => (
+                <ReferenceChip
+                  key={chip.index}
+                  chipIndex={chip.index}
+                  initialText={chip.keyword}
+                  onDelete={() => {
+                    handleChipDelete(chip.index);
+                  }}
+                  autoEdit={
+                    !chip.noEdit &&
+                    chip.index ===
+                    useChatStore.getState().currentEditorReference.length - 1
+                  }
+                  setShowAutoComplete={setShowAutocomplete}
+                  chunks={chip.chunks}
+                />
+              ))}
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                placeholder={
+                  useChatStore.getState().currentEditorReference?.length
+                    ? ""
+                    : "Ask DeputyDev to do anything, @ to mention"
+                }
+                value={userInput}
+                onChange={handleTextAreaChange}
+                onKeyDown={handleTextAreaKeyDown}
+                disabled={repoSelectorEmbedding}
+                {...(repoSelectorEmbedding && activeRepo && {
+                  "data-tooltip-id": "repo-tooltip",
+                  "data-tooltip-content":
+                    "Please wait, DeputyDev is initializing.",
+                })}
+                autoFocus
+              />
             </div>
+
+            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+              {isLoading ? (
+                <button
+                  className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
+                  onClick={cancelChat}
+                />
+              ) : (
+                <button
+                  className="flex items-center justify-center"
+                  onClick={() => {
+                    if (!isLoading) {
+                      handleSend();
+                    }
+                  }}
+                >
+                  <EnterIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+            <Tooltip id="repo-tooltip" />
+          </div>
+        </div>
 
         {/* Chat Type Toggle and RepoSelector */}
           <div className="flex items-center justify-between gap-2 text-xs">
