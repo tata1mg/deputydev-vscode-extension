@@ -1,7 +1,13 @@
 import { UsageTrackingRequest } from "@/types";
 import { SnippetReference } from "./CodeBlockStyle";
 
-import { checkDiffApplicable, logToOutput, usageTracking, writeFile } from "@/commandApi";
+import {
+  checkDiffApplicable,
+  logToOutput,
+  usageTracking,
+  openFile,
+  writeFile,
+} from "@/commandApi";
 import { useEffect, useState } from "react";
 
 export interface CodeActionPanelProps {
@@ -13,6 +19,7 @@ export interface CodeActionPanelProps {
   diff?: string | null; // ✅ added
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
+  write_mode?: boolean;
 }
 
 export function CodeActionPanel({
@@ -27,18 +34,22 @@ export function CodeActionPanel({
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const checkApplicability = async () => {
       if (is_diff && filepath && diff) {
-        const applicable = await checkDiffApplicable({ filePath: filepath, raw_diff: diff });
+        const applicable = await checkDiffApplicable({
+          filePath: filepath,
+          raw_diff: diff,
+        });
         setIsApplicable(applicable);
       }
     };
 
     checkApplicability();
   }, [is_diff, filepath, diff]);
-
   const handleCopy = () => {
     const usageTrackingData: UsageTrackingRequest = {
       event: "copied",
@@ -49,7 +60,8 @@ export function CodeActionPanel({
     };
     usageTracking(usageTrackingData);
     navigator.clipboard.writeText(content);
-    alert("Code copied to clipboard!");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 200);
   };
 
   const handleUsageTracking = (filePath: string, diff: string) => {
@@ -78,9 +90,13 @@ export function CodeActionPanel({
   };
 
   const handleApply = (filePath: string, diff: string) => {
+    setIsApplying(true);
     handleUsageTracking(filePath, diff);
     writeFile({ filePath: filePath, raw_diff: diff });
-    alert("Apply diff logic to be implemented.");
+    setTimeout(() => {
+      setIsApplying(false);
+      alert("Apply diff logic to be implemented.");
+    }, 500);
   };
 
   const handleInsert = () => {
@@ -102,13 +118,21 @@ export function CodeActionPanel({
 
   return (
     <div className="w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
-      <div className="flex h-8 items-center justify-between border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
+      <div className="flex h-8 min-w-0 items-center justify-between gap-2 border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
         {is_diff && filepath && diff && isApplicable ? (
-          <span>
-            Edit: <span className="font-medium">{filename}</span>{" "}
-            <span className="text-green-400">+{added_lines || 0}</span>{" "}
+          <div className="flex min-w-0 items-center gap-1">
+            <span>Edit:</span>
+            <button
+              className="overflow-hidden truncate text-ellipsis rounded px-1 text-right font-medium transition-colors hover:bg-white/10"
+              onClick={() => filepath && openFile(filepath)}
+              title={filepath}
+            >
+              {filename}
+            </button>
+
+            <span className="text-green-400">+{added_lines || 0}</span>
             <span className="text-red-400">-{removed_lines || 0}</span>
-          </span>
+          </div>
         ) : (
           <span>{language || "plaintext"}</span>
         )}
@@ -118,7 +142,7 @@ export function CodeActionPanel({
             className="text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90"
             onClick={handleCopy}
           >
-            Copy
+            {copied ? "Copied!" : "Copy"}
           </button>
 
           {
@@ -136,7 +160,7 @@ export function CodeActionPanel({
                 }}
                 disabled={isApplyDisabled}
               >
-                Apply
+                {isApplying ? "Applying..." : "Apply"}
               </button>
             ) : null
 

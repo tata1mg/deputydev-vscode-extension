@@ -8,9 +8,9 @@ import { API_ENDPOINTS } from "../services/api/endpoints";
 import { QuerySolverService } from "../services/chat/ChatService";
 import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import {
-  getActiveRepo,
-  getSessionId,
-  setSessionId,
+    getActiveRepo,
+    getSessionId,
+    setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { forEach, result } from "lodash";
@@ -18,866 +18,769 @@ import { FocusChunksService } from "../services/focusChunks/focusChunksService";
 import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from "../constants";
+import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from "../types";
 
 
-export type Chunk = {
-  start_line: number;
-  end_line: number;
-  chunk_hash: string;
-  file_hash: string;
-  file_path: string;
-  meta_info?: any;
-};
-
-export type ChatReferenceItem = {
-  index: number;
-  type: "file" | "directory" | "function" | "keyword" | string;
-  keyword: string;
-  path: string;
-  chunks: Chunk[];
-  value?: string;
-};
-
-interface payload {
-  focus_files?: string[];
-  focus_chunks?: string[];
-  message_id?: string;
-  query?: string;
-  is_tool_response?: boolean;
-  write_mode?: boolean;
-  referenceList?: ChatReferenceItem[];
-  tool_use_response?: {
-    tool_name: string;
-    tool_use_id?: string;
-    response: any;
-  };
-  previous_query_ids?: number[];
-  focus_items?: Array<any>;
-}
-
-interface SearchTerm {
-  keyword: string;
-  type: string;
-}
-
-interface ToolRequest {
-  tool_name: string;
-  tool_use_id: string;
-  accumulatedContent: string;
-  write_mode?: boolean;
-}
-
-interface CurrentDiffRequest {
-  filepath: string;
-  raw_diff: string;
-}
 
 export class ChatManager {
-  private querySolverService = new QuerySolverService();
-  private sidebarProvider?: SidebarProvider; // Optional at first
-  private historyService = new HistoryService();
-  private focusChunksService = new FocusChunksService();
-  private authService = new AuthService();
-  private currentAbortController: AbortController | null = null; // ✅ Fix: Add this property
+    private querySolverService = new QuerySolverService();
+    private sidebarProvider?: SidebarProvider; // Optional at first
+    private historyService = new HistoryService();
+    private focusChunksService = new FocusChunksService();
+    private authService = new AuthService();
+    private currentAbortController: AbortController | null = null; // ✅ Fix: Add this property
 
 
-  onStarted: () => void = () => { };
-  onError: (error: Error) => void = () => { };
-  constructor(
-    private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager
-  ) { }
+    onStarted: () => void = () => { };
+    onError: (error: Error) => void = () => { };
+    constructor(
+        private context: vscode.ExtensionContext,
+        private outputChannel: vscode.LogOutputChannel,
+        private diffViewManager: DiffViewManager
+    ) { }
 
-  // Method to set the sidebar provider later
-  setSidebarProvider(sidebarProvider: SidebarProvider) {
-    this.sidebarProvider = sidebarProvider;
-  }
-
-  async start() {
-    this.outputChannel.info("Starting deputydev binary service...");
-
-    // const config = vscode.workspace.getConfiguration('deputydev');
-    // const pythonPath = config.get('pythonPath') as string;
-    // if (!pythonPath) {
-    //   this.outputChannel.info('Python path is not set, skip starting deputydev binaray service.');
-    //   vscode.window.showErrorMessage('Python path is not set, please set it in vscode settings.');
-    //   return Promise.reject();
-    // }
-
-    // // Determine if the given path is a file or a directory.
-    // let pythonPathFile: string;
-    // try {
-    //   const stats = await fsPromise.stat(pythonPath);
-    //   pythonPathFile = stats.isFile() ? pythonPath : path.join(pythonPath, 'python');
-    // } catch (error) {
-    //   this.outputChannel.error('Error accessing python path');
-    //   vscode.window.showErrorMessage('Invalid python path.');
-    //   return Promise.reject();
-    // }
-
-    // if (!pythonPathFile) {
-    //   this.outputChannel.error('Python path does not include python executable, skip starting hat service.');
-    //   vscode.window.showErrorMessage('Python path does not include python executable, please set it in vscode settings.');
-    //   return Promise.reject();
-    // }
-    const folders = vscode.workspace.workspaceFolders;
-    if (!folders) {
-      // this.outputChannel.warn('No workspace folders found, skip starting chat service.');
-      // vscode.window.showWarningMessage('No workspace folders found, skip starting chat service.');
-      return Promise.reject();
+    // Method to set the sidebar provider later
+    setSidebarProvider(sidebarProvider: SidebarProvider) {
+        this.sidebarProvider = sidebarProvider;
     }
 
-    if (folders.length > 1) {
-      // this.outputChannel.warn('Multiple workspace folders found, skip starting chat service.');
-      // vscode.window.showWarningMessage('Current only supports a single workspace folder.');
-      return Promise.reject();
+    async start() {
+        // this.outputChannel.info("Starting deputydev binary service...");
     }
-    // Additional initialization logic can be added here.
-  }
 
-  restart() {
-    this.outputChannel.info("Restarting deputydev binary service...");
-    this.stop();
-    this.start();
-  }
-
-  stop() {
-    this.outputChannel.info("Stopping deputydev binary service...");
-  }
-
-  async processRelevantChunksForInlineEdit(
-    data: payload,
-    relevantHistoryText?: string
-  ): Promise<{ relevantChunks: any[]; receivedSessionId: number | undefined }> {
-    const focus_files = [] as string[];
-    const focus_directories = [] as string[];
-    const focus_chunks = [] as string[];
-
-    data.referenceList?.forEach((element) => {
-      if (element.type === "file") {
-        focus_files.push(element.path);
-      } else if (element.type === "directory") {
-        focus_directories.push(element.path);
-      } else {
-        focus_chunks.push(
-          `${element.path}:${element.chunks[0].start_line}-${element.chunks[0].end_line}`
-        );
-      }
-    });
-
-    try {
-      // If data contains a referenceList, process it as needed.
-      // if (data.referenceList) {
-      //   // TODO: Create an array from the referenceList and process it if necessary.
-      // }
-
-      // Retrieve the active repository path.
-      const active_repo = getActiveRepo();
-      if (!active_repo) {
-        throw new Error("Active repository is not defined.");
-      }
-      // Extract the query from the data.
-      let query = data.query ?? "";
-      if (relevantHistoryText) {
-        query = query + "\n" + relevantHistoryText;
-      }
-      this.outputChannel.info(`Relevant chunks next`);
-
-      // Call the external function to fetch relevant chunks.
-      const result = await fetchRelevantChunks({
-        repo_path: active_repo,
-        query: query,
-        focus_files: focus_files,
-        focus_directories: focus_directories,
-        focus_chunks: focus_chunks,
-        session_type: SESSION_TYPE,
-        // focus_chunks: data.focus_chunks || [],
-        // focus_files: data.focus_files || [],
-      });
-
-      let relevantChunks = result.relevant_chunks;
-      let receivedSessionId = result.session_id;
-
-      // only print few words only
-      this.outputChannel.info(
-        `Relevant chunks: ${JSON.stringify(relevantChunks.slice(0, 1))}`
-      );
-      // Extract the content from each chunk in the payload.
-      return {
-        relevantChunks,
-        receivedSessionId,
-      }
-    } catch (error) {
-      this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
-      return { relevantChunks: [], receivedSessionId: undefined };
+    restart() {
+        // this.outputChannel.info("Restarting deputydev binary service...");
+        this.stop();
+        this.start();
     }
-  }
 
-  async getFocusChunks(
-    data: payload,
-  ): Promise<string[]> {
-
-
-    let chunkDetails: Array<Chunk> = [];
-
-    this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
-    data.referenceList?.forEach((element) => {
-      if (element.chunks !== null) {
-        chunkDetails = chunkDetails.concat(element.chunks);
-      }
-    });
-
-    this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
-
-    try {
-      // Retrieve the active repository path.
-      const active_repo = getActiveRepo();
-      if (!active_repo) {
-        throw new Error("Active repository is not defined.");
-      }
-
-      // Call the external function to fetch relevant chunks.
-      const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
-        auth_token: await this.authService.loadAuthToken(),
-        repo_path: active_repo,
-        chunks: chunkDetails,
-      }): [];
-      // only print few words only
-      this.outputChannel.info(
-        `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
-      );
-
-      let finalResult: Array<any> = [];
-      data.referenceList?.forEach((element) => {
-        let finalChunkInfos: Array<any> = [];
-        element.chunks?.forEach((chunk) => {
-          this.outputChannel.info(`chunk: ${JSON.stringify(result)}`);
-          let selectedChunkInfo = result.find((res: any) => {
-            return res.chunk_hash === chunk.chunk_hash;
-          }
-          );
-          if (selectedChunkInfo) {
-            finalChunkInfos.push(selectedChunkInfo.chunk_info);
-          }
-        });
-
-        finalResult.push({
-          "type": element.type,
-          "value": element.value,
-          "chunks": finalChunkInfos || null,
-          "path": element.path
-        });
-      });
-
-      return finalResult;
-    } catch (error) {
-      this.outputChannel.error(`Error fetching focus chunks: ${error}`);
-      return [];
+    stop() {
+        this.outputChannel.info("Stopping deputydev binary service...");
     }
-  }
 
-  /**
-   * apiChat:
-   * Expects a payload that includes message_id along with the query with other parameters,
-   * and uses the querySolver service to yield text chunks. Each chunk is sent via
-   * the provided chunkCallback.
-   */
+    async processRelevantChunksForInlineEdit(
+        data: ChatPayload,
+        relevantHistoryText?: string
+    ): Promise<{ relevantChunks: any[]; receivedSessionId: number | undefined }> {
+        const focus_files = [] as string[];
+        const focus_directories = [] as string[];
+        const focus_chunks = [] as string[];
 
-  async apiChat(
-    payload: payload,
-    chunkCallback: (data: { name: string; data: unknown }) => void
-  ) {
-    const payload_copy = structuredClone(payload);
-    const abortController = new AbortController();
-    this.currentAbortController = abortController;
-
-    let task: { abortController: AbortController; asyncIterator: AsyncIterableIterator<any> } | undefined;
-    try {
-      this.outputChannel.info(`apiChat payload: ${JSON.stringify(payload)}`);
-
-      //get all relevant previous chat queries if any
-      let currentSessionId = getSessionId();
-      let relevantHistoryText: string | undefined = undefined;
-      let relevantHistoryQueryIds: number[] = [];
-      if (currentSessionId && payload.query) {
-        this.outputChannel.info(`Current session ID: ${currentSessionId}`);
-
-        // call the api to get all the previous chat queries
-        const relevantHistoryData =
-          await this.historyService.getRelevantChatHistory(
-            currentSessionId,
-            payload.query
-          );
-        this.outputChannel.info(
-          `Relevant chat history: ${JSON.stringify(relevantHistoryData)}`
-        );
-
-        // extract the text from the response
-        const relevantHistoryChats = relevantHistoryData?.chats || [];
-        for (const chat of relevantHistoryChats) {
-          relevantHistoryText = relevantHistoryText
-            ? relevantHistoryText + chat.query
-            : chat.response;
-          relevantHistoryQueryIds.push(chat.id);
-        }
-      }
-
-      this.outputChannel.info("relevantHistoryText", relevantHistoryText);
-      this.outputChannel.info(
-        "relevantHistoryQueryIds",
-        relevantHistoryQueryIds
-      );
-
-      if (payload.referenceList) {
-        const focus_chunks = await this.getFocusChunks(
-          payload,
-        );
-        payload.focus_items = focus_chunks;
-      }
-      delete payload.referenceList;
-
-      let message_id = undefined;
-
-      if (payload.message_id) {
-        this.outputChannel.info(`Message ID: ${payload.message_id}`);
-        message_id = payload.message_id;
-        delete payload.message_id;
-      }
-
-      if (payload.is_tool_response) {
-        delete payload.query;
-      }
-      delete payload.is_tool_response;
-
-      if (relevantHistoryQueryIds.length > 0) {
-        payload.previous_query_ids = relevantHistoryQueryIds;
-      }
-
-      this.outputChannel.info(`apiChat payload after processing: ${JSON.stringify(payload)}`);
-      const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
-      this.outputChannel.info('apiChat started, waiting for events...');
-      this.outputChannel.info('querySolverIterator:', querySolverIterator);
-      task = { abortController, asyncIterator: querySolverIterator };
-      registerApiChatTask(task);
-
-
-      let currentToolRequest: any = null;
-      let currentDiffRequest: any = null;
-
-      for await (const event of querySolverIterator) {
-        if (abortController.signal.aborted) {
-          console.info('apiChat aborted, exiting event loop.');
-          break;
-        }
-
-        switch (event.type) {
-          case "RESPONSE_METADATA": {
-            if (event.content?.session_id) {
-              setSessionId(event.content.session_id);
-            }
-            const sessionid = getSessionId();
-            this.outputChannel.info(`Session ID: ${sessionid}`);
-            chunkCallback({ name: event.type, data: event.content });
-            break;
-          }
-          case "TOOL_USE_REQUEST_START": {
-            currentToolRequest = {
-              tool_name: event.content?.tool_name,
-              tool_use_id: event.content?.tool_use_id,
-              accumulatedContent: "",
-              write_mode: payload.write_mode,
-            };
-            // Immediately forward the start event.
-            chunkCallback({ name: event.type, data: event.content});
-            break;
-          }
-          case "TOOL_USE_REQUEST_DELTA": {
-            if (currentToolRequest) {
-              currentToolRequest.accumulatedContent +=
-                event.content?.input_params_json_delta || "";
-              // Forward the delta along with the tool_use_id.
-              chunkCallback({
-                name: event.type,
-                data: {
-                  tool_name: currentToolRequest.tool_name,
-                  tool_use_id: currentToolRequest.tool_use_id,
-                  delta: event.content?.input_params_json_delta || "",
-                },
-              });
-            }
-            break;
-          }
-          case "TOOL_USE_REQUEST_END": {
-            if (currentToolRequest) {
-              chunkCallback({
-                name: event.type,
-                data: {
-                  tool_name: currentToolRequest.tool_name,
-                  tool_use_id: currentToolRequest.tool_use_id,
-                },
-              });
-              // Run the tool (placeholder) and send a result.
-              await this.runTool(currentToolRequest, message_id);
-
-              currentToolRequest = null;
-            }
-            break;
-          }
-          case "CODE_BLOCK_START": {
-            if (event.content?.is_diff) {
-              currentDiffRequest = {
-                is_diff: true,
-                filepath: event.content?.filepath,
-                language: event.content?.language,
-              };
-            }
-            chunkCallback({ name: event.type, data: event.content });
-            break;
-          }
-
-          case "CODE_BLOCK_END": {
-            this.outputChannel.info(
-              `Code block end: ${JSON.stringify(event.content)}`
-            );
-            if (currentDiffRequest) {
-              currentDiffRequest.raw_diff = event.content.diff;
-              chunkCallback({ name: event.type, data: event.content });
-              const active_repo = getActiveRepo();
-              if (!active_repo) {
-                throw new Error(
-                  "Active repository is not defined. cannot apply diff"
-                );
-              }
-              if (payload.write_mode) {
-                const modifiedFiles =
-                  await this.getModifiedRequest(currentDiffRequest);
-                if (modifiedFiles){
-                  //  only log 1st words
-                  this.outputChannel.error(
-                    `the modified file at vscode side is:  ${JSON.stringify(
-                      modifiedFiles
-                    ).slice(0, 1)}`
-                  );
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: message_id,
-                    command: "chunk",
-                    data: {
-                      name: "APPLY_DIFF_RESULT",
-                      data: "completed",
-                    },
-                  });
-                  await this.handleModifiedFiles(modifiedFiles, active_repo);
-                }
-                else{
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: message_id,
-                    command: "chunk",
-                    data: {
-                      name: "APPLY_DIFF_RESULT",
-                      data: "error",
-                    },
-                  });
-                }
-
-              }
-
-              currentDiffRequest = null;
+        data.referenceList?.forEach((element) => {
+            if (element.type === "file") {
+                focus_files.push(element.path);
+            } else if (element.type === "directory") {
+                focus_directories.push(element.path);
             } else {
-              chunkCallback({ name: event.type, data: event.content });
+                focus_chunks.push(
+                    `${element.path}:${element.chunks[0].start_line}-${element.chunks[0].end_line}`
+                );
             }
-            break;
-          }
-          default:
-            chunkCallback({ name: event.type, data: event.content });
-            break;
-        }
-      }
-      // Signal end of stream.
-      chunkCallback({ name: "end", data: {} });
-    } catch (error) {
-      console.error(error)
-      this.outputChannel.info('the payload before sending to UI', JSON.stringify(payload_copy));
-      chunkCallback({ name: "error", data: { payload_to_retry: payload_copy, error_msg: String(error) ,  retry: true}  });
-      this.outputChannel.error(`Error during apiChat: ${error}`);
-    }
-  }
-
-  public async getModifiedRequest(
-    currentDiffRequest: CurrentDiffRequest
-  ): Promise<Record<string, string> | null> {
-    this.outputChannel.info(
-      `Running diff tool for file ${currentDiffRequest.filepath}`
-    );
-
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      throw new Error("Active repository is not defined.");
-    }
-
-    // Parse accumulated diff content to extract necessary params
-    const raw_udiff = currentDiffRequest.raw_diff;
-    const payload_key = currentDiffRequest.filepath;
-
-    this.outputChannel.info("getting modified file from binary");
-
-    // Call the external function to fetch the modified file
-    const result = await this.fetchModifiedFile(active_repo, {
-      [payload_key]: raw_udiff,
-    });
-
-
-    if (!result || Object.keys(result).length === 0) {
-      this.outputChannel.info(`no file update after search and replace`);
-      vscode.window.showErrorMessage(
-        "No file updated after search and replace."
-      );
-      return null;
-    }
-    this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
-
-    return result;
-  }
-
-  public async fetchModifiedFile(
-    repo_path: string,
-    file_path_to_diff_map: Record<string, string>
-  ): Promise<any> {
-    try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        "Authorization": `Bearer ${authToken}`
-      }
-      const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, {
-        repo_path: repo_path,
-        file_path_to_diff_map: file_path_to_diff_map,
-      }, { headers });
-      return response.status === 200 ? response.data : "failed";
-    } catch (error) {
-      console.log({
-        repo_path: repo_path,
-        file_path_to_diff_map: file_path_to_diff_map,
-      });
-      console.log(error)
-      console.error("Error while applying diff:", error);
-      throw error;
-    }
-  }
-
-  async handleModifiedFiles(
-    modifiedFiles: Record<string, string>,
-    active_repo: string
-  ): Promise<void> {
-    for (const [relative_path, content] of Object.entries(modifiedFiles)) {
-      const fullPath = join(active_repo, relative_path);
-      await this.diffViewManager.openDiffView({ path: fullPath, content });
-    }
-  }
-
-  async fetchFocusedSnippetsSearcherResult(
-    repo_path: string,
-    search_terms: SearchTerm[]
-  ): Promise<any> {
-    try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        "Authorization": `Bearer ${authToken}`
-      }
-      const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
-        repo_path: repo_path,
-        search_terms: search_terms,
-      }, { headers });
-      return response.status === 200 ? response.data : "failed";
-    } catch (error) {
-      console.error(
-        "Error while fetching focused snippets searcher results:",
-        error
-      );
-      this.outputChannel.error(
-        "Error while fetching focused snippets searcher results:",
-        error
-      );
-      throw error;
-    }
-  }
-
-  async fetchFilePathSearcherResult(
-    repo_path: string,
-    directory: string,
-    search_terms?: string[],
-  ): Promise<any> {
-    try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        "Authorization": `Bearer ${authToken}`
-      }
-      const response = await binaryApi().post(API_ENDPOINTS.FILE_PATH_SEARCH, {
-        repo_path: repo_path,
-        directory: directory,
-        search_terms: search_terms,
-      }, { headers });
-      return response.status === 200 ? response.data : "failed";
-    } catch (error) {
-      console.error(
-        "Error while fetching focused snippets searcher results:",
-        error
-      );
-      this.outputChannel.error(
-        "Error while fetching focused snippets searcher results:",
-        error
-      );
-      throw error;
-    }
-  }
-
-  async runTool(toolRequest: ToolRequest, message_id: string | undefined) {
-    this.outputChannel.info(
-      `Running tool ${toolRequest.tool_name} with id ${toolRequest.tool_use_id}`
-    );
-    this.outputChannel.info(`message id ${message_id}`);
-    let active_repo;
-    let parsedContent;
-    let searchQuery: string;
-    let focusFiles: string[];
-
-    // Define the callback to send chunk data.
-    const chunkCallback = (chunkData: unknown) => {
-      this.sidebarProvider?.sendMessageToSidebar({
-        // Use the same ID so that the front-end resolver knows which generator to push data into.
-        id: message_id,
-        command: "chunk",
-        data: chunkData,
-      });
-    };
-
-    switch (toolRequest.tool_name) {
-      case "related_code_searcher": {
-        this.outputChannel.info(
-          "The tool use request:",
-          JSON.stringify(toolRequest)
-        );
-        active_repo = this.context.workspaceState.get<string>("activeRepo");
-        if (!active_repo) {
-          throw new Error("Active repository is not defined.");
-        }
-
-        // Parse accumulatedContent to extract the search query and paths (used as focus_files).
-        parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(
-          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
-        );
-        searchQuery = parsedContent.search_query || "";
-        focusFiles = parsedContent.paths || [];
-
-        this.outputChannel.info(
-          "Running related_code_searcher tool with query"
-        );
-
-        let currentSessionId = getSessionId();
-        if (!currentSessionId) {
-          throw new Error("Session ID is not defined for related_code_searcher");
-        }
-        // Call the external function to fetch relevant chunks.
-        const result = await fetchRelevantChunks({
-          repo_path: active_repo,
-          query: searchQuery,
-          focus_files: [],
-          focus_directories: [],
-          focus_chunks: [],
-          // Uncomment and use focusFiles if needed:
-          // focus_files: focusFiles,
-          session_id: currentSessionId,
-          session_type: SESSION_TYPE,
         });
 
-        let relevantChunks = result.relevant_chunks;
+        try {
+            // If data contains a referenceList, process it as needed.
+            // if (data.referenceList) {
+            //   // TODO: Create an array from the referenceList and process it if necessary.
+            // }
 
-        if (relevantChunks) {
-          const payloadData = {
-            message_id: message_id,
-            write_mode: toolRequest.write_mode,
-            tool_use_response: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              response: {
-                RELEVANT_CHUNKS: relevantChunks,
-              },
-            },
-          };
+            // Retrieve the active repository path.
+            const active_repo = getActiveRepo();
+            if (!active_repo) {
+                throw new Error("Active repository is not defined.");
+            }
+            // Extract the query from the data.
+            let query = data.query ?? "";
+            if (relevantHistoryText) {
+                query = query + "\n" + relevantHistoryText;
+            }
+            this.outputChannel.info(`Relevant chunks next`);
+            // Call the external function to fetch relevant chunks.
+            const result = await fetchRelevantChunks({
+                repo_path: active_repo,
+                query: query,
+                focus_files: focus_files,
+                focus_directories: focus_directories,
+                focus_chunks: focus_chunks,
+                session_type: SESSION_TYPE,
+                // focus_chunks: data.focus_chunks || [],
+                // focus_files: data.focus_files || [],
+            });
 
-          chunkCallback({
-            name: "TOOL_USE_RESULT",
-            data: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              result_json: relevantChunks,
-              status: "completed",
-            },
-          });
+            let relevantChunks = result.relevant_chunks;
+            let receivedSessionId = result.session_id;
 
-          this.outputChannel.info(
-            `Code searcher payload: ${JSON.stringify(payloadData)}`
-          );
-          await this.apiChat(payloadData, chunkCallback);
-          return JSON.stringify({ completed: true });
+            // only print few words only
+            this.outputChannel.info(
+                `Relevant chunks: ${JSON.stringify(relevantChunks.slice(0, 1))}`
+            );
+            // Extract the content from each chunk in the payload.
+            return {
+                relevantChunks,
+                receivedSessionId,
+            }
+        } catch (error) {
+            this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
+            return { relevantChunks: [], receivedSessionId: undefined };
         }
-
-        this.outputChannel.info(
-          `Code searcher result: ${JSON.stringify(relevantChunks)}`
-        );
-
-        return JSON.stringify({ completed: false });
-      }
-
-      case "focused_snippets_searcher":
-        this.outputChannel.info(
-          "The tool use request:",
-          JSON.stringify(toolRequest)
-        );
-        active_repo = this.context.workspaceState.get<string>("activeRepo");
-        if (!active_repo) {
-          throw new Error("Active repository is not defined.");
-        }
-
-        // Parse accumulatedContent to extract the search query and paths (used as focus_files).
-        parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(
-          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
-        );
-        const search_terms = parsedContent.search_terms;
-
-        this.outputChannel.info(
-          "Running focused_snippets_searcher tool with query"
-        );
-
-        const response = await this.fetchFocusedSnippetsSearcherResult(
-          active_repo,
-          search_terms
-        );
-        this.outputChannel.info(
-          `Focused snippets searcher result: ${JSON.stringify(response)}`
-        );
-        if (response) {
-          const payloadData = {
-            message_id: message_id,
-            write_mode: toolRequest.write_mode,
-            tool_use_response: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              response: {
-                batch_chunks_search: response,
-              },
-            },
-          };
-
-          chunkCallback({
-            name: "TOOL_USE_RESULT",
-            data: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              result_json: response,
-              status: "completed",
-            },
-          });
-
-          this.outputChannel.info(
-            `Code searcher payload: ${JSON.stringify(payloadData)}`
-          );
-          await this.apiChat(payloadData, chunkCallback);
-          return JSON.stringify({ completed: true });
-        }
-
-        this.outputChannel.info(
-          `Focused snippets searcher result: ${JSON.stringify(response)}`
-        );
-
-        return JSON.stringify({ completed: false });
-
-      case "file_path_searcher": {
-        this.outputChannel.info(
-          "The tool use request:",
-          JSON.stringify(toolRequest)
-        );
-        active_repo = this.context.workspaceState.get<string>("activeRepo");
-        if (!active_repo) {
-          throw new Error("Active repository is not defined.");
-        }
-
-        // Parse accumulatedContent to extract the search_terms and directory
-        parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(
-          `Parsed Content: ${JSON.stringify(parsedContent, null, 2)}`
-        );
-        const search_terms = parsedContent.search_terms || null;
-        const directory = parsedContent.directory;
-
-        this.outputChannel.info(
-          "Running file_path_searcher tool with query"
-        );
-
-        const response = await this.fetchFilePathSearcherResult(
-          active_repo,
-          directory,
-          search_terms,
-        );
-        this.outputChannel.info(
-          `File path searcher result: ${JSON.stringify(response)}`
-        );
-        if (response) {
-          const payloadData = {
-            message_id: message_id,
-            write_mode: toolRequest.write_mode,
-            tool_use_response: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              response: {
-                file_path_search: response,
-              },
-            },
-          };
-
-          chunkCallback({
-            name: "TOOL_USE_RESULT",
-            data: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              result_json: response,
-              status: "completed",
-            },
-          });
-          await this.apiChat(payloadData, chunkCallback);
-          return JSON.stringify({ completed: true });
-        }
-
-        return JSON.stringify({ completed: false });
-      }
-
-      default:
-        this.outputChannel.warn(`Unknown tool: ${toolRequest.tool_name}`);
-        return JSON.stringify({ completed: true });
     }
-  }
 
-  async apiClearChat() {
-    // Implementation for clearing chat on the backend.
-  }
+    async getFocusChunks(
+        data: ChatPayload,
+    ): Promise<string[]> {
 
-  async stopChat() {
-    if (this.currentAbortController) {
-      console.info('Stopping chat request...');
-      this.currentAbortController.abort(); // ✅ Immediately cancels API request
-      this.currentAbortController = null; // Reset to allow new requests
-    } else {
-      console.warn('No active chat request to stop.');
+
+        let chunkDetails: Array<Chunk> = [];
+
+        this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
+        data.referenceList?.forEach((element) => {
+            if (element.chunks !== null) {
+                chunkDetails = chunkDetails.concat(element.chunks);
+            }
+        });
+
+        this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
+
+        try {
+            // Retrieve the active repository path.
+            const active_repo = getActiveRepo();
+            if (!active_repo) {
+                throw new Error("Active repository is not defined.");
+            }
+
+            // Call the external function to fetch relevant chunks.
+            const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
+                auth_token: await this.authService.loadAuthToken(),
+                repo_path: active_repo,
+                chunks: chunkDetails,
+            }) : [];
+            // only print few words only
+            this.outputChannel.info(
+                `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
+            );
+
+            let finalResult: Array<any> = [];
+            data.referenceList?.forEach((element) => {
+                let finalChunkInfos: Array<any> = [];
+                element.chunks?.forEach((chunk) => {
+                    this.outputChannel.info(`chunk: ${JSON.stringify(result)}`);
+                    let selectedChunkInfo = result.find((res: any) => {
+                        return res.chunk_hash === chunk.chunk_hash;
+                    }
+                    );
+                    if (selectedChunkInfo) {
+                        finalChunkInfos.push(selectedChunkInfo.chunk_info);
+                    }
+                });
+
+                finalResult.push({
+                    "type": element.type,
+                    "value": element.value,
+                    "chunks": finalChunkInfos || null,
+                    "path": element.path
+                });
+            });
+
+            return finalResult;
+        } catch (error) {
+            this.outputChannel.error(`Error fetching focus chunks: ${error}`);
+            return [];
+        }
     }
-  }
 
 
-  async apiSaveSession() {
-    // Implementation for saving the chat session.
-  }
+    /**
+     * Fetches relevant previous chat messages from the current session based on the new query.
+     * @param currentSessionId The ID of the current chat session.
+     * @param query The current user query.
+     * @returns An object containing the concatenated text of relevant history and their IDs.
+     */
+    private async _fetchRelevantHistory(currentSessionId: number, query: string): Promise<{ text?: string; ids: number[] }> {
+        this.outputChannel.info(`Fetching relevant history for session ${currentSessionId} and query "${query.substring(0, 50)}..."`);
+        try {
+            const relevantHistoryData = await this.historyService.getRelevantChatHistory(currentSessionId, query);
+            const relevantHistoryChats = relevantHistoryData?.chats || [];
 
-  async apiChatSetting() {
-    // Implementation for updating chat settings.
-  }
+            if (!relevantHistoryChats.length) {
+                this.outputChannel.info("No relevant chat history found.");
+                return { ids: [] };
+            }
+
+            let combinedText = "";
+            const ids: number[] = [];
+            for (const chat of relevantHistoryChats) {
+                // Combine query and response for context
+                combinedText += `User: ${chat.query}\nAssistant: ${chat.response}\n\n`;
+                ids.push(chat.id);
+            }
+
+            this.outputChannel.info(`Found ${ids.length} relevant history items.`);
+            // this.outputChannel.debug(`Relevant history text: ${combinedText}`); // Can be very verbose
+            return { text: combinedText.trim(), ids };
+        } catch (error: any) {
+            this.outputChannel.error(`Error fetching relevant chat history: ${error.message}`, error);
+            this.onError(error);
+            return { ids: [] }; // Return empty on error
+        }
+    }
+
+    /**
+     * apiChat:
+     * Expects a payload that includes message_id along with the query with other parameters,
+     * and uses the querySolver service to yield text chunks. Each chunk is sent via
+     * the provided chunkCallback.
+     */
+
+    async apiChat(
+        payload: ChatPayload,
+        chunkCallback: ChunkCallback
+    ) {
+        const originalPayload = structuredClone(payload);
+        const abortController = new AbortController();
+        this.currentAbortController = abortController; // Track the current controller
+
+        let querySolverTask: { abortController: AbortController; asyncIterator: AsyncIterableIterator<any> } | undefined;
+
+        try {
+            this.outputChannel.info("apiChat initiated.");
+            this.outputChannel.info(`Initial payload: ${JSON.stringify(payload)}`);
+
+            const messageId = payload.message_id; // Store for later use, e.g., in tool responses
+            this.outputChannel.info(`Message ID: ${messageId}`);
+
+            // 1. Prepare Context: History and Focus Items
+            const currentSessionId = getSessionId();
+            if (currentSessionId && payload.query && !payload.is_tool_response) {
+                const { ids: relevantHistoryQueryIds } = await this._fetchRelevantHistory(currentSessionId, payload.query);
+                if (relevantHistoryQueryIds.length > 0) {
+                    payload.previous_query_ids = relevantHistoryQueryIds;
+                }
+            }
+
+            if (payload.referenceList) {
+                const focus_chunks = await this.getFocusChunks(
+                    payload,
+                );
+                payload.focus_items = focus_chunks;
+            }
+            delete payload.referenceList;
+
+
+            delete payload.message_id; // Backend doesn't need this directly
+            if (payload.is_tool_response) {
+                delete payload.query;
+            }
+            delete payload.is_tool_response;
+
+
+            this.outputChannel.info("Payload prepared for QuerySolverService.");
+            console.log(payload)
+            this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);
+
+
+            // 2. Call Query Solver Service and Register Task for Cancellation
+            const querySolverIterator = this.querySolverService.querySolver(payload, abortController.signal);
+            querySolverTask = { abortController, asyncIterator: querySolverIterator };
+            registerApiChatTask(querySolverTask);
+
+            this.outputChannel.info("QuerySolverService called, listening for events...");
+
+
+
+            let currentToolRequest: ToolRequest | null = null;
+            let currentDiffRequest: any = null;
+
+            for await (const event of querySolverIterator) {
+                if (abortController.signal.aborted) {
+                    this.outputChannel.warn('apiChat aborted by cancellation signal.');
+                    break; // Exit loop if cancelled
+                }
+
+                // this.outputChannel.info(`Received event:`, JSON.stringify(event)); // Log event type
+
+
+                switch (event.type) {
+                    case "RESPONSE_METADATA":
+                        if (event.content?.session_id) { // Set session ID if not already set
+                            setSessionId(event.content.session_id);
+                            this.outputChannel.info(`Session ID set: ${event.content.session_id}`);
+                        }
+                        chunkCallback({ name: event.type, data: event.content });
+                        break;
+
+                    case "TOOL_USE_REQUEST_START": {
+                        currentToolRequest = {
+                            tool_name: event.content.tool_name,
+                            tool_use_id: event.content.tool_use_id,
+                            accumulatedContent: "",
+                            write_mode: payload.write_mode,
+                        };
+                        // Immediately forward the start event.
+                        chunkCallback({ name: event.type, data: event.content });
+                        break;
+                    }
+                    case "TOOL_USE_REQUEST_DELTA": {
+                        if (currentToolRequest) {
+                            currentToolRequest.accumulatedContent +=
+                                event.content?.input_params_json_delta || "";
+                            // Forward the delta along with the tool_use_id.
+                            chunkCallback({
+                                name: event.type,
+                                data: {
+                                    tool_name: currentToolRequest.tool_name,
+                                    tool_use_id: currentToolRequest.tool_use_id,
+                                    delta: event.content?.input_params_json_delta || "",
+                                },
+                            });
+                        }
+                        break;
+                    }
+                    case "TOOL_USE_REQUEST_END": {
+                        if (currentToolRequest) {
+                            chunkCallback({
+                                name: event.type,
+                                data: {
+                                    tool_name: currentToolRequest.tool_name,
+                                    tool_use_id: currentToolRequest.tool_use_id,
+                                },
+                            });
+                            await this._runTool(currentToolRequest, messageId, chunkCallback);
+                            currentToolRequest = null;
+                        }
+                        break;
+                    }
+                    case "CODE_BLOCK_START":
+                        if (event.content?.is_diff) {
+                            currentDiffRequest = {
+                                filepath: event.content?.filepath,
+                                // raw_diff will be populated at CODE_BLOCK_END
+                            };
+                            this.outputChannel.info(`Starting diff block for: ${currentDiffRequest.filepath}`);
+                        }
+                        chunkCallback({ name: event.type, data: event.content });
+                        break;
+
+                    case "CODE_BLOCK_END": {
+                        this.outputChannel.info(
+                            `Code block end: ${JSON.stringify(event.content)}`
+                        );
+                        if (currentDiffRequest) {
+                            currentDiffRequest.raw_diff = event.content.diff;
+                            chunkCallback({ name: event.type, data: event.content });
+                            const active_repo = getActiveRepo();
+                            if (!active_repo) {
+                                throw new Error(
+                                    "Active repository is not defined. cannot apply diff"
+                                );
+                            }
+                            if (payload.write_mode) {
+                                const modifiedFiles =
+                                    await this.getModifiedRequest(currentDiffRequest);
+                                if (modifiedFiles) {
+                                    //  only log 1st words
+                                    this.outputChannel.error(
+                                        `the modified file at vscode side is:  ${JSON.stringify(
+                                            modifiedFiles
+                                        ).slice(0, 1)}`
+                                    );
+                                    this.sidebarProvider?.sendMessageToSidebar({
+                                        id: messageId,
+                                        command: "chunk",
+                                        data: {
+                                            name: "APPLY_DIFF_RESULT",
+                                            data: "completed",
+                                        },
+                                    });
+                                    await this.handleModifiedFiles(modifiedFiles, active_repo);
+                                }
+                                else {
+                                    this.sidebarProvider?.sendMessageToSidebar({
+                                        id: messageId,
+                                        command: "chunk",
+                                        data: {
+                                            name: "APPLY_DIFF_RESULT",
+                                            data: "error",
+                                        },
+                                    });
+                                }
+
+                            }
+
+                            currentDiffRequest = null;
+                        } else {
+                            chunkCallback({ name: event.type, data: event.content });
+                        }
+                        break;
+                    }
+                    default:
+                        chunkCallback({ name: event.type, data: event.content });
+                        break;
+                }
+            }
+            // Signal end of stream.
+            chunkCallback({ name: "end", data: {} });
+        } catch (error: any) {
+            this.outputChannel.error(`Error during apiChat: ${error.message}`, error);
+            this.onError(error);
+            // Send error details back to the UI for potential retry
+            chunkCallback({
+                name: "error",
+                data: {
+                    payload_to_retry: originalPayload,
+                    error_msg: String(error.message || error),
+                    retry: true // Suggest retry is possible
+                }
+            });
+        } finally {
+            // Cleanup: Unregister task and clear controller regardless of success/error/cancellation
+            if (querySolverTask) {
+                unregisterApiChatTask(querySolverTask);
+            }
+            this.currentAbortController = null;
+            this.outputChannel.info("apiChat finished cleanup.");
+        }
+    }
+
+    public async getModifiedRequest(
+        currentDiffRequest: CurrentDiffRequest
+    ): Promise<Record<string, string> | null> {
+        this.outputChannel.info(
+            `Running diff tool for file ${currentDiffRequest.filepath}`
+        );
+
+        const active_repo = getActiveRepo();
+        if (!active_repo) {
+            throw new Error("Active repository is not defined.");
+        }
+
+        // Parse accumulated diff content to extract necessary params
+        const raw_udiff = currentDiffRequest.raw_diff;
+        const payload_key = currentDiffRequest.filepath;
+
+        this.outputChannel.info("getting modified file from binary");
+
+        // Call the external function to fetch the modified file
+        const result = await this.fetchModifiedFile(active_repo, {
+            [payload_key]: raw_udiff,
+        });
+
+
+        if (!result || Object.keys(result).length === 0) {
+            this.outputChannel.info(`no file update after search and replace`);
+            vscode.window.showErrorMessage(
+                "No file updated after search and replace."
+            );
+            return null;
+        }
+        this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
+
+        return result;
+    }
+
+    public async fetchModifiedFile(
+        repo_path: string,
+        file_path_to_diff_map: Record<string, string>
+    ): Promise<any> {
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = {
+                "Authorization": `Bearer ${authToken}`
+            }
+            const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, {
+                repo_path: repo_path,
+                file_path_to_diff_map: file_path_to_diff_map,
+            }, { headers });
+            return response.status === 200 ? response.data : "failed";
+        } catch (error) {
+            // console.log({
+            //     repo_path: repo_path,
+            //     file_path_to_diff_map: file_path_to_diff_map,
+            // });
+            // console.log(error)
+            // console.error("Error while applying diff:", error);
+            throw error;
+        }
+    }
+
+
+    /**
+       * Calls the backend API for batch chunk search (focused_snippets_searcher).
+       */
+    private async _fetchBatchChunksSearch(repoPath: string, searchTerms: SearchTerm[]): Promise<any> {
+        this.outputChannel.info(`Calling batch chunks search API.`);
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = { "Authorization": `Bearer ${authToken}` };
+            const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+                repo_path: repoPath,
+                search_terms: searchTerms,
+            }, { headers });
+
+            if (response.status === 200) {
+                this.outputChannel.info("Batch chunks search API call successful.");
+                return response.data;
+            } else {
+                this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
+                throw new Error(`Batch chunks search failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            this.outputChannel.error(`Error calling batch chunks search API: ${error.message}`, error);
+            throw error;
+        }
+    }
+
+    /**
+      * Calls the backend API for file path search.
+      */
+    private async _fetchFilePathSearch(repoPath: string, directory: string, searchTerms?: string[]): Promise<any> {
+        this.outputChannel.info(`Calling file path search API.`);
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = { "Authorization": `Bearer ${authToken}` };
+            const response = await binaryApi().post(API_ENDPOINTS.FILE_PATH_SEARCH, {
+                repo_path: repoPath,
+                directory: directory,
+                search_terms: searchTerms, // Send null/undefined if not provided
+            }, { headers });
+
+            if (response.status === 200) {
+                this.outputChannel.info("File path search API call successful.");
+                return response.data;
+            } else {
+                this.outputChannel.error(`File path search API failed with status ${response.status}`);
+                throw new Error(`File path search failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            this.outputChannel.error(`Error calling file path search API: ${error.message}`, error);
+            throw error;
+        }
+    }
+
+
+
+    async handleModifiedFiles(
+        modifiedFiles: Record<string, string>,
+        active_repo: string
+    ): Promise<void> {
+        for (const [relative_path, content] of Object.entries(modifiedFiles)) {
+            const fullPath = join(active_repo, relative_path);
+            await this.diffViewManager.openDiffView({ path: fullPath, content });
+        }
+    }
+
+
+    /**
+      * Routes a tool request to the appropriate handler based on the tool name.
+      * Executes the tool, sends the TOOL_USE_RESULT to the UI, and then, if successful,
+      * continues the chat flow by calling apiChat recursively with the tool's results.
+      * This ensures the UI sees the tool completion before the next chat phase begins.
+      *
+      * @param toolRequest The details of the tool request.
+      * @param messageId The original message ID for context.
+      * @param chunkCallback Callback to send results back to the UI.
+      */
+
+    private async _runTool(toolRequest: ToolRequest, messageId: string | undefined, chunkCallback: ChunkCallback): Promise<void> {
+        this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
+
+        let rawResult: any;
+        let status: "completed" | "error" = "error"; // Default to error
+        let resultForUI: any; // This will hold what's sent in TOOL_USE_RESULT
+
+        try {
+            const active_repo = getActiveRepo();
+            if (!active_repo) {
+                throw new Error("Active repository is not defined for running tool.");
+            }
+
+            let parsedContent: any;
+            try {
+                parsedContent = JSON.parse(toolRequest.accumulatedContent);
+                this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsedContent)}`);
+            } catch (parseError: any) {
+                throw new Error(`Failed to parse tool parameters JSON: ${parseError.message}`);
+            }
+
+            // Execute the specific tool function
+            switch (toolRequest.tool_name) {
+                case "related_code_searcher":
+                    rawResult = await this._runRelatedCodeSearcher(active_repo, parsedContent);
+                    break;
+                case "focused_snippets_searcher":
+                    rawResult = await this._runFocusedSnippetsSearcher(active_repo, parsedContent);
+                    break;
+                case "file_path_searcher":
+                    this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
+                    rawResult = await this._runFilePathSearcher(active_repo, parsedContent);
+                    break;
+                default:
+                    this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
+                    // Treat as completed but with a message indicating it's unknown
+                    rawResult = { message: `Tool '${toolRequest.tool_name}' is not implemented.` };
+                    // We will still send TOOL_USE_RESULT, but won't recurse apiChat
+                    status = "completed";
+                    resultForUI = rawResult; // Send the message back
+                    // Send TOOL_USE_RESULT immediately as no continuation payload needed
+                    chunkCallback({
+                        name: "TOOL_USE_RESULT",
+                        data: {
+                            tool_name: toolRequest.tool_name,
+                            tool_use_id: toolRequest.tool_use_id,
+                            result_json: resultForUI,
+                            status: status,
+                        },
+                    });
+                    return; // Exit _runTool early for unknown tools
+            }
+
+            // Check if the tool function executed successfully and returned a valid result
+            // (null/undefined might indicate an internal tool error not caught)
+                status = "completed";
+                resultForUI = rawResult; // The raw result is usually what the UI might want to display
+                this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
+
+                // Prepare payload to continue chat with the tool's response
+                const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
+                const continuationPayload: ChatPayload = {
+                    message_id: messageId, // Pass original message ID for context if needed by UI later
+                    write_mode: toolRequest.write_mode,
+                    is_tool_response: true,
+                    tool_use_response: {
+                        tool_name: toolRequest.tool_name,
+                        tool_use_id: toolRequest.tool_use_id,
+                        response: structuredResponse, // Use the structured response for the backend
+                    },
+                    // TODO: Consider if previous_query_ids need to be passed down through tool calls
+                };
+
+                // *** CRITICAL STEP ***
+                // Send TOOL_USE_RESULT *before* awaiting the recursive apiChat call.
+                // This ensures the UI knows this tool finished before the next phase starts.
+                chunkCallback({
+                    name: "TOOL_USE_RESULT",
+                    data: {
+                        tool_name: toolRequest.tool_name,
+                        tool_use_id: toolRequest.tool_use_id,
+                        result_json: resultForUI, // Send the raw result to UI
+                        status: status,
+                    },
+                });
+
+                // Now, continue the chat flow with the tool response
+                this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
+                await this.apiChat(continuationPayload, chunkCallback);
+
+
+        } catch (error: any) {
+            this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
+            this.onError(error);
+            status = "error";
+            resultForUI = { error: error.message }; // Set result to error message for UI
+
+            // Send error result back to UI
+            // No recursive apiChat call should happen on error.
+            chunkCallback({
+                name: "TOOL_USE_RESULT",
+                data: {
+                    tool_name: toolRequest.tool_name,
+                    tool_use_id: toolRequest.tool_use_id,
+                    result_json: resultForUI,
+                    status: status,
+                },
+            });
+            // Do NOT continue chat if the tool itself failed critically
+        }
+    }
+
+
+    /**
+    * Structures the raw tool result into the format expected by the backend's tool_use_response.
+    */
+    private _structureToolResponse(toolName: string, rawResult: any): any {
+        switch (toolName) {
+            case "related_code_searcher":
+                return { RELEVANT_CHUNKS: rawResult };
+            case "focused_snippets_searcher":
+                return { batch_chunks_search: rawResult };
+            case "file_path_searcher":
+                return { file_path_search: rawResult };
+            default:
+                // For unknown or simple tools, return the result directly (though handled earlier now)
+                return rawResult;
+        }
+    }
+
+
+    // --- Specific Tool Implementations ---
+
+    private async _runRelatedCodeSearcher(repoPath: string, params: { search_query?: string; paths?: string[] }): Promise<any> {
+        const query = params.search_query || "";
+        // const focusFiles = params.paths || []; // Currently unused based on original code?
+        const currentSessionId = getSessionId();
+
+        if (!currentSessionId) {
+            throw new Error("Session ID is required for related_code_searcher");
+        }
+        this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
+
+        const result = await fetchRelevantChunks({
+            repo_path: repoPath,
+            query: query,
+            focus_files: [], // Explicitly empty based on original logic
+            focus_directories: [],
+            focus_chunks: [],
+            // Uncomment and use focusFiles if needed:
+            // focus_files: focusFiles,
+            session_id: currentSessionId,
+            session_type: SESSION_TYPE,
+        });
+
+        return result.relevant_chunks || []; // Return chunks or empty array
+    }
+
+    private async _runFocusedSnippetsSearcher(repoPath: string, params: { search_terms?: SearchTerm[] }): Promise<any> {
+        const searchTerms = params.search_terms;
+        if (!searchTerms || !searchTerms.length) {
+            throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
+        }
+        this.outputChannel.info(`Executing focused_snippets_searcher with ${searchTerms.length} terms.`);
+        // return this._fetchBatchChunksSearch(repoPath, searchTerms);
+        return this._fetchBatchChunksSearch(repoPath, searchTerms);
+    }
+
+    private async _runFilePathSearcher(repoPath: string, params: { directory?: string; search_terms?: string[] }): Promise<any> {
+
+        const directory = params.directory;
+        const searchTerms = params.search_terms; // Optional
+        this.outputChannel.info(`Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`);
+        // return this._fetchFilePathSearch(repoPath, directory || "", searchTerms);
+        return this._fetchFilePathSearch(repoPath, directory || "", searchTerms);
+    }
+
+
+
+    async apiClearChat() {
+        // Implementation for clearing chat on the backend.
+    }
+    /**
+     * Stops the currently active chat stream, if any.
+     */
+    async stopChat(): Promise<void> {
+        if (this.currentAbortController) {
+            this.currentAbortController.abort();
+            this.outputChannel.warn('Stopping active chat request...');
+            // The finally block in apiChat handles unregistering and nulling the controller
+        } else {
+            this.outputChannel.info('No active chat request to stop.');
+        }
+    }
+
+
+    async apiSaveSession() {
+        // Implementation for saving the chat session.
+    }
+
+    async apiChatSetting() {
+        // Implementation for updating chat settings.
+    }
 }

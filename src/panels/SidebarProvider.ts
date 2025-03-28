@@ -5,12 +5,11 @@ import { AuthenticationManager } from "../auth/AuthenticationManager";
 import { ChatManager } from "../chat/ChatManager";
 import { DiffViewManager } from "../diff/DiffManager";
 import { getUri } from "../utilities/getUri";
-import { requireModule } from "../utilities/require-config";
 import { WorkspaceManager } from "../code_syncing/WorkspaceManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
-import { getActiveRepo, setSessionId } from "../utilities/contextManager";
+import { deleteSessionId, getActiveRepo, setSessionId } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 import { binaryApi } from "../services/api/axios";
@@ -42,7 +41,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager
-  ) {}
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -92,6 +91,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'api-stop-chat':
           promise = this.chatService.stopChat(); // Calls abort on the active request
+          break;
+        case "delete-session-id":
+          this.outputChannel.info("Deleting session ID");
+          deleteSessionId();
           break;
         // case 'api-clear-chat':
         //   promise = this.chatService.apiClearChat();
@@ -168,11 +171,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "set-workspace-state":
           promise = this.setWorkspaceState(data);
           break;
-
         case "get-workspace-state":
           promise = this.getWorkspaceState(data);
           break;
-
         case "delete-workspace-state":
           promise = this.deleteWorkspaceState(data);
           break;
@@ -262,7 +263,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context , this.configManager,this.logger);
+    const authenticationManager = new AuthenticationManager(this.context, this.configManager, this.logger);
     const status = await authenticationManager.initiateAuthentication();
     if (status === "AUTHENTICATION_FAILED") {
       this.setViewType("error");
@@ -281,34 +282,38 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+
+
   // For Binary init
   public async initiateBinary() {
-    this.outputChannel.info("Initiating Binary**********************************")
-    const active_repo = getActiveRepo();
-    //  measure time tken for auth token
-    // start
-    const auth_token = await this.authService.loadAuthToken()
-    // if (!auth_token) {
-    //   auth_token = await this.context.workspaceState.get("authToken");
-    // }
-    // const auth_token = await this.authService.loadAuthToken()
-    this.context.workspaceState.update("authToken", auth_token);
-    const essential_config = this.configManager.getAllConfigEssentials();
-    this.outputChannel.info(`Essential config: ${JSON.stringify(essential_config)}`);
-    if (!auth_token) {
+    this.outputChannel.info("🔧 Initiating Binary **********************************");
+
+    const activeRepo = getActiveRepo();
+    const authToken = await this.authService.loadAuthToken();
+
+    if (!authToken) {
+      this.outputChannel.warn("❌ No auth token available. Aborting binary initiation.");
       return;
     }
-    this.logger.info("Initiating binary...");
-    this.outputChannel.info("Initiating binary...");
+
+    await this.context.workspaceState.update("authToken", authToken);
+
+    const essentialConfig = this.configManager.getAllConfigEssentials();
+    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+
+    this.logger.info("🚀 Initiating binary...");
+    this.outputChannel.info("🚀 Initiating binary...");
+
     const payload = {
       config: {
         DEPUTY_DEV: {
-          HOST: DD_HOST ,
+          HOST: DD_HOST,
         },
       },
     };
+
     const headers = {
-      Authorization: `Bearer ${auth_token}`,
+      Authorization: `Bearer ${authToken}`,
     };
 
     this.sendMessageToSidebar({
@@ -317,39 +322,36 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       data: true,
     });
 
-    const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, {
-      headers,
-    });
-    this.outputChannel.info(response.data.status);
-    if (response.data.status === "Completed") {
-      if (active_repo) {
-        this.logger.info(`Embedding creation with repo ${active_repo}`);
-        this.outputChannel.info(`Embedding creation with repo ${active_repo}`);
-        const params = { repo_path: active_repo };
-        this.outputChannel.info(
-          `📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`
-        );
-        await updateVectorStoreWithResponse(params).then((response) => {
-          // this.sendMessageToSidebar({
-          //   id: uuidv4(),
-          //   command: "repo-selector-state",
-          //   data: false,
-          // });
-          // this.outputChannel.info(
-          //   `📡 📡📡 WebSocket response: ${JSON.stringify(response)}`
-          // );
-        }).catch((error) => {
-          this.logger.info("Embedding failed 3 times...");
-          this.outputChannel.info("Embedding failed 3 times...")
+    try {
+      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+
+      if (response.data.status === "Completed" && activeRepo) {
+        this.logger.info(`📁 Creating embedding for repo: ${activeRepo}`);
+        this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
+
+        const params = { repo_path: activeRepo };
+        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+
+        try {
+          await updateVectorStoreWithResponse(params);
+        } catch (error) {
+          this.logger.warn("❗ Embedding failed after 3 attempts.");
+          this.outputChannel.warn("❗ Embedding failed after 3 attempts.");
+
           this.sendMessageToSidebar({
             id: uuidv4(),
             command: "retry-embedding-failed",
             data: error,
-          })
-        });
+          });
+        }
       }
+    } catch (error) {
+      this.logger.error("🚨 Binary initialization failed:", error);
+      this.outputChannel.error("🚨 Binary initialization failed.");
     }
   }
+
 
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(
@@ -580,7 +582,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         command: "profile-ui-data",
         data: response.ui_profile_data,
       });
-    });
+    })
   }
 
 
@@ -632,35 +634,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       "index.js",
     ]);
 
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    const workspaceUri = workspaceFolder?.uri;
-    const configPath = workspaceUri
-      ? vscode.Uri.joinPath(workspaceUri, "myext.config.ts").fsPath
-      : null;
-    let config: any;
 
-    // Attempt to load the config if present
-    if (configPath) {
-      try {
-        config = requireModule(configPath);
-      } catch (error) {
-        // no-op if not found
-      }
-    }
-
-    // Watch for config changes
-    if (workspaceFolder) {
-      const watcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(workspaceFolder, "myext.config.ts")
-      );
-      watcher.onDidChange((uri) => {
-        const newConfig = requireModule(uri.path);
-        this.sendMessageToSidebar({
-          type: "onConfigChange",
-          value: newConfig,
-        });
-      });
-    }
 
     return /*html*/ `
       <!DOCTYPE html>
@@ -674,8 +648,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         <body>
           <div id="root"></div>
           <script>
-            // Pass any config we found to the webview
-            window.config = ${JSON.stringify(config || {})};
           </script>
           <script type="module" src="${scriptUri}"></script>
         </body>
