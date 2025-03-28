@@ -73,6 +73,9 @@ export default function ReferenceChip({
   }, [autoEdit]);
 
   const handleEdit = () => {
+    if (displayOnly) {
+      return
+    }
     useChatStore.setState({ chipIndexBeingEdited: chipIndex });
     setIsEditing(true);
     setShowAutoComplete(true);
