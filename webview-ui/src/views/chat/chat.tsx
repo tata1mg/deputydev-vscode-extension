@@ -1,6 +1,7 @@
 // file: webview-ui/src/components/Chat.tsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
+import { ChatTypeToggle } from "./chatElements/chatTypeToggle";
 import {
   useChatSettingStore,
   useChatStore,
@@ -622,37 +623,9 @@ export function ChatUI() {
         </div>
 
         {/* Chat Type Toggle and RepoSelector */}
-        <div className="flex items-center justify-between gap-1 text-xs">
-          <div>
-            <RepoSelector />
-          </div>
-
-          {/* chat and act toggle */}
-
-          <div className="w-18 flex h-4 items-center justify-between rounded-xl bg-[--deputydev-input-background]">
-            <button
-              className={`w-[50px] rounded-bl-xl rounded-tl-xl font-medium transition-all duration-200 ease-in-out ${chatType === "ask" ? "h-5 rounded-br-xl rounded-tr-xl bg-blue-500/70" : ""}`}
-              onClick={() => {
-                if (!isLoading) {
-                  setChatType("ask");
-                }
-              }}
-              disabled={isLoading}
-            >
-              Chat
-            </button>
-            <button
-              className={`w-[50px] rounded-br-xl rounded-tr-xl font-medium transition-all duration-200 ease-in-out ${chatType === "write" ? "h-5 rounded-bl-xl rounded-tl-xl bg-blue-500/70" : ""}`}
-              onClick={() => {
-                if (!isLoading) {
-                  setChatType("write");
-                }
-              }}
-              disabled={isLoading}
-            >
-              Act
-            </button>
-          </div>
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <RepoSelector />
+          <ChatTypeToggle />
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
-import {api} from '../api/axios';
-import {getSessionId} from "../../utilities/contextManager";
+import { api } from '../api/axios';
+import { getSessionId } from "../../utilities/contextManager";
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from "ws";
@@ -30,10 +30,8 @@ export class QuerySolverService {
 
     try {
       if (fs.existsSync(filePath)) {
-        // console.log("Reading .deputydevrules file from workspace");
         return fs.readFileSync(filePath, "utf8");
       }
-      // console.log("No .deputydevrules file found in workspace");
     } catch (error) {
       console.error("Error reading .deputydevrules file:", error);
     }
@@ -41,6 +39,30 @@ export class QuerySolverService {
   }
 
   public async *querySolver(
+    payload: Record<string, any>,
+    signal?: AbortSignal
+  ): AsyncIterableIterator<any> {
+    let firstAttemptYielded = false;
+
+    try {
+      for await (const event of this._runQuerySolverAttempt(payload, signal)) {
+        firstAttemptYielded = true;
+        yield event;
+      }
+    } catch (err) {
+      if (!firstAttemptYielded) {
+        console.warn("⚠️ querySolver failed on first attempt, retrying once...", err);
+        await new Promise(res => setTimeout(res, 200)); // small delay before retry
+        for await (const event of this._runQuerySolverAttempt(payload, signal)) {
+          yield event;
+        }
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  private async *_runQuerySolverAttempt(
     payload: Record<string, any>,
     signal?: AbortSignal
   ): AsyncIterableIterator<any> {
@@ -55,11 +77,9 @@ export class QuerySolverService {
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
 
-    // websocket stream message hadler
     const handleMessage = (event: RawData): "RESOLVE" | "REJECT" | "WAIT" => {
       try {
         const messageData = JSON.parse(event.toString());
-        // console.log("Received WebSocket message in parser:", messageData);
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
             refreshCurrentToken({
@@ -70,40 +90,37 @@ export class QuerySolverService {
           streamDone = true;
           return "RESOLVE";
         } else if (messageData.type === 'STREAM_ERROR') {
-          console.error("❌ Error in WebSocket stream here:", messageData.message);
+          console.error("❌ Error in WebSocket stream:", messageData.message);
           streamError = Error(messageData.message);
           return "REJECT";
         }
-        eventsQueue.push({ type: messageData.type, content: messageData.content })
-      }
-      catch (error) {
+        eventsQueue.push({ type: messageData.type, content: messageData.content });
+      } catch (error) {
         console.error("❌ Error parsing WebSocket message:", error);
         return "REJECT";
       }
       return "WAIT";
-    }
+    };
 
-    let websocketClient = new BaseWebSocketClient(
+    const websocketClient = new BaseWebSocketClient(
       DD_HOST_WS,
       API_ENDPOINTS.QUERY_SOLVER,
       authToken,
       handleMessage,
-      {...(currentSessionId ? {"X-Session-ID" : currentSessionId.toString()} : {}), "X-Session-Type": SESSION_TYPE}
+      {
+        ...(currentSessionId ? { "X-Session-ID": currentSessionId.toString() } : {}),
+        "X-Session-Type": SESSION_TYPE
+      }
     );
 
-    let dataToSend: any = payload;
-
-    websocketClient.send(dataToSend).then(
-      (response) => {
-        websocketClient.close();
-      }
+    websocketClient.send(payload).then(
+      () => websocketClient.close()
     ).catch(
       (error) => {
         streamError = error;
         websocketClient.close();
       }
     );
-    // console.log("QuerySolverService: querySolver sent data:", dataToSend);
 
     if (signal) {
       signal.addEventListener('abort', () => {

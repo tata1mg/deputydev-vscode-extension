@@ -38,13 +38,15 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     return;
   }
+  
+  // context reset from past session
+  setExtensionContext(context);
+  await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger(context);
 
-  // context reset from past session
-  setExtensionContext(context);
-  await clearWorkspaceStorage();
+
 
   // // 0) Fetch and store essential config data
   const configManager = new ConfigManager(context, logger, outputChannel);
@@ -240,6 +242,7 @@ export async function activate(context: vscode.ExtensionContext) {
         return;
       }
       const fileUri = editor.document.uri;
+      outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
       await diffViewManager.rejectFile(fileUri.fsPath);
       vscode.window.showInformationMessage("Changes rejected successfully.");
     })
@@ -287,7 +290,6 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("deputydev.AddButtonClick", () => {
       chatService.stopChat(), outputChannel.info("Add button clicked!");
       sidebarProvider.newChat();
-      deleteSessionId();
     })
   );
 

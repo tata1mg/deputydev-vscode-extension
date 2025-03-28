@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import {FileText, CheckCircle, Loader2, XCircle, Search , RotateCw} from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import {
+  FileText,
+  CheckCircle,
+  Loader2,
+  XCircle,
+  Search,
+  RotateCw,
+} from "lucide-react";
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { openFile } from "@/commandApi";
-import { reduce } from 'lodash';
-import { useChatStore } from '@/stores/chatStore';
+import { reduce } from "lodash";
+import { useChatStore } from "@/stores/chatStore";
+import { SnippetReference } from "./CodeBlockStyle";
+
 /**
  *
  * Represents the status of chips
  */
-export type Status = 'pending' | 'completed' | 'error';
+export type Status = "idle" | "pending" | "completed" | "error" 
 
 /**
  * Props common to both analyzed code and searched codebase.
@@ -21,7 +30,6 @@ export type Status = 'pending' | 'completed' | 'error';
 //   autoFetchChunks?: boolean;
 // }
 
-
 /**
  * Props for the ThinkingChip component.
  */
@@ -29,18 +37,17 @@ interface ThinkingChipProps {
   completed?: boolean;
 }
 
-
 /**
  * Status Icon Component - Prevents duplication of status icon logic.
  */
 const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
   switch (status) {
-    case 'pending':
-      return <Loader2 className=" w-4 h-4 text-yellow-400 animate-spin" />;
-    case 'completed':
-      return <CheckCircle className="w-4 h-4 text-green-400" />;
-    case 'error':
-      return <XCircle className="  w-4 h-4 text-red-400" />;
+    case "pending":
+      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
+    case "completed":
+      return <CheckCircle className="h-4 w-4 text-green-400" />;
+    case "error":
+      return <XCircle className="h-4 w-4 text-red-400" />;
     default:
       return null;
   }
@@ -80,27 +87,28 @@ const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
 //   );
 // }
 
-
 /**
  * Component for Searched Codebase.
  * Displays status and file count based on props from history.
  */
 
-
-export function SearchedCodebase({ status, fileCount }: {
+export function SearchedCodebase({
+  status,
+  fileCount,
+}: {
   status: Status;
   fileCount?: number;
 }) {
-  let displayText = 'Searched codebase';
-  if (status === 'pending') {
-    displayText = 'Searching codebase...';
-  } else if (status === 'error') {
-    displayText = 'Error searching codebase';
+  let displayText = "Searched codebase";
+  if (status === "pending") {
+    displayText = "Searching codebase...";
+  } else if (status === "error") {
+    displayText = "Error searching codebase";
   }
 
   return (
     <div
-      className="flex items-center justify-between w-full px-2 py-2 text-sm rounded border-[1px] mt-2 border-gray-500/40"
+      className="mt-2 flex w-full items-center justify-between rounded border-[1px] border-gray-500/40 px-2 py-2 text-sm"
       title="Searched Codebase"
     >
       <div className="flex items-center gap-2">
@@ -108,18 +116,15 @@ export function SearchedCodebase({ status, fileCount }: {
         <span className="">{displayText}</span>
       </div>
       <div className="text-gray-300">
-        {fileCount !== undefined ? `${fileCount} results` : ''}
+        {fileCount !== undefined ? `${fileCount} results` : ""}
       </div>
     </div>
   );
 }
 
-
-
 /**
  * Function component for ThinkingChip - Displays a chip representing a thinking state.
  */
-
 
 export function ThinkingChip({ completed }: ThinkingChipProps) {
   const [dots, setDots] = useState(".");
@@ -134,8 +139,7 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
 
   return (
     <div
-
-      className="flex items-center w-full gap-2 px-2 py-2 text-sm rounded border-[1px] border-gray-500/40 mt-2"
+      className="mt-2 flex w-full items-center gap-2 rounded border-[1px] border-gray-500/40 px-2 py-2 text-sm"
       title={completed ? "Thinking Complete" : "Thinking..."}
     >
       {!completed ? (
@@ -145,22 +149,31 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
         </>
       ) : (
         <>
-        <StatusIcon status="completed" />
-        <span>Thinking complete</span>
+          <StatusIcon status="completed" />
+          <span>Thinking complete</span>
         </>
       )}
     </div>
   );
 }
 
-
-export function RetryChip({ error_msg, retry, payload_to_retry }: { 
-  error_msg: string; 
-  retry: boolean; 
-  payload_to_retry: unknown; 
+export function RetryChip({
+  error_msg,
+  retry,
+  payload_to_retry,
+}: {
+  error_msg: string;
+  retry: boolean;
+  payload_to_retry: unknown;
 }) {
-  const { history: messages, sendChatMessage, current, showSkeleton, showSessionsBox } = useChatStore();
-  
+  const {
+    history: messages,
+    sendChatMessage,
+    current,
+    showSkeleton,
+    showSessionsBox,
+  } = useChatStore();
+
   // Retry function defined within ChatArea component
   const retryChat = () => {
     if (!messages.length) {
@@ -189,7 +202,7 @@ export function RetryChip({ error_msg, retry, payload_to_retry }: {
 
   return (
     <div
-      className="flex items-center justify-between w-full px-2 py-2 text-sm rounded border-[1px] border-red-500/40 mt-2"
+      className="mt-2 flex w-full items-center justify-between rounded border-[1px] border-red-500/40 px-2 py-2 text-sm"
       title="Error occurred"
     >
       <div className="flex items-center gap-2">
@@ -198,36 +211,43 @@ export function RetryChip({ error_msg, retry, payload_to_retry }: {
       </div>
       {retry && (
         <button
-          className="text-gray-300 font-bold  hover:bg-gray-500 rounded p-1"
+          className="rounded p-1 font-bold text-gray-300 hover:bg-gray-500"
           onClick={retryChat}
         >
-          <RotateCw className="w-5 h-5" />
+          <RotateCw className="h-5 w-5" />
         </button>
       )}
     </div>
   );
 }
 
-
-
-
-
 /**
  * Component for file edited
  * Displays file name and and lines changed
  */
+// import { useState } from "react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 
-
-
-
-export function FileEditedChip({ filepath ,added_lines  ,removed_lines, status}: {
+export function FileEditedChip({
+  filepath,
+  language,
+  content,
+  added_lines,
+  removed_lines,
+  status,
+  past_session
+}: {
   filepath?: string;
+  language?: string;
+  content: string;
   added_lines?: number | null;
   removed_lines?: number | null;
   status: Status;
+  past_session?: boolean | false;
 }) {
-  const filename = filepath ? filepath.split('/').pop() : '';
-
+  const filename = filepath ? filepath.split("/").pop() : "";
+  const combined = { language, filepath, content };
+  const [showSnippet, setShowSnippet] = useState(false);
 
   let statusText;
   let statusColor = "";
@@ -235,44 +255,66 @@ export function FileEditedChip({ filepath ,added_lines  ,removed_lines, status}:
     statusText = "Editing";
   } else if (status === "completed") {
     statusText = "Edited";
+  } else if (status === "idle") {
+    statusText = "Edited";
   } else {
     statusText = "Error editing";
     statusColor = "text-red-400";
   }
 
   return (
-    <div
-      className="flex justify-between items-center  px-1 py-1.5 rounded border-[1px] border-gray-500/40 w-full  text-sm"
-      title="File Edited"
-    >
-      <div className="flex items-center gap-2">
-        <StatusIcon status={status} />
-        <span className={statusColor}>{statusText}</span>
-      {/* File Name Button */}
-      {filepath && (
-          <>
+    <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
+      <div
+        className="flex w-full items-center justify-between gap-2"
+        title="File Edited"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {past_session && (
             <button
-              className=" px-1 py-0.5 rounded border-[1px] bg-neutral-600/5 border-gray-500/40  hover:text-white hover:bg-neutral-600 transition text-xs"
-              onClick={() => openFile(filepath)}
-              data-tooltip-id="filepath-tooltip"
-              data-tooltip-content={filepath}
+              className="text-xs text-gray-300 hover:text-white transition"
+              onClick={() => setShowSnippet((prev) => !prev)}
+              title={showSnippet ? "Hide code" : "Show code"}
             >
-              {filename}
+              {showSnippet ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
             </button>
-            <Tooltip id="filepath-tooltip" />
-          </>
+          )}
+          <StatusIcon status={status} />
+          <span className={statusColor}>{statusText}</span>
+          {filepath && (
+            <div className="min-w-0 flex-1">
+              <button
+                className="w-full overflow-hidden truncate text-ellipsis rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
+                onClick={() => openFile(filepath)}
+                data-tooltip-id="filepath-tooltip"
+                data-tooltip-content={filepath}
+              >
+                {filename}
+              </button>
+              <Tooltip id="filepath-tooltip" />
+            </div>
+          )}
+        </div>
+
+        {status !== "error" && (
+          <div className="flex items-center gap-2 text-xs">
+            {added_lines != null && added_lines > 0 && (
+              <span className="text-green-400">+{added_lines}</span>
+            )}
+            {removed_lines != null && removed_lines > 0 && (
+              <span className="text-red-400">-{removed_lines}</span>
+            )}
+          </div>
         )}
       </div>
 
-      {/* Added & Removed Lines (only if status is not "error") */}
-      {status !== "error" && (
-        <div className="flex items-center gap-2 text-xs">
-          {added_lines !== null && added_lines !== undefined && added_lines > 0 && (
-            <span className="text-green-400">+{added_lines}</span>
-          )}
-          {removed_lines !== null && removed_lines !== undefined && removed_lines > 0 && (
-            <span className="text-red-400">-{removed_lines}</span>
-          )}
+      {/* Collapsible code snippet */}
+      {past_session && showSnippet && (
+        <div className="mt-2 border-t border-gray-700 pt-2">
+          <SnippetReference snippet={combined} />
         </div>
       )}
     </div>

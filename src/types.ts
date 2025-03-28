@@ -10,3 +10,60 @@ export type UsageTrackingRequest = {
   event: "accepted" | "generated" | "copied";
   properties: UsageTrackingProperties;
 };
+
+
+
+export type ChunkCallback = (data: { name: string; data: unknown }) => void;
+
+
+export type Chunk = {
+    start_line: number;
+    end_line: number;
+    chunk_hash: string;
+    file_hash: string;
+    file_path: string;
+    meta_info?: any;
+};
+
+type ChatReferenceItem = {
+    index: number;
+    type: "file" | "directory" | "function" | "keyword" | string;
+    keyword: string;
+    path: string;
+    chunks: Chunk[];
+    value?: string;
+};
+
+export interface ChatPayload {
+    focus_files?: string[];
+    focus_chunks?: string[];
+    message_id?: string;
+    query?: string;
+    is_tool_response?: boolean;
+    write_mode?: boolean;
+    referenceList?: ChatReferenceItem[];
+    tool_use_response?: {
+        tool_name: string;
+        tool_use_id?: string;
+        response: any;
+    };
+    previous_query_ids?: number[];
+    focus_items?: Array<any>;
+}
+
+export interface SearchTerm {
+    keyword: string;
+    type: string;
+}
+
+export interface ToolRequest {
+    tool_name: string;
+    tool_use_id: string;
+    accumulatedContent: string;
+    write_mode?: boolean;
+}
+
+export interface CurrentDiffRequest {
+    filepath: string;
+    raw_diff: string;
+}

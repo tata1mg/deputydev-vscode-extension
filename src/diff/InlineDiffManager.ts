@@ -603,12 +603,13 @@ export class InlineDiffViewManager
    * If the editor is dirty, clear decorations and save.
    */
   private async saveDocument(editor: vscode.TextEditor) {
+    editor.setDecorations(this.deletionDecorationType, []);
+    editor.setDecorations(this.insertionDecorationType, []);
     if (editor.document.isDirty) {
-      editor.setDecorations(this.deletionDecorationType, []);
-      editor.setDecorations(this.insertionDecorationType, []);
       await editor.document.save();
     }
   }
+  
 
   /**
    * Open a diff view for a file: calculates line-based diffs and highlights them inline.

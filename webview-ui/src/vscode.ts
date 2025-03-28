@@ -192,13 +192,15 @@ export function removeCommandEventListener(
 addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
-  getSessions(6, 0); // Ensure this fetches the first page of sessions
+  getSessions(20, 0);
+
   const currentViewType = useExtensionStore.getState().viewType;
-  if (currentViewType !== "chat") {
+
+  if ( currentViewType !== "chat" ) {
     useExtensionStore.setState({ viewType: "chat" });
   } else {
-    // clear chat history
     useChatStore.getState().clearChat();
+    callCommand("delete-session-id", null);
   }
 });
 
@@ -210,21 +212,7 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-addCommandEventListener("set-workspace-repos", ({ data }) => {
-  const { repos, activeRepo } = data as SetWorkspaceReposData;
 
-  // Log entire repos array
-  // console.log("Received Repositories:");
-
-  // repos.forEach((repo, index) => {
-  //   console.log(`Repo ${index + 1}:`, repo);
-  // });
-
-  // Log activeRepo
-  // console.log("Active Repo:", activeRepo);
-
-  useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
-});
 
 addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);

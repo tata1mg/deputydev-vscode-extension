@@ -30,7 +30,7 @@ const RepoSelector = () => {
   return (
     <div
       {...tooltipProps} // Only applies tooltip if disabled
-      className={`relative inline-flex items-center gap-1 px-1 py-0.5 rounded w-full text-sm border border-[--vscode-commandCenter-inactiveBorder]
+      className={`relative inline-flex  w-fit items-center gap-1 px-1 py-0.5 rounded text-sm border border-[--vscode-commandCenter-inactiveBorder]
                   ${disableRepoSelector ? 'opacity-50 p-0 cursor-not-allowed' : 'hover:bg-[var(--deputydev-input-background)] '}`}
     >
       <select
