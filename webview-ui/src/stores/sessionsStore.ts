@@ -12,7 +12,7 @@ export const useSessionsStore = create<{
 }>()(
   (set) => ({
     sessions: [] as Session[],
-    sessionsPerPage: 6,
+    sessionsPerPage: 20,
     currentSessionsPage: 1,
     setCurrentSessionsPage: (updater) =>
       set((state) => ({ currentSessionsPage: updater(state.currentSessionsPage) })),

@@ -192,22 +192,20 @@ export function removeCommandEventListener(
 addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
-  getSessions(20, 0); 
+  getSessions(20, 0);
   const currentViewType = useExtensionStore.getState().viewType;
   if (currentViewType !== "chat") {
-  getSessions(20, 0);
+    const extensionStore = useExtensionStore.getState();
 
-  const chatStore = useChatStore.getState();
-  const extensionStore = useExtensionStore.getState();
+    if (extensionStore.viewType !== "chat") {
+      useExtensionStore.setState({ viewType: "chat" });
 
-  if (extensionStore.viewType !== "chat") {
-    useExtensionStore.setState({ viewType: "chat" });
-    
-  } else {
-    useChatStore.getState().clearChat();
-    callCommand("delete-session-id", null);
+    } else {
+      useChatStore.getState().clearChat();
+      callCommand("delete-session-id", null);
+    }
   }
-}});
+});
 
 addCommandEventListener("set-view-type", ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
