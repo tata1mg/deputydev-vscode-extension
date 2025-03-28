@@ -11,6 +11,7 @@ type RemovedChange = {
   line: number;
   count: number;
   value: string;
+  session_id?: number;
 };
 
 type AddedChange = {
@@ -18,6 +19,7 @@ type AddedChange = {
   line: number;
   count: number;
   value: string;
+  session_id?: number;
 };
 
 type Change =
@@ -27,6 +29,7 @@ type Change =
       type: "modified";
       removed: RemovedChange;
       added: AddedChange;
+      session_id?: number;
     };
 
 export class InlineDiffViewManager
@@ -351,6 +354,7 @@ export class InlineDiffViewManager
     const usageTrackingData: UsageTrackingRequest = {
       event: "accepted",
       properties: {
+        session_id: change.session_id,
         file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(uri)),
         lines:
           change.type === "modified"
@@ -609,12 +613,14 @@ export class InlineDiffViewManager
       await editor.document.save();
     }
   }
-  
 
   /**
    * Open a diff view for a file: calculates line-based diffs and highlights them inline.
    */
-  async openDiffView(data: { path: string; content: string }): Promise<void> {
+  async openDiffView(
+    data: { path: string; content: string },
+    session_id?: number
+  ): Promise<void> {
     try {
       this.outputChannel.info(`command write file: ${data.path}`);
       let uri = vscode.Uri.file(data.path);
@@ -680,6 +686,7 @@ export class InlineDiffViewManager
         }
 
         if (currentChange) {
+          currentChange.session_id = session_id
           changes.push(currentChange);
         }
         combineContent += part.value;
@@ -726,7 +733,6 @@ export class InlineDiffViewManager
 
       // Log success
       this.outputChannel.debug(`Applied inline diff for ${data.path}`);
-
     } catch (error) {
       this.outputChannel.error(`Error applying inline diff: ${error}`);
       throw error;
