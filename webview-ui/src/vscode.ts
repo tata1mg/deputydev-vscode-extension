@@ -249,7 +249,7 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
   logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
-    console.error("Invalid data format for 'keyword-search-response'", data);
+    // console.error("Invalid data format for 'keyword-search-response'", data);
     return;
   }
 
@@ -278,10 +278,10 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
   logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
-    console.error(
-      "Invalid data format for 'keyword-type-search-response'",
-      data
-    );
+    // console.error(
+    //   "Invalid data format for 'keyword-type-search-response'",
+    //   data
+    // );
     return;
   }
 });
@@ -332,7 +332,7 @@ addCommandEventListener("progress-bar", ({ data }) => {
 })
 
 addCommandEventListener("retry-embedding-failed", ({ data }) => {
-  console.error("Retry embedding failed:", data);
+  // console.error("Retry embedding failed:", data);
   useChatStore.setState({ showEmbeddingFailed: true });
 });
 

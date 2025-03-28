@@ -232,7 +232,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             // check diffRecord has keys and values
             promise = diffRecord && Object.keys(diffRecord).length > 0;
           } catch (error) {
-            console.error("Error while checking diff applicability:", error);
+            // console.error("Error while checking diff applicability:", error);
           }
           break;
         }
@@ -555,7 +555,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     try {
       await this.historyService.deleteSession(data.sessionId);
     } catch (error) {
-      console.error("Error while deleting session:", error);
+      // console.error("Error while deleting session:", error);
     }
   }
 

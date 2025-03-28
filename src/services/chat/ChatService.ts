@@ -33,7 +33,7 @@ export class QuerySolverService {
         return fs.readFileSync(filePath, "utf8");
       }
     } catch (error) {
-      console.error("Error reading .deputydevrules file:", error);
+      // console.error("Error reading .deputydevrules file:", error);
     }
     return null;
   }
@@ -51,7 +51,7 @@ export class QuerySolverService {
       }
     } catch (err) {
       if (!firstAttemptYielded) {
-        console.warn("⚠️ querySolver failed on first attempt, retrying once...", err);
+        // console.warn("⚠️ querySolver failed on first attempt, retrying once...", err);
         await new Promise(res => setTimeout(res, 200)); // small delay before retry
         for await (const event of this._runQuerySolverAttempt(payload, signal)) {
           yield event;
@@ -90,13 +90,13 @@ export class QuerySolverService {
           streamDone = true;
           return "RESOLVE";
         } else if (messageData.type === 'STREAM_ERROR') {
-          console.error("❌ Error in WebSocket stream:", messageData.message);
+          // console.error("❌ Error in WebSocket stream:", messageData.message);
           streamError = Error(messageData.message);
           return "REJECT";
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
-        console.error("❌ Error parsing WebSocket message:", error);
+        // console.error("❌ Error parsing WebSocket message:", error);
         return "REJECT";
       }
       return "WAIT";
@@ -124,7 +124,7 @@ export class QuerySolverService {
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        console.warn('querySolver stream aborted by user');
+        // console.warn('querySolver stream aborted by user');
         websocketClient.close();
         streamDone = true;
       });
@@ -136,7 +136,7 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        console.warn('querySolver aborted during loop');
+        // console.warn('querySolver aborted during loop');
         websocketClient.close();
         return;
       }
