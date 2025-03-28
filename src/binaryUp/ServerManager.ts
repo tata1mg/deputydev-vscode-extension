@@ -10,6 +10,8 @@ import axios from 'axios';
 import { spawn, SpawnOptions } from 'child_process';
 import { MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
 import { Logger } from '../utilities/Logger';
+import * as net from 'node:net';
+
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
 let BINARY_PORT: number | null = null;
 export class ServerManager {
@@ -185,6 +187,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     if (!crypto.timingSafeEqual(receivedHmac, expectedHmac)) {
         vscode.window.showErrorMessage('Decryption failed: HMAC does not match. File may be tampered.');
         this.outputChannel.appendLine('HMAC verification failed. Aborting decryption.');
+        throw new Error('HMAC verification failed. File may be tampered.');
         return;
     }
     this.outputChannel.appendLine('HMAC verified successfully.');
@@ -234,7 +237,6 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Check if the port is available */
     private async isPortAvailable(port: number): Promise<boolean> {
-        const net = await import('net');
         return new Promise((resolve) => {
             const server = net.createServer();
             server.unref();
@@ -268,7 +270,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
             const response = await axios.get('http://localhost:' + existingPort + API_ENDPOINTS.PING);
             if (response?.status === 200) {
-                vscode.window.showInformationMessage('Server is already running.');
+                // vscode.window.showInformationMessage('Server is already running.');
                 this.logger.info(`Reusing running local server at port ${existingPort}`);
                 this.outputChannel.appendLine(`🔄 Reusing running server at port ${existingPort}`);
                 setBinaryPort(existingPort);
@@ -298,13 +300,13 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
         this.outputChannel.appendLine(`Starting server with binary: ${serviceExecutable}`);
         this.outputChannel.appendLine(`Port range: ${portRange}`);
         if (!serviceExecutable || !fs.existsSync(serviceExecutable)) {
-            vscode.window.showErrorMessage('Server binary not found.');
+            // vscode.window.showErrorMessage('Server binary not found.');
             this.outputChannel.appendLine('❌ Server binary not found at path: ' + serviceExecutable);
             return false;;
         }
 
         if (!portRange || portRange.length !== 2) {
-            vscode.window.showErrorMessage('Invalid or missing port range in config.');
+            // vscode.window.showErrorMessage('Invalid or missing port range in config.');
             this.outputChannel.appendLine('❌ Missing or invalid port range in config.');
             return false;
         }
@@ -318,7 +320,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
             const port = await this.findAvailablePort(portRange);
             if (!port) {
-                vscode.window.showErrorMessage('No available port found to start server.');
+                // vscode.window.showErrorMessage('No available port found to start server.');
                 this.outputChannel.appendLine('❌ No available port found in range.');
                 return false;
             }

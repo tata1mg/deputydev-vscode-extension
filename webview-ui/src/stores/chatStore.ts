@@ -102,6 +102,7 @@ export const useChatStore = create(
             showSessionsBox: true,
             showAllSessions: false,
             currentEditorReference: [],
+            lastToolUseResponse: undefined,
           });
         },
 
@@ -173,7 +174,6 @@ export const useChatStore = create(
           if (retryChat) {
             logToOutput("info", `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`);
             stream = apiChat(retry_payload);
-
           }
           else {
             stream = apiChat(payload);
@@ -309,7 +309,7 @@ export const useChatStore = create(
                   };
 
                   const codeBlockMsg: ChatCodeBlockMessage = {
-                    type: "CODE_BLOCK",
+                    type: "CODE_BLOCK_STREAMING",
                     content: {
                       language: codeData.language || "",
                       file_path: codeData.filepath,
@@ -339,7 +339,7 @@ export const useChatStore = create(
                     const newHistory = [...state.history];
                     const lastMsg = newHistory[newHistory.length - 1];
 
-                    if (lastMsg?.type === "CODE_BLOCK") {
+                    if (lastMsg?.type === "CODE_BLOCK_STREAMING") {
                       lastMsg.content.code += codeDelta; // Update the code inside content
                     }
 
@@ -362,7 +362,7 @@ export const useChatStore = create(
                     const newHistory = [...state.history];
                     const lastMsg = newHistory[newHistory.length - 1];
 
-                    if (lastMsg?.type === "CODE_BLOCK") {
+                    if (lastMsg?.type === "CODE_BLOCK_STREAMING") {
                       lastMsg.completed = true;
 
                       // ✅ Update diff info
@@ -404,7 +404,7 @@ export const useChatStore = create(
                     const lastMsg = newHistory[newHistory.length - 1]; // Get the last message
                     logToOutput("info", `ui got the applied diff}`);
                     // log modified files
-                    if (lastMsg?.type === "CODE_BLOCK") {
+                    if (lastMsg?.type === "CODE_BLOCK_STREAMING") {
                       // Determine the correct status type
                       logToOutput("info", `ui got the applied dif part 2} ${lastMsg}`);
                       const status = diffResultData;
@@ -520,19 +520,19 @@ export const useChatStore = create(
                     set((state) => {
                       if (!state.current) return state;
                       let finalText = state.current.content?.text;
-                      try {
-                        if (
-                          finalText.trim().startsWith("{") &&
-                          finalText.trim().endsWith("}")
-                        ) {
-                          const parsedJson = JSON.parse(finalText);
-                          if (parsedJson.prompt) {
-                            finalText = parsedJson.prompt;
-                          }
-                        }
-                      } catch (e) {
-                        // Use the text as is if parsing fails.
-                      }
+                      // try {
+                      //   if (
+                      //     finalText.trim().startsWith("{") &&
+                      //     finalText.trim().endsWith("}")
+                      //   ) {
+                      //     const parsedJson = JSON.parse(finalText);
+                      //     if (parsedJson.prompt) {
+                      //       finalText = parsedJson.prompt;
+                      //     }
+                      //   }
+                      // } catch (e) {
+                      //   // Use the text as is if parsing fails.
+                      // }
                       return {
                         history: [
                           ...state.history,

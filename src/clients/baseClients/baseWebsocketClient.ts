@@ -1,4 +1,5 @@
 import { WebSocket, RawData } from "ws";
+import { CLIENT, CLIENT_VERSION } from "../../config";
 
 
 export class BaseWebSocketClient {
@@ -21,8 +22,8 @@ export class BaseWebSocketClient {
     this.socket = new WebSocket(this.url, {
       headers: {
         Authorization: `Bearer ${authToken}`,
-        "X-Client": "VSCODE_EXT",
-        "X-Client-Version": "0.0.1",
+        "X-Client": CLIENT,
+        "X-Client-Version": CLIENT_VERSION,
         ...(extraHeaders || {}), 
       },
     });
