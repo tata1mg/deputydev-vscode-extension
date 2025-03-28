@@ -193,17 +193,14 @@ addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
   getSessions(20, 0);
+
   const currentViewType = useExtensionStore.getState().viewType;
-  if (currentViewType !== "chat") {
-    const extensionStore = useExtensionStore.getState();
 
-    if (extensionStore.viewType !== "chat") {
-      useExtensionStore.setState({ viewType: "chat" });
-
-    } else {
-      useChatStore.getState().clearChat();
-      callCommand("delete-session-id", null);
-    }
+  if ( currentViewType !== "chat" ) {
+    useExtensionStore.setState({ viewType: "chat" });
+  } else {
+    useChatStore.getState().clearChat();
+    callCommand("delete-session-id", null);
   }
 });
 
