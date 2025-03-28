@@ -492,12 +492,12 @@ export class ChatManager {
             }, { headers });
             return response.status === 200 ? response.data : "failed";
         } catch (error) {
-            console.log({
-                repo_path: repo_path,
-                file_path_to_diff_map: file_path_to_diff_map,
-            });
-            console.log(error)
-            console.error("Error while applying diff:", error);
+            // console.log({
+            //     repo_path: repo_path,
+            //     file_path_to_diff_map: file_path_to_diff_map,
+            // });
+            // console.log(error)
+            // console.error("Error while applying diff:", error);
             throw error;
         }
     }
