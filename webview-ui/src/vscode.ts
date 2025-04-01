@@ -287,6 +287,7 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {
+  useExtensionStore.setState({viewType: "chat"})
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
