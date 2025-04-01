@@ -40,7 +40,7 @@ export default function Profile() {
   }
 
   return (
-    <div>
+    <div className="h-full">
       <button className="mt-2 w-[70px] ml-4 px-2 hover:bg-gray-500/20 rounded h-[30px] flex gap-2 items-center"
         onClick={handleBack}
       >
