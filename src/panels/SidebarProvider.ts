@@ -301,7 +301,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
-    this.logger.info(" Initiating local server...");
+    this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
 
     const payload = {
@@ -323,8 +323,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
 
     try {
-      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+      let attempts = 0;
+      let response: any;
+      while (attempts < 3) {
+        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+        this.logger.info(`Binary init status: ${response.data.status}`);
+        if (response.data.status != "Completed") {
+          attempts++;
+          this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);
+          if (attempts === 3) {
+            this.logger.warn("Binary initialization failed");
+            this.outputChannel.warn("🚨 Binary initialization failed.");
+            throw new Error("Binary initialization failed");
+          }
+        } else {
+          break;
+        }
+      }
 
       if (response.data.status === "Completed" && activeRepo) {
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
@@ -336,8 +352,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
-          this.logger.warn("Embedding failed after 3 attempts.");
-          this.outputChannel.warn("❗ Embedding failed after 3 attempts.");
+          this.logger.warn("Embedding failed");
+          this.outputChannel.warn("Embedding failed");
 
           this.sendMessageToSidebar({
             id: uuidv4(),

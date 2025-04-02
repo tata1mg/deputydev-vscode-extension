@@ -4,6 +4,7 @@ import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
 import { SESSION_TYPE } from "../../constants";
+import { SingletonLogger } from "../../utilities/Singleton-logger";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -12,6 +13,10 @@ const fetchAuthToken = async () => {
 };
 
 export class InlineEditService {
+    private logger: ReturnType<typeof SingletonLogger.getInstance>;
+    constructor() {
+        this.logger = SingletonLogger.getInstance();
+    }
     private apiErrorHandler = new ApiErrorHandler();
 
     public async generateInlineEdit(payload: any, sessionId?: number): Promise<any> {
@@ -44,6 +49,7 @@ export class InlineEditService {
             // console.log(response.data.data)
             return response.data.data;
         } catch (error) {
+            this.logger.error("Error fetching inline edit result");
             this.apiErrorHandler.handleApiError(error);
         }
     }
