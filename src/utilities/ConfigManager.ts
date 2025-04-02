@@ -52,7 +52,7 @@ export class ConfigManager {
         this.configEssentials = response.data.data;
         this.context.workspaceState.update(this.CONFIG_ESSENTIALS_KEY, this.configEssentials);
         setEssentialConfig(this.configEssentials);
-        this.logger.info(`fetched configs`);
+        this.logger.info(`Fetched essential config`);
         this.outputChannel.info("CONFIG_ESSENTIALS successfully stored.");
       } else {
         // this.outputChannel.error("Failed to fetch CONFIG_ESSENTIALS: Invalid response format.");

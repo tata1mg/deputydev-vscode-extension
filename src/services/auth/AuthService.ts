@@ -2,8 +2,14 @@ import { api, binaryApi } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { getBinaryHost } from "../../config";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
+import { SingletonLogger } from "../../utilities/Singleton-logger";
 
 export class AuthService {
+    private logger: ReturnType<typeof SingletonLogger.getInstance>;
+    // create a construcuter with logger
+    constructor() {
+        this.logger = SingletonLogger.getInstance();
+    }
     private apiErrorHandler = new ApiErrorHandler();
 
     public async getSession(supabaseSessionId: string): Promise<any> {
@@ -15,6 +21,7 @@ export class AuthService {
             const response = await api.get(API_ENDPOINTS.GET_SESSION, { headers });
             return response.data;
         } catch (error) {
+            this.logger.error("Error fetching session during getSession");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -28,6 +35,7 @@ export class AuthService {
             const response = await api.post(API_ENDPOINTS.VERIFY_AUTH_TOKEN, {}, { headers });
             return response.data;
         } catch (error) {
+            this.logger.error("Error verifying auth token during verifyAuthToken");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -44,6 +52,7 @@ export class AuthService {
                 return "failed";
             }
         } catch (error) {
+            this.logger.error("Error storing auth token during storing Auth Token");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -58,6 +67,7 @@ export class AuthService {
                 return null
             }
         } catch (error) {
+            this.logger.error("Error loading auth token during loading Auth Token");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -69,6 +79,7 @@ export class AuthService {
                 return response.data.message;
             }
         } catch (error) {
+            this.logger.error("Error deleting auth token during deleting Auth Token");
             this.apiErrorHandler.handleApiError(error);
         }
     }
