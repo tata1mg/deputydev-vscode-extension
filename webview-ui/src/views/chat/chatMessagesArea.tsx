@@ -153,7 +153,7 @@ export function ChatArea() {
           case "CODE_BLOCK_STREAMING":
           case "CODE_BLOCK":
            {
-            
+            console.log("code block message", msg);
             const isStreaming = msg.type === "CODE_BLOCK_STREAMING";
             const isDiff = msg.content.is_diff;
             const showFileEditedChip = isDiff && msg.write_mode;
