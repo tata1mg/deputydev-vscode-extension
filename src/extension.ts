@@ -38,7 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     return;
   }
-  
+
   // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
