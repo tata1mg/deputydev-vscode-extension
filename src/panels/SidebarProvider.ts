@@ -301,7 +301,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
-    this.logger.info(" Initiating local server...");
+    this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
 
     const payload = {
@@ -328,7 +328,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       while (attempts < 3) {
         response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
-
+        this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != "Completed") {
           attempts++;
           this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);

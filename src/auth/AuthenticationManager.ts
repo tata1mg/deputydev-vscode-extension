@@ -41,7 +41,7 @@ export class AuthenticationManager {
                     }
                 }
             } catch (error) {
-                this.logger.error('Error while polling session:', error);
+                this.logger.error('Error while polling session');
             }
 
             // Wait for 3 seconds before the next attempt
