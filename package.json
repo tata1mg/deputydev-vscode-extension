@@ -175,7 +175,7 @@
         {
           "type": "webview",
           "id": "deputydev-sidebar",
-          "name": "AI Assistant",
+          "name": "DeputyDev",
           "icon": "assets/DD_Logo.png"
         }
       ]
