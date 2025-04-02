@@ -19,7 +19,7 @@ export class InlineEditService {
     }
     private apiErrorHandler = new ApiErrorHandler();
 
-    public async generateInlineEdit(payload: any, sessionId: number | undefined): Promise<any> {
+    public async generateInlineEdit(payload: any, sessionId?: number): Promise<any> {
         try {
             const authToken = await fetchAuthToken();
             const headers = {

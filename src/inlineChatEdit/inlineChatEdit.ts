@@ -13,6 +13,13 @@ interface InlineEditPayload {
         selected_text?: string
         file_path?: string
     };
+    tool_use_response?: {
+        tool_name: string;
+        tool_use_id: string;
+        response: {
+            RELEVANT_CHUNKS: string[];
+        }
+    }
 }
 
 interface RelevantChunksPayload {
@@ -141,7 +148,7 @@ export class InlineChatEditManager {
                     file_path: this.relative_file_path,
                     start_line: start_line + 1,
                     end_line: end_line + 1,
-                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line+1}_${end_line+1}`
+                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line + 1}_${end_line + 1}`
                 }
             }
 
@@ -233,11 +240,6 @@ export class InlineChatEditManager {
             this.outputChannel.info(`USER QUERY: ${reply.text}`);
             this.outputChannel.info("Now inside edit feature.....")
             this.active_repo = getActiveRepo();
-            const payloadForRelevantChunks: RelevantChunksPayload = {
-                focus_chunks: this.focus_chunks,
-                query: reply.text,
-                focus_files: this.focus_files
-            }
             const payloadForInlineEdit: InlineEditPayload = {
                 query: reply.text,
                 relevant_chunks: [],
@@ -253,40 +255,53 @@ export class InlineChatEditManager {
                 cancellable: true
             }, async () => {
                 this.outputChannel.info("Inside function")
-                const relevantChunksData = await this.chatService.processRelevantChunksForInlineEdit(payloadForRelevantChunks)
-                payloadForInlineEdit.relevant_chunks = relevantChunksData.relevantChunks;
-                const job = await this.inlineEditService.generateInlineEdit(payloadForInlineEdit, relevantChunksData.receivedSessionId);
-                this.outputChannel.info(`Job_id: ${job.job_id}`)
-
-                let uDiff;
-                if (job.job_id) {
-                    uDiff = await this.pollInlineDiffResult(job.job_id);
-                }
-
-                this.outputChannel.info(`UDIFF: ${JSON.stringify(uDiff, null, 2)}`);
-
-                this.outputChannel.info(`Active Repo: ${this.active_repo}`)
-
-                const modified_file_path = uDiff.code_snippets[0].file_path
-                const raw_diff = uDiff.code_snippets[0].code
-
-                this.outputChannel.info(`File_path: ${modified_file_path}`)
-                this.outputChannel.info(`raw_diff: ${raw_diff}`)
-
-                if (!modified_file_path) {
-                    return
-                }
-                const modifiedFiles = await this.chatService.getModifiedRequest({
-                    filepath: modified_file_path,
-                    raw_diff: raw_diff,
-                }) as Record<string, string>;
-
-                if (!this.active_repo) {
-                    return
-                }
-                this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo, job.session_id)
+                return await this.fetchInlineEditResult(payloadForInlineEdit);
             });
         }));
+    }
+
+    public async fetchInlineEditResult(payload: InlineEditPayload, session_id?: number): Promise<any> {
+        const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
+        this.outputChannel.info(`Job_id: ${job.job_id}`);
+        this.outputChannel.info(`Session_id: ${job.session_id}`);
+        let inlineEditResponse;
+        if (job.job_id) {
+            inlineEditResponse = await this.pollInlineDiffResult(job.job_id);
+        }
+        this.outputChannel.info(`*******************inlineEditResponse: ${JSON.stringify(inlineEditResponse, null, 2)}`);
+        if (inlineEditResponse.code_snippets) {
+            const modified_file_path = inlineEditResponse.code_snippets[0].file_path;
+            const raw_diff = inlineEditResponse.code_snippets[0].code;
+            if (!modified_file_path || !raw_diff || !this.active_repo) {
+                return
+            }
+            return await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id)
+        } else if (inlineEditResponse.tool_use_request) {
+            this.outputChannel.info("**************getting tool use request*************")
+            this.outputChannel.info(`*******************tool_use_request: ${JSON.stringify(inlineEditResponse.tool_use_request, null, 2)}`);
+            const payloadForRelevantChunks: RelevantChunksPayload = {
+                focus_chunks: this.focus_chunks,
+                query: payload.query,
+                focus_files: this.focus_files
+            }
+            const relevantChunksData = await this.chatService.processRelevantChunksForInlineEdit(payloadForRelevantChunks);
+            payload.tool_use_response = {
+                tool_name: inlineEditResponse.tool_use_request.content.tool_name,
+                tool_use_id: inlineEditResponse.tool_use_request.content.tool_use_id,
+                response: {RELEVANT_CHUNKS: relevantChunksData.relevantChunks}
+            }
+            return await this.fetchInlineEditResult(payload, job.session_id);
+        }
+    }
+
+    public async handleUdiff(modified_file_path: string, raw_diff: string, active_repo: string, session_id: number) {
+        this.outputChannel.info(`modified_file_path: ${modified_file_path}`)
+        this.outputChannel.info(`raw_diff: ${raw_diff}`)
+        const modifiedFiles = await this.chatService.getModifiedRequest({
+            filepath: modified_file_path,
+            raw_diff: raw_diff,
+        }) as Record<string, string>;
+        this.chatService.handleModifiedFiles(modifiedFiles, active_repo, session_id)
     }
 
     public async pollInlineDiffResult(job_id: number) {
