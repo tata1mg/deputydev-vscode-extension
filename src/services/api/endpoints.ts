@@ -3,7 +3,7 @@ export const API_ENDPOINTS = {
     VERIFY_AUTH_TOKEN: "/end_user/v1/auth/verify-auth-token",
     QUERY_SOLVER: "/production",
     PROFILE_UI: "/end_user/v1/ui_data/profile_ui",
-// QUERY_SOLVER: "/end_user/v2/code-gen/generate-code-local-connection",
+    // QUERY_SOLVER: "/end_user/v2/code-gen/generate-code-local-connection",
     STORE_AUTH_TOKEN: "/v1/auth/store_token",
     LOAD_AUTH_TOKEN: "/v1/auth/load_token",
     DELETE_AUTH_TOKEN: "/v1/auth/delete_token",
