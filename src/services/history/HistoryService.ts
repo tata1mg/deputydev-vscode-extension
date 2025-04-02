@@ -4,6 +4,7 @@ import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
 import { SESSION_TYPE } from "../../constants";
+import { SingletonLogger } from "../../utilities/Singleton-logger";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -12,6 +13,10 @@ const fetchAuthToken = async () => {
 };
 
 export class HistoryService {
+    private logger: ReturnType<typeof SingletonLogger.getInstance>;
+    constructor() {
+        this.logger = SingletonLogger.getInstance();
+    }
     private apiErrorHandler = new ApiErrorHandler();
 
     public async getPastSessions(limit: number, offset: number): Promise<any> {
@@ -30,6 +35,7 @@ export class HistoryService {
             refreshCurrentToken(response.headers);
             return response.data.data;
         } catch (error) {
+            this.logger.error("Error fetching past sessions");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -48,6 +54,7 @@ export class HistoryService {
             refreshCurrentToken(response.headers);
             return response.data.data;
         } catch (error) {
+            this.logger.error("Error fetching past session chats");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -64,6 +71,7 @@ export class HistoryService {
             refreshCurrentToken(response.headers);
             return response.data;
         } catch (error) {
+            this.logger.error("Error deleting session");
             this.apiErrorHandler.handleApiError(error);
         }
     }
@@ -82,6 +90,7 @@ export class HistoryService {
             refreshCurrentToken(response.headers);
             return response.data.data;
         } catch (error) {
+            this.logger.error("Error fetching relevant chat history");
             this.apiErrorHandler.handleApiError(error);
         }
     }
