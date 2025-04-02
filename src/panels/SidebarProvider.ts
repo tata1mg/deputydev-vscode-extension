@@ -326,7 +326,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       let attempts = 0;
       let response: any;
       while (attempts < 3) {
-        const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
 
         if (response.data.status != "Completed") {
