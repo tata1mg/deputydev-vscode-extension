@@ -44,7 +44,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
-  const logger = new Logger(context);
+  const logger = new Logger();
 
 
 
