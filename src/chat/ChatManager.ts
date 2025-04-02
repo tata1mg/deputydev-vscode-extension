@@ -19,6 +19,8 @@ import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from "../constants";
 import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from "../types";
+import { SingletonLogger } from "../utilities/Singleton-logger";
+
 
 
 
@@ -28,7 +30,8 @@ export class ChatManager {
     private historyService = new HistoryService();
     private focusChunksService = new FocusChunksService();
     private authService = new AuthService();
-    private currentAbortController: AbortController | null = null; // ✅ Fix: Add this property
+    private currentAbortController: AbortController | null = null; 
+    private logger: ReturnType<typeof SingletonLogger.getInstance>;
 
 
     onStarted: () => void = () => { };
@@ -36,8 +39,11 @@ export class ChatManager {
     constructor(
         private context: vscode.ExtensionContext,
         private outputChannel: vscode.LogOutputChannel,
-        private diffViewManager: DiffViewManager
-    ) { }
+        private diffViewManager: DiffViewManager,
+
+    ) {
+        this.logger = SingletonLogger.getInstance();
+     }
 
     // Method to set the sidebar provider later
     setSidebarProvider(sidebarProvider: SidebarProvider) {
@@ -55,6 +61,7 @@ export class ChatManager {
     }
 
     stop() {
+        this.logger.info("Stopping deputydev binary service...");
         this.outputChannel.info("Stopping deputydev binary service...");
     }
 
@@ -120,6 +127,7 @@ export class ChatManager {
                 receivedSessionId,
             }
         } catch (error) {
+            this.logger.error(`Error fetching relevant chunks.`);
             this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
             return { relevantChunks: [], receivedSessionId: undefined };
         }
@@ -492,6 +500,8 @@ export class ChatManager {
             }, { headers });
             return response.status === 200 ? response.data : "failed";
         } catch (error) {
+            this.logger.error("Error while applying diff");
+            
             // console.log({
             //     repo_path: repo_path,
             //     file_path_to_diff_map: file_path_to_diff_map,
@@ -520,10 +530,12 @@ export class ChatManager {
                 this.outputChannel.info("Batch chunks search API call successful.");
                 return response.data;
             } else {
+                this.logger.error(`Batch chunks search API failed with status ${response.status}`);
                 this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
                 throw new Error(`Batch chunks search failed with status ${response.status}`);
             }
         } catch (error: any) {
+            this.logger.error(`Error calling batch chunks search API: ${error.message}`);
             this.outputChannel.error(`Error calling batch chunks search API: ${error.message}`, error);
             throw error;
         }
@@ -547,10 +559,12 @@ export class ChatManager {
                 this.outputChannel.info("File path search API call successful.");
                 return response.data;
             } else {
+                this.logger.error(`File path search API failed with status ${response.status}`);
                 this.outputChannel.error(`File path search API failed with status ${response.status}`);
                 throw new Error(`File path search failed with status ${response.status}`);
             }
         } catch (error: any) {
+            this.logger.error(`Error calling file path search API: ${error.message}`);
             this.outputChannel.error(`Error calling file path search API: ${error.message}`, error);
             throw error;
         }
@@ -599,6 +613,7 @@ export class ChatManager {
                 parsedContent = JSON.parse(toolRequest.accumulatedContent);
                 this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsedContent)}`);
             } catch (parseError: any) {
+                this.logger.error(`Failed to parse tool parameters JSON: ${parseError.message}`);
                 throw new Error(`Failed to parse tool parameters JSON: ${parseError.message}`);
             }
 
@@ -673,6 +688,7 @@ export class ChatManager {
 
 
         } catch (error: any) {
+            this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
             this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
             this.onError(error);
             status = "error";
