@@ -303,8 +303,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
-    // console.log time
-    console.log(`🚀 Initiating binary... ${new Date().toLocaleString()}`);
     const payload = {
       config: {
         DEPUTY_DEV: {
@@ -351,14 +349,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
-        console.log(`🚀 completed init... ${new Date().toLocaleString()}`);
 
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
         const params = { repo_path: activeRepo };
         this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
-        console.log(`🚀 sending the vector store... ${new Date().toLocaleString()}`);
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
