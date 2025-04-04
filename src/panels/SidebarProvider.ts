@@ -243,8 +243,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
-
-
+        case "hit-retry-embedding":
+          this.hitRetryEmbedding();
+          break
       }
 
       if (promise) {
@@ -294,7 +295,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // For Binary init
   public async initiateBinary() {
     this.outputChannel.info("🔧 Initiating Binary **********************************");
-    
+
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
 
@@ -327,14 +328,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     //   command: "repo-selector-state",
     //   data: true,
     // });
-    
+
     sendProgress({
-            repo: activeRepo as string,
-            progress: 0,
-            status: "In Progress"
-      })
-      
-      
+      repo: activeRepo as string,
+      progress: 0,
+      status: "In Progress"
+    })
+
+
     try {
       let attempts = 0;
       let response: any;
@@ -367,17 +368,26 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         } catch (error) {
           this.logger.warn("Embedding failed");
           this.outputChannel.warn("Embedding failed");
-
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: "retry-embedding-failed",
-            data: error,
-          });
         }
       }
     } catch (error) {
       this.logger.error("Binary initialization failed");
       this.outputChannel.error("🚨 Binary initialization failed.");
+    }
+  }
+
+  async hitRetryEmbedding() {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) {
+      return
+    }
+    const params = { repo_path: activeRepo, retried_by_user: true };
+    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    try {
+      await updateVectorStoreWithResponse(params);
+    } catch (error) {
+      this.logger.warn("Embedding failed");
+      this.outputChannel.warn("Embedding failed");
     }
   }
 
