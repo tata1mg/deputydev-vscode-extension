@@ -329,10 +329,6 @@ addCommandEventListener("progress-bar", ({ data }) => {
   }
 })
 
-addCommandEventListener("retry-embedding-failed", ({ data }) => {
-  useChatStore.setState({ showEmbeddingFailed: true });
-});
-
 addCommandEventListener("profile-ui-data", ({ data }) => {
   useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] })
 })

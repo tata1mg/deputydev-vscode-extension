@@ -186,3 +186,7 @@ export function getProfileUiData() {
 export function showUserLogs() {
   return callCommand('show-logs', {});
 }
+
+export function sendRetryEmbedding() {
+  return callCommand("hit-retry-embedding", {})
+}

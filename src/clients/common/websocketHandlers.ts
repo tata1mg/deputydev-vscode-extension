@@ -20,6 +20,7 @@ export interface RelevantChunksParams {
 // Updated interface for UpdateVectorStoreParams (includes new backend field)
 export interface UpdateVectorStoreParams {
   repo_path: string;
+  retried_by_user?: boolean;
   chunkable_files?: string[];
 }
 
@@ -113,11 +114,15 @@ export const updateVectorStoreWithResponse = async (
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
-  
+
   // console.log("updateVectorStoreWithResponse with params:", params);
   const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
   let attempts = 0;
+  if (params.retried_by_user) {
+    attempts = 2;
+    logger.info("Retrying embedding by user")
+  }
   while (attempts < 3) {
     try {
       sendProgress({
@@ -136,6 +141,11 @@ export const updateVectorStoreWithResponse = async (
       attempts++;
       // console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
       if (attempts === 3) {
+        sendProgress({
+          repo: params.repo_path,
+          progress: 0,
+          status: "Failed"
+        })
         logger.error("Error updating vector store after 3 attempts");
         throw new Error(`Failed to update vector store after 3 attempts: ${error}`);
       }

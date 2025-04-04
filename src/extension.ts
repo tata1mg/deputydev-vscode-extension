@@ -183,10 +183,10 @@ export async function activate(context: vscode.ExtensionContext) {
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
       sidebarProvider.setViewType("auth");
     });
-    
+
 })();
 
-  
+
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
   // authenticationManager.setSidebarProvider(sidebarProvider);
