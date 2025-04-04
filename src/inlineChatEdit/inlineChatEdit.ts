@@ -6,6 +6,12 @@ import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { Logger } from '../utilities/Logger';
+import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { SESSION_TYPE } from '../constants';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { SearchTerm } from '../types';
+import { AuthService } from '../services/auth/AuthService';
 interface InlineEditPayload {
     query: string;
     relevant_chunks: string[]
@@ -43,6 +49,7 @@ export class InlineChatEditManager {
     private focus_files: string[] | undefined;
     private active_repo: string | undefined;
     private relative_file_path: string | undefined;
+    private authService = new AuthService();
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -83,30 +90,6 @@ export class InlineChatEditManager {
                 return codeActions;
             }
         }));
-
-        // // Listen for selection changes
-        // this.context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
-        //     const editor = event.textEditor;
-        //     const selection = editor.selection;
-
-        //     // Trigger a refresh of CodeLenses
-        //     vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        // }));
-
-        // // Also listen for when the active editor changes
-        // this.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-        //     if (editor) {
-        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        //     }
-        // }));
-
-        // // Listen for document changes to clear CodeLenses when nothing is selected
-        // this.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-        //     const editor = vscode.window.activeTextEditor;
-        //     if (editor && editor.document === event.document) {
-        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        //     }
-        // }));
     }
 
     public async inlineChat() {
@@ -260,6 +243,68 @@ export class InlineChatEditManager {
         }));
     }
 
+    public async runTool(payload: any, sessionId?: number) {
+        this.outputChannel.info(`Running tool: ${payload.tool_name}`);
+        this.outputChannel.info(`Session ID: ${sessionId}`);
+
+        if (!this.active_repo) {
+            this.outputChannel.error("Active repo is not set.");
+            throw new Error("Active repo is not set.");
+        }
+
+        let toolResult: any = null;
+        switch (payload.content.tool_name) {
+            case "related_code_searcher": {
+                try {
+                    const result = await fetchRelevantChunks({
+                        repo_path: this.active_repo,
+                        query: payload.content.tool_input.search_query,
+                        focus_files: [],
+                        focus_directories: [],
+                        focus_chunks: [],
+                        session_id: sessionId,
+                        session_type: SESSION_TYPE,
+                    });
+            
+                    toolResult = {"RELEVANT_CHUNKS": result.relevant_chunks || []};
+                } catch (error) {
+                    toolResult = {
+                        "RELEVANT_CHUNKS": []
+                    };
+                }
+                break;
+            }
+            case "focused_snippets_searcher":{
+                this.outputChannel.info(`Calling batch chunks search API.`);
+                try {
+                    const authToken = await this.authService.loadAuthToken();
+                    const headers = { "Authorization": `Bearer ${authToken}` };
+                    const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+                        repo_path: this.active_repo,
+                        search_terms: payload.content.tool_input.search_terms as SearchTerm[],
+                    }, { headers });
+
+                    if (response.status === 200) {
+                        this.outputChannel.info("Batch chunks search API call successful.");
+                        toolResult = {
+                            batch_chunks_search: response.data
+                        };
+                    } else {
+                        this.logger.error(`Batch chunks search API failed with status ${response.status}`);
+                        this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
+                        throw new Error(`Batch chunks search failed with status ${response.status}`);
+                    }
+                } catch (error: any) {
+                    toolResult = {
+                        batch_chunks_search: []
+                    }
+                }
+            }
+        }
+        this.outputChannel.info(`Tool result: ${JSON.stringify(toolResult, null, 2)}`);
+        return toolResult;
+    }
+
     public async fetchInlineEditResult(payload: InlineEditPayload, session_id?: number): Promise<any> {
         const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
         this.outputChannel.info(`Job_id: ${job.job_id}`);
@@ -275,20 +320,16 @@ export class InlineChatEditManager {
             if (!modified_file_path || !raw_diff || !this.active_repo) {
                 return
             }
-            return await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id)
-        } else if (inlineEditResponse.tool_use_request) {
+            await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id)
+        }
+        if (inlineEditResponse.tool_use_request) {
             this.outputChannel.info("**************getting tool use request*************")
             this.outputChannel.info(`*******************tool_use_request: ${JSON.stringify(inlineEditResponse.tool_use_request, null, 2)}`);
-            const payloadForRelevantChunks: RelevantChunksPayload = {
-                focus_chunks: this.focus_chunks,
-                query: payload.query,
-                focus_files: this.focus_files
-            }
-            const relevantChunksData = await this.chatService.processRelevantChunksForInlineEdit(payloadForRelevantChunks);
+            const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
             payload.tool_use_response = {
                 tool_name: inlineEditResponse.tool_use_request.content.tool_name,
                 tool_use_id: inlineEditResponse.tool_use_request.content.tool_use_id,
-                response: {RELEVANT_CHUNKS: relevantChunksData.relevantChunks}
+                response: toolResult,
             }
             return await this.fetchInlineEditResult(payload, job.session_id);
         }
