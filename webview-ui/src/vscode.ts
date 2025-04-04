@@ -345,6 +345,10 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
   useChatStore.setState({ forceUpgradeData: data as { url: string; upgradeVersion: string } })
   useExtensionStore.setState({ viewType: "force-upgrade" })
 })
+
+addCommandEventListener("send-client-version", ({data}) => {
+  useExtensionStore.setState({clientVersion: data as string});
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

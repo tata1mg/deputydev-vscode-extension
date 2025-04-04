@@ -8,6 +8,8 @@ import { persistStorage } from './lib'; // Ensure this utility is properly imple
 interface ExtensionState {
   isStarted: boolean;
   viewType: ViewType;
+  clientVersion: string;
+  setClientVersion: (clientVersion: string) => void;
   setViewType: (viewType: ViewType) => void;
   initializeViewType: () => void;
 }
@@ -17,6 +19,8 @@ export const useExtensionStore = create<ExtensionState>()(
     (set, get) => ({
       isStarted: false,
       viewType: 'loader',
+      clientVersion: "",
+      setClientVersion: (clientVersion: string) => set({clientVersion}),
       setViewType: (viewType: ViewType) => set({ viewType }),
       initializeViewType: () => {
         const { isAuthenticated } = useAuthStore.getState();

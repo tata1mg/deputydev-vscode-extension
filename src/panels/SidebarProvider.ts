@@ -16,7 +16,7 @@ import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
-import { DD_HOST } from "../config";
+import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
@@ -105,6 +105,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // case 'api-chat-setting':
         //   promise = this.chatService.apiChatSetting(data);
         // break;
+        case "get-client-version":
+          promise = this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'send-client-version',
+            data: CLIENT_VERSION,
+          })
+          break;
         case "keyword-search":
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
