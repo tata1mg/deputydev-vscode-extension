@@ -11,9 +11,9 @@ import { spawn, SpawnOptions } from 'child_process';
 import { MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
 import { Logger } from '../utilities/Logger';
 import * as net from 'node:net';
+import { loaderMessage } from '../utilities/contextManager';
 
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
-let BINARY_PORT: number | null = null;
 export class ServerManager {
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.OutputChannel;
@@ -22,6 +22,8 @@ export class ServerManager {
     private essential_config: any;
     private binaryPath_root: string;
     private binaryPath: string;
+    private currentPort: number | null = null;
+
 
     constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel, logger: Logger , configManager: ConfigManager) {
         this.context = context;
@@ -121,6 +123,7 @@ export class ServerManager {
                     this.outputChannel.appendLine(`Failed to download file. HTTP Status: ${response.statusCode}`);
                     return reject(`HTTP ${response.statusCode}`);
                 }
+                loaderMessage(true);
                 this.logger.info(`Download started`);
                 this.outputChannel.appendLine('Download in progress...');
                 response.pipe(file);
@@ -285,6 +288,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 this.logger.info(`Reusing running local server at port ${existingPort}`);
                 this.outputChannel.appendLine(`🔄 Reusing running server at port ${existingPort}`);
                 setBinaryPort(existingPort);
+                this.currentPort = existingPort; 
                 return true;
             }
         } catch (err) {
@@ -305,6 +309,8 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Start the server */
     public async startServer(): Promise<boolean> {
+        loaderMessage(true);
+        // loaderMessage('Starting server...');
         this.outputChannel.appendLine('Sthe registry file path is ');
         const serviceExecutable = this.getServiceExecutablePath();
         const portRange: number[] | undefined = this.essential_config?.["BINARY"]?.["port_range"];
@@ -338,6 +344,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 return false;
             }
             setBinaryPort(port);
+            this.currentPort = port; 
             this.logger.info(`Starting server on port: ${port}`);
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
             
@@ -417,6 +424,10 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
         return false;
     }
+    public getCurrentPort(): number | null {
+        return this.currentPort;
+    }
+    
 }
 
 
