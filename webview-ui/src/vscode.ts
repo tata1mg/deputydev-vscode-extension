@@ -344,8 +344,7 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
 })
 
 addCommandEventListener("loader-message", ({ data }) => {
-  const loaderMessage = data as string;
-  console.debug("loader-message", loaderMessage);
+  const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
 });
 // addCommandEventListener('current-editor-changed', ({ data }) => {
