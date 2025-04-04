@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "../../services/api/endpoints";
 import { AuthService } from "../../services/auth/AuthService";
 import { getBinaryWsHost } from "../../config";
 import { SingletonLogger } from "../../utilities/Singleton-logger";
+import { sendProgress } from "../../utilities/contextManager";
 // Updated interface for RelevantChunksParams (includes new backend fields)
 
 export interface RelevantChunksParams {
@@ -112,13 +113,18 @@ export const updateVectorStoreWithResponse = async (
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
-
+  
   // console.log("updateVectorStoreWithResponse with params:", params);
   const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
   let attempts = 0;
   while (attempts < 3) {
     try {
+      sendProgress({
+        repo: params.repo_path,
+        progress: 0,
+        status: "In Progress"
+    })
       const result = await client.send({
         ...params,
         sync: true

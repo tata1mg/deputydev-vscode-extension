@@ -77,10 +77,8 @@ export const useChatStore = create(
       lastToolUseResponse: undefined as
         | { tool_use_id: string; tool_name: string }
         | undefined,
-      progressBars: [] as ProgressBarData[],
-      userData: {} as UserData,
+      progressBars: [] as ProgressBarData[], // Todo: move these to separate store(s)
       showEmbeddingFailed: false,
-      profileUiData: [] as ProfileUiDiv[],
       forceUpgradeData: {} as { url: string; upgradeVersion: string },
     },
     (set, get) => {

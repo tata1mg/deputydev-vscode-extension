@@ -60,6 +60,13 @@ export function sendForceUgradeData(data: {url: string, upgradeVersion: string})
     data: data,
   })
 }
+export function loaderMessage(text: string) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "loader-message",
+    data: text,
+  })
+}
 
 
 
@@ -81,8 +88,10 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("view-state-storage", undefined);
   await extensionContext.workspaceState.update("chat-type-storage", undefined);
   await extensionContext.workspaceState.update("chat-storage", undefined);
+  await extensionContext.workspaceState.update("user-profile-store", undefined);
   await extensionContext.workspaceState.update("repo-selector-storage", false);
   await extensionContext.workspaceState.update("sessionId", undefined);
   await extensionContext.workspaceState.update("force-upgrade-storage", undefined);
+  await extensionContext.workspaceState.update("loader-view-state-storage", undefined);
 }
 

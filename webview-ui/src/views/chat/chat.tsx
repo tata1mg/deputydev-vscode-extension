@@ -22,7 +22,6 @@ import {
 } from "@/commandApi";
 
 import Markdown from "react-markdown";
-import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
 import "../../styles/markdown-body.css";
 import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
