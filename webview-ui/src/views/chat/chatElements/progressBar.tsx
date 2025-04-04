@@ -69,7 +69,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progressBars }) => {
                             }}
                         />
                         <div className="w-5/6 text-xs text-black absolute left-2 top-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                            {`Indexing for ${repoName}`}
+                            {`Indexing ${repoName}`}
                         </div>
                         <div className="text-xs text-black absolute right-2 top-1 bottom-1">
                             {`${Math.floor(bar.progress)}%`}
