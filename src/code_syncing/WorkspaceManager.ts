@@ -213,11 +213,6 @@ export class WorkspaceManager {
 
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
-    this.sidebarProvider.sendMessageToSidebar({
-      id: uuidv4(),
-      command: 'repo-selector-state',
-      data: true
-    });
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await updateVectorStoreWithResponse(params).then((response) => {
       // this.sidebarProvider.sendMessageToSidebar({

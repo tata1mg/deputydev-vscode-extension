@@ -3,15 +3,16 @@ import { useChatStore } from "@/stores/chatStore";
 import { useEffect, useState } from "react";
 import { UserRoundPen, BookOpenText, LogOut, Pen, Lightbulb, ChevronDown, ChevronRight, ChevronLeft, Bug } from "lucide-react";
 import useExtensionStore from "@/stores/useExtensionStore";
+import { useUserProfileStore } from "@/stores/useUserProfileStore";
 
 export default function Profile() {
   const extensionState = useExtensionStore();
-  const { userData, profileUiData } = useChatStore();
+  const { userData, profileUiData } = useUserProfileStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchUserData = async () => {
     const userData = await getGlobalState({ key: "userData" });
-    useChatStore.setState({ userData: userData });
+    useUserProfileStore.setState({ userData: userData });
   };
 
   const fetchProfileUidata = async () => {
