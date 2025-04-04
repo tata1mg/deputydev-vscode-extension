@@ -147,6 +147,9 @@ export function initiateLogin() {
   return callCommand('initiate-login', {})
 }
 
+export function fetchClientVersion() {
+  return callCommand("get-client-version", {})
+}
 
 export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand('webview-focus-state', { focused: isFocused });

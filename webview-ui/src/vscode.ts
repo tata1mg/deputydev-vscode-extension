@@ -347,6 +347,10 @@ addCommandEventListener("loader-message", ({ data }) => {
   const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
 });
+
+addCommandEventListener("send-client-version", ({data}) => {
+  useExtensionStore.setState({clientVersion: data as string});
+})
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });
