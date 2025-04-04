@@ -224,11 +224,6 @@ export class WorkspaceManager {
     }
     ).catch((error) => {
       this.outputChannel.info("Embedding failed 3 times...")
-      this.sidebarProvider.sendMessageToSidebar({
-        id: uuidv4(),
-        command: "retry-embedding-failed",
-        data: error,
-      })
     });
   }
 
