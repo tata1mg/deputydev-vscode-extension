@@ -69,7 +69,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   // await serverManager.ensureBinaryExists();
   // await serverManager.startServer();
-  outputChannel.info("this binary host now is " + getBinaryHost());
 
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(
@@ -156,6 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // sidebarProvider.setViewType("loader");
   await serverManager.ensureBinaryExists();
   await serverManager.startServer();
+  outputChannel.info("this binary host now is " + getBinaryHost());
   pinger.start();
 
 

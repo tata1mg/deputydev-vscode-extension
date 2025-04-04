@@ -123,7 +123,7 @@ export class ServerManager {
                     this.outputChannel.appendLine(`Failed to download file. HTTP Status: ${response.statusCode}`);
                     return reject(`HTTP ${response.statusCode}`);
                 }
-                loaderMessage('Downloading local server...');
+                loaderMessage(true);
                 this.logger.info(`Download started`);
                 this.outputChannel.appendLine('Download in progress...');
                 response.pipe(file);
@@ -309,7 +309,8 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Start the server */
     public async startServer(): Promise<boolean> {
-        loaderMessage('Starting server...');
+        loaderMessage(true);
+        // loaderMessage('Starting server...');
         this.outputChannel.appendLine('Sthe registry file path is ');
         const serviceExecutable = this.getServiceExecutablePath();
         const portRange: number[] | undefined = this.essential_config?.["BINARY"]?.["port_range"];

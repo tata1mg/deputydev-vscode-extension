@@ -60,11 +60,11 @@ export function sendForceUgradeData(data: {url: string, upgradeVersion: string})
     data: data,
   })
 }
-export function loaderMessage(text: string) {
+export function loaderMessage(showMsg: boolean) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: "loader-message",
-    data: text,
+    data: showMsg,
   })
 }
 

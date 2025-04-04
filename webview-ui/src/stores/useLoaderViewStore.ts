@@ -4,14 +4,14 @@ import { persist } from 'zustand/middleware';
 import { persistStorage } from './lib';
 
 type LoaderViewStore = {
-  loaderViewState: string;
-  setLoaderViewState: (state: string) => void;
+  loaderViewState: boolean;
+  setLoaderViewState: (state: boolean) => void;
 };
 
 export const useLoaderViewStore = create<LoaderViewStore>()(
   persist(
     (set) => ({
-        loaderViewState: 'Initializing DeputyDev',
+        loaderViewState: false,
         setLoaderViewState: (state) => set({ loaderViewState: state }),
     }),
     {
