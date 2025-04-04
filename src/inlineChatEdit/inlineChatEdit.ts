@@ -317,10 +317,14 @@ export class InlineChatEditManager {
         if (inlineEditResponse.code_snippets) {
             const modified_file_path = inlineEditResponse.code_snippets[0].file_path;
             const raw_diff = inlineEditResponse.code_snippets[0].code;
+            this.outputChannel.info(`modified_file_path: ${modified_file_path}`);
+            this.outputChannel.info(`raw_diff: ${raw_diff}`);
+            this.outputChannel.info(`active_repo: ${this.active_repo}`);
             if (!modified_file_path || !raw_diff || !this.active_repo) {
-                return
+                this.outputChannel.error("Modified file path, raw diff, or active repo is not set.");
+                return;
             }
-            await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id)
+            await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id);
         }
         if (inlineEditResponse.tool_use_request) {
             this.outputChannel.info("**************getting tool use request*************")
@@ -331,7 +335,7 @@ export class InlineChatEditManager {
                 tool_use_id: inlineEditResponse.tool_use_request.content.tool_use_id,
                 response: toolResult,
             }
-            return await this.fetchInlineEditResult(payload, job.session_id);
+            await this.fetchInlineEditResult(payload, job.session_id);
         }
     }
 
