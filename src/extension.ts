@@ -67,9 +67,8 @@ export async function activate(context: vscode.ExtensionContext) {
     logger,
     configManager
   );
-  await serverManager.ensureBinaryExists();
-  await serverManager.startServer();
-  outputChannel.info("this binary host now is " + getBinaryHost());
+  // await serverManager.ensureBinaryExists();
+  // await serverManager.startServer();
 
   // 1) Authentication Flow
   const authenticationManager = new AuthenticationManager(
@@ -77,30 +76,6 @@ export async function activate(context: vscode.ExtensionContext) {
     configManager,
     logger
   );
-  authenticationManager
-    .validateCurrentSession()
-    .then((status) => {
-      outputChannel.info(`Authentication result: ${status}`);
-      if (status) {
-        configManager.fetchAndStoreConfig();
-        logger.info("User is authenticated.");
-        outputChannel.info("User is authenticated.");
-        sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
-        sidebarProvider.setViewType("chat");
-        sidebarProvider.initiateBinary();
-      } else {
-        logger.info("User is not authenticated.");
-        outputChannel.info("User is not authenticated.");
-        sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-        sidebarProvider.setViewType("auth");
-      }
-    })
-    .catch((error) => {
-      logger.error(`Authentication failed, Please try again`);
-      outputChannel.error(`Authentication failed: ${error}`);
-      sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-      sidebarProvider.setViewType("auth");
-    });
 
   //  2) Choose & Initialize a Diff View Manager
   const inlineDiffEnable = vscode.workspace
@@ -165,6 +140,9 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  sidebarProvider.setViewType("loader");
+
+
   const pinger = new BackgroundPinger(
     sidebarProvider,
     serverManager,
@@ -172,8 +150,43 @@ export async function activate(context: vscode.ExtensionContext) {
     logger,
     configManager
   );
+
+(async () => {
+  // sidebarProvider.setViewType("loader");
+  await serverManager.ensureBinaryExists();
+  await serverManager.startServer();
+  outputChannel.info("this binary host now is " + getBinaryHost());
   pinger.start();
 
+
+  authenticationManager
+    .validateCurrentSession()
+    .then((status) => {
+      outputChannel.info(`Authentication result: ${status}`);
+      if (status) {
+        configManager.fetchAndStoreConfig();
+        sidebarProvider.initiateBinary();
+        logger.info("User is authenticated.");
+        outputChannel.info("User is authenticated.");
+        sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
+        sidebarProvider.setViewType("chat");
+      } else {
+        logger.info("User is not authenticated.");
+        outputChannel.info("User is not authenticated.");
+        sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
+        sidebarProvider.setViewType("auth");
+      }
+    })
+    .catch((error) => {
+      logger.error(`Authentication failed, Please try again`);
+      outputChannel.error(`Authentication failed: ${error}`);
+      sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
+      sidebarProvider.setViewType("auth");
+    });
+    
+})();
+
+  
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
   // authenticationManager.setSidebarProvider(sidebarProvider);

@@ -9,7 +9,7 @@ import { WorkspaceManager } from "../code_syncing/WorkspaceManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
-import { deleteSessionId, getActiveRepo, setSessionId } from "../utilities/contextManager";
+import { deleteSessionId, getActiveRepo, sendProgress, setSessionId } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 import { binaryApi } from "../services/api/axios";
@@ -294,7 +294,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // For Binary init
   public async initiateBinary() {
     this.outputChannel.info("🔧 Initiating Binary **********************************");
-
+    
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
 
@@ -310,7 +310,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
-
     const payload = {
       config: {
         DEPUTY_DEV: {
@@ -323,12 +322,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       Authorization: `Bearer ${authToken}`,
     };
 
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: "repo-selector-state",
-      data: true,
-    });
-
+    // this.sendMessageToSidebar({
+    //   id: uuidv4(),
+    //   command: "repo-selector-state",
+    //   data: true,
+    // });
+    
+    sendProgress({
+            repo: activeRepo as string,
+            progress: 0,
+            status: "In Progress"
+      })
+      
+      
     try {
       let attempts = 0;
       let response: any;
@@ -350,12 +356,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
+
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
         const params = { repo_path: activeRepo };
         this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
-
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {

@@ -8,6 +8,8 @@ import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv, ProgressBarData } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
+import { useLoaderViewStore } from "./stores/useLoaderViewStore";
+import { useUserProfileStore } from "./stores/useUserProfileStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -214,10 +216,6 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
 
 
 
-addCommandEventListener("repo-selector-state", ({ data }) => {
-  useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
-});
-
 addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
@@ -332,12 +330,11 @@ addCommandEventListener("progress-bar", ({ data }) => {
 })
 
 addCommandEventListener("retry-embedding-failed", ({ data }) => {
-  // console.error("Retry embedding failed:", data);
   useChatStore.setState({ showEmbeddingFailed: true });
 });
 
 addCommandEventListener("profile-ui-data", ({ data }) => {
-  useChatStore.setState({ profileUiData: data as ProfileUiDiv[] })
+  useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] })
 })
 
 addCommandEventListener("force-upgrade-data", ({ data }) => {
@@ -345,6 +342,11 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
   useChatStore.setState({ forceUpgradeData: data as { url: string; upgradeVersion: string } })
   useExtensionStore.setState({ viewType: "force-upgrade" })
 })
+
+addCommandEventListener("loader-message", ({ data }) => {
+  const loaderMessage = data as boolean;
+  useLoaderViewStore.setState({ loaderViewState: loaderMessage });
+});
 
 addCommandEventListener("send-client-version", ({data}) => {
   useExtensionStore.setState({clientVersion: data as string});
