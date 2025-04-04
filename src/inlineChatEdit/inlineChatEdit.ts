@@ -220,7 +220,6 @@ export class InlineChatEditManager {
 
         // Register the command for AI editing
         this.context.subscriptions.push(vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
-            this.outputChannel.info(`USER QUERY: ${reply.text}`);
             this.outputChannel.info("Now inside edit feature.....")
             this.active_repo = getActiveRepo();
             const payloadForInlineEdit: InlineEditPayload = {
@@ -237,14 +236,13 @@ export class InlineChatEditManager {
                 title: "Editing...",
                 cancellable: true
             }, async () => {
-                this.outputChannel.info("Inside function")
                 return await this.fetchInlineEditResult(payloadForInlineEdit);
             });
         }));
     }
 
     public async runTool(payload: any, sessionId?: number) {
-        this.outputChannel.info(`Running tool: ${payload.tool_name}`);
+        this.outputChannel.info(`Running tool: ${payload.content.tool_name}`);
         this.outputChannel.info(`Session ID: ${sessionId}`);
 
         if (!this.active_repo) {
@@ -265,7 +263,7 @@ export class InlineChatEditManager {
                         session_id: sessionId,
                         session_type: SESSION_TYPE,
                     });
-            
+
                     toolResult = {"RELEVANT_CHUNKS": result.relevant_chunks || []};
                 } catch (error) {
                     toolResult = {
@@ -307,21 +305,14 @@ export class InlineChatEditManager {
 
     public async fetchInlineEditResult(payload: InlineEditPayload, session_id?: number): Promise<any> {
         const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
-        this.outputChannel.info(`Job_id: ${job.job_id}`);
-        this.outputChannel.info(`Session_id: ${job.session_id}`);
         let inlineEditResponse;
         if (job.job_id) {
             inlineEditResponse = await this.pollInlineDiffResult(job.job_id);
         }
-        this.outputChannel.info(`*******************inlineEditResponse: ${JSON.stringify(inlineEditResponse, null, 2)}`);
         if (inlineEditResponse.code_snippets) {
             for (const codeSnippet of inlineEditResponse.code_snippets) {
-                this.outputChannel.info(`Code Snippet: ${JSON.stringify(codeSnippet, null, 2)}`);
                 const modified_file_path = codeSnippet.file_path;
                 const raw_diff = codeSnippet.code;
-                this.outputChannel.info(`modified_file_path: ${modified_file_path}`);
-                this.outputChannel.info(`raw_diff: ${raw_diff}`);
-                this.outputChannel.info(`active_repo: ${this.active_repo}`);
                 if (!modified_file_path || !raw_diff || !this.active_repo) {
                     this.outputChannel.error("Modified file path, raw diff, or active repo is not set.");
                     return;
@@ -331,7 +322,6 @@ export class InlineChatEditManager {
         }
         if (inlineEditResponse.tool_use_request) {
             this.outputChannel.info("**************getting tool use request*************")
-            this.outputChannel.info(`*******************tool_use_request: ${JSON.stringify(inlineEditResponse.tool_use_request, null, 2)}`);
             const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
             payload.tool_use_response = {
                 tool_name: inlineEditResponse.tool_use_request.content.tool_name,
@@ -343,8 +333,6 @@ export class InlineChatEditManager {
     }
 
     public async handleUdiff(modified_file_path: string, raw_diff: string, active_repo: string, session_id: number) {
-        this.outputChannel.info(`modified_file_path: ${modified_file_path}`)
-        this.outputChannel.info(`raw_diff: ${raw_diff}`)
         const modifiedFiles = await this.chatService.getModifiedRequest({
             filepath: modified_file_path,
             raw_diff: raw_diff,
