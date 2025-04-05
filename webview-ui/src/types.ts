@@ -156,6 +156,7 @@ export interface Session {
   id: number;
   summary: string;
   age: string;
+  updated_at: string;
 }
 
 export interface SessionChatContent {
