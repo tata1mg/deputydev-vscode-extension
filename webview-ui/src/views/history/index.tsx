@@ -268,6 +268,11 @@ export default function History() {
         .getState()
         .sessions.filter((session) => session.id !== sessionId),
     });
+    useSessionsStore.setState({
+      pinnedSessions: useSessionsStore
+        .getState()
+        .pinnedSessions.filter((session) => session.id !== sessionId),
+    });
     await deleteSession(sessionId);
   };
 
@@ -281,7 +286,9 @@ export default function History() {
   };
 
   useEffect(() => {
-    fetchSessions(1);
+    if (sessions.length === 0) {
+      fetchSessions(1);
+    }
   }, []);
 
   const sensors = useSensors(useSensor(PointerSensor));
