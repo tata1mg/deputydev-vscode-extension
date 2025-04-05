@@ -7,22 +7,15 @@ import {
   useChatStore,
   initialAutocompleteOptions,
 } from "../../stores/chatStore";
-import { Trash2, Check } from "lucide-react";
+import { Check } from "lucide-react";
 // import Markdown from 'react-markdown';
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-import {
-  deleteSession,
-  getSessionChats,
-  getSessions,
-  logToOutput,
-} from "@/commandApi";
+import { logToOutput } from "@/commandApi";
 
-import Markdown from "react-markdown";
-import { useRepoSelectorStore } from "@/stores/repoSelectorStore";
 import "../../styles/markdown-body.css";
 import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";
@@ -32,7 +25,6 @@ import { ChatUserMessage } from "@/types";
 import ProgressBar from "./chatElements/progressBar";
 import { keywordSearch, keywordTypeSearch } from "@/commandApi";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { useSessionsStore } from "@/stores/sessionsStore";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -45,16 +37,15 @@ export function ChatUI() {
     showSessionsBox,
     showAllSessions,
     ChatAutocompleteOptions,
-    progressBars
+    progressBars,
   } = useChatStore();
-  const { sessions, sessionsPerPage, setCurrentSessionsPage, currentSessionsPage } = useSessionsStore();
   const { chatType, setChatType } = useChatSettingStore();
   const visibleSessions = 3;
   const { activeRepo } = useWorkspaceStore();
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
-    const activeProgress = progressBars.find(bar => bar.repo === activeRepo);
+    const activeProgress = progressBars.find((bar) => bar.repo === activeRepo);
     return activeProgress?.status !== "Completed";
   }, [activeRepo, progressBars]);
 
@@ -64,7 +55,6 @@ export function ChatUI() {
   const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [sessionsLoading, setSessionsLoading] = useState(false);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showDefaultContent, setShowDefaultContent] = useState(false);
   const backspaceCountRef = useRef(0);
@@ -103,9 +93,6 @@ export function ChatUI() {
   }, []);
 
   // Function to handle showing all sessions
-  const handleShowMore = () => {
-    useChatStore.setState({ showAllSessions: true });
-  };
 
   // Auto-resize the textarea.
   const autoResize = () => {
@@ -135,37 +122,8 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
+      await sendChatMessage(message, editorReferences, () => {});
     } finally {
-    }
-  };
-
-  const handleDeleteSession = async (sessionId: number) => {
-    useSessionsStore.setState({
-      sessions: useSessionsStore
-        .getState()
-        .sessions.filter((session) => session.id !== sessionId),
-    });
-    await deleteSession(sessionId);
-  };
-
-  const fetchSessions = async (pageNumber: number) => {
-    setSessionsLoading(true);
-    const limit = sessionsPerPage;
-    const offset = (pageNumber - 1) * sessionsPerPage;
-    getSessions(limit, offset);
-    setSessionsLoading(false);
-  };
-  useEffect(() => {
-    fetchSessions(1);
-  }, []);
-
-  // Scroll handler for past sessions
-  const handleSessionsScroll = (event: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
-    if ((scrollTop + clientHeight) > (scrollHeight - 5) && !sessionsLoading) {
-      setCurrentSessionsPage((prev) => prev + 1);
-      fetchSessions(currentSessionsPage + 1);
     }
   };
 
@@ -184,42 +142,6 @@ export function ChatUI() {
     }
   }, [messages]);
 
-  const handleGetSessionChats = async (sessionId: number) => {
-    getSessionChats(sessionId);
-  };
-
-  // const handleTextAreaKeyDown = (
-  //   e: React.KeyboardEvent<HTMLTextAreaElement>,
-  // ) => {
-  //   if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
-  //     e.preventDefault();
-  //     if (!isLoading) {
-  //       handleSend();
-  //     }
-  //   }
-  //   if (e.key === "Backspace" && userInput.endsWith("@")) {
-  //     setShowAutocomplete(false);
-  //     setChipEditMode(false);
-  //     setUserInput(userInput.slice(0,-1));
-  //   }
-  //   if (e.key === "Backspace" && userInput === "") {
-  //     backspaceCountRef.current += 1;
-  //     if (backspaceCountRef.current === 2) {
-  //       const allChips = [...useChatStore.getState().currentEditorReference];
-  //       if (allChips.length) {
-  //         allChips.pop();
-  //         useChatStore.setState({ currentEditorReference: allChips });
-  //         setTimeout(() => {
-  //           const textarea = textareaRef.current;
-  //           if (textarea) {
-  //             textarea.focus();
-  //           }
-  //         }, 10);
-  //       }
-  //     }
-  //     setTimeout(() => (backspaceCountRef.current = 0), 300);
-  //   }
-  // };
   const handleTextAreaKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
@@ -411,95 +333,19 @@ export function ChatUI() {
                   Develop with DeputyDev
                 </h1>
               </div>
-              {sessions.length > 0 ? (
-                <div>
-                  <h3 className="mb-1 px-4 text-lg font-bold">
-                    Past Conversations
-                  </h3>
-                  <div
-                    className={`session-box ${showAllSessions ? "h-[200px]" : "h-[128px]"} overflow-y-auto px-4`}
-                    onScroll={handleSessionsScroll}
-                  >
-                    {!showAllSessions ? (
-                      <div>
-                        {sessions.slice(0, visibleSessions).map((session) => (
-                          <div className="flex gap-2" key={session.id}>
-                            <div
-                              onClick={() => handleGetSessionChats(session.id)}
-                              className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border border-gray-500/10 bg-gray-500/20 p-1 opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
-                            >
-                              <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
-                                {session.summary}
-                              </div>
-                              <span className="mt-1 text-xs">
-                                {session.age}
-                              </span>
-                            </div>
-                            <Trash2
-                              className="m-1 transform text-xs opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                              onClick={(e) => {
-                                handleDeleteSession(session.id);
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div>
-                        {sessions
-                          .slice(0, currentSessionsPage * sessionsPerPage)
-                          .map((session) => (
-                            <div className="flex gap-2" key={session.id}>
-                              <div
-                                onClick={() =>
-                                  handleGetSessionChats(session.id)
-                                }
-                                className="session-title relative mb-3 flex w-[85%] transform justify-between gap-1 rounded border-[1px] border-gray-500/10 bg-gray-500/20 p-1 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100"
-                              >
-                                <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
-                                  {session.summary}
-                                </div>
-                                <span className="mt-1 text-xs">
-                                  {session.age}
-                                </span>
-                              </div>
-                              <div className="flex-shrink-0">
-                                <Trash2
-                                  className="m-1 transform text-xs opacity-50 transition-transform hover:cursor-pointer hover:opacity-70"
-                                  onClick={(e) => {
-                                    handleDeleteSession(session.id);
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                    {sessionsLoading && <div>Loading...</div>}
-                  </div>
-                  {!sessionsLoading &&
-                    !showAllSessions &&
-                    sessions.length > visibleSessions && (
-                      <button onClick={() => handleShowMore()} className="px-4">
-                        Show More...
-                      </button>
-                    )}
-                </div>
-              ) : (
-                showDefaultContent && (
-                  <div className="h-[128px] px-4 fade-in">
-                    <div className="flex items-center gap-2">
-                      <p className="mb-2 text-lg text-gray-400">
-                        You are ready to go.
-                      </p>
-                      <Check className="mb-1 animate-pulse text-sm text-green-500" />
-                    </div>
-                    <p className="text-md">
-                      Ask questions about your repository or instantly generate
-                      code, tests, and documentation
+              {showDefaultContent && (
+                <div className="h-[128px] px-4 fade-in">
+                  <div className="flex items-center gap-2">
+                    <p className="mb-2 text-lg text-gray-400">
+                      You are ready to go.
                     </p>
+                    <Check className="mb-1 animate-pulse text-sm text-green-500" />
                   </div>
-                )
+                  <p className="text-md">
+                    Ask questions about your repository or instantly generate
+                    code, tests, and documentation
+                  </p>
+                </div>
               )}
             </div>
             <div className="p-4">
@@ -547,14 +393,14 @@ export function ChatUI() {
             ))}
           </div> */}
 
-
-
           {activeRepo ? (
             <div className="mb-[2px] w-full">
               <ProgressBar progressBars={progressBars} />
             </div>
           ) : (
-            <div className="text-sm w-full text-center mb-[4px]">To proceed, please import a project into your workspace!</div>
+            <div className="mb-[4px] w-full text-center text-sm">
+              To proceed, please import a project into your workspace!
+            </div>
           )}
 
           {/* The textarea remains enabled even when a response is pending */}
@@ -571,7 +417,7 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
+                      useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
@@ -590,11 +436,12 @@ export function ChatUI() {
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
                 disabled={repoSelectorEmbedding}
-                {...(repoSelectorEmbedding && activeRepo && {
-                  "data-tooltip-id": "repo-tooltip",
-                  "data-tooltip-content":
-                    "Please wait, DeputyDev is initializing.",
-                })}
+                {...(repoSelectorEmbedding &&
+                  activeRepo && {
+                    "data-tooltip-id": "repo-tooltip",
+                    "data-tooltip-content":
+                      "Please wait, DeputyDev is initializing.",
+                  })}
                 autoFocus
               />
             </div>
