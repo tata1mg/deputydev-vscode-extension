@@ -49,6 +49,7 @@ export interface ChatPayload {
     };
     previous_query_ids?: number[];
     focus_items?: Array<any>;
+    deputy_dev_rules?: string;
 }
 
 export interface SearchTerm {

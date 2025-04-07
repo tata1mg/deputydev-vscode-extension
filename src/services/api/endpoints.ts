@@ -25,4 +25,5 @@ export const API_ENDPOINTS = {
     FILE_PATH_SEARCH: "/v1/get-files-in-dir",
     PING : "/ping",
     SHUTDOWN : "/v1/shutdown",
+    ITERATIVELY_READ_FILE: "/v1/iteratively-read-file",
 }
