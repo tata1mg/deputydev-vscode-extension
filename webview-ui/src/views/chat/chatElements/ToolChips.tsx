@@ -264,11 +264,13 @@ export function FileEditedChip({
 
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
+      {/* Top row: filename area on the left, lines added/removed on the right */}
       <div
         className="flex w-full items-center justify-between gap-2"
         title="File Edited"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        {/* Left side: expand only as needed */}
+        <div className="flex items-center gap-2">
           {past_session && (
             <button
               className="text-xs text-gray-300 hover:text-white transition"
@@ -285,9 +287,9 @@ export function FileEditedChip({
           <StatusIcon status={status} />
           <span className={statusColor}>{statusText}</span>
           {filepath && (
-            <div className="min-w-0 flex-1">
+            <div>
               <button
-                className="w-full overflow-hidden truncate text-ellipsis rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
+                className="overflow-hidden truncate text-ellipsis rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
                 onClick={() => openFile(filepath)}
                 data-tooltip-id="filepath-tooltip"
                 data-tooltip-content={filepath}
@@ -299,6 +301,7 @@ export function FileEditedChip({
           )}
         </div>
 
+        {/* Right side: lines added/removed */}
         {status !== "error" && (
           <div className="flex items-center gap-2 text-xs">
             {added_lines != null && added_lines > 0 && (

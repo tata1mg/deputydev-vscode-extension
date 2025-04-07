@@ -16,6 +16,7 @@ import RepoSelector from "./chatElements/RepoSelector";
 // import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
 import { logToOutput } from "@/commandApi";
 
+import Markdown from "react-markdown";
 import "../../styles/markdown-body.css";
 import { AutocompleteOption, ChatReferenceItem } from "@/types";
 import ReferenceChip from "./referencechip";

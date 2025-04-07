@@ -1,6 +1,8 @@
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { ProgressBarData } from '@/types';
 import React, { useEffect, useRef, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
+import { sendRetryEmbedding } from '@/commandApi';
 
 interface ProgressBarProps {
     progressBars: ProgressBarData[];
@@ -54,8 +56,11 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progressBars }) => {
                 );
             case "Failed":
                 return (
-                    <div className="bg-gray-200 rounded h-7 p-1 w-full flex justify-center">
-                        <div className="text-red-600 overflow-hidden text-ellipsis whitespace-nowrap">Indexing failed for {repoName}</div>
+                    <div className="bg-gray-200 rounded h-7 p-1 w-full flex justify-between items-center">
+                        <div className="text-red-600 overflow-hidden text-ellipsis whitespace-nowrap">
+                            Indexing failed for {repoName}
+                        </div>
+                        <RotateCcw className="text-red-600 cursor-pointer p-1" onClick={sendRetryEmbedding} />
                     </div>
                 );
             case "In Progress":
@@ -69,7 +74,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ progressBars }) => {
                             }}
                         />
                         <div className="w-5/6 text-xs text-black absolute left-2 top-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                            {`Indexing for ${repoName}`}
+                            {`Indexing ${repoName}`}
                         </div>
                         <div className="text-xs text-black absolute right-2 top-1 bottom-1">
                             {`${Math.floor(bar.progress)}%`}

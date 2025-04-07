@@ -6,6 +6,12 @@ import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { Logger } from '../utilities/Logger';
+import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { SESSION_TYPE } from '../constants';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { SearchTerm } from '../types';
+import { AuthService } from '../services/auth/AuthService';
 interface InlineEditPayload {
     query: string;
     relevant_chunks: string[]
@@ -13,6 +19,13 @@ interface InlineEditPayload {
         selected_text?: string
         file_path?: string
     };
+    tool_use_response?: {
+        tool_name: string;
+        tool_use_id: string;
+        response: {
+            RELEVANT_CHUNKS: string[];
+        }
+    }
 }
 
 interface RelevantChunksPayload {
@@ -36,6 +49,7 @@ export class InlineChatEditManager {
     private focus_files: string[] | undefined;
     private active_repo: string | undefined;
     private relative_file_path: string | undefined;
+    private authService = new AuthService();
     constructor(
         context: vscode.ExtensionContext,
         outputChannel: vscode.LogOutputChannel,
@@ -76,30 +90,6 @@ export class InlineChatEditManager {
                 return codeActions;
             }
         }));
-
-        // // Listen for selection changes
-        // this.context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(event => {
-        //     const editor = event.textEditor;
-        //     const selection = editor.selection;
-
-        //     // Trigger a refresh of CodeLenses
-        //     vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        // }));
-
-        // // Also listen for when the active editor changes
-        // this.context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
-        //     if (editor) {
-        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        //     }
-        // }));
-
-        // // Listen for document changes to clear CodeLenses when nothing is selected
-        // this.context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => {
-        //     const editor = vscode.window.activeTextEditor;
-        //     if (editor && editor.document === event.document) {
-        //         vscode.commands.executeCommand('vscode.executeCodeLensProvider', editor.document.uri);
-        //     }
-        // }));
     }
 
     public async inlineChat() {
@@ -141,7 +131,7 @@ export class InlineChatEditManager {
                     file_path: this.relative_file_path,
                     start_line: start_line + 1,
                     end_line: end_line + 1,
-                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line+1}_${end_line+1}`
+                    chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line + 1}_${end_line + 1}`
                 }
             }
 
@@ -230,14 +220,8 @@ export class InlineChatEditManager {
 
         // Register the command for AI editing
         this.context.subscriptions.push(vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
-            this.outputChannel.info(`USER QUERY: ${reply.text}`);
             this.outputChannel.info("Now inside edit feature.....")
             this.active_repo = getActiveRepo();
-            const payloadForRelevantChunks: RelevantChunksPayload = {
-                focus_chunks: this.focus_chunks,
-                query: reply.text,
-                focus_files: this.focus_files
-            }
             const payloadForInlineEdit: InlineEditPayload = {
                 query: reply.text,
                 relevant_chunks: [],
@@ -252,41 +236,108 @@ export class InlineChatEditManager {
                 title: "Editing...",
                 cancellable: true
             }, async () => {
-                this.outputChannel.info("Inside function")
-                const relevantChunksData = await this.chatService.processRelevantChunksForInlineEdit(payloadForRelevantChunks)
-                payloadForInlineEdit.relevant_chunks = relevantChunksData.relevantChunks;
-                const job = await this.inlineEditService.generateInlineEdit(payloadForInlineEdit, relevantChunksData.receivedSessionId);
-                this.outputChannel.info(`Job_id: ${job.job_id}`)
-
-                let uDiff;
-                if (job.job_id) {
-                    uDiff = await this.pollInlineDiffResult(job.job_id);
-                }
-
-                this.outputChannel.info(`UDIFF: ${JSON.stringify(uDiff, null, 2)}`);
-
-                this.outputChannel.info(`Active Repo: ${this.active_repo}`)
-
-                const modified_file_path = uDiff.code_snippets[0].file_path
-                const raw_diff = uDiff.code_snippets[0].code
-
-                this.outputChannel.info(`File_path: ${modified_file_path}`)
-                this.outputChannel.info(`raw_diff: ${raw_diff}`)
-
-                if (!modified_file_path) {
-                    return
-                }
-                const modifiedFiles = await this.chatService.getModifiedRequest({
-                    filepath: modified_file_path,
-                    raw_diff: raw_diff,
-                }) as Record<string, string>;
-
-                if (!this.active_repo) {
-                    return
-                }
-                this.chatService.handleModifiedFiles(modifiedFiles, this.active_repo, job.session_id)
+                return await this.fetchInlineEditResult(payloadForInlineEdit);
             });
         }));
+    }
+
+    public async runTool(payload: any, sessionId?: number) {
+        this.outputChannel.info(`Running tool: ${payload.content.tool_name}`);
+        this.outputChannel.info(`Session ID: ${sessionId}`);
+
+        if (!this.active_repo) {
+            this.outputChannel.error("Active repo is not set.");
+            throw new Error("Active repo is not set.");
+        }
+
+        let toolResult: any = null;
+        switch (payload.content.tool_name) {
+            case "related_code_searcher": {
+                try {
+                    const result = await fetchRelevantChunks({
+                        repo_path: this.active_repo,
+                        query: payload.content.tool_input.search_query,
+                        focus_files: [],
+                        focus_directories: [],
+                        focus_chunks: [],
+                        session_id: sessionId,
+                        session_type: SESSION_TYPE,
+                    });
+
+                    toolResult = {"RELEVANT_CHUNKS": result.relevant_chunks || []};
+                } catch (error) {
+                    toolResult = {
+                        "RELEVANT_CHUNKS": []
+                    };
+                }
+                break;
+            }
+            case "focused_snippets_searcher":{
+                this.outputChannel.info(`Calling batch chunks search API.`);
+                try {
+                    const authToken = await this.authService.loadAuthToken();
+                    const headers = { "Authorization": `Bearer ${authToken}` };
+                    const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+                        repo_path: this.active_repo,
+                        search_terms: payload.content.tool_input.search_terms as SearchTerm[],
+                    }, { headers });
+
+                    if (response.status === 200) {
+                        this.outputChannel.info("Batch chunks search API call successful.");
+                        toolResult = {
+                            batch_chunks_search: response.data
+                        };
+                    } else {
+                        this.logger.error(`Batch chunks search API failed with status ${response.status}`);
+                        this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
+                        throw new Error(`Batch chunks search failed with status ${response.status}`);
+                    }
+                } catch (error: any) {
+                    toolResult = {
+                        batch_chunks_search: []
+                    }
+                }
+            }
+        }
+        this.outputChannel.info(`Tool result: ${JSON.stringify(toolResult, null, 2)}`);
+        return toolResult;
+    }
+
+    public async fetchInlineEditResult(payload: InlineEditPayload, session_id?: number): Promise<any> {
+        const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
+        let inlineEditResponse;
+        if (job.job_id) {
+            inlineEditResponse = await this.pollInlineDiffResult(job.job_id);
+        }
+        if (inlineEditResponse.code_snippets) {
+            for (const codeSnippet of inlineEditResponse.code_snippets) {
+                const modified_file_path = codeSnippet.file_path;
+                const raw_diff = codeSnippet.code;
+                if (!modified_file_path || !raw_diff || !this.active_repo) {
+                    this.outputChannel.error("Modified file path, raw diff, or active repo is not set.");
+                    return;
+                }
+                await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id);
+            }
+        }
+        if (inlineEditResponse.tool_use_request) {
+            this.outputChannel.info("**************getting tool use request*************")
+            const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
+            payload.tool_use_response = {
+                tool_name: inlineEditResponse.tool_use_request.content.tool_name,
+                tool_use_id: inlineEditResponse.tool_use_request.content.tool_use_id,
+                response: toolResult,
+            }
+            await this.fetchInlineEditResult(payload, job.session_id);
+        }
+    }
+
+    public async handleUdiff(modified_file_path: string, raw_diff: string, active_repo: string, session_id: number) {
+        const modifiedFiles = await this.chatService.getModifiedRequest({
+            filepath: modified_file_path,
+            raw_diff: raw_diff,
+        }) as Record<string, string>;
+        this.chatService.handleModifiedFiles(modifiedFiles, active_repo, session_id)
     }
 
     public async pollInlineDiffResult(job_id: number) {

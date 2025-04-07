@@ -3,23 +3,23 @@ import * as path from 'path';
 import * as os from 'os';
 import * as vscode from 'vscode';
 
-export class Logger {
+export class SingletonLogger {
+  private static _instance: SingletonLogger | null = null;
+
   private logFilePath: string;
   private debugMode: boolean;
 
-  constructor() {
+  private constructor() {
     this.debugMode = true;
 
     const homeDir = os.homedir();
     const baseDir = path.join(homeDir, '.deputydev', 'logs');
     const pid = process.pid.toString();
 
-    // Ensure base logs directory exists
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir, { recursive: true });
     }
 
-    // Step 1: Check if a folder for current PID exists
     const pidFolderPrefix = `pid_${pid}_`;
     const existingPidFolder = fs.readdirSync(baseDir).find(folder =>
       folder.startsWith(pidFolderPrefix)
@@ -29,13 +29,12 @@ export class Logger {
     if (existingPidFolder) {
       pidDir = existingPidFolder;
     } else {
-      const startDate = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+      const startDate = new Date().toISOString().slice(0, 10);
       pidDir = `${pidFolderPrefix}${startDate}`;
       fs.mkdirSync(path.join(baseDir, pidDir));
     }
 
-    // Step 2: Create the date-specific log folder
-    const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    const today = new Date().toISOString().slice(0, 10);
     const logDir = path.join(baseDir, pidDir, today);
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
@@ -43,8 +42,14 @@ export class Logger {
 
     this.logFilePath = path.join(logDir, 'debug.log');
 
-    console.log('DeputyDev debug logs filepath is:', this.logFilePath);
+    // console.log('DeputyDev (singleton) debug logs filepath is:', this.logFilePath);
+  }
 
+  public static getInstance(): SingletonLogger {
+    if (!SingletonLogger._instance) {
+      SingletonLogger._instance = new SingletonLogger();
+    }
+    return SingletonLogger._instance;
   }
 
   deleteLogsOlderThan(days: number) {
@@ -63,14 +68,12 @@ export class Logger {
         const ageInDays = (now - stats.ctime.getTime()) / (1000 * 60 * 60 * 24);
         if (ageInDays > days) {
           fs.rmSync(fullPath, { recursive: true, force: true });
-          // console.log(`Deleted log folder: ${fullPath}`);
         }
       } catch (err) {
-        // console.warn(`Failed to delete log folder: ${fullPath}`, err);
+        // Handle error silently or log it elsewhere
       }
     });
   }
-
 
   private formatArgs(level: string, args: any[]): string {
     const timestamp = new Date().toISOString();
@@ -93,7 +96,7 @@ export class Logger {
     try {
       fs.appendFileSync(this.logFilePath, formatted, 'utf8');
     } catch (err) {
-      // console.error('Failed to write to log file:', err);
+      // Silently fail
     }
   }
 
@@ -118,14 +121,12 @@ export class Logger {
     const homeDir = os.homedir();
     const baseDir = path.join(homeDir, '.deputydev', 'logs');
 
-    // Find the PID folder (starts with pid_<pid>_)
     const pidFolderPrefix = `pid_${pid}_`;
     const pidFolder = fs.readdirSync(baseDir).find(folder =>
       folder.startsWith(pidFolderPrefix)
     );
 
     if (!pidFolder) {
-      // vscode.window.showWarningMessage(`No logs found for current process ID ${pid}`);
       return;
     }
 
@@ -134,7 +135,6 @@ export class Logger {
     const logFilePath = path.join(logDir, today, 'debug.log');
 
     if (!fs.existsSync(logFilePath)) {
-      // vscode.window.showWarningMessage(`No log file found for today in PID folder: ${logFilePath}`);
       return;
     }
 
@@ -144,8 +144,7 @@ export class Logger {
       language: 'log',
       content: logContent
     });
-    
+
     await vscode.window.showTextDocument(doc, { preview: false });
   }
-
 }

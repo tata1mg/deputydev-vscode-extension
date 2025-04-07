@@ -17,6 +17,8 @@ import {
 } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
+import { useLoaderViewStore } from "./stores/useLoaderViewStore";
+import { useUserProfileStore } from "./stores/useUserProfileStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -352,13 +354,8 @@ addCommandEventListener("progress-bar", ({ data }) => {
   }
 });
 
-addCommandEventListener("retry-embedding-failed", ({ data }) => {
-  // console.error("Retry embedding failed:", data);
-  useChatStore.setState({ showEmbeddingFailed: true });
-});
-
 addCommandEventListener("profile-ui-data", ({ data }) => {
-  useChatStore.setState({ profileUiData: data as ProfileUiDiv[] });
+  useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] });
 });
 
 addCommandEventListener("force-upgrade-data", ({ data }) => {
@@ -366,6 +363,15 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
     forceUpgradeData: data as { url: string; upgradeVersion: string },
   });
   useExtensionStore.setState({ viewType: "force-upgrade" });
+});
+
+addCommandEventListener("loader-message", ({ data }) => {
+  const loaderMessage = data as boolean;
+  useLoaderViewStore.setState({ loaderViewState: loaderMessage });
+});
+
+addCommandEventListener("send-client-version", ({ data }) => {
+  useExtensionStore.setState({ clientVersion: data as string });
 });
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;

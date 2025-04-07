@@ -2,6 +2,8 @@ import { WebSocketClient } from "./websocketClient";
 import { API_ENDPOINTS } from "../../services/api/endpoints";
 import { AuthService } from "../../services/auth/AuthService";
 import { getBinaryWsHost } from "../../config";
+import { SingletonLogger } from "../../utilities/Singleton-logger";
+import { sendProgress } from "../../utilities/contextManager";
 // Updated interface for RelevantChunksParams (includes new backend fields)
 
 export interface RelevantChunksParams {
@@ -18,6 +20,7 @@ export interface RelevantChunksParams {
 // Updated interface for UpdateVectorStoreParams (includes new backend field)
 export interface UpdateVectorStoreParams {
   repo_path: string;
+  retried_by_user?: boolean;
   chunkable_files?: string[];
 }
 
@@ -37,6 +40,7 @@ export const fetchRelevantChunks = async (
   params: RelevantChunksParams
 ): Promise<any> => {
   const authToken = await fetchAuthToken();
+  const logger = SingletonLogger.getInstance();
   if (!authToken) {
     throw new Error("Authentication token is required");
   }
@@ -48,6 +52,7 @@ export const fetchRelevantChunks = async (
       ...params
     });
   } catch (error) {
+    logger.error("Error fetching relevant chunks");
     // console.error("Error fetching relevant chunks:", error);
     throw error;
   } finally {
@@ -66,6 +71,7 @@ export const updateVectorStore = async (
   waitForResponse: boolean = false
 ): Promise<any> => {
   const authToken = await fetchAuthToken();
+  const logger = SingletonLogger.getInstance();
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store.");
   }
@@ -79,6 +85,7 @@ export const updateVectorStore = async (
         ...params
       });
     } catch (error) {
+      logger.error("Error updating vector store");
       // console.error("Error updating vector store:", error);
       throw error;
     } finally {
@@ -92,6 +99,7 @@ export const updateVectorStore = async (
         auth_token: authToken,
       })
       .catch((error) => {
+        logger.error("Error updating vector store");
         // console.error("Error updating vector store (fire-and-forget):", error);
       });
     return { status: "sent" };
@@ -102,6 +110,7 @@ export const updateVectorStoreWithResponse = async (
   params: UpdateVectorStoreParams
 ): Promise<any> => {
   const authToken = await fetchAuthToken();
+  const logger = SingletonLogger.getInstance();
   if (!authToken) {
     throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
   }
@@ -110,18 +119,34 @@ export const updateVectorStoreWithResponse = async (
   const client = new WebSocketClient(getBinaryWsHost(), API_ENDPOINTS.UPDATE_VECTOR_DB, authToken);
 
   let attempts = 0;
+  if (params.retried_by_user) {
+    attempts = 2;
+    logger.info("Retrying embedding by user")
+  }
   while (attempts < 3) {
     try {
+      sendProgress({
+        repo: params.repo_path,
+        progress: 0,
+        status: "In Progress"
+    })
       const result = await client.send({
         ...params,
         sync: true
       });
+      logger.info("Response received from binary WebSocket:", result);
       // console.log("✅ Response received from WebSocket:", result);
       return result;
     } catch (error) {
       attempts++;
       // console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
       if (attempts === 3) {
+        sendProgress({
+          repo: params.repo_path,
+          progress: 0,
+          status: "Failed"
+        })
+        logger.error("Error updating vector store after 3 attempts");
         throw new Error(`Failed to update vector store after 3 attempts: ${error}`);
       }
     }
