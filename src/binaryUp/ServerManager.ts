@@ -358,6 +358,10 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
             serverProcess.stdout?.on('data', (data) => this.outputChannel.appendLine(`Server: ${data}`));
             serverProcess.stderr?.on('data', (data) => this.outputChannel.appendLine(`Server Error: ${data}`));
+            
+            // logger to logs/
+            serverProcess.stdout?.on('data', (data) => this.logger.info(`Server: ${data}`));
+            serverProcess.stderr?.on('data', (data) => this.logger.error(`Server Error: ${data}`));
             // Write to registry before launching
             if (serverProcess.pid !== undefined) {
             } else {
@@ -415,7 +419,9 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                     return true;
                 }
             } catch (error) {
-                this.logger.warn(`Ping attempt ${attempt + 1} failed. Retrying...`);
+                this.logger.error(`Ping attempt ${attempt + 1} failed. Error: ${error}, retrying `);
+                this.outputChannel.appendLine("the port no we used for ping is (error) " + port);
+                this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Error: ${error}`);
                 this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Retrying...`);
             }
             attempt++;
