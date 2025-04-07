@@ -445,11 +445,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private async openFile(file_path: string) {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    if (!workspaceFolder) {
+    const active_repo = getActiveRepo();
+    if (!active_repo) {
       vscode.window.showErrorMessage("No workspace folder found.");
-    } else {
-      const absolutePath = path.join(workspaceFolder, file_path);
+      return;
+    }
+    else {
+      const absolutePath = path.join(active_repo, file_path);
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
