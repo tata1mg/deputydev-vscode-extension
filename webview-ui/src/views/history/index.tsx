@@ -82,8 +82,8 @@ const SortableItem: React.FC<SortableItemProps> = ({
       minute: "numeric",
       hour12: true,
     };
-
-    const locale = "en-US";
+    console.log(navigator.language);
+    const locale = navigator.language || "en-US";
     const datePart = date.toLocaleDateString(locale, dateOptions);
     const timePart = date.toLocaleTimeString(locale, timeOptions);
 
@@ -216,7 +216,10 @@ const SortableItem: React.FC<SortableItemProps> = ({
               transition: "opacity 0.2s",
             }}
             className="hover:opacity-70"
-            onMouseDown={() => setShowDeleteConfirm(true)}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              setShowDeleteConfirm(true);
+            }}
           />
         ) : (
           <div
@@ -241,7 +244,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
                   border: "1px solid var(--vscode-button-border)",
                   outlineColor: "var(--vscode-focusBorder)",
                 }}
-                onClick={() => {
+                onMouseDown={() => {
                   handleDeleteSession(session.id);
                   setShowDeleteConfirm(false);
                 }}
@@ -256,7 +259,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
                   border: "1px solid var(--vscode-button-secondaryBorder)",
                   outlineColor: "var(--vscode-focusBorder)",
                 }}
-                onClick={() => setShowDeleteConfirm(false)}
+                onMouseDown={() => setShowDeleteConfirm(false)}
               >
                 No
               </button>
