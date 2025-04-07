@@ -502,6 +502,35 @@ export class ChatManager {
         }
     }
 
+    async _runIterativeFileReader(
+        repoPath: string,
+        filePath: string,
+        offsetLine?: number,
+    ): Promise<any> {
+        this.outputChannel.info(`Running iterative file reader for ${filePath}`);
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = { "Authorization": `Bearer ${authToken}` };
+            const response = await binaryApi().post(API_ENDPOINTS.FILE_PATH_SEARCH, {
+                repo_path: repoPath,
+                file_path: filePath,
+                offset_line: offsetLine, // Optional
+            }, { headers });
+
+            if (response.status === 200) {
+                this.outputChannel.info("Iterative file reader API call successful.");
+                return response.data;
+            } else {
+                this.logger.error(`Iterative file reader API failed with status ${response.status}`);
+                this.outputChannel.error(`Iterative file reader API failed with status ${response.status}`);
+                throw new Error(`Iterative file reader failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
+            this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
+            throw error;
+        }
+    }
 
 
     async handleModifiedFiles(
@@ -560,6 +589,10 @@ export class ChatManager {
                 case "file_path_searcher":
                     this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
                     rawResult = await this._runFilePathSearcher(active_repo, parsedContent);
+                    break;
+                case "iterative_file_reader":
+                    this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
+                    rawResult = await this._runIterativeFileReader(active_repo, parsedContent);
                     break;
                 default:
                     this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
