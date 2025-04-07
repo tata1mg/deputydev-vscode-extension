@@ -213,11 +213,6 @@ export class WorkspaceManager {
 
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
-    this.sidebarProvider.sendMessageToSidebar({
-      id: uuidv4(),
-      command: 'repo-selector-state',
-      data: true
-    });
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await updateVectorStoreWithResponse(params).then((response) => {
       // this.sidebarProvider.sendMessageToSidebar({
@@ -229,11 +224,6 @@ export class WorkspaceManager {
     }
     ).catch((error) => {
       this.outputChannel.info("Embedding failed 3 times...")
-      this.sidebarProvider.sendMessageToSidebar({
-        id: uuidv4(),
-        command: "retry-embedding-failed",
-        data: error,
-      })
     });
   }
 

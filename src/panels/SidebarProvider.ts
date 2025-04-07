@@ -13,6 +13,7 @@ import {
   deleteSessionId,
   getActiveRepo,
   setSessionId,
+  sendProgress
 } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -20,7 +21,7 @@ import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
-import { DD_HOST } from "../config";
+import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
@@ -109,6 +110,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // case 'api-chat-setting':
         //   promise = this.chatService.apiChatSetting(data);
         // break;
+        case "get-client-version":
+          promise = this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'send-client-version',
+            data: CLIENT_VERSION,
+          })
+          break;
         case "keyword-search":
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
@@ -249,6 +257,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
+        case "hit-retry-embedding":
+          this.hitRetryEmbedding();
+          break
       }
 
       if (promise) {
@@ -320,9 +331,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       `📦 Essential config: ${JSON.stringify(essentialConfig)}`
     );
 
-    this.logger.info(" Initiating local server...");
+    this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
-
     const payload = {
       config: {
         DEPUTY_DEV: {
@@ -335,11 +345,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       Authorization: `Bearer ${authToken}`,
     };
 
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: "repo-selector-state",
-      data: true,
-    });
+    // this.sendMessageToSidebar({
+    //   id: uuidv4(),
+    //   command: "repo-selector-state",
+    //   data: true,
+    // });
+
+    sendProgress({
+      repo: activeRepo as string,
+      progress: 0,
+      status: "In Progress"
+    })
+
 
     try {
       const response = await binaryApi().post(
@@ -348,8 +365,27 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         { headers }
       );
       this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+      let attempts = 0;
+      let response_inner: any;
+      while (attempts < 3) {
+        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+        this.logger.info(`Binary init status: ${response.data.status}`);
+        if (response.data.status != "Completed") {
+          attempts++;
+          this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);
+          if (attempts === 3) {
+            this.logger.warn("Binary initialization failed");
+            this.outputChannel.warn("🚨 Binary initialization failed.");
+            throw new Error("Binary initialization failed");
+          }
+        } else {
+          break;
+        }
+      }
 
       if (response.data.status === "Completed" && activeRepo) {
+
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(
           `📁 Creating embedding for repo: ${activeRepo}`
@@ -360,17 +396,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           `📡 Sending WebSocket update: ${JSON.stringify(params)}`
         );
 
+        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
-          this.logger.warn("Embedding failed after 3 attempts.");
-          this.outputChannel.warn("❗ Embedding failed after 3 attempts.");
-
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: "retry-embedding-failed",
-            data: error,
-          });
+          this.logger.warn("Embedding failed");
+          this.outputChannel.warn("Embedding failed");
         }
       }
     } catch (error) {
@@ -378,6 +409,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.error("🚨 Binary initialization failed.");
     }
   }
+
+  async hitRetryEmbedding() {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) {
+      return
+    }
+    const params = { repo_path: activeRepo, retried_by_user: true };
+    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    try {
+      await updateVectorStoreWithResponse(params);
+    } catch (error) {
+      this.logger.warn("Embedding failed");
+      this.outputChannel.warn("Embedding failed");
+    }
+  }
+
 
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(

@@ -4,6 +4,7 @@ import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
 import { SESSION_TYPE } from "../../constants";
+import { SingletonLogger } from "../../utilities/Singleton-logger";
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();

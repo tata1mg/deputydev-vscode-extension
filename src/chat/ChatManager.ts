@@ -19,6 +19,8 @@ import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from "../constants";
 import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from "../types";
+import { SingletonLogger } from "../utilities/Singleton-logger";
+
 
 
 
@@ -28,7 +30,8 @@ export class ChatManager {
     private historyService = new HistoryService();
     private focusChunksService = new FocusChunksService();
     private authService = new AuthService();
-    private currentAbortController: AbortController | null = null; // ✅ Fix: Add this property
+    private currentAbortController: AbortController | null = null; 
+    private logger: ReturnType<typeof SingletonLogger.getInstance>;
 
 
     onStarted: () => void = () => { };
@@ -36,8 +39,11 @@ export class ChatManager {
     constructor(
         private context: vscode.ExtensionContext,
         private outputChannel: vscode.LogOutputChannel,
-        private diffViewManager: DiffViewManager
-    ) { }
+        private diffViewManager: DiffViewManager,
+
+    ) {
+        this.logger = SingletonLogger.getInstance();
+     }
 
     // Method to set the sidebar provider later
     setSidebarProvider(sidebarProvider: SidebarProvider) {
@@ -55,74 +61,8 @@ export class ChatManager {
     }
 
     stop() {
+        this.logger.info("Stopping deputydev binary service...");
         this.outputChannel.info("Stopping deputydev binary service...");
-    }
-
-    async processRelevantChunksForInlineEdit(
-        data: ChatPayload,
-        relevantHistoryText?: string
-    ): Promise<{ relevantChunks: any[]; receivedSessionId: number | undefined }> {
-        const focus_files = [] as string[];
-        const focus_directories = [] as string[];
-        const focus_chunks = [] as string[];
-
-        data.referenceList?.forEach((element) => {
-            if (element.type === "file") {
-                focus_files.push(element.path);
-            } else if (element.type === "directory") {
-                focus_directories.push(element.path);
-            } else {
-                focus_chunks.push(
-                    `${element.path}:${element.chunks[0].start_line}-${element.chunks[0].end_line}`
-                );
-            }
-        });
-
-        try {
-            // If data contains a referenceList, process it as needed.
-            // if (data.referenceList) {
-            //   // TODO: Create an array from the referenceList and process it if necessary.
-            // }
-
-            // Retrieve the active repository path.
-            const active_repo = getActiveRepo();
-            if (!active_repo) {
-                throw new Error("Active repository is not defined.");
-            }
-            // Extract the query from the data.
-            let query = data.query ?? "";
-            if (relevantHistoryText) {
-                query = query + "\n" + relevantHistoryText;
-            }
-            this.outputChannel.info(`Relevant chunks next`);
-            // Call the external function to fetch relevant chunks.
-            const result = await fetchRelevantChunks({
-                repo_path: active_repo,
-                query: query,
-                focus_files: focus_files,
-                focus_directories: focus_directories,
-                focus_chunks: focus_chunks,
-                session_type: SESSION_TYPE,
-                // focus_chunks: data.focus_chunks || [],
-                // focus_files: data.focus_files || [],
-            });
-
-            let relevantChunks = result.relevant_chunks;
-            let receivedSessionId = result.session_id;
-
-            // only print few words only
-            this.outputChannel.info(
-                `Relevant chunks: ${JSON.stringify(relevantChunks.slice(0, 1))}`
-            );
-            // Extract the content from each chunk in the payload.
-            return {
-                relevantChunks,
-                receivedSessionId,
-            }
-        } catch (error) {
-            this.outputChannel.error(`Error fetching relevant chunks: ${error}`);
-            return { relevantChunks: [], receivedSessionId: undefined };
-        }
     }
 
     async getFocusChunks(
@@ -492,6 +432,8 @@ export class ChatManager {
             }, { headers });
             return response.status === 200 ? response.data : "failed";
         } catch (error) {
+            this.logger.error("Error while applying diff");
+            
             // console.log({
             //     repo_path: repo_path,
             //     file_path_to_diff_map: file_path_to_diff_map,
@@ -520,10 +462,12 @@ export class ChatManager {
                 this.outputChannel.info("Batch chunks search API call successful.");
                 return response.data;
             } else {
+                this.logger.error(`Batch chunks search API failed with status ${response.status}`);
                 this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
                 throw new Error(`Batch chunks search failed with status ${response.status}`);
             }
         } catch (error: any) {
+            this.logger.error(`Error calling batch chunks search API: ${error.message}`);
             this.outputChannel.error(`Error calling batch chunks search API: ${error.message}`, error);
             throw error;
         }
@@ -547,10 +491,12 @@ export class ChatManager {
                 this.outputChannel.info("File path search API call successful.");
                 return response.data;
             } else {
+                this.logger.error(`File path search API failed with status ${response.status}`);
                 this.outputChannel.error(`File path search API failed with status ${response.status}`);
                 throw new Error(`File path search failed with status ${response.status}`);
             }
         } catch (error: any) {
+            this.logger.error(`Error calling file path search API: ${error.message}`);
             this.outputChannel.error(`Error calling file path search API: ${error.message}`, error);
             throw error;
         }
@@ -599,6 +545,7 @@ export class ChatManager {
                 parsedContent = JSON.parse(toolRequest.accumulatedContent);
                 this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsedContent)}`);
             } catch (parseError: any) {
+                this.logger.error(`Failed to parse tool parameters JSON: ${parseError.message}`);
                 throw new Error(`Failed to parse tool parameters JSON: ${parseError.message}`);
             }
 
@@ -673,6 +620,7 @@ export class ChatManager {
 
 
         } catch (error: any) {
+            this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
             this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
             this.onError(error);
             status = "error";

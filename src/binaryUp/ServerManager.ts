@@ -11,9 +11,9 @@ import { spawn, SpawnOptions } from 'child_process';
 import { MAX_PORT_ATTEMPTS, getBinaryPort , setBinaryPort } from '../config';
 import { Logger } from '../utilities/Logger';
 import * as net from 'node:net';
+import { loaderMessage } from '../utilities/contextManager';
 
 // const AdmZip = require('adm-zip') as typeof import('adm-zip');
-let BINARY_PORT: number | null = null;
 export class ServerManager {
     private context: vscode.ExtensionContext;
     private outputChannel: vscode.OutputChannel;
@@ -22,6 +22,8 @@ export class ServerManager {
     private essential_config: any;
     private binaryPath_root: string;
     private binaryPath: string;
+    private currentPort: number | null = null;
+
 
     constructor(context: vscode.ExtensionContext, outputChannel: vscode.OutputChannel, logger: Logger , configManager: ConfigManager) {
         this.context = context;
@@ -62,6 +64,7 @@ export class ServerManager {
     private async downloadAndExtractBinary(): Promise<boolean> {
         const fileUrl = this.essential_config["BINARY"]["download_link"];
         if (!fileUrl) {
+            this.logger.error(`Unsupported platform, no binary download link found from essential config.`);
             vscode.window.showErrorMessage(`Unsupported platform, no binary download link found from essential confi .`);
             return false;
         }
@@ -98,6 +101,7 @@ export class ServerManager {
         // Always delete this.binaryPath_root and its contents
         if (fs.existsSync(this.binaryPath_root)) {
             fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
+            this.logger.info(`Deleted existing BinaryPath`);
             this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
         }
 
@@ -115,9 +119,11 @@ export class ServerManager {
 
             const request = https.get(url, (response) => {
                 if (response.statusCode !== 200) {
+                    this.logger.error(`Failed to download file. HTTP Status: ${response.statusCode}`);
                     this.outputChannel.appendLine(`Failed to download file. HTTP Status: ${response.statusCode}`);
                     return reject(`HTTP ${response.statusCode}`);
                 }
+                loaderMessage(true);
                 this.logger.info(`Download started`);
                 this.outputChannel.appendLine('Download in progress...');
                 response.pipe(file);
@@ -129,6 +135,7 @@ export class ServerManager {
                 file.on('finish', () => {
                     if (!hasError) {
                         file.close(() => {
+                            this.logger.info(`Download completed`);
                             this.outputChannel.appendLine('Download completed successfully.');
                             resolve();
                         });
@@ -187,6 +194,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     if (!crypto.timingSafeEqual(receivedHmac, expectedHmac)) {
         vscode.window.showErrorMessage('Decryption failed: HMAC does not match. File may be tampered.');
         this.outputChannel.appendLine('HMAC verification failed. Aborting decryption.');
+        this.logger.error('HMAC verification failed. File may be tampered.');
         throw new Error('HMAC verification failed. File may be tampered.');
         return;
     }
@@ -194,6 +202,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     this.outputChannel.appendLine('Decrypting ciphertext...');
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    this.logger.info('Decipher initialized.');
     const decrypted = Buffer.concat([
         decipher.update(ciphertext),
         decipher.final()
@@ -203,7 +212,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     this.outputChannel.appendLine(`Writing decrypted tar to: ${tempTarPath}`);
     fs.writeFileSync(tempTarPath, decrypted);
     this.outputChannel.appendLine('Decrypted tar file written.');
-
+    this.logger.info(`Decrypted tar file.`);
     this.outputChannel.appendLine(`Starting extraction of tar file to: ${extractTo}`);
     try {
         await tar.x({ file: tempTarPath, cwd: extractTo });
@@ -224,6 +233,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
         this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
     } catch (err) {
+        this.logger.error(`Error during extraction: ${err}`);
         this.outputChannel.appendLine(`❌ Extraction failed: ${err}`);
         throw err;
     }
@@ -250,12 +260,16 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
     private async findAvailablePort([min, max]: number[]): Promise<number | null> {
         const maxAttempts = MAX_PORT_ATTEMPTS;
 
-        for (let i = 0; i < maxAttempts; i++) {
-            const port = Math.floor(Math.random() * (max - min + 1)) + min;
-            if (await this.isPortAvailable(port)) {
-                this.outputChannel.appendLine(`🔎 Found available port: ${port}`);
-                return port;
+        try {
+            for (let i = 0; i < maxAttempts; i++) {
+                const port = Math.floor(Math.random() * (max - min + 1)) + min;
+                if (await this.isPortAvailable(port)) {
+                    this.outputChannel.appendLine(`🔎 Found available port: ${port}`);
+                    return port;
+                }
             }
+        } catch (error) {
+           this.logger.error(`Error finding available port: ${error}`);
         }
 
         return null;
@@ -274,6 +288,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 this.logger.info(`Reusing running local server at port ${existingPort}`);
                 this.outputChannel.appendLine(`🔄 Reusing running server at port ${existingPort}`);
                 setBinaryPort(existingPort);
+                this.currentPort = existingPort; 
                 return true;
             }
         } catch (err) {
@@ -294,6 +309,8 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
     /** Start the server */
     public async startServer(): Promise<boolean> {
+        loaderMessage(true);
+        // loaderMessage('Starting server...');
         this.outputChannel.appendLine('Sthe registry file path is ');
         const serviceExecutable = this.getServiceExecutablePath();
         const portRange: number[] | undefined = this.essential_config?.["BINARY"]?.["port_range"];
@@ -301,6 +318,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
         this.outputChannel.appendLine(`Port range: ${portRange}`);
         if (!serviceExecutable || !fs.existsSync(serviceExecutable)) {
             // vscode.window.showErrorMessage('Server binary not found.');
+            this.logger.error('Server binary not found.');
             this.outputChannel.appendLine('❌ Server binary not found at path: ' + serviceExecutable);
             return false;;
         }
@@ -321,10 +339,12 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             const port = await this.findAvailablePort(portRange);
             if (!port) {
                 // vscode.window.showErrorMessage('No available port found to start server.');
+                this.logger.error('No available port found to start server.');
                 this.outputChannel.appendLine('❌ No available port found in range.');
                 return false;
             }
             setBinaryPort(port);
+            this.currentPort = port; 
             this.logger.info(`Starting server on port: ${port}`);
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
             
@@ -404,6 +424,10 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
 
         return false;
     }
+    public getCurrentPort(): number | null {
+        return this.currentPort;
+    }
+    
 }
 
 

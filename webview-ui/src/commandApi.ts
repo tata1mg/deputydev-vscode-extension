@@ -149,6 +149,10 @@ export function initiateLogin() {
   return callCommand("initiate-login", {});
 }
 
+export function fetchClientVersion() {
+  return callCommand("get-client-version", {});
+}
+
 export function sendWebviewFocusState(isFocused: boolean) {
   return callCommand("webview-focus-state", { focused: isFocused });
 }
@@ -196,4 +200,8 @@ export function getProfileUiData() {
 
 export function showUserLogs() {
   return callCommand("show-logs", {});
+}
+
+export function sendRetryEmbedding() {
+  return callCommand("hit-retry-embedding", {});
 }

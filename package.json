@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -185,7 +185,7 @@
         {
           "type": "webview",
           "id": "deputydev-sidebar",
-          "name": "AI Assistant",
+          "name": "DeputyDev",
           "icon": "assets/DD_Logo.png"
         }
       ]
