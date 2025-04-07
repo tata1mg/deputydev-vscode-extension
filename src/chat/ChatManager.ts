@@ -13,14 +13,14 @@ import {
     setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
-import { forEach, result } from "lodash";
 import { FocusChunksService } from "../services/focusChunks/focusChunksService";
 import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from "../constants";
 import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from "../types";
 import { SingletonLogger } from "../utilities/Singleton-logger";
-
+import * as fs from "fs";
+import * as path from "path";
 
 
 
@@ -164,6 +164,26 @@ export class ChatManager {
         }
     }
 
+    private async getDeputyDevRulesContent(): Promise<string | null> {
+        const active_repo = getActiveRepo();
+        if (!active_repo) {
+            this.outputChannel.error("Active repository is not defined.");
+            return null;
+        }
+
+        const filePath = path.join(active_repo, ".deputydevrules");
+        
+        try {
+            if (fs.existsSync(filePath)) {
+                return fs.readFileSync(filePath, "utf8");
+            }
+        } catch (error) {
+            this.logger.error("Error reading .deputydevrules file");
+            this.outputChannel.error("Error reading .deputydevrules file");
+        }
+        return null;
+    }
+
     /**
      * apiChat:
      * Expects a payload that includes message_id along with the query with other parameters,
@@ -211,6 +231,11 @@ export class ChatManager {
                 delete payload.query;
             }
             delete payload.is_tool_response;
+
+            const deputyDevRules = await this.getDeputyDevRulesContent();
+            if (deputyDevRules) {
+                payload.deputy_dev_rules = deputyDevRules;
+            }
 
 
             this.outputChannel.info("Payload prepared for QuerySolverService.");
@@ -502,6 +527,35 @@ export class ChatManager {
         }
     }
 
+    async _runIterativeFileReader(
+        repoPath: string,
+        filePath: string,
+        offsetLine?: number,
+    ): Promise<any> {
+        this.outputChannel.info(`Running iterative file reader for ${filePath}`);
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = { "Authorization": `Bearer ${authToken}` };
+            const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
+                repo_path: repoPath,
+                file_path: filePath,
+                offset_line: offsetLine, // Optional
+            }, { headers });
+
+            if (response.status === 200) {
+                this.outputChannel.info("Iterative file reader API call successful.");
+                return response.data;
+            } else {
+                this.logger.error(`Iterative file reader API failed with status ${response.status}`);
+                this.outputChannel.error(`Iterative file reader API failed with status ${response.status}`);
+                throw new Error(`Iterative file reader failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
+            this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
+            throw error;
+        }
+    }
 
 
     async handleModifiedFiles(
@@ -560,6 +614,10 @@ export class ChatManager {
                 case "file_path_searcher":
                     this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
                     rawResult = await this._runFilePathSearcher(active_repo, parsedContent);
+                    break;
+                case "iterative_file_reader":
+                    this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
+                    rawResult = await this._runIterativeFileReader(active_repo, parsedContent.file_path, parsedContent.offset_line);
                     break;
                 default:
                     this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
