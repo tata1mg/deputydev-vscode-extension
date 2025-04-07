@@ -13,14 +13,14 @@ import {
     setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
-import { forEach, result } from "lodash";
 import { FocusChunksService } from "../services/focusChunks/focusChunksService";
 import { AuthService } from "../services/auth/AuthService";
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from "../constants";
 import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from "../types";
 import { SingletonLogger } from "../utilities/Singleton-logger";
-
+import * as fs from "fs";
+import * as path from "path";
 
 
 
@@ -164,6 +164,26 @@ export class ChatManager {
         }
     }
 
+    private async getDeputyDevRulesContent(): Promise<string | null> {
+        const active_repo = getActiveRepo();
+        if (!active_repo) {
+            this.outputChannel.error("Active repository is not defined.");
+            return null;
+        }
+
+        const filePath = path.join(active_repo, ".deputydevrules");
+        
+        try {
+            if (fs.existsSync(filePath)) {
+                return fs.readFileSync(filePath, "utf8");
+            }
+        } catch (error) {
+            this.logger.error("Error reading .deputydevrules file");
+            this.outputChannel.error("Error reading .deputydevrules file");
+        }
+        return null;
+    }
+
     /**
      * apiChat:
      * Expects a payload that includes message_id along with the query with other parameters,
@@ -211,6 +231,11 @@ export class ChatManager {
                 delete payload.query;
             }
             delete payload.is_tool_response;
+
+            const deputyDevRules = await this.getDeputyDevRulesContent();
+            if (deputyDevRules) {
+                payload.deputy_dev_rules = deputyDevRules;
+            }
 
 
             this.outputChannel.info("Payload prepared for QuerySolverService.");
