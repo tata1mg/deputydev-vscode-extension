@@ -62,6 +62,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
   } = useSortable({
     id: session.id,
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -94,7 +95,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className="flex items-center gap-3 overflow-hidden rounded-lg p-3 shadow-md"
+      className="flex items-center gap-3 overflow-visible rounded-lg p-3 shadow-md"
     >
       <div
         onClick={() => handleGetSessionChats(session.id)}
@@ -205,16 +206,64 @@ const SortableItem: React.FC<SortableItemProps> = ({
           onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
         />
       )}
-      <Trash2
-        size={16}
-        style={{
-          color: "var(--vscode-icon-foreground)",
-          cursor: "pointer",
-          transition: "opacity 0.2s",
-        }}
-        className="flex-shrink-0 hover:opacity-70"
-        onMouseDown={() => handleDeleteSession(session.id)}
-      />
+      <div className="relative flex-shrink-0">
+        {!showDeleteConfirm ? (
+          <Trash2
+            size={16}
+            style={{
+              color: "var(--vscode-icon-foreground)",
+              cursor: "pointer",
+              transition: "opacity 0.2s",
+            }}
+            className="hover:opacity-70"
+            onMouseDown={() => setShowDeleteConfirm(true)}
+          />
+        ) : (
+          <div
+            className="absolute bottom-full right-0 z-10 mb-2 flex min-w-[180px] animate-[fadeInSlideUp_0.2s_ease-out] flex-col gap-2 rounded-sm border p-3 shadow-md"
+            style={{
+              backgroundColor: "var(--vscode-editorHoverWidget-background)",
+              borderColor: "var(--vscode-editorHoverWidget-border)",
+            }}
+          >
+            <span
+              className="text-xs"
+              style={{ color: "var(--vscode-editorHoverWidget-foreground)" }}
+            >
+              Are you sure you want to delete this session?
+            </span>
+            <div className="mt-1 flex justify-end gap-2">
+              <button
+                className="rounded-sm px-2 py-0.5 text-xs focus:outline focus:outline-offset-1"
+                style={{
+                  color: "var(--vscode-button-foreground)",
+                  backgroundColor: "var(--vscode-button-background)",
+                  border: "1px solid var(--vscode-button-border)",
+                  outlineColor: "var(--vscode-focusBorder)",
+                }}
+                onClick={() => {
+                  handleDeleteSession(session.id);
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                Yes
+              </button>
+              <button
+                className="rounded-sm px-2 py-0.5 text-xs focus:outline focus:outline-offset-1"
+                style={{
+                  color: "var(--vscode-button-secondaryForeground)",
+                  backgroundColor: "var(--vscode-button-secondaryBackground)",
+                  border: "1px solid var(--vscode-button-secondaryBorder)",
+                  outlineColor: "var(--vscode-focusBorder)",
+                }}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -343,7 +392,7 @@ export default function History() {
               items={pinnedSessions}
               strategy={verticalListSortingStrategy}
             >
-              <div className="flex flex-col gap-2">
+              <div className="relative flex flex-col gap-2 overflow-visible">
                 {pinnedSessions.map((session) => (
                   <SortableItem
                     key={session.id}
