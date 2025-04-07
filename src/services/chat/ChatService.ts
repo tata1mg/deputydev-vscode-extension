@@ -25,26 +25,6 @@ export class QuerySolverService {
     this.logger = SingletonLogger.getInstance();
   }
 
-  private async getDeputyDevRulesContent(): Promise<string | null> {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
-      return null;
-    }
-
-    const rootPath = workspaceFolders[0].uri.fsPath;
-    const filePath = path.join(rootPath, ".deputydevrules");
-    
-    try {
-      if (fs.existsSync(filePath)) {
-        return fs.readFileSync(filePath, "utf8");
-      }
-    } catch (error) {
-      this.logger.error("Error reading .deputydevrules file");
-      // console.error("Error reading .deputydevrules file:", error);
-    }
-    return null;
-  }
-
   public async *querySolver(
     payload: Record<string, any>,
     signal?: AbortSignal
