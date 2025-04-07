@@ -147,17 +147,6 @@ const SortableItem: React.FC<SortableItemProps> = ({
         </Tooltip.Provider>
       </div>
 
-      <Trash2
-        size={16}
-        style={{
-          color: "var(--vscode-icon-foreground)",
-          cursor: "pointer",
-          transition: "opacity 0.2s",
-        }}
-        className="flex-shrink-0 hover:opacity-70"
-        onMouseDown={() => handleDeleteSession(session.id)}
-      />
-
       {isPinned ? (
         <PinOff
           size={16}
@@ -216,6 +205,16 @@ const SortableItem: React.FC<SortableItemProps> = ({
           onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
         />
       )}
+      <Trash2
+        size={16}
+        style={{
+          color: "var(--vscode-icon-foreground)",
+          cursor: "pointer",
+          transition: "opacity 0.2s",
+        }}
+        className="flex-shrink-0 hover:opacity-70"
+        onMouseDown={() => handleDeleteSession(session.id)}
+      />
     </div>
   );
 };
