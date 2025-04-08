@@ -100,27 +100,29 @@ export class HistoryService {
 
   public async pinOrUnpinSession(data: {
     sessionId: number;
-    pin_or_unpin: "PINNED" | "UNPINNED";
+    pin_or_unpin: string;
     rank?: number;
   }): Promise<any> {
     console.log("Pinning/Unpinning session", {
       sessions_list_type: data.pin_or_unpin,
-      pinned_rank: data.rank ? data.rank : null,
+      pinned_rank: data.rank,
     });
     try {
       const authToken = await fetchAuthToken();
       const headers = {
         "X-Session-ID": data.sessionId,
-        Authorization: `Bearer ${authToken}`,
+        "Authorization": `Bearer ${authToken}`,
         "X-Session-Type": SESSION_TYPE,
       };
       const response = await api.put(
         API_ENDPOINTS.PIN_UNPIN_SESSION,
+        {},
         {
-          sessions_list_type: data.pin_or_unpin,
-          pinned_rank: data.rank ? data.rank : null,
-        },
-        { headers }
+          headers, params: {
+            sessions_list_type: data.pin_or_unpin,
+            pinned_rank: data.rank,
+          }
+        }
       );
       refreshCurrentToken(response.headers);
       return response.data.data;

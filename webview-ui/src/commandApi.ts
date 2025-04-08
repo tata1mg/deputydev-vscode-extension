@@ -176,7 +176,7 @@ export function deleteSession(sessionId: number) {
 
 export function pinUnpinSession(
   sessionId: number,
-  pin_or_unpin: "PINNED" | "UNPINNED",
+  pin_or_unpin: string,
   rank?: number,
 ) {
   return callCommand("pin-unpin-session", { sessionId, pin_or_unpin, rank });

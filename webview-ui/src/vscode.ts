@@ -200,7 +200,6 @@ export function removeCommandEventListener(
 addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
-  getSessions(20, 0);
 
   const currentViewType = useExtensionStore.getState().viewType;
 
