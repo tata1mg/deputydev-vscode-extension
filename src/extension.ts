@@ -140,7 +140,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  sidebarProvider.setViewType("loader");
+  // sidebarProvider.setViewType("loader");
 
 
   const pinger = new BackgroundPinger(
