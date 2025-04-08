@@ -8,7 +8,7 @@ import {
   pinUnpinSession,
 } from "@/commandApi";
 import { use, useEffect, useState } from "react";
-import { Trash2, GripVertical, Pin, PinOff } from "lucide-react";
+import { Trash2, GripVertical, Pin, PinOff, ArrowDown } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -185,8 +185,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
                   border: "1px solid var(--vscode-editorHoverWidget-border)",
                 }}
               >
-                Maximum 5 pinned conversations allowed, please unpin one to pin
-                another.
+                Maximum 5 pinned conversations allowed
                 <Tooltip.Arrow
                   style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
                 />
@@ -272,8 +271,10 @@ const SortableItem: React.FC<SortableItemProps> = ({
 };
 
 export default function History() {
-  const { sessions, sessionsPerPage, pinnedSessions } = useSessionsStore();
+  const { sessions, sessionsPerPage, pinnedSessions, currentSessionsPage, setCurrentSessionsPage } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [disableLoader, setDisableLoader] = useState(false);
+  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState("Your past sessions come here...");
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
@@ -332,15 +333,29 @@ export default function History() {
     const limit = sessionsPerPage;
     const offset = (pageNumber - 1) * sessionsPerPage;
     getSessions(limit, offset);
-    getPinnedSessions();
     setSessionsLoading(false);
+    setCurrentSessionsPage(prev => prev + 1);
   };
 
   useEffect(() => {
+    getPinnedSessions();
     if (sessions.length === 0) {
       fetchSessions(1);
     }
   }, []);
+
+  useEffect(() => {
+    const checkActiveSessions = async () => {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      if (pinnedSessions.length === 0 && sessions.length === 0) {
+        setNoActiveSessionsMessage("You don't have active sessions. Please chat with DeputyDev.");
+        setDisableLoader(true);
+      }
+    };
+
+    checkActiveSessions();
+  }, [sessions, pinnedSessions]);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -372,13 +387,29 @@ export default function History() {
 
   return (
     <div
+      className="h-full"
       style={{
-        height: "100vh",
         padding: "1rem",
         backgroundColor: "var(--vscode-sidebar-background-rgb)",
       }}
     >
-      {sessions.length > 0 && (
+      {noActiveSessionsMessage && sessions.length === 0 && pinnedSessions.length === 0 && (
+        <div className="flex flex-col justify-center items-center">
+          {!disableLoader &&
+            <div
+              className="mt-[250px] animate-spin inline-block w-16 h-16 border-4 border-current border-t-transparent rounded-full"
+              role="status"
+              aria-label="loading"
+            />
+          }
+          <div className="mt-[20px] text-gray-500 text-md opacity-85">
+            {noActiveSessionsMessage}
+          </div>
+        </div>
+      )}
+
+      {/* Pinned Sessions container */}
+      {pinnedSessions.length > 0 && (
         <div>
           <h3
             className="mb-2 text-lg font-semibold"
@@ -409,14 +440,19 @@ export default function History() {
               </div>
             </SortableContext>
           </DndContext>
+        </div>
+      )}
 
+      {/* Unpinned Sessions container */}
+      {sessions.length > 0 && (
+        <div>
           <h3
             className="mb-2 mt-6 text-lg font-semibold"
             style={{ color: "var(--vscode-editor-foreground)" }}
           >
             Past Conversations
           </h3>
-          <div className="hover:vscode-hover flex flex-col gap-2">
+          <div className="hover:vscode-hover flex flex-col gap-2 h-[350px] overflow-y-auto">
             {sessions.map((session) => (
               <SortableItem
                 key={session.id}
@@ -428,6 +464,9 @@ export default function History() {
                 handlePinUnpinSession={handlePinUnpinSession}
               />
             ))}
+            <div className="mt-2 animate-bounce flex justify-center cursor-pointer" onClick={() => fetchSessions(currentSessionsPage)}>
+              <ArrowDown />
+            </div>
           </div>
         </div>
       )}
