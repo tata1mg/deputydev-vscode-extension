@@ -9,6 +9,7 @@ import {
   writeFile,
 } from "@/commandApi";
 import { useEffect, useState } from "react";
+import { useChatSettingStore } from "@/stores/chatStore";
 
 export interface CodeActionPanelProps {
   language: string;
@@ -60,14 +61,30 @@ export function CodeActionPanel({
       const usageTrackingData: UsageTrackingRequest = {
         event: "generated",
         properties: {
+          source: getSource(),
           file_path: filepath || "",
-          lines: content.split("\n").length,
+          lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
         },
       };
       usageTracking(usageTrackingData);
     }
   }, [isApplicable]);
 
+  const getSource = () => {
+    const chatSource = useChatSettingStore.getState().chatSource;
+    const chatType = useChatSettingStore.getState().chatType;
+    if (chatSource === "inline-chat") {
+      if (chatType === "write") {
+        return "inline-chat-act";
+      }
+      return "inline-chat";
+    } else {
+      if (chatType === "write") {
+        return "act";
+      }
+      return "chat";
+    }
+  };
   const handleCopy = () => {
     if (!copyCooldown) {
       if (!showApplyButton && is_live_chat) {
@@ -76,6 +93,7 @@ export function CodeActionPanel({
           properties: {
             file_path: filepath || "",
             lines: content.split("\n").length,
+            source: getSource(),
           },
         };
         usageTracking(usageTrackingData);
@@ -85,7 +103,10 @@ export function CodeActionPanel({
         event: "copied",
         properties: {
           file_path: filepath || "",
-          lines: content.split("\n").length,
+          source: getSource(),
+          lines: showApplyButton
+            ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
+            : content.split("\n").length,
         },
       };
       usageTracking(usageTrackingData);
@@ -100,34 +121,17 @@ export function CodeActionPanel({
     setTimeout(() => setCopied(false), 200);
   };
 
-  const handleUsageTracking = (filePath: string, diff: string) => {
-    const lines = diff.split("\n");
-    let numLines = 0;
-    for (const line of lines) {
-      let current_line = line.trim();
-      if (
-        !current_line.startsWith("++") &&
-        !current_line.startsWith("--") &&
-        current_line.length > 0
-      ) {
-        if (line.startsWith("+") || line.startsWith("-")) {
-          numLines++;
-        }
-      }
-    }
+  const handleApply = (filePath: string, diff: string) => {
+    setIsApplying(true);
     const usageTrackingData: UsageTrackingRequest = {
       event: "applied",
       properties: {
+        source: getSource(),
         file_path: filepath || "",
-        lines: numLines,
+        lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
       },
     };
     usageTracking(usageTrackingData);
-  };
-
-  const handleApply = (filePath: string, diff: string) => {
-    setIsApplying(true);
-    handleUsageTracking(filePath, diff);
     writeFile({ filePath: filePath, raw_diff: diff });
     setTimeout(() => {
       setIsApplying(false);

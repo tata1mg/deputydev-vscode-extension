@@ -2,10 +2,19 @@
 import { v4 as uuidv4 } from "uuid";
 import { useExtensionStore } from "./stores/useExtensionStore";
 import { useAuthStore } from "./stores/authStore";
-import { useChatStore } from "./stores/chatStore";
+import { useChatSettingStore, useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
-import { ChatMessage, Session, sessionChats, ViewType, SearchResponseItem, ChatReferenceItem, ProfileUiDiv, ProgressBarData } from "@/types";
+import {
+  ChatMessage,
+  Session,
+  sessionChats,
+  ViewType,
+  SearchResponseItem,
+  ChatReferenceItem,
+  ProfileUiDiv,
+  ProgressBarData,
+} from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
@@ -27,7 +36,7 @@ interface InlineChatReferenceData {
     file_hash: string;
     file_path: string;
     meta_info?: any;
-  },
+  };
   value: string;
 }
 
@@ -79,19 +88,19 @@ export function callCommand(command: string, data: unknown): Promise<any>;
 export function callCommand(
   command: string,
   data: unknown,
-  options: { stream: false }
+  options: { stream: false },
 ): Promise<any>;
 
 export function callCommand<T = any>(
   command: string,
   data: unknown,
-  options: { stream: true }
+  options: { stream: true },
 ): AsyncIterableIterator<T>;
 
 export function callCommand(
   command: string,
   data: unknown,
-  options?: { stream: boolean }
+  options?: { stream: boolean },
 ): Promise<any> | AsyncIterableIterator<any> {
   const id = uuidv4();
 
@@ -108,7 +117,6 @@ export function callCommand(
         vscode.postMessage({ id, command, data });
       }, 500); // 5-second delay
     });
-
   } else {
     vscode.postMessage({ id, command, data });
 
@@ -118,8 +126,6 @@ export function callCommand(
       });
     }
   }
-
-
 
   if (!options?.stream) {
     return new Promise((resolve, reject) => {
@@ -174,7 +180,7 @@ export function callCommand(
 
 export function addCommandEventListener(
   command: string,
-  listener: EventListener
+  listener: EventListener,
 ) {
   if (!events[command]) {
     events[command] = [];
@@ -184,7 +190,7 @@ export function addCommandEventListener(
 
 export function removeCommandEventListener(
   command: string,
-  listener: EventListener
+  listener: EventListener,
 ) {
   if (events[command]) {
     events[command] = events[command].filter((l) => l !== listener);
@@ -195,10 +201,13 @@ addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
   getSessions(20, 0);
+  useChatSettingStore.setState({
+    chatSource: "new-chat",
+  });
 
   const currentViewType = useExtensionStore.getState().viewType;
 
-  if ( currentViewType !== "chat" ) {
+  if (currentViewType !== "chat") {
     useExtensionStore.setState({ viewType: "chat" });
   } else {
     useChatStore.getState().clearChat();
@@ -214,11 +223,8 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-
-
 addCommandEventListener("set-workspace-repos", ({ data }) => {
   const { repos, activeRepo } = data as SetWorkspaceReposData;
-
 
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
@@ -227,10 +233,9 @@ addCommandEventListener("sessions-history", ({ data }) => {
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
     // Append new sessions to the existing ones
-    useSessionsStore.getState().setSessions((prevSessions) => [
-      ...prevSessions,
-      ...data as Session[],
-    ]);
+    useSessionsStore
+      .getState()
+      .setSessions((prevSessions) => [...prevSessions, ...(data as Session[])]);
   }
 });
 
@@ -244,7 +249,10 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
+  logToOutput(
+    "info",
+    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
+  );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     // console.error("Invalid data format for 'keyword-search-response'", data);
@@ -273,7 +281,10 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput("info", `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
+  logToOutput(
+    "info",
+    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
+  );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     // console.error(
@@ -299,54 +310,58 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
-  }
+  };
   useChatStore.setState({
-    currentEditorReference: [...currentEditorReference, chatReferenceItem]
-  })
-  console.dir(useChatStore.getState().currentEditorReference, { depth: null })
-})
+    currentEditorReference: [...currentEditorReference, chatReferenceItem],
+  });
+  useChatSettingStore.setState({ chatSource: "inline-chat" });
+  console.dir(useChatStore.getState().currentEditorReference, { depth: null });
+});
 
 addCommandEventListener("progress-bar", ({ data }) => {
   const progressBarData = data as ProgressBarData;
   const incomingProgressBarRepo = progressBarData.repo;
   const currentProgressBars = useChatStore.getState().progressBars;
   // Check if the repo is present in the currentProgressBars array
-  const isRepoPresent = currentProgressBars.some(bar => bar.repo === incomingProgressBarRepo);
+  const isRepoPresent = currentProgressBars.some(
+    (bar) => bar.repo === incomingProgressBarRepo,
+  );
   if (!isRepoPresent) {
     // If the repo is not present, add it to the array
     useChatStore.setState({
-      progressBars: [...currentProgressBars, progressBarData]
+      progressBars: [...currentProgressBars, progressBarData],
     });
   } else {
     // If the repo is present, update the progress
     useChatStore.setState({
-      progressBars: currentProgressBars.map(bar =>
+      progressBars: currentProgressBars.map((bar) =>
         bar.repo === incomingProgressBarRepo
           ? { ...progressBarData } // Replace the existing bar with progressBarData
-          : bar
-      )
+          : bar,
+      ),
     });
   }
-})
+});
 
 addCommandEventListener("profile-ui-data", ({ data }) => {
-  useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] })
-})
+  useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] });
+});
 
 addCommandEventListener("force-upgrade-data", ({ data }) => {
-
-  useChatStore.setState({ forceUpgradeData: data as { url: string; upgradeVersion: string } })
-  useExtensionStore.setState({ viewType: "force-upgrade" })
-})
+  useChatStore.setState({
+    forceUpgradeData: data as { url: string; upgradeVersion: string },
+  });
+  useExtensionStore.setState({ viewType: "force-upgrade" });
+});
 
 addCommandEventListener("loader-message", ({ data }) => {
   const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
 });
 
-addCommandEventListener("send-client-version", ({data}) => {
-  useExtensionStore.setState({clientVersion: data as string});
-})
+addCommandEventListener("send-client-version", ({ data }) => {
+  useExtensionStore.setState({ clientVersion: data as string });
+});
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });
