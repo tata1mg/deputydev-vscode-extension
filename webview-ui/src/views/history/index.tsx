@@ -274,7 +274,7 @@ export default function History() {
   const { sessions, sessionsPerPage, pinnedSessions, currentSessionsPage, setCurrentSessionsPage } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [disableLoader, setDisableLoader] = useState(false);
-  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState("Your past sessions come here...");
+  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState("Loading your DeputyDev sessions history...");
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
@@ -346,10 +346,10 @@ export default function History() {
 
   useEffect(() => {
     const checkActiveSessions = async () => {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 4000));
 
       if (pinnedSessions.length === 0 && sessions.length === 0) {
-        setNoActiveSessionsMessage("You don't have active sessions. Please chat with DeputyDev.");
+        setNoActiveSessionsMessage("Your session history will appear here once you begin your AI development journey with DeputyDev");
         setDisableLoader(true);
       }
     };
@@ -394,15 +394,17 @@ export default function History() {
       }}
     >
       {noActiveSessionsMessage && sessions.length === 0 && pinnedSessions.length === 0 && (
-        <div className="flex flex-col justify-center items-center">
+        <div className="flex flex-col justify-center items-center mt-[250px]">
           {!disableLoader &&
             <div
-              className="mt-[250px] animate-spin inline-block w-16 h-16 border-4 border-current border-t-transparent rounded-full"
+              className="animate-spin inline-block w-16 h-16 border-4 border-current border-t-transparent rounded-full"
               role="status"
               aria-label="loading"
             />
           }
-          <div className="mt-[20px] text-gray-500 text-md opacity-85">
+          <div
+            className="mt-[10px] text-gray-500 text-center"
+          >
             {noActiveSessionsMessage}
           </div>
         </div>
