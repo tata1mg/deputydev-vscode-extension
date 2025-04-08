@@ -31,12 +31,12 @@ export function getBinaryPort(): number | null {
 
 export function getBinaryHost(): string {
   const port = getBinaryPort();
-  return `http://localhost:${port}`;
+  return `http://127.0.0.1:${port}`;
 }
 
 export function getBinaryWsHost(): string {
   const port = getBinaryPort();
-  return `ws://localhost:${port}`;
+  return `ws://127.0.0.1:${port}`;
 }
 
 
