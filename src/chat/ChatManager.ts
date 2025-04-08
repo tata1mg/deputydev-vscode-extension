@@ -369,7 +369,7 @@ export class ChatManager {
                     file_path: vscode.workspace.asRelativePath(
                       vscode.Uri.parse(currentDiffRequest.filepath)
                     ),
-                    lines: event.content.diff.split("\n").length,
+                    lines: event.content.diff.split("\n").length - 3,
                   },
                 };
                 const usageTrackingManager = new UsageTrackingManager();

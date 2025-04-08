@@ -404,7 +404,7 @@ export class InlineChatEditManager {
             file_path: vscode.workspace.asRelativePath(
               vscode.Uri.parse(modified_file_path)
             ),
-            lines: numLines,
+            lines: numLines - 3,
             session_id: job.session_id,
           },
         };
