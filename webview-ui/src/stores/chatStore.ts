@@ -305,6 +305,7 @@ export const useChatStore = create(
                       language: codeData.language || "",
                       file_path: codeData.filepath,
                       code: "",
+                      is_live_chat: true,
                       is_diff: codeData.is_diff || false, // ✅ Save is_diff here
                     },
                     completed: false,
