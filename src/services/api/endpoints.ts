@@ -10,6 +10,8 @@ export const API_ENDPOINTS = {
     RELEVANT_CHUNKS: "/v1/relevant_chunks",
     UPDATE_VECTOR_DB: "/v1/update_chunks",
     PAST_SESSIONS: "/end_user/v1/history/sessions",
+    REORDER_PINNED_SESSIONS: "/end_user/v1/history/session-dragged",
+    PIN_UNPIN_SESSION: "/end_user/v1/history/pin-unpin-session",
     PAST_CHATS: "/end_user/v1/history/chats",
     FOCUS_SEARCH: "/v1/get-focus-search-results",
     DELETE_SESSION: "/end_user/v1/history/delete-session",

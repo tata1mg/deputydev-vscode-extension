@@ -96,6 +96,11 @@
         "icon": "$(add)"
       },
       {
+        "command": "deputydev.HistoryButtonClick",
+        "title": "History",
+        "icon": "$(history)"
+      },
+      {
         "command": "deputydev.UserProfile",
         "title": "Profile",
         "icon": "$(account)"
@@ -126,9 +131,14 @@
           "group": "navigation@1"
         },
         {
-          "command": "deputydev.UserProfile",
+          "command": "deputydev.HistoryButtonClick",
           "when": "view == deputydev-sidebar",
           "group": "navigation@2"
+        },
+        {
+          "command": "deputydev.UserProfile",
+          "when": "view == deputydev-sidebar",
+          "group": "navigation@3"
         }
       ],
       "editor/context": [

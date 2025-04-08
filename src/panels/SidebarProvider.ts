@@ -9,7 +9,12 @@ import { WorkspaceManager } from "../code_syncing/WorkspaceManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
-import { deleteSessionId, getActiveRepo, sendProgress, setSessionId } from "../utilities/contextManager";
+import {
+  deleteSessionId,
+  getActiveRepo,
+  setSessionId,
+  sendProgress
+} from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 import { binaryApi } from "../services/api/axios";
@@ -41,7 +46,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -89,7 +94,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-        case 'api-stop-chat':
+        case "api-stop-chat":
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         case "delete-session-id":
@@ -205,11 +210,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "get-sessions":
           promise = this.getSessions(data);
           break;
+        case "get-pinned-sessions":
+          promise = this.getPinnedSessions(data);
+          break;
+        case "reorder-pinned-sessions":
+          promise = this.historyService.reorderPinnedSessions(data);
+          break;
         case "get-session-chats":
           promise = this.getSessionChats(data);
           break;
         case "delete-session":
           promise = this.deleteSession(data);
+          break;
+        case "pin-unpin-session":
+          promise = this.historyService.pinOrUnpinSession(data);
           break;
 
         // Extention's focus state
@@ -253,7 +267,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           const result = await promise;
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'result',
+            command: "result",
             data: result,
           });
         } catch (err) {
@@ -271,7 +285,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context, this.configManager, this.logger);
+    const authenticationManager = new AuthenticationManager(
+      this.context,
+      this.configManager,
+      this.logger
+    );
     const status = await authenticationManager.initiateAuthentication();
     if (status === "AUTHENTICATION_FAILED") {
       this.setViewType("error");
@@ -290,24 +308,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-
-
   // For Binary init
   public async initiateBinary() {
-    this.outputChannel.info("🔧 Initiating Binary **********************************");
+    this.outputChannel.info(
+      "🔧 Initiating Binary **********************************"
+    );
 
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
 
     if (!authToken) {
-      this.outputChannel.warn("❌ No auth token available. Aborting binary initiation.");
+      this.outputChannel.warn(
+        "❌ No auth token available. Aborting binary initiation."
+      );
       return;
     }
 
     await this.context.workspaceState.update("authToken", authToken);
 
     const essentialConfig = this.configManager.getAllConfigEssentials();
-    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    this.outputChannel.info(
+      `📦 Essential config: ${JSON.stringify(essentialConfig)}`
+    );
 
     this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
@@ -337,10 +359,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
 
     try {
+      const response = await binaryApi().post(
+        API_ENDPOINTS.INIT_BINARY,
+        payload,
+        { headers }
+      );
+      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
       let attempts = 0;
-      let response: any;
+      let response_inner: any;
       while (attempts < 3) {
-        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
         this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != "Completed") {
@@ -359,9 +387,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       if (response.data.status === "Completed" && activeRepo) {
 
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
-        this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
+        this.outputChannel.info(
+          `📁 Creating embedding for repo: ${activeRepo}`
+        );
 
         const params = { repo_path: activeRepo };
+        this.outputChannel.info(
+          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+        );
+
         this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
         try {
           await updateVectorStoreWithResponse(params);
@@ -549,12 +583,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
-
   async getSessions(data: { limit: number; offset: number }) {
     try {
       const response = await this.historyService.getPastSessions(
         data.limit,
-        data.offset
+        data.offset,
+        "UNPINNED"
       );
       this.sendMessageToSidebar({
         id: uuidv4(),
@@ -566,6 +600,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
+        data: response,
+      });
+    }
+  }
+
+  async getPinnedSessions(data: { limit: number; offset: number }) {
+    try {
+      const response = await this.historyService.getPastSessions(
+        data.limit,
+        data.offset,
+        "PINNED"
+      );
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "pinned-sessions",
+        data: response,
+      });
+    } catch (error) {
+      const response: any[] = [];
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "pinned-sessions",
         data: response,
       });
     }
@@ -600,7 +656,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader" | "force-upgrade") {
+  setViewType(
+    viewType:
+      | "chat"
+      | "setting"
+      | "history"
+      | "auth"
+      | "profile"
+      | "error"
+      | "loader"
+      | "force-upgrade"
+  ) {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
@@ -623,9 +689,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         command: "profile-ui-data",
         data: response.ui_profile_data,
       });
-    })
+    });
   }
-
 
   newChat() {
     this.sendMessageToSidebar({
@@ -674,8 +739,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       "assets",
       "index.js",
     ]);
-
-
 
     return /*html*/ `
       <!DOCTYPE html>
