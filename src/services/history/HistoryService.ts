@@ -42,7 +42,7 @@ export class HistoryService {
   }
 
   public async reorderPinnedSessions(data: Record<number, number>) {
-    console.log("Reordering pinned sessions", data);
+    // console.log("Reordering pinned sessions", data);
     try {
       const authToken = await fetchAuthToken();
       const headers = {
@@ -103,10 +103,10 @@ export class HistoryService {
     pin_or_unpin: string;
     rank?: number;
   }): Promise<any> {
-    console.log("Pinning/Unpinning session", {
-      sessions_list_type: data.pin_or_unpin,
-      pinned_rank: data.rank,
-    });
+    // console.log("Pinning/Unpinning session", {
+    //   sessions_list_type: data.pin_or_unpin,
+    //   pinned_rank: data.rank,
+    // });
     try {
       const authToken = await fetchAuthToken();
       const headers = {

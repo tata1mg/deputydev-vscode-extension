@@ -82,7 +82,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
       minute: "numeric",
       hour12: true,
     };
-    console.log(navigator.language);
+    // console.log(navigator.language);
     const locale = navigator.language || "en-US";
     const datePart = date.toLocaleDateString(locale, dateOptions);
     const timePart = date.toLocaleTimeString(locale, timeOptions);
