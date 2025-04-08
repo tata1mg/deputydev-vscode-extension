@@ -406,6 +406,7 @@ export class InlineChatEditManager {
             ),
             lines: numLines - 3,
             session_id: job.session_id,
+            source: "inline-modify",
           },
         };
         const usageTrackingManager = new UsageTrackingManager();
