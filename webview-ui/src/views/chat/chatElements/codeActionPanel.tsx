@@ -36,6 +36,8 @@ export function CodeActionPanel({
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const showApplyButton = is_diff && filepath && diff && isApplicable;
+  const [copyCooldown, setCopyCooldown] = useState(false);
 
   useEffect(() => {
     const checkApplicability = async () => {
@@ -50,19 +52,52 @@ export function CodeActionPanel({
 
     checkApplicability();
   }, [is_diff, filepath, diff]);
+
+  useEffect(() => {
+    if (showApplyButton && (added_lines || removed_lines)) {
+      const usageTrackingData: UsageTrackingRequest = {
+        event: "generated",
+        properties: {
+          file_path: filepath || "",
+          lines: content.split("\n").length,
+        },
+      };
+      usageTracking(usageTrackingData);
+    }
+  }, [added_lines, removed_lines]);
+
   const handleCopy = () => {
-    const usageTrackingData: UsageTrackingRequest = {
-      event: "copied",
-      properties: {
-        file_path: filepath || "",
-        lines: content.split("\n").length,
-      },
-    };
-    usageTracking(usageTrackingData);
+    if (!copyCooldown) {
+      if (!showApplyButton) {
+        const usageTrackingData: UsageTrackingRequest = {
+          event: "generated",
+          properties: {
+            file_path: filepath || "",
+            lines: content.split("\n").length,
+          },
+        };
+        usageTracking(usageTrackingData);
+      }
+
+      const usageTrackingData: UsageTrackingRequest = {
+        event: "copied",
+        properties: {
+          file_path: filepath || "",
+          lines: content.split("\n").length,
+        },
+      };
+      usageTracking(usageTrackingData);
+
+      // Start cooldown
+      setCopyCooldown(true);
+      setTimeout(() => setCopyCooldown(false), 10000); // 3 sec cooldown
+    }
+
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 200);
   };
+
 
   const handleUsageTracking = (filePath: string, diff: string) => {
     const lines = diff.split("\n");
@@ -146,7 +181,7 @@ export function CodeActionPanel({
           </button>
 
           {
-            is_diff && filepath && diff && isApplicable ? (
+            showApplyButton ? (
               <button
                 className={`text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90 ${
                   isApplyDisabled ? "cursor-not-allowed opacity-50" : ""
