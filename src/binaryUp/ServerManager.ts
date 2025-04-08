@@ -422,7 +422,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
                 this.logger.error(`Ping attempt ${attempt + 1} failed. Error: ${error}, retrying `);
                 this.outputChannel.appendLine("the port no we used for ping is (error) " + port);
                 this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Error: ${error}`);
-                this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Retrying...`);
+                // this.outputChannel.appendLine(`Ping attempt ${attempt + 1} failed. Retrying...`);
             }
             attempt++;
             await this.delay(1000);
