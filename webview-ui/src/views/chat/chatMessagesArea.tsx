@@ -209,7 +209,7 @@ export function ChatArea() {
             return (
               <div
                 key={index}
-                className="flex items-center space-x-2 font-medium text-green-500"
+                className="flex items-center mt-1 space-x-2 font-medium text-green-500"
               >
                 <span>✓</span>
                 <span>Task Completed</span>
