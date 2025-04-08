@@ -124,6 +124,7 @@ export interface ChatCodeBlockMessage {
     diff?: string | null;
     added_lines?: number | null;
     removed_lines?: number | null;
+    is_live_chat?: boolean;
   };
   completed: boolean;
   actor: "ASSISTANT";
@@ -202,6 +203,6 @@ export interface UsageTrackingProperties {
 
 export type UsageTrackingRequest = {
   anonymous_id?: String;
-  event: "accepted" | "generated" | "copied";
+  event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };

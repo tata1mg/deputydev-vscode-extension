@@ -20,6 +20,7 @@ export interface CodeActionPanelProps {
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
   write_mode?: boolean;
+  is_live_chat?: boolean;
 }
 
 export function CodeActionPanel({
@@ -31,6 +32,7 @@ export function CodeActionPanel({
   diff,
   added_lines,
   removed_lines,
+  is_live_chat,
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
@@ -54,7 +56,7 @@ export function CodeActionPanel({
   }, [is_diff, filepath, diff]);
 
   useEffect(() => {
-    if (showApplyButton && (added_lines || removed_lines)) {
+    if (isApplicable && is_live_chat) {
       const usageTrackingData: UsageTrackingRequest = {
         event: "generated",
         properties: {
@@ -64,11 +66,11 @@ export function CodeActionPanel({
       };
       usageTracking(usageTrackingData);
     }
-  }, [added_lines, removed_lines]);
+  }, [isApplicable]);
 
   const handleCopy = () => {
     if (!copyCooldown) {
-      if (!showApplyButton) {
+      if (!showApplyButton && is_live_chat) {
         const usageTrackingData: UsageTrackingRequest = {
           event: "generated",
           properties: {
@@ -98,7 +100,6 @@ export function CodeActionPanel({
     setTimeout(() => setCopied(false), 200);
   };
 
-
   const handleUsageTracking = (filePath: string, diff: string) => {
     const lines = diff.split("\n");
     let numLines = 0;
@@ -115,7 +116,7 @@ export function CodeActionPanel({
       }
     }
     const usageTrackingData: UsageTrackingRequest = {
-      event: "generated",
+      event: "applied",
       properties: {
         file_path: filepath || "",
         lines: numLines,
