@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = "VSCODE_EXT";
-export const CLIENT_VERSION = "1.3.0";
+export const CLIENT_VERSION = "2.0.0";
 export const DD_HOST = "https://api.deputydev.ai";
 export const DD_HOST_WS = "wss://cnkilg390a.execute-api.ap-south-1.amazonaws.com";
 // export const DD_HOST = "http://localhost:8084";
@@ -31,12 +31,12 @@ export function getBinaryPort(): number | null {
 
 export function getBinaryHost(): string {
   const port = getBinaryPort();
-  return `http://localhost:${port}`;
+  return `http://127.0.0.1:${port}`;
 }
 
 export function getBinaryWsHost(): string {
   const port = getBinaryPort();
-  return `ws://localhost:${port}`;
+  return `ws://127.0.0.1:${port}`;
 }
 
 

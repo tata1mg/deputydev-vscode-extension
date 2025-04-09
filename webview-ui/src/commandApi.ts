@@ -165,13 +165,26 @@ export function sendWebviewFocusState(isFocused: boolean) {
 export function getSessions(limit: number, offset: number) {
   return callCommand("get-sessions", { limit, offset });
 }
-
+export function getPinnedSessions() {
+  return callCommand("get-pinned-sessions", { limit: 5, offset: 0 });
+}
+export function reorderPinnedSessions(data: Record<number, number>) {
+  return callCommand("reorder-pinned-sessions", data);
+}
 export function getSessionChats(sessionId: number) {
   return callCommand("get-session-chats", { sessionId });
 }
 
 export function deleteSession(sessionId: number) {
   return callCommand("delete-session", { sessionId });
+}
+
+export function pinUnpinSession(
+  sessionId: number,
+  pin_or_unpin: string,
+  rank?: number,
+) {
+  return callCommand("pin-unpin-session", { sessionId, pin_or_unpin, rank });
 }
 
 export function sendWorkspaceRepoChange(data: { repoPath: string }) {
