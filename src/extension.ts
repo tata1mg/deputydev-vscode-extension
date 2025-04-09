@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -140,7 +140,7 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  sidebarProvider.setViewType("loader");
+  // sidebarProvider.setViewType("loader");
 
 
   const pinger = new BackgroundPinger(
@@ -314,11 +314,11 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // setting button click
+  // history button click
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.SettingButtonClick", () => {
+    vscode.commands.registerCommand("deputydev.HistoryButtonClick", () => {
       outputChannel.info("Setting button clicked!");
-      sidebarProvider.setViewType("setting");
+      sidebarProvider.setViewType("history");
     })
   );
   outputChannel.info(

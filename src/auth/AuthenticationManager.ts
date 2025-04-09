@@ -42,13 +42,13 @@ export class AuthenticationManager {
                 }
             } catch (error) {
                 this.logger.error('Error while polling session');
+                return 'AUTHENTICATION_FAILED';
             }
 
             // Wait for 3 seconds before the next attempt
             await new Promise(resolve => setTimeout(resolve, 3000));
         }
         this.logger.error("Authentication failed, please try again later.");
-        return 'AUTHENTICATION_FAILED';
     };
 
     public async validateCurrentSession() {
