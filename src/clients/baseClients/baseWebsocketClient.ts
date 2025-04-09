@@ -64,7 +64,7 @@ export class BaseWebSocketClient {
     });
 
     this.socket.on("close", (code, reason) => {
-      console.log("WebSocket closed with code:", code, "and reason:", reason);
+      // console.log("WebSocket closed with code:", code, "and reason:", reason);
       // Only reject if we haven't resolved yet
       if (this.timeout !== null) {
         this.rejectResponse(
