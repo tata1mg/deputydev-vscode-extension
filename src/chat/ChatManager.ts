@@ -650,7 +650,7 @@ export class ChatManager {
                     rawResult = await this._runIterativeFileReader(active_repo, parsedContent.file_path, parsedContent.offset_line);
                     break;
                 case "grep_search":
-                    this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
+                    this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
                     rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms)
                     break;
                 default:
