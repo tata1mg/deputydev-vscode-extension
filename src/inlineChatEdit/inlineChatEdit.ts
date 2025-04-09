@@ -73,14 +73,14 @@ export class InlineChatEditManager {
                     return;
                 }
 
-                const actionEdit = new vscode.CodeAction('Modify ⌘ I', vscode.CodeActionKind.QuickFix);
+                const actionEdit = new vscode.CodeAction('Modify using DeputyDev ⌘ I', vscode.CodeActionKind.QuickFix);
                 actionEdit.command = {
                     command: 'deputydev.editThisCode',
                     title: 'Modify'
                 };
                 codeActions.push(actionEdit);
 
-                const actionChat = new vscode.CodeAction('Chat ⌘ L', vscode.CodeActionKind.QuickFix);
+                const actionChat = new vscode.CodeAction('Chat using DeputyDev ⌘ L', vscode.CodeActionKind.QuickFix);
                 actionChat.command = {
                     command: 'deputydev.chatWithDeputy',
                     title: 'Chat'
