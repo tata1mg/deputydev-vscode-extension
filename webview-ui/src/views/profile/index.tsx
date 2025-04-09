@@ -6,10 +6,10 @@ import {
   showUserLogs,
   fetchClientVersion,
 } from "@/commandApi";
-import { useChatStore } from "@/stores/chatStore";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import useExtensionStore from "@/stores/useExtensionStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useUserProfileStore } from "@/stores/useUserProfileStore";
 
 export default function Profile() {
@@ -37,6 +37,7 @@ export default function Profile() {
   };
 
   const handleSignOut = () => {
+    useAuthStore.setState({isAuthenticated: false})
     signOut();
   };
 
