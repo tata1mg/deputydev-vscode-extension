@@ -92,7 +92,7 @@
       },
       {
         "command": "deputydev.AddButtonClick",
-        "title": "New Conversations",
+        "title": "New Conversation",
         "icon": "$(add)"
       },
       {
@@ -127,17 +127,17 @@
       "view/title": [
         {
           "command": "deputydev.AddButtonClick",
-          "when": "view == deputydev-sidebar",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@1"
         },
         {
           "command": "deputydev.HistoryButtonClick",
-          "when": "view == deputydev-sidebar",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@2"
         },
         {
           "command": "deputydev.UserProfile",
-          "when": "view == deputydev-sidebar",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@3"
         }
       ],
