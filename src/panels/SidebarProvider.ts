@@ -13,8 +13,8 @@ import {
   deleteSessionId,
   getActiveRepo,
   getSessionId,
-  sendProgress,
   setSessionId,
+  sendProgress,
 } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -208,11 +208,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "get-sessions":
           promise = this.getSessions(data);
           break;
+        case "get-pinned-sessions":
+          promise = this.getPinnedSessions(data);
+          break;
+        case "reorder-pinned-sessions":
+          promise = this.historyService.reorderPinnedSessions(data);
+          break;
         case "get-session-chats":
           promise = this.getSessionChats(data);
           break;
         case "delete-session":
           promise = this.deleteSession(data);
+          break;
+        case "pin-unpin-session":
+          promise = this.historyService.pinOrUnpinSession(data);
           break;
 
         // Extention's focus state
@@ -347,12 +356,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
 
     try {
+      const response = await binaryApi().post(
+        API_ENDPOINTS.INIT_BINARY,
+        payload,
+        { headers }
+      );
+      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
       let attempts = 0;
-      let response: any;
+      let response_inner: any;
       while (attempts < 3) {
-        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, {
-          headers,
-        });
+        response_inner = await binaryApi().post(
+          API_ENDPOINTS.INIT_BINARY,
+          payload,
+          { headers }
+        );
         this.outputChannel.info(
           `✅ Binary init status: ${response.data.status}`
         );
@@ -377,6 +394,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         );
 
         const params = { repo_path: activeRepo };
+        this.outputChannel.info(
+          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+        );
+
         this.outputChannel.info(
           `📡 Sending WebSocket update: ${JSON.stringify(params)}`
         );
@@ -581,7 +602,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     try {
       const response = await this.historyService.getPastSessions(
         data.limit,
-        data.offset
+        data.offset,
+        "UNPINNED"
       );
       this.sendMessageToSidebar({
         id: uuidv4(),
@@ -593,6 +615,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
+        data: response,
+      });
+    }
+  }
+
+  async getPinnedSessions(data: { limit: number; offset: number }) {
+    try {
+      const response = await this.historyService.getPastSessions(
+        data.limit,
+        data.offset,
+        "PINNED"
+      );
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "pinned-sessions",
+        data: response,
+      });
+    } catch (error) {
+      const response: any[] = [];
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "pinned-sessions",
         data: response,
       });
     }

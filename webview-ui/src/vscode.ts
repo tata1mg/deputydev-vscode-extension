@@ -19,6 +19,7 @@ import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
+import { log } from "console";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -223,9 +224,25 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
+addCommandEventListener("repo-selector-state", ({ data }) => {
+  useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
+});
+
 addCommandEventListener("set-workspace-repos", ({ data }) => {
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(data)}`,
+  );
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(repos)}`,
+  );
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(activeRepo)}`,
+  );
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
@@ -236,6 +253,16 @@ addCommandEventListener("sessions-history", ({ data }) => {
     useSessionsStore
       .getState()
       .setSessions((prevSessions) => [...prevSessions, ...(data as Session[])]);
+  }
+});
+
+addCommandEventListener("pinned-sessions", ({ data }) => {
+  // Check if data is not empty before setting it
+  if (data && Array.isArray(data) && data.length > 0) {
+    // Append new sessions to the existing ones
+    useSessionsStore.setState({
+      pinnedSessions: data as Session[],
+    });
   }
 });
 
@@ -296,6 +323,7 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {
+  useExtensionStore.setState({ viewType: "chat" });
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 

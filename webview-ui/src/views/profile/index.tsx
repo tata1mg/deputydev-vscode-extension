@@ -1,4 +1,11 @@
-import { signOut, getGlobalState, openBrowserPage, getProfileUiData, showUserLogs, fetchClientVersion } from "@/commandApi";
+import {
+  signOut,
+  getGlobalState,
+  openBrowserPage,
+  getProfileUiData,
+  showUserLogs,
+  fetchClientVersion,
+} from "@/commandApi";
 import { useChatStore } from "@/stores/chatStore";
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
@@ -17,7 +24,7 @@ export default function Profile() {
 
   const fetchProfileUidata = async () => {
     getProfileUiData();
-  }
+  };
 
   useEffect(() => {
     fetchUserData();
@@ -31,107 +38,136 @@ export default function Profile() {
 
   const handleSignOut = () => {
     signOut();
-  }
+  };
 
   const handleShowLogs = () => {
     showUserLogs();
-  }
+  };
 
   const handleBack = () => {
     extensionState.setViewType("chat");
-  }
+  };
 
   return (
-    <div className="flex flex-col h-screen justify-between">
+    <div className="flex h-screen flex-col justify-between">
       <div>
-        <button className="mt-2 w-[70px] ml-4 px-2 hover:bg-gray-500/20 rounded h-[30px] flex gap-2 items-center"
+        <button
+          className="ml-4 mt-2 flex h-[30px] w-[70px] items-center gap-2 rounded px-2 hover:bg-gray-500/20"
           onClick={handleBack}
         >
           <ChevronLeft />
           <span>Back</span>
         </button>
-        {profileUiData.length > 0 ? (<div>
-          <div className="px-4 flex flex-col mt-2">
-            <button
-              className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
-            >
-              <div className="flex gap-2">
-                <img src="https://onemg.gumlet.io/dd_profile_24_03.png" alt="profile" className="w-6 h-6" />
-                <span>{userData.email}</span>
-              </div>
-            </button>
-            <div>
-              {profileUiData.map((item, index) => {
-                if (item.type === "Expand") {
-                  return (
-                    <div key={index}>
+        {profileUiData.length > 0 ? (
+          <div>
+            <div className="mt-2 flex flex-col px-4">
+              <button
+                className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+              >
+                <div className="flex gap-2">
+                  <img
+                    src="https://onemg.gumlet.io/dd_profile_24_03.png"
+                    alt="profile"
+                    className="h-6 w-6"
+                  />
+                  <span>{userData.email}</span>
+                </div>
+              </button>
+              <div>
+                {profileUiData.map((item, index) => {
+                  if (item.type === "Expand") {
+                    return (
+                      <div key={index}>
+                        <button
+                          className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                          onClick={handleUsageClick}
+                        >
+                          <div className="flex gap-2">
+                            <img
+                              src={item.icon}
+                              alt={item.label}
+                              className="h-6 w-6"
+                            />
+                            <span>{item.label}</span>
+                          </div>
+                          {dropdownOpen ? <ChevronDown /> : <ChevronRight />}
+                        </button>
+                        {dropdownOpen && (
+                          <div
+                            className="rounded-bl rounded-br bg-gray-500/20 p-2"
+                            dangerouslySetInnerHTML={{
+                              __html: item.data || "",
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  } else if (item.type === "Hyperlink") {
+                    return (
                       <button
-                        className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
-                        onClick={handleUsageClick}
+                        key={index}
+                        className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                        onClick={() => item.url && openBrowserPage(item.url)}
                       >
                         <div className="flex gap-2">
-                          <img src={item.icon} alt={item.label} className="w-6 h-6" />
+                          <img
+                            src={item.icon}
+                            alt={item.label}
+                            className="h-6 w-6"
+                          />
                           <span>{item.label}</span>
                         </div>
-                        {dropdownOpen ? (<ChevronDown />) : (<ChevronRight />)}
+                        <ChevronRight />
                       </button>
-                      {dropdownOpen && (
-                        <div className="p-2 bg-gray-500/20 rounded-bl rounded-br" dangerouslySetInnerHTML={{ __html: item.data || "" }} />
-                      )}
-                    </div>
-                  );
-                } else if (item.type === "Hyperlink") {
-                  return (
-                    <button
-                      key={index}
-                      className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
-                      onClick={() => item.url && openBrowserPage(item.url)}
-                    >
-                      <div className="flex gap-2">
-                        <img src={item.icon} alt={item.label} className="w-6 h-6" />
-                        <span>{item.label}</span>
-                      </div>
-                      <ChevronRight />
-                    </button>
-                  );
-                }
-                return null;
-              })}
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+              <button
+                className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                onClick={handleShowLogs}
+              >
+                <div className="flex gap-2">
+                  <img
+                    src="https://onemg.gumlet.io/dd_stat_logo_26_03.png"
+                    alt="show logs"
+                    className="h-6 w-6"
+                  />
+                  <span>Show Logs</span>
+                </div>
+              </button>
+              <button
+                className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                onClick={handleSignOut}
+              >
+                <div className="flex gap-2">
+                  <img
+                    src="https://onemg.gumlet.io/dd_signout_24_03.png"
+                    alt="signout"
+                    className="h-6 w-6"
+                  />
+                  <span>Sign out</span>
+                </div>
+              </button>
             </div>
-            <button
-              className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
-              onClick={handleShowLogs}
-            >
-              <div className="flex gap-2">
-                <img src="https://onemg.gumlet.io/dd_stat_logo_26_03.png" alt="show logs" className="w-6 h-6" />
-                <span>Show Logs</span>
-              </div>
-            </button>
-            <button
-              className={`flex w-full transform justify-between rounded-tr rounded-tl border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100 mt-2`}
-              onClick={handleSignOut}
-            >
-              <div className="flex gap-2">
-                <img src="https://onemg.gumlet.io/dd_signout_24_03.png" alt="signout" className="w-6 h-6" />
-                <span>Sign out</span>
-              </div>
-            </button>
           </div>
-        </div>
         ) : (
-          <div className="px-4 flex flex-col mt-4 gap-2 animate-pulse">
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
-            <div className="h-10 rounded bg-gray-500 w-full"></div>
+          <div className="mt-4 flex animate-pulse flex-col gap-2 px-4">
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
+            <div className="h-10 w-full rounded bg-gray-500"></div>
           </div>
         )}
       </div>
-      <div className="px-4 text-center pb-2 text-xs text-gray-500">Version {extensionState.clientVersion}</div>
+      <div className="px-4 pb-2 text-center text-xs text-gray-500">
+        Version {extensionState.clientVersion}
+      </div>
     </div>
   );
 }
