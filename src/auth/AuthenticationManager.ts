@@ -31,6 +31,11 @@ export class AuthenticationManager {
                             }
                             this.context.globalState.update("userData", userData);
                             this.configManager.fetchAndStoreConfig();
+                            vscode.commands.executeCommand(
+                                "setContext",
+                                "deputydev.isAuthenticated",
+                                true
+                            );
                             this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                             return response.data.status;
                         } else {

@@ -297,6 +297,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async signOut() {
     const response = await this.authService.deleteAuthToken();
     if (response === "success") {
+      vscode.commands.executeCommand(
+        "setContext",
+        "deputydev.isAuthenticated",
+        false
+      );
       this.logger.info("Signed out successfully");
       this.outputChannel.info("Signed out successfully");
       this.setViewType("auth");

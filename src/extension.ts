@@ -169,12 +169,22 @@ export async function activate(context: vscode.ExtensionContext) {
         logger.info("User is authenticated.");
         outputChannel.info("User is authenticated.");
         sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
+        vscode.commands.executeCommand(
+          "setContext",
+          "deputydev.isAuthenticated",
+          true
+        );
         sidebarProvider.setViewType("chat");
       } else {
         logger.info("User is not authenticated.");
         outputChannel.info("User is not authenticated.");
         sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
         sidebarProvider.setViewType("auth");
+        vscode.commands.executeCommand(
+          "setContext",
+          "deputydev.isAuthenticated",
+          false
+        );
       }
     })
     .catch((error) => {
@@ -182,6 +192,11 @@ export async function activate(context: vscode.ExtensionContext) {
       outputChannel.error(`Authentication failed: ${error}`);
       sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
       sidebarProvider.setViewType("auth");
+      vscode.commands.executeCommand(
+        "setContext",
+        "deputydev.isAuthenticated",
+        false
+      );
     });
 
 })();
