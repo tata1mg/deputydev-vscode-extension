@@ -3,7 +3,6 @@ import { SnippetReference } from "./CodeBlockStyle";
 
 import {
   checkDiffApplicable,
-  logToOutput,
   usageTracking,
   openFile,
   writeFile,

@@ -5,7 +5,6 @@ import { AuthenticationManager } from "../auth/AuthenticationManager";
 import { ChatManager } from "../chat/ChatManager";
 import { DiffViewManager } from "../diff/DiffManager";
 import { getUri } from "../utilities/getUri";
-import { WorkspaceManager } from "../code_syncing/WorkspaceManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
@@ -16,8 +15,6 @@ import {
   setSessionId,
   sendProgress,
 } from "../utilities/contextManager";
-import { existsSync, writeFileSync } from "fs";
-import { join } from "path";
 import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";

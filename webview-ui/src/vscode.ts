@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from "uuid";
 import { useExtensionStore } from "./stores/useExtensionStore";
-import { useAuthStore } from "./stores/authStore";
 import { useChatSettingStore, useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import {
   ChatMessage,
   Session,
-  sessionChats,
   ViewType,
-  SearchResponseItem,
   ChatReferenceItem,
   ProfileUiDiv,
   ProgressBarData,
@@ -19,7 +16,6 @@ import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
-import { log } from "console";
 
 type Resolver = {
   resolve: (data: unknown) => void;
