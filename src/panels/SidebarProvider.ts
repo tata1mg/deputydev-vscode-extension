@@ -12,8 +12,9 @@ import { ReferenceManager } from "../references/ReferenceManager";
 import {
   deleteSessionId,
   getActiveRepo,
+  getSessionId,
   setSessionId,
-  sendProgress
+  sendProgress,
 } from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -113,9 +114,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "get-client-version":
           promise = this.sendMessageToSidebar({
             id: uuidv4(),
-            command: 'send-client-version',
+            command: "send-client-version",
             data: CLIENT_VERSION,
-          })
+          });
           break;
         case "keyword-search":
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
@@ -136,9 +137,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "reject-file":
           promise = this.rejectFile(data.path);
-          break;
-        case "apply-changes":
-          promise = this.writeFile(data);
           break;
         case "get-opened-files":
           promise = this.getOpenedFiles();
@@ -259,7 +257,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
-          break
+          break;
       }
 
       if (promise) {
@@ -354,9 +352,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     sendProgress({
       repo: activeRepo as string,
       progress: 0,
-      status: "In Progress"
-    })
-
+      status: "In Progress",
+    });
 
     try {
       const response = await binaryApi().post(
@@ -368,8 +365,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       let attempts = 0;
       let response_inner: any;
       while (attempts < 3) {
-        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+        response_inner = await binaryApi().post(
+          API_ENDPOINTS.INIT_BINARY,
+          payload,
+          { headers }
+        );
+        this.outputChannel.info(
+          `✅ Binary init status: ${response.data.status}`
+        );
         this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != "Completed") {
           attempts++;
@@ -385,7 +388,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
-
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(
           `📁 Creating embedding for repo: ${activeRepo}`
@@ -396,7 +398,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           `📡 Sending WebSocket update: ${JSON.stringify(params)}`
         );
 
-        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+        this.outputChannel.info(
+          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+        );
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
@@ -413,10 +417,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async hitRetryEmbedding() {
     const activeRepo = getActiveRepo();
     if (!activeRepo) {
-      return
+      return;
     }
     const params = { repo_path: activeRepo, retried_by_user: true };
-    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    this.outputChannel.info(
+      `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+    );
     try {
       await updateVectorStoreWithResponse(params);
     } catch (error) {
@@ -424,7 +430,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.warn("Embedding failed");
     }
   }
-
 
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(
@@ -449,8 +454,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (!active_repo) {
       vscode.window.showErrorMessage("No workspace folder found.");
       return;
-    }
-    else {
+    } else {
       const absolutePath = path.join(active_repo, file_path);
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
@@ -462,7 +466,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Example of applying changes (like "openDiffView" in your other code)
    */
 
-  private async writeFile(data: { filePath: string; raw_diff: string }) {
+  private async writeFile(data: {
+    filePath: string;
+    raw_diff: string;
+    is_inline?: boolean;
+    write_mode?: boolean;
+  }) {
     const modifiedFiles = (await this.chatService.getModifiedRequest({
       filepath: data.filePath,
       raw_diff: data.raw_diff,
@@ -475,7 +484,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.error("No active repo found");
       return;
     }
-    this.chatService.handleModifiedFiles(modifiedFiles, active_repo);
+    this.chatService.handleModifiedFiles(
+      modifiedFiles,
+      active_repo,
+      getSessionId(),
+      data.is_inline,
+      data.write_mode
+    );
     return;
   }
 

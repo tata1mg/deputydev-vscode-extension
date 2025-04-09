@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { useExtensionStore } from "./stores/useExtensionStore";
 import { useAuthStore } from "./stores/authStore";
-import { useChatStore } from "./stores/chatStore";
+import { useChatSettingStore, useChatStore } from "./stores/chatStore";
 import { useWorkspaceStore } from "./stores/workspaceStore";
 import { useRepoSelectorStore } from "./stores/repoSelectorStore";
 import {
@@ -201,6 +201,10 @@ export function removeCommandEventListener(
 addCommandEventListener("new-chat", async () => {
   useSessionsStore.getState().clearCurrentSessionsPage();
   useSessionsStore.getState().clearSessions();
+  getSessions(20, 0);
+  useChatSettingStore.setState({
+    chatSource: "new-chat",
+  });
 
   const currentViewType = useExtensionStore.getState().viewType;
 
@@ -230,6 +234,7 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
     `set-workspace-repos :: ${JSON.stringify(data)}`,
   );
   const { repos, activeRepo } = data as SetWorkspaceReposData;
+
   logToOutput(
     "info",
     `set-workspace-repos :: ${JSON.stringify(repos)}`,
@@ -337,6 +342,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
+  useChatSettingStore.setState({ chatSource: "inline-chat" });
   console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 

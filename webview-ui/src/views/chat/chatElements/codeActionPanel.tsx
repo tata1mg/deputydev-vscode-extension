@@ -9,6 +9,7 @@ import {
   writeFile,
 } from "@/commandApi";
 import { useEffect, useState } from "react";
+import { useChatSettingStore } from "@/stores/chatStore";
 
 export interface CodeActionPanelProps {
   language: string;
@@ -20,6 +21,7 @@ export interface CodeActionPanelProps {
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
   write_mode?: boolean;
+  is_live_chat?: boolean;
 }
 
 export function CodeActionPanel({
@@ -31,11 +33,14 @@ export function CodeActionPanel({
   diff,
   added_lines,
   removed_lines,
+  is_live_chat,
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [copied, setCopied] = useState(false);
+  const showApplyButton = is_diff && filepath && diff && isApplicable;
+  const [copyCooldown, setCopyCooldown] = useState(false);
 
   useEffect(() => {
     const checkApplicability = async () => {
@@ -50,49 +55,89 @@ export function CodeActionPanel({
 
     checkApplicability();
   }, [is_diff, filepath, diff]);
+
+  useEffect(() => {
+    if (isApplicable && is_live_chat) {
+      const usageTrackingData: UsageTrackingRequest = {
+        event: "generated",
+        properties: {
+          source: getSource(),
+          file_path: filepath || "",
+          lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
+        },
+      };
+      usageTracking(usageTrackingData);
+    }
+  }, [isApplicable]);
+
+  const getSource = () => {
+    const chatSource = useChatSettingStore.getState().chatSource;
+    const chatType = useChatSettingStore.getState().chatType;
+    if (chatSource === "inline-chat") {
+      if (chatType === "write") {
+        return "inline-chat-act";
+      }
+      return "inline-chat";
+    } else {
+      if (chatType === "write") {
+        return "act";
+      }
+      return "chat";
+    }
+  };
   const handleCopy = () => {
-    const usageTrackingData: UsageTrackingRequest = {
-      event: "copied",
-      properties: {
-        file_path: filepath || "",
-        lines: content.split("\n").length,
-      },
-    };
-    usageTracking(usageTrackingData);
+    if (!copyCooldown) {
+      if (!showApplyButton && is_live_chat) {
+        const usageTrackingData: UsageTrackingRequest = {
+          event: "generated",
+          properties: {
+            file_path: filepath || "",
+            lines: content.split("\n").length,
+            source: getSource(),
+          },
+        };
+        usageTracking(usageTrackingData);
+      }
+
+      const usageTrackingData: UsageTrackingRequest = {
+        event: "copied",
+        properties: {
+          file_path: filepath || "",
+          source: getSource(),
+          lines: showApplyButton
+            ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
+            : content.split("\n").length,
+        },
+      };
+      usageTracking(usageTrackingData);
+
+      // Start cooldown
+      setCopyCooldown(true);
+      setTimeout(() => setCopyCooldown(false), 10000); // 3 sec cooldown
+    }
+
     navigator.clipboard.writeText(content);
     setCopied(true);
     setTimeout(() => setCopied(false), 200);
   };
 
-  const handleUsageTracking = (filePath: string, diff: string) => {
-    const lines = diff.split("\n");
-    let numLines = 0;
-    for (const line of lines) {
-      let current_line = line.trim();
-      if (
-        !current_line.startsWith("++") &&
-        !current_line.startsWith("--") &&
-        current_line.length > 0
-      ) {
-        if (line.startsWith("+") || line.startsWith("-")) {
-          numLines++;
-        }
-      }
-    }
+  const handleApply = (filePath: string, diff: string) => {
+    setIsApplying(true);
     const usageTrackingData: UsageTrackingRequest = {
-      event: "generated",
+      event: "applied",
       properties: {
+        source: getSource(),
         file_path: filepath || "",
-        lines: numLines,
+        lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
       },
     };
     usageTracking(usageTrackingData);
-  };
-
-  const handleApply = (filePath: string, diff: string) => {
-    setIsApplying(true);
-    handleUsageTracking(filePath, diff);
-    writeFile({ filePath: filePath, raw_diff: diff });
+    writeFile({
+      filePath: filePath,
+      raw_diff: diff,
+      write_mode: useChatSettingStore.getState().chatType === "write",
+      is_inline: useChatSettingStore.getState().chatSource === "inline-chat",
+    });
     setTimeout(() => {
       setIsApplying(false);
       alert("Apply diff logic to be implemented.");
@@ -146,7 +191,7 @@ export function CodeActionPanel({
           </button>
 
           {
-            is_diff && filepath && diff && isApplicable ? (
+            showApplyButton ? (
               <button
                 className={`text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90 ${
                   isApplyDisabled ? "cursor-not-allowed opacity-50" : ""

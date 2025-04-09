@@ -151,8 +151,7 @@ export function ChatArea() {
           //     );
           //   }
           case "CODE_BLOCK_STREAMING":
-          case "CODE_BLOCK":
-           {
+          case "CODE_BLOCK": {
             const isStreaming = msg.type === "CODE_BLOCK_STREAMING";
             const isDiff = msg.content.is_diff;
             const showFileEditedChip = isDiff && msg.write_mode;
@@ -184,6 +183,7 @@ export function ChatArea() {
                   diff={msg.content.diff}
                   added_lines={msg.content.added_lines}
                   removed_lines={msg.content.removed_lines}
+                  is_live_chat={msg.content.is_live_chat}
                 />
               </div>
             );

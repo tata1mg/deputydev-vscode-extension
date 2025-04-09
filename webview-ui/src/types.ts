@@ -1,4 +1,12 @@
-export type ViewType = "chat" | "setting" | "loader" | "history" | "auth" | "profile" | "error" | "force-upgrade";
+export type ViewType =
+  | "chat"
+  | "setting"
+  | "loader"
+  | "history"
+  | "auth"
+  | "profile"
+  | "error"
+  | "force-upgrade";
 export type ProgressStatus = "Completed" | "Failed" | "In Progress";
 
 export type UserData = {
@@ -10,7 +18,7 @@ export type ProgressBarData = {
   repo: string;
   progress: number;
   status: ProgressStatus;
-}
+};
 
 export type ProfileUiDiv = {
   label: string;
@@ -124,6 +132,7 @@ export interface ChatCodeBlockMessage {
     diff?: string | null;
     added_lines?: number | null;
     removed_lines?: number | null;
+    is_live_chat?: boolean;
   };
   completed: boolean;
   actor: "ASSISTANT";
@@ -143,7 +152,6 @@ export interface ChatCompleteMessage {
   type: "QUERY_COMPLETE";
   actor: "ASSISTANT";
 }
-
 
 export interface ChatSessionHistory {
   id: string;
@@ -199,10 +207,11 @@ export interface UsageTrackingProperties {
   lines: number;
   file_path: string;
   timestamp?: string;
+  source?: "inline-modify" | "inline-chat" | "chat" | "act" | "inline-chat-act";
 }
 
 export type UsageTrackingRequest = {
   anonymous_id?: String;
-  event: "accepted" | "generated" | "copied";
+  event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };
