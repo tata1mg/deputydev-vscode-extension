@@ -370,6 +370,7 @@ export class ChatManager {
                       vscode.Uri.parse(currentDiffRequest.filepath)
                     ),
                     lines: event.content.diff.split("\n").length - 3,
+                    source: payload.is_inline ? "inline-chat-act" : "act",
                   },
                 };
                 const usageTrackingManager = new UsageTrackingManager();
