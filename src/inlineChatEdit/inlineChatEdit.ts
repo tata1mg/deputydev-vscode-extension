@@ -449,7 +449,10 @@ export class InlineChatEditManager {
     this.chatService.handleModifiedFiles(
       modifiedFiles,
       active_repo,
-      session_id
+      session_id,
+      false,
+      false,
+      true
     );
   }
 

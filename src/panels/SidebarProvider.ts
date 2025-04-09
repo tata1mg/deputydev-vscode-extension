@@ -9,7 +9,13 @@ import { WorkspaceManager } from "../code_syncing/WorkspaceManager";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
 import { ReferenceManager } from "../references/ReferenceManager";
-import { deleteSessionId, getActiveRepo, sendProgress, setSessionId } from "../utilities/contextManager";
+import {
+  deleteSessionId,
+  getActiveRepo,
+  getSessionId,
+  sendProgress,
+  setSessionId,
+} from "../utilities/contextManager";
 import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 import { binaryApi } from "../services/api/axios";
@@ -41,7 +47,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -89,7 +95,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-        case 'api-stop-chat':
+        case "api-stop-chat":
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         case "delete-session-id":
@@ -108,9 +114,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "get-client-version":
           promise = this.sendMessageToSidebar({
             id: uuidv4(),
-            command: 'send-client-version',
+            command: "send-client-version",
             data: CLIENT_VERSION,
-          })
+          });
           break;
         case "keyword-search":
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
@@ -131,9 +137,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "reject-file":
           promise = this.rejectFile(data.path);
-          break;
-        case "apply-changes":
-          promise = this.writeFile(data);
           break;
         case "get-opened-files":
           promise = this.getOpenedFiles();
@@ -245,7 +248,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
-          break
+          break;
       }
 
       if (promise) {
@@ -253,7 +256,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           const result = await promise;
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'result',
+            command: "result",
             data: result,
           });
         } catch (err) {
@@ -271,7 +274,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context, this.configManager, this.logger);
+    const authenticationManager = new AuthenticationManager(
+      this.context,
+      this.configManager,
+      this.logger
+    );
     const status = await authenticationManager.initiateAuthentication();
     if (status === "AUTHENTICATION_FAILED") {
       this.setViewType("error");
@@ -290,24 +297,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-
-
   // For Binary init
   public async initiateBinary() {
-    this.outputChannel.info("🔧 Initiating Binary **********************************");
+    this.outputChannel.info(
+      "🔧 Initiating Binary **********************************"
+    );
 
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
 
     if (!authToken) {
-      this.outputChannel.warn("❌ No auth token available. Aborting binary initiation.");
+      this.outputChannel.warn(
+        "❌ No auth token available. Aborting binary initiation."
+      );
       return;
     }
 
     await this.context.workspaceState.update("authToken", authToken);
 
     const essentialConfig = this.configManager.getAllConfigEssentials();
-    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    this.outputChannel.info(
+      `📦 Essential config: ${JSON.stringify(essentialConfig)}`
+    );
 
     this.logger.info("Initiating binary...");
     this.outputChannel.info("🚀 Initiating binary...");
@@ -332,16 +343,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     sendProgress({
       repo: activeRepo as string,
       progress: 0,
-      status: "In Progress"
-    })
-
+      status: "In Progress",
+    });
 
     try {
       let attempts = 0;
       let response: any;
       while (attempts < 3) {
-        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, {
+          headers,
+        });
+        this.outputChannel.info(
+          `✅ Binary init status: ${response.data.status}`
+        );
         this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != "Completed") {
           attempts++;
@@ -357,12 +371,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
-
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
-        this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
+        this.outputChannel.info(
+          `📁 Creating embedding for repo: ${activeRepo}`
+        );
 
         const params = { repo_path: activeRepo };
-        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+        this.outputChannel.info(
+          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+        );
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
@@ -379,10 +396,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async hitRetryEmbedding() {
     const activeRepo = getActiveRepo();
     if (!activeRepo) {
-      return
+      return;
     }
     const params = { repo_path: activeRepo, retried_by_user: true };
-    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    this.outputChannel.info(
+      `📡 Sending WebSocket update: ${JSON.stringify(params)}`
+    );
     try {
       await updateVectorStoreWithResponse(params);
     } catch (error) {
@@ -390,7 +409,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.warn("Embedding failed");
     }
   }
-
 
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(
@@ -415,8 +433,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (!active_repo) {
       vscode.window.showErrorMessage("No workspace folder found.");
       return;
-    }
-    else {
+    } else {
       const absolutePath = path.join(active_repo, file_path);
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
@@ -428,7 +445,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Example of applying changes (like "openDiffView" in your other code)
    */
 
-  private async writeFile(data: { filePath: string; raw_diff: string }) {
+  private async writeFile(data: {
+    filePath: string;
+    raw_diff: string;
+    is_inline?: boolean;
+    write_mode?: boolean;
+  }) {
     const modifiedFiles = (await this.chatService.getModifiedRequest({
       filepath: data.filePath,
       raw_diff: data.raw_diff,
@@ -441,7 +463,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.error("No active repo found");
       return;
     }
-    this.chatService.handleModifiedFiles(modifiedFiles, active_repo);
+    this.chatService.handleModifiedFiles(
+      modifiedFiles,
+      active_repo,
+      getSessionId(),
+      data.is_inline,
+      data.write_mode
+    );
     return;
   }
 
@@ -549,7 +577,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
-
   async getSessions(data: { limit: number; offset: number }) {
     try {
       const response = await this.historyService.getPastSessions(
@@ -600,7 +627,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  setViewType(viewType: "chat" | "setting" | "history" | "auth" | "profile" | "error" | "loader" | "force-upgrade") {
+  setViewType(
+    viewType:
+      | "chat"
+      | "setting"
+      | "history"
+      | "auth"
+      | "profile"
+      | "error"
+      | "loader"
+      | "force-upgrade"
+  ) {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "set-view-type",
@@ -623,9 +660,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         command: "profile-ui-data",
         data: response.ui_profile_data,
       });
-    })
+    });
   }
-
 
   newChat() {
     this.sendMessageToSidebar({
@@ -674,8 +710,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       "assets",
       "index.js",
     ]);
-
-
 
     return /*html*/ `
       <!DOCTYPE html>

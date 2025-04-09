@@ -132,7 +132,12 @@ export function CodeActionPanel({
       },
     };
     usageTracking(usageTrackingData);
-    writeFile({ filePath: filePath, raw_diff: diff });
+    writeFile({
+      filePath: filePath,
+      raw_diff: diff,
+      write_mode: useChatSettingStore.getState().chatType === "write",
+      is_inline: useChatSettingStore.getState().chatSource === "inline-chat",
+    });
     setTimeout(() => {
       setIsApplying(false);
       alert("Apply diff logic to be implemented.");
