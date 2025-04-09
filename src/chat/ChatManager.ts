@@ -21,8 +21,6 @@ import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, Sea
 import { SingletonLogger } from "../utilities/Singleton-logger";
 import * as fs from "fs";
 import * as path from "path";
-import { r } from "tar";
-
 
 
 export class ChatManager {
