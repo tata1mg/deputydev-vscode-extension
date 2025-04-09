@@ -92,7 +92,7 @@
       },
       {
         "command": "deputydev.AddButtonClick",
-        "title": "New",
+        "title": "New Conversations",
         "icon": "$(add)"
       },
       {
