@@ -30,7 +30,7 @@ export class ChatManager {
     private historyService = new HistoryService();
     private focusChunksService = new FocusChunksService();
     private authService = new AuthService();
-    private currentAbortController: AbortController | null = null; 
+    private currentAbortController: AbortController | null = null;
     private logger: ReturnType<typeof SingletonLogger.getInstance>;
 
 
@@ -172,7 +172,7 @@ export class ChatManager {
         }
 
         const filePath = path.join(active_repo, ".deputydevrules");
-        
+
         try {
             if (fs.existsSync(filePath)) {
                 return fs.readFileSync(filePath, "utf8");
@@ -458,7 +458,7 @@ export class ChatManager {
             return response.status === 200 ? response.data : "failed";
         } catch (error) {
             this.logger.error("Error while applying diff");
-            
+
             // console.log({
             //     repo_path: repo_path,
             //     file_path_to_diff_map: file_path_to_diff_map,
@@ -559,6 +559,36 @@ export class ChatManager {
         }
     }
 
+    async _runGrepSearch(
+        directoryPath: string,
+        repoPath: string,
+        searchTerms?: string[],
+    ): Promise<any> {
+        this.outputChannel.info(`Running grep search tool for ${directoryPath}`);
+        try {
+            const authToken = await this.authService.loadAuthToken();
+            const headers = { "Authorization": `Bearer ${authToken}` };
+            const response = await binaryApi().post(API_ENDPOINTS.GREP_SEARCH, {
+                repo_path: repoPath,
+                directory_path: directoryPath,
+                search_terms: searchTerms
+            }, { headers });
+
+            if (response.status === 200) {
+                this.outputChannel.info("Grep search API call successful.");
+                return response.data;
+            } else {
+                this.logger.error(`Grep search API failed with status ${response.status}`);
+                this.outputChannel.error(`Grep search API failed with status ${response.status}`);
+                throw new Error(`Grep search API failed with status ${response.status}`);
+            }
+        } catch (error: any) {
+            this.logger.error(`Error calling Grep search API: ${error.message}`);
+            this.outputChannel.error(`Error calling Grep search API: ${error.message}`, error);
+            throw error;
+        }
+    }
+
 
     async handleModifiedFiles(
         modifiedFiles: Record<string, string>,
@@ -620,6 +650,10 @@ export class ChatManager {
                 case "iterative_file_reader":
                     this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
                     rawResult = await this._runIterativeFileReader(active_repo, parsedContent.file_path, parsedContent.start_line, parsedContent.end_line);
+                    break;
+                case "grep_search":
+                    this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
+                    rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms)
                     break;
                 default:
                     this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
