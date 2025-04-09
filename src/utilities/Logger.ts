@@ -117,35 +117,29 @@ export class Logger {
     const pid = process.pid.toString();
     const homeDir = os.homedir();
     const baseDir = path.join(homeDir, '.deputydev', 'logs');
-
-    // Find the PID folder (starts with pid_<pid>_)
+  
     const pidFolderPrefix = `pid_${pid}_`;
     const pidFolder = fs.readdirSync(baseDir).find(folder =>
       folder.startsWith(pidFolderPrefix)
     );
-
+  
     if (!pidFolder) {
-      // vscode.window.showWarningMessage(`No logs found for current process ID ${pid}`);
+      vscode.window.showWarningMessage(`No logs found for current process ID ${pid}`);
       return;
     }
-
+  
     const logDir = path.join(baseDir, pidFolder);
     const today = new Date().toISOString().slice(0, 10);
     const logFilePath = path.join(logDir, today, 'debug.log');
-
+  
     if (!fs.existsSync(logFilePath)) {
-      // vscode.window.showWarningMessage(`No log file found for today in PID folder: ${logFilePath}`);
+      vscode.window.showWarningMessage(`No log file found for today in PID folder: ${logFilePath}`);
       return;
     }
-
-    const logContent = fs.readFileSync(logFilePath, 'utf-8');
-
-    const doc = await vscode.workspace.openTextDocument({
-      language: 'log',
-      content: logContent
-    });
-    
+  
+    const doc = await vscode.workspace.openTextDocument(logFilePath);
     await vscode.window.showTextDocument(doc, { preview: false });
   }
+
 
 }
