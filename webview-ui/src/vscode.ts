@@ -19,6 +19,7 @@ import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
+import { log } from "console";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -224,8 +225,19 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
 });
 
 addCommandEventListener("set-workspace-repos", ({ data }) => {
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(data)}`,
+  );
   const { repos, activeRepo } = data as SetWorkspaceReposData;
-
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(repos)}`,
+  );
+  logToOutput(
+    "info",
+    `set-workspace-repos :: ${JSON.stringify(activeRepo)}`,
+  );
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
