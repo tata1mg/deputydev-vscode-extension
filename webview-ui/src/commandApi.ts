@@ -11,7 +11,12 @@ import { callCommand } from "./vscode";
 //   >;
 // }
 
-export function writeFile(params: { filePath: string; raw_diff: string }) {
+export function writeFile(params: {
+  filePath: string;
+  raw_diff: string;
+  is_inline?: boolean;
+  write_mode?: boolean;
+}) {
   return callCommand("write-file", params);
 }
 

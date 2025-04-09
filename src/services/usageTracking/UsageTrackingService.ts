@@ -1,5 +1,5 @@
 import axios from "axios";
-import { UsageTrackingRequest} from "../../types";
+import { UsageTrackingRequest } from "../../types";
 import { getMainConfig } from "../../config/configSetGet";
 
 export class UsageTrackingService {
