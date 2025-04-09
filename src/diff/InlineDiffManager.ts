@@ -5,7 +5,6 @@ import * as vscode from "vscode";
 import { diffLines } from "diff";
 import { UsageTrackingRequest } from "../types";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
-import { getActiveResourcesInfo } from "node:process";
 
 type RemovedChange = {
   type: "removed";
