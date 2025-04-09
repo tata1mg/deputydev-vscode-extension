@@ -602,17 +602,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data.offset,
         "UNPINNED"
       );
+      let hasMore = false;
+      if (response && Array.isArray(response) && response.length > 0) {
+        const nextResponse = await this.historyService.getPastSessions(
+          1,
+          data.offset + response.length + 1,
+          "UNPINNED"
+        );
+        if (nextResponse && Array.isArray(nextResponse) && nextResponse.length > 0) {
+          hasMore = true
+        }
+      }
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: response,
+        data: {response, hasMore},
       });
     } catch (error) {
       const response: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: response,
+        data: {response : response, hasMore : false},
       });
     }
   }

@@ -242,13 +242,14 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-addCommandEventListener("sessions-history", ({ data }) => {
+addCommandEventListener("sessions-history", ({ data } : any) => {
   // Check if data is not empty before setting it
-  if (data && Array.isArray(data) && data.length > 0) {
+  useSessionsStore.getState().setHasMore(data.hasMore);
+  if (data.response && Array.isArray(data.response) && data.response.length > 0) {
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
-      .setSessions((prevSessions) => [...prevSessions, ...(data as Session[])]);
+      .setSessions((prevSessions) => [...prevSessions, ...(data.response as Session[])]);
   }
 });
 

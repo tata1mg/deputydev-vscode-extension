@@ -386,8 +386,7 @@ export default function History() {
   };
 
   return (
-    <div
-      className="h-full"
+    <div className="flex flex-col h-screen"
       style={{
         padding: "1rem",
         backgroundColor: "var(--vscode-sidebar-background-rgb)",
@@ -428,7 +427,7 @@ export default function History() {
               items={pinnedSessions}
               strategy={verticalListSortingStrategy}
             >
-              <div className="relative flex flex-col gap-2 overflow-visible">
+              <div className="relative flex flex-col gap-2 overflow-hidden">
                 {pinnedSessions.map((session) => (
                   <SortableItem
                     key={session.id}
@@ -447,27 +446,31 @@ export default function History() {
 
       {/* Unpinned Sessions container */}
       {sessions.length > 0 && (
-        <div>
+        <div className="flex-1">
           <h3
             className="mb-2 mt-6 text-lg font-semibold"
             style={{ color: "var(--vscode-editor-foreground)" }}
           >
             Past Conversations
           </h3>
-          <div className="hover:vscode-hover flex flex-col gap-2 h-[350px] overflow-y-auto">
-            {sessions.map((session) => (
-              <SortableItem
-                key={session.id}
-                session={session}
-                handleGetSessionChats={handleGetSessionChats}
-                handleDeleteSession={handleDeleteSession}
-                isPinned={false}
-                disablePinning={pinnedSessions.length >= 5}
-                handlePinUnpinSession={handlePinUnpinSession}
-              />
-            ))}
-            <div className="mt-2 animate-bounce flex justify-center cursor-pointer" onClick={() => fetchSessions(currentSessionsPage)}>
-              <ArrowDown />
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-2">
+              {sessions.map((session) => (
+                <SortableItem
+                  key={session.id}
+                  session={session}
+                  handleGetSessionChats={handleGetSessionChats}
+                  handleDeleteSession={handleDeleteSession}
+                  isPinned={false}
+                  disablePinning={pinnedSessions.length >= 5}
+                  handlePinUnpinSession={handlePinUnpinSession}
+                />
+              ))}
+              {useSessionsStore.getState().hasMore &&
+                <div className="mt-2 animate-bounce flex justify-center cursor-pointer" onClick={() => fetchSessions(currentSessionsPage)}>
+                  <ArrowDown />
+                </div>
+              }
             </div>
           </div>
         </div>

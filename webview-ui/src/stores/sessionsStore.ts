@@ -6,6 +6,7 @@ export const useSessionsStore = create<{
   pinnedSessions: Session[];
   sessionsPerPage: number;
   currentSessionsPage: number;
+  hasMore: boolean;
   setCurrentSessionsPage: (updater: (prev: number) => number) => void;
   setSessions: (
     sessions: Session[] | ((prevSessions: Session[]) => Session[]),
@@ -13,6 +14,7 @@ export const useSessionsStore = create<{
   setPinnedSessions: (
     sessions: Session[] | ((prevSessions: Session[]) => Session[]),
   ) => void; // Setter
+  setHasMore: (value: boolean) => void;
   clearSessions: () => void;
   clearPinnedSessions: () => void;
   clearCurrentSessionsPage: () => void;
@@ -21,6 +23,7 @@ export const useSessionsStore = create<{
   pinnedSessions: [] as Session[],
   sessionsPerPage: 20,
   currentSessionsPage: 1,
+  hasMore: true,
   setCurrentSessionsPage: (updater) =>
     set((state) => ({
       currentSessionsPage: updater(state.currentSessionsPage),
@@ -35,6 +38,7 @@ export const useSessionsStore = create<{
         ? sessions
         : sessions(state.pinnedSessions),
     })),
+  setHasMore: (value: boolean) => set({hasMore: value}),
   clearSessions: () => set({ sessions: [] }),
   clearPinnedSessions: () => set({ pinnedSessions: [] }),
   clearCurrentSessionsPage: () => set({ currentSessionsPage: 1 }),
