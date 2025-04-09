@@ -530,7 +530,8 @@ export class ChatManager {
     async _runIterativeFileReader(
         repoPath: string,
         filePath: string,
-        offsetLine?: number,
+        startLine: number,
+        endLine: number,
     ): Promise<any> {
         this.outputChannel.info(`Running iterative file reader for ${filePath}`);
         try {
@@ -539,7 +540,8 @@ export class ChatManager {
             const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
                 repo_path: repoPath,
                 file_path: filePath,
-                offset_line: offsetLine, // Optional
+                start_line: startLine,
+                end_line: endLine,
             }, { headers });
 
             if (response.status === 200) {
@@ -617,7 +619,7 @@ export class ChatManager {
                     break;
                 case "iterative_file_reader":
                     this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
-                    rawResult = await this._runIterativeFileReader(active_repo, parsedContent.file_path, parsedContent.offset_line);
+                    rawResult = await this._runIterativeFileReader(active_repo, parsedContent.file_path, parsedContent.start_line, parsedContent.end_line);
                     break;
                 default:
                     this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
