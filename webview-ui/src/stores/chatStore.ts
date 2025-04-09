@@ -160,6 +160,8 @@ export const useChatStore = create(
               relevant_chunks: [] as string[],
               write_mode: useChatSettingStore.getState().chatType === "write",
               referenceList: userMessage.referenceList,
+              is_inline:
+                useChatSettingStore.getState().chatSource === "inline-chat",
             };
 
             // If a tool response was stored, add it to the payload
