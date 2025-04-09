@@ -1,8 +1,6 @@
 import { CircleUserRound } from "lucide-react";
-import React, { useEffect, useState } from "react";
 import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { useChatSettingStore, useChatStore } from "../../stores/chatStore";
+import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
   SearchedCodebase,
