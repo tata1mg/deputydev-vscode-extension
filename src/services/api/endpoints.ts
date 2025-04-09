@@ -28,4 +28,5 @@ export const API_ENDPOINTS = {
     PING : "/ping",
     SHUTDOWN : "/v1/shutdown",
     ITERATIVELY_READ_FILE: "/v1/iteratively-read-file",
+    GREP_SEARCH: "/v1/grep-search",
 }
