@@ -5,6 +5,7 @@ import * as vscode from "vscode";
 import { diffLines } from "diff";
 import { UsageTrackingRequest } from "../types";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
+import { getActiveResourcesInfo } from "node:process";
 
 type RemovedChange = {
   type: "removed";
@@ -12,6 +13,9 @@ type RemovedChange = {
   count: number;
   value: string;
   session_id?: number;
+  is_inline?: boolean;
+  write_mode?: boolean;
+  is_inline_modify?: boolean;
 };
 
 type AddedChange = {
@@ -20,6 +24,9 @@ type AddedChange = {
   count: number;
   value: string;
   session_id?: number;
+  is_inline?: boolean;
+  write_mode?: boolean;
+  is_inline_modify?: boolean;
 };
 
 type Change =
@@ -30,6 +37,9 @@ type Change =
       removed: RemovedChange;
       added: AddedChange;
       session_id?: number;
+      is_inline?: boolean;
+      write_mode?: boolean;
+      is_inline_modify?: boolean;
     };
 
 export class InlineDiffViewManager
@@ -323,6 +333,27 @@ export class InlineDiffViewManager
     return -1;
   }
 
+  private getSourceForUsageTracking = (
+    is_inline?: boolean,
+    write_mode?: boolean,
+    is_inline_modify?: boolean
+  ) => {
+    if (is_inline_modify) {
+      return "inline-modify";
+    }
+    if (is_inline) {
+      if (write_mode) {
+        return "inline-chat-act";
+      }
+      return "inline-chat";
+    } else {
+      if (write_mode) {
+        return "act";
+      }
+      return "chat";
+    }
+  };
+
   /**
    * Accept a single chunk (removed, added, or modified).
    */
@@ -356,6 +387,11 @@ export class InlineDiffViewManager
       properties: {
         session_id: change.session_id,
         file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(uri)),
+        source: this.getSourceForUsageTracking(
+          change.is_inline,
+          change.write_mode,
+          change.is_inline_modify
+        ),
         lines:
           change.type === "modified"
             ? change.removed.count + change.added.count
@@ -512,6 +548,33 @@ export class InlineDiffViewManager
     const editor = await vscode.window.showTextDocument(uri);
     const edit = new vscode.WorkspaceEdit();
 
+    let numLines = 0;
+    for (const change of fileChange.changes) {
+      if (change.type === "modified") {
+        numLines += change.removed.count + change.added.count;
+      } else {
+        numLines += change.count;
+      }
+    }
+    const session_id = fileChange.changes[0].session_id;
+    const source = this.getSourceForUsageTracking(
+      fileChange.changes[0].is_inline,
+      fileChange.changes[0].write_mode,
+      fileChange.changes[0].is_inline_modify
+    );
+
+    const usageTrackingData: UsageTrackingRequest = {
+      event: "accepted",
+      properties: {
+        session_id: session_id,
+        file_path: vscode.workspace.asRelativePath(uri),
+        lines: numLines,
+        source: source,
+      },
+    };
+    const usageTrackingManager = new UsageTrackingManager();
+    usageTrackingManager.trackUsage(usageTrackingData);
+
     for (let i = fileChange.changes.length - 1; i >= 0; i--) {
       const change = fileChange.changes[i];
       if (change.type === "added") {
@@ -619,7 +682,10 @@ export class InlineDiffViewManager
    */
   async openDiffView(
     data: { path: string; content: string },
-    session_id?: number
+    session_id?: number,
+    write_mode?: boolean,
+    is_inline?: boolean,
+    is_inline_modify?: boolean
   ): Promise<void> {
     try {
       this.outputChannel.info(`command write file: ${data.path}`);
@@ -686,7 +752,10 @@ export class InlineDiffViewManager
         }
 
         if (currentChange) {
-          currentChange.session_id = session_id
+          currentChange.session_id = session_id;
+          currentChange.is_inline = is_inline;
+          currentChange.write_mode = write_mode;
+          currentChange.is_inline_modify = is_inline_modify;
           changes.push(currentChange);
         }
         combineContent += part.value;

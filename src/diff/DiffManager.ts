@@ -47,18 +47,17 @@
 //   public dispose?(): void;
 // }
 
-
 // File: src/diff/DiffManager.ts
 
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
 
 type DiffViewChange =
   | {
-      type: 'add';
+      type: "add";
       path: string;
     }
   | {
-      type: 'accept' | 'reject';
+      type: "accept" | "reject";
       path: string; // file path, i.e., URI.fsPath
     };
 
@@ -81,7 +80,13 @@ export abstract class DiffViewManager {
   };
 
   // Show inline or side-by-side diff for given path+content
-  abstract openDiffView(data: { path: string; content: string }, session_id?: number): Promise<void>;
+  abstract openDiffView(
+    data: { path: string; content: string },
+    session_id?: number,
+    write_mode?: boolean,
+    is_inline?: boolean,
+    is_inline_modify?: boolean
+  ): Promise<void>;
 
   // Accept *all* changes in all tracked files
   abstract acceptAllFile(): Promise<void>;

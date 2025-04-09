@@ -369,7 +369,9 @@ export class ChatManager {
                     file_path: vscode.workspace.asRelativePath(
                       vscode.Uri.parse(currentDiffRequest.filepath)
                     ),
-                    lines: event.content.diff.split("\n").length - 3,
+                    lines:
+                      Math.abs(event.content.added_lines) +
+                      Math.abs(event.content.removed_lines),
                     source: payload.is_inline ? "inline-chat-act" : "act",
                   },
                 };
@@ -393,7 +395,13 @@ export class ChatManager {
                       data: "completed",
                     },
                   });
-                  await this.handleModifiedFiles(modifiedFiles, active_repo);
+                  await this.handleModifiedFiles(
+                    modifiedFiles,
+                    active_repo,
+                    getSessionId(),
+                    payload.write_mode,
+                    payload.is_inline
+                  );
                 } else {
                   this.sidebarProvider?.sendMessageToSidebar({
                     id: messageId,
@@ -647,13 +655,19 @@ export class ChatManager {
   async handleModifiedFiles(
     modifiedFiles: Record<string, string>,
     active_repo: string,
-    session_id?: number
+    session_id?: number,
+    write_mode?: boolean,
+    is_inline?: boolean,
+    is_inline_modify?: boolean
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
       await this.diffViewManager.openDiffView(
         { path: fullPath, content },
-        session_id
+        session_id,
+        write_mode,
+        is_inline,
+        is_inline_modify
       );
     }
   }
