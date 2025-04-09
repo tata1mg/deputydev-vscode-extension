@@ -21,6 +21,7 @@ import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, Sea
 import { SingletonLogger } from "../utilities/Singleton-logger";
 import * as fs from "fs";
 import * as path from "path";
+import { r } from "tar";
 
 
 
@@ -576,6 +577,7 @@ export class ChatManager {
 
             if (response.status === 200) {
                 this.outputChannel.info("Grep search API call successful.");
+                this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
                 return response.data;
             } else {
                 this.logger.error(`Grep search API failed with status ${response.status}`);
