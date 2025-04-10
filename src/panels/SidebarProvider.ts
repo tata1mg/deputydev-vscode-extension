@@ -603,28 +603,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data.offset,
         "UNPINNED"
       );
-      let hasMore = false;
-      if (response && Array.isArray(response) && response.length > 0) {
-        const nextResponse = await this.historyService.getPastSessions(
-          1,
-          data.offset + response.length + 1,
-          "UNPINNED"
-        );
-        if (nextResponse && Array.isArray(nextResponse) && nextResponse.length > 0) {
-          hasMore = true
-        }
-      }
+      const unpinnedSessions = response.sessions;
+      const hasMore = response.has_more;
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {response, hasMore},
+        data: {unpinnedSessions, hasMore},
       });
     } catch (error) {
-      const response: any[] = [];
+      const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {response : response, hasMore : false},
+        data: {unpinnedSessions, hasMore : false},
       });
     }
   }
@@ -636,17 +627,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data.offset,
         "PINNED"
       );
+      const pinnedSessions = response.sessions;
+
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "pinned-sessions",
-        data: response,
+        data: pinnedSessions,
       });
     } catch (error) {
-      const response: any[] = [];
+      const pinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "pinned-sessions",
-        data: response,
+        data: pinnedSessions,
       });
     }
   }
