@@ -195,9 +195,6 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener("new-chat", async () => {
-  useSessionsStore.getState().clearCurrentSessionsPage();
-  useSessionsStore.getState().clearSessions();
-  getSessions(20, 0);
   useChatSettingStore.setState({
     chatSource: "new-chat",
   });
@@ -213,6 +210,10 @@ addCommandEventListener("new-chat", async () => {
 });
 
 addCommandEventListener("set-view-type", ({ data }) => {
+  if (data === "history") {
+    useSessionsStore.getState().clearCurrentSessionsPage();
+    useSessionsStore.getState().clearSessions();
+  }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
