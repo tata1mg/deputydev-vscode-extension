@@ -566,7 +566,7 @@ export default function History() {
             {/* Move overflow to inner container */}
             <div className="overflow-y-auto">
               <div className="flex flex-col gap-2">
-                {sessions.map((session) => (
+                {sessions.map((session, index) => (
                   <SortableItem
                     key={session.id}
                     session={session}
@@ -575,6 +575,9 @@ export default function History() {
                     isPinned={false}
                     disablePinning={pinnedSessions.length >= 5}
                     handlePinUnpinSession={handlePinUnpinSession}
+                    mountPopupOnBottom={
+                      index === 0 && pinnedSessions.length === 0
+                    }
                   />
                 ))}
                 {useSessionsStore.getState().hasMore && (
