@@ -35,6 +35,11 @@ function App() {
         setIsAuthenticated(true);
         extensionState.setViewType("chat")
       }
+
+      if (response === "NOT_VERIFIED") {
+        setIsAuthenticated(false);
+        extensionState.setViewType("auth")
+      }
     }
 
     function handleFocus() {
