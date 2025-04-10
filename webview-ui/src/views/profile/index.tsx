@@ -14,6 +14,7 @@ import { useUserProfileStore } from "@/stores/useUserProfileStore";
 
 export default function Profile() {
   const extensionState = useExtensionStore();
+  
   const { userData, profileUiData } = useUserProfileStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -48,6 +49,13 @@ export default function Profile() {
   const handleBack = () => {
     extensionState.setViewType("chat");
   };
+
+  const opensetting = () => {
+    extensionState.setViewType("setting");
+  }
+  const opensetting2 = () => {
+    extensionState.setViewType("setting2");
+  }
 
   return (
     <div className="flex h-screen flex-col justify-between">
@@ -125,6 +133,34 @@ export default function Profile() {
                   return null;
                 })}
               </div>
+              <button
+                className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                onClick={opensetting}
+              >
+                <div className="flex gap-2">
+                  <img
+                    src="https://onemg.gumlet.io/dd_stat_logo_26_03.png"
+                    alt="show logs"
+                    className="h-6 w-6"
+                  />
+                  <span>Settings</span>
+                </div>
+              </button>
+
+              <button
+                className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
+                onClick={opensetting2}
+              >
+                <div className="flex gap-2">
+                  <img
+                    src="https://onemg.gumlet.io/dd_stat_logo_26_03.png"
+                    alt="show logs"
+                    className="h-6 w-6"
+                  />
+                  <span>Settings 2</span>
+                </div>
+              </button>
+
               <button
                 className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
                 onClick={handleShowLogs}
