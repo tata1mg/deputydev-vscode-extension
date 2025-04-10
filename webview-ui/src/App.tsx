@@ -12,6 +12,7 @@ import Profile from './views/profile';
 import Error from './views/error';
 import ForceUpgradeView from './views/forceUpgradeView';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
+// import Setting2 from './views/setting_2';
 
 function App() {
   const extensionState = useExtensionStore();
@@ -76,8 +77,11 @@ function App() {
     case 'history':
       view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <History /> : <Auth />)
       break;
+    case 'setting2':
+      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
+      break;
     case 'error':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <Error />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Error /> 
       break;
     default:
       view = null;

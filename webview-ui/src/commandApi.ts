@@ -210,3 +210,13 @@ export function showUserLogs() {
 export function sendRetryEmbedding() {
   return callCommand("hit-retry-embedding", {});
 }
+
+
+
+// terminal
+export function acceptTerminalCommand() {
+  return callCommand("accept-terminal-command", {});
+}
+export function rejectTerminalCommand() {
+  return callCommand("reject-terminal-command", {});
+}

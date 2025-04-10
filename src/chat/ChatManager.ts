@@ -605,6 +605,56 @@ export class ChatManager {
       throw error;
     }
   }
+  async _runExecuteCommand(
+    command: string,
+    requires_approval: boolean,
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest
+  ): Promise<any> {
+    if (!command) {
+      throw new Error("Command is empty.");
+    }
+  
+    const parsedContent = JSON.parse(toolRequest.accumulatedContent);
+    const isApproved = parsedContent.user_approved ?? false;
+  
+    this.outputChannel.info(`Running execute command: ${command}`);
+    this.outputChannel.info(`Approval required for command: ${requires_approval}`);
+  
+    if (requires_approval && !isApproved) {
+      // Step 1: Request approval
+      chunkCallback({
+        name: "TERMINAL_APPROVAL",
+        data: {
+          tool_name: toolRequest.tool_name,
+          tool_use_id: toolRequest.tool_use_id,
+          terminal_approval_required: true,
+          message: `Command "${command}" requires your approval to run.`,
+        },
+      });
+  
+      // Stop here. Don't run the command yet.
+      return;
+    }
+  
+    // Step 2: Actually execute the command (if approved or not needed)
+    try {
+      // ⚠️ Replace this with your actual backend logic to run the command:
+      const result = await this._runTerminalCommand(command);
+  
+      this.outputChannel.info("Command executed successfully.");
+      return { output: result };
+    } catch (err: any) {
+      this.logger.error(`Command execution failed: ${err.message}`);
+      throw new Error(`Command failed: ${err.message}`);
+    }
+  }
+  
+  async _runTerminalCommand (command: string): Promise<any> {
+  }
+  
+
+
 
 
   async handleModifiedFiles(
@@ -674,6 +724,10 @@ export class ChatManager {
         case "grep_search":
           this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms)
+          break;
+        case "execute_command":
+          this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this._runExecuteCommand(parsedContent.command , parsedContent.requires_approval , chunkCallback , toolRequest );
           break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
@@ -782,6 +836,12 @@ export class ChatManager {
         return { batch_chunks_search: rawResult };
       case "file_path_searcher":
         return { file_path_search: rawResult };
+      case "iterative_file_reader":
+        return { iterative_file_reader_result: rawResult };
+      case "grep_search":
+        return { grep_search_result: rawResult };
+      case "execute_command":
+        return { execute_command_result: rawResult };
       default:
         // For unknown or simple tools, return the result directly (though handled earlier now)
         return rawResult;

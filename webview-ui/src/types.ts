@@ -1,6 +1,7 @@
 export type ViewType =
   | "chat"
   | "setting"
+  | "setting2"
   | "loader"
   | "history"
   | "auth"
@@ -102,6 +103,15 @@ export interface ChatAssistantMessage {
   actor: "ASSISTANT";
 }
 
+
+
+export interface TerminalPanelProps {
+  content: string;
+  terminal_output?: string;
+  status?: string;
+  terminal_approval_required?: boolean;
+}
+
 export interface ChatToolUseMessage {
   type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
   content: {
@@ -112,6 +122,7 @@ export interface ChatToolUseMessage {
     result_json: string;
     status: "pending" | "completed" | "error";
     write_mode?: boolean;
+    terminal_approval_required?: boolean;
   };
 }
 

@@ -11,6 +11,7 @@ import {
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
+import { TerminalPanel } from "./chatElements/TerminalPanel";
 import { useRef } from "react";
 
 export function ChatArea() {
@@ -193,7 +194,18 @@ export function ChatArea() {
           case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
-                <SearchedCodebase status={msg.content.status} />
+                {msg.content.tool_name === "execute_command" ? (
+                  <TerminalPanel
+                    content={(msg.content.input_params_json as string) || ""}
+                    terminal_output={msg.content.result_json}
+                    status={msg.content.status}
+                    terminal_approval_required={
+                      msg.content.terminal_approval_required
+                    }
+                  />
+                ) : (
+                  <SearchedCodebase status={msg.content.status} />
+                )}
               </div>
             );
 
