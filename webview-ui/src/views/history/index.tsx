@@ -149,16 +149,39 @@ const SortableItem: React.FC<SortableItemProps> = ({
       </div>
 
       {isPinned ? (
-        <PinOff
-          size={16}
-          style={{
-            color: "var(--vscode-icon-foreground)",
-            cursor: "pointer",
-            transition: "opacity 0.2s",
-          }}
-          className="flex-shrink-0 hover:opacity-70"
-          onMouseDown={() => handlePinUnpinSession(session, "UNPINNED")}
-        />
+
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <PinOff
+                size={16}
+                style={{
+                  color: "var(--vscode-icon-foreground)",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                className="flex-shrink-0 hover:opacity-70"
+                onMouseDown={() => handlePinUnpinSession(session, "UNPINNED")}
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="top"
+                className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                style={{
+                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                  color: "var(--vscode-editorHoverWidget-foreground)",
+                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                }}
+              >
+                Unpin
+                <Tooltip.Arrow
+                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       ) : disablePinning ? (
         <Tooltip.Provider>
           <Tooltip.Root>
@@ -194,32 +217,76 @@ const SortableItem: React.FC<SortableItemProps> = ({
           </Tooltip.Root>
         </Tooltip.Provider>
       ) : (
-        <Pin
-          size={16}
-          style={{
-            color: "var(--vscode-icon-foreground)",
-            cursor: "pointer",
-            transition: "opacity 0.2s",
-          }}
-          className="flex-shrink-0 hover:opacity-70"
-          onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
-        />
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <Pin
+                size={16}
+                style={{
+                  color: "var(--vscode-icon-foreground)",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                className="flex-shrink-0 hover:opacity-70"
+                onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="top"
+                className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                style={{
+                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                  color: "var(--vscode-editorHoverWidget-foreground)",
+                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                }}
+              >
+                Pin
+                <Tooltip.Arrow
+                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       )}
       <div className="relative flex-shrink-0">
         {!showDeleteConfirm ? (
-          <Trash2
-            size={16}
-            style={{
-              color: "var(--vscode-icon-foreground)",
-              cursor: "pointer",
-              transition: "opacity 0.2s",
-            }}
-            className="hover:opacity-70"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setShowDeleteConfirm(true);
-            }}
-          />
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Trash2
+                  size={16}
+                  style={{
+                    color: "var(--vscode-icon-foreground)",
+                    cursor: "pointer",
+                    transition: "opacity 0.2s",
+                  }}
+                  className="hover:opacity-70"
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(true);
+                  }}
+                />
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  side="top"
+                  className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                  style={{
+                    backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                    color: "var(--vscode-editorHoverWidget-foreground)",
+                    border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  }}
+                >
+                  Delete
+                  <Tooltip.Arrow
+                    style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                  />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         ) : (
           <div
             className="absolute bottom-full right-0 z-10 mb-2 flex min-w-[180px] animate-[fadeInSlideUp_0.2s_ease-out] flex-col gap-2 rounded-sm border p-3 shadow-md"
