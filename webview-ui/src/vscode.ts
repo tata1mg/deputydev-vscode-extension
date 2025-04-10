@@ -195,9 +195,6 @@ export function removeCommandEventListener(
 }
 
 addCommandEventListener("new-chat", async () => {
-  useSessionsStore.getState().clearCurrentSessionsPage();
-  useSessionsStore.getState().clearSessions();
-  getSessions(20, 0);
   useChatSettingStore.setState({
     chatSource: "new-chat",
   });
@@ -213,6 +210,12 @@ addCommandEventListener("new-chat", async () => {
 });
 
 addCommandEventListener("set-view-type", ({ data }) => {
+  const currentViewType = useExtensionStore.getState().viewType;
+
+  if (data === "history" && currentViewType !== "history") {
+    useSessionsStore.getState().clearCurrentSessionsPage();
+    useSessionsStore.getState().clearSessions();
+  }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
@@ -245,11 +248,11 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
 addCommandEventListener("sessions-history", ({ data } : any) => {
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
-  if (data.response && Array.isArray(data.response) && data.response.length > 0) {
+  if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
-      .setSessions((prevSessions) => [...prevSessions, ...(data.response as Session[])]);
+      .setSessions((prevSessions) => [...prevSessions, ...(data.unpinnedSessions as Session[])]);
   }
 });
 
@@ -340,7 +343,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: "inline-chat" });
-  console.dir(useChatStore.getState().currentEditorReference, { depth: null });
+  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
 addCommandEventListener("progress-bar", ({ data }) => {
