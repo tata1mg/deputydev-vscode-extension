@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { api } from '../api/axios';
-import { getSessionId } from "../../utilities/contextManager";
+import { getSessionId, sendNotVerified } from "../../utilities/contextManager";
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from "ws";
@@ -20,9 +20,11 @@ interface StreamEvent {
 
 export class QuerySolverService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private context: vscode.ExtensionContext;
 
-  constructor() {
+  constructor(context: vscode.ExtensionContext) {
     this.logger = SingletonLogger.getInstance();
+    this.context = context;
   }
 
   public async *querySolver(
@@ -57,7 +59,7 @@ export class QuerySolverService {
     signal?: AbortSignal
   ): AsyncIterableIterator<any> {
     const authService = new AuthService();
-    const authToken = await authService.loadAuthToken();
+    let authToken = await authService.loadAuthToken();
     if (!authToken) {
       throw new Error("Missing auth token. Ensure user is logged in.");
     }
@@ -67,7 +69,7 @@ export class QuerySolverService {
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
 
-    const handleMessage = (event: RawData): "RESOLVE" | "REJECT" | "WAIT" => {
+    const handleMessage = (event: RawData): "RESOLVE" | "REJECT" | "WAIT" | 'REJECT_AND_RETRY' => {
       try {
         const messageData = JSON.parse(event.toString());
         if (messageData.type === 'STREAM_START') {
@@ -80,6 +82,12 @@ export class QuerySolverService {
           streamDone = true;
           return "RESOLVE";
         } else if (messageData.type === 'STREAM_ERROR') {
+          if (messageData.status == 'NOT_VERIFIED') {
+
+            streamError = new Error("Session not verified");
+            sendNotVerified();
+            return "REJECT_AND_RETRY";
+          }
           // console.error("❌ Error in WebSocket stream:", messageData.message);
           this.logger.error("Error in querysolver WebSocket stream: ", messageData.message);
           // console.error("Error in WebSocket stream:", messageData.message);
@@ -96,7 +104,7 @@ export class QuerySolverService {
       return "WAIT";
     };
 
-    const websocketClient = new BaseWebSocketClient(
+    let websocketClient = new BaseWebSocketClient(
       DD_HOST_WS,
       API_ENDPOINTS.QUERY_SOLVER,
       authToken,
@@ -111,6 +119,7 @@ export class QuerySolverService {
       () => websocketClient.close()
     ).catch(
       (error) => {
+        console.error("Error sending message to WebSocket:", error);
         streamError = error;
         websocketClient.close();
       }
@@ -129,6 +138,44 @@ export class QuerySolverService {
         // this.logger.error("Error in querysolver WebSocket stream:", streamError);
         // console.error("Error in querysolver WebSocket stream:", streamError);
         websocketClient.close();
+        this.logger.info("Error in querysolver WebSocket stream:", streamError);
+        if (streamError === 'RETRY_NEEDED') {
+          this.logger.info("Error in querysolver WebSocket stream 1:", streamError);
+          let isAuthenticated = this.context.workspaceState.get("isAuthenticated");
+          // wait until the user is authenticated or 10 minutes have passed
+          const startTime = Date.now();
+          const maxWaitTime = 10 * 60 * 1000; // 10 minutes
+          while (!isAuthenticated && (Date.now() - startTime) < maxWaitTime) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            isAuthenticated = this.context.workspaceState.get("isAuthenticated");
+          }
+          if (!isAuthenticated) {
+            throw new Error("Session not verified");
+          }
+          authToken = await authService.loadAuthToken();
+          websocketClient = new BaseWebSocketClient(
+            DD_HOST_WS,
+            API_ENDPOINTS.QUERY_SOLVER,
+            authToken,
+            handleMessage,
+            {
+              ...(currentSessionId ? { "X-Session-ID": currentSessionId.toString() } : {}),
+              "X-Session-Type": SESSION_TYPE
+            }
+          );
+      
+          websocketClient.send(payload).then(
+            () => websocketClient.close()
+          ).catch(
+            (error) => {
+              console.error("Error sending message to WebSocket:", error);
+              streamError = error;
+              websocketClient.close();
+            }
+          );
+          continue;
+        }
+
         throw streamError;
       }
       if (signal?.aborted) {

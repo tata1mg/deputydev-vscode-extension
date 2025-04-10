@@ -37,15 +37,19 @@ export class AuthenticationManager {
                                 true
                             );
                             this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
+                            this.context.workspaceState.update("isAuthenticated", true);
                             return response.data.status;
                         } else {
+                            this.context.workspaceState.update("isAuthenticated", false);
                             return 'NOT_AUTHENTICATED';
                         }
                     } else {
+                        this.context.workspaceState.update("isAuthenticated", false);
                         return 'NOT_AUTHENTICATED';
                     }
                 }
             } catch (error) {
+                this.context.workspaceState.update("isAuthenticated", false);
                 this.logger.error('Error while polling session');
                 return 'AUTHENTICATION_FAILED';
             }
@@ -72,6 +76,7 @@ export class AuthenticationManager {
                     userName: response.data.user_name
                 }
                 this.context.globalState.update("userData", userData)
+                this.context.workspaceState.update("isAuthenticated", true);
                 return true;
                 // return false;
             } else if (response.data.status === 'EXPIRED') {
@@ -84,18 +89,22 @@ export class AuthenticationManager {
                         }
                         this.context.globalState.update("userData", userData)
                         this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
+                        this.context.workspaceState.update("isAuthenticated", true);
                         return true;
                         // return false;
                     }
                 } else {
+                    this.context.workspaceState.update("isAuthenticated", false);
                     return false;
                     // return true;
                 }
             } else {
+                this.context.workspaceState.update("isAuthenticated", false);
                 return false;
                 // return true;
             }
         } catch (error) {
+            this.context.workspaceState.update("isAuthenticated", false);
             this.logger.error("Authentication failed, please try again later.")
             throw error
         }

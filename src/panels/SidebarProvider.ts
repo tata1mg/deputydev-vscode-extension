@@ -304,6 +304,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       );
       this.logger.info("Signed out successfully");
       this.outputChannel.info("Signed out successfully");
+      this.context.workspaceState.update("isAuthenticated", false);
       this.setViewType("auth");
     }
   }
