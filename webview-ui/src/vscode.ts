@@ -210,7 +210,9 @@ addCommandEventListener("new-chat", async () => {
 });
 
 addCommandEventListener("set-view-type", ({ data }) => {
-  if (data === "history") {
+  const currentViewType = useExtensionStore.getState().viewType;
+
+  if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
   }
