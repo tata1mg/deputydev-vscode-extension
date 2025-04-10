@@ -90,7 +90,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
   }, [showDeleteConfirm]);
 
   const getLocaleTimeString = (dateString: string) => {
-    const date = new Date(dateString + "Z");
+    const date = new Date(dateString);
     const dateOptions: Intl.DateTimeFormatOptions = {
       month: "long",
       day: "numeric",
