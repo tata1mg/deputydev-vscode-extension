@@ -340,7 +340,7 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: "inline-chat" });
-  console.dir(useChatStore.getState().currentEditorReference, { depth: null });
+  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
 addCommandEventListener("progress-bar", ({ data }) => {
