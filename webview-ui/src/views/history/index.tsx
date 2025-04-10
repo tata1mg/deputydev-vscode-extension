@@ -90,21 +90,25 @@ const SortableItem: React.FC<SortableItemProps> = ({
   }, [showDeleteConfirm]);
 
   const getLocaleTimeString = (dateString: string) => {
-    const date = new Date(dateString);
+    const cleanedDateString = dateString.split(".")[0];
+    const utcDate = new Date(cleanedDateString);
+    const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000)); // Add 5 hours and 30 minutes
+
     const dateOptions: Intl.DateTimeFormatOptions = {
       month: "long",
       day: "numeric",
       year: "numeric",
+      timeZone: "Asia/Kolkata",
     };
     const timeOptions: Intl.DateTimeFormatOptions = {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
+      timeZone: "Asia/Kolkata",
     };
 
-    const locale = navigator.language || "en-US";
-    const datePart = date.toLocaleDateString(locale, dateOptions);
-    const timePart = date.toLocaleTimeString(locale, timeOptions);
+    const datePart = istDate.toLocaleDateString("en-US", dateOptions);
+    const timePart = istDate.toLocaleTimeString("en-US", timeOptions);
 
     return `${datePart}, ${timePart}`;
   };
