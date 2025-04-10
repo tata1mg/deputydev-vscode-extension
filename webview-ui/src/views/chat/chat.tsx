@@ -386,7 +386,7 @@ export function ChatUI() {
             ))}
           </div> */}
 
-          {messages.length === 0 &&
+          {messages.length === 0 && !showAutocomplete &&
             <div className="px-4">
               <p className="mb-2 mt-4 text-center text-xs text-gray-500">
                 DeputyDev is powered by AI. It can make mistakes. Please double
