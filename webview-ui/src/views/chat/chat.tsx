@@ -104,6 +104,7 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
+    useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
     const resetTextareaHeight = () => {
