@@ -11,6 +11,7 @@ import {
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
+import { useRef } from "react";
 
 export function ChatArea() {
   const {
@@ -19,6 +20,8 @@ export function ChatArea() {
     showSkeleton,
     showSessionsBox,
   } = useChatStore();
+  const queryCompleteTimestampsRef = useRef(new Map());
+
   // console.log("messages in parser", messages);
 
   return (
@@ -203,16 +206,32 @@ export function ChatArea() {
               </div>
             );
 
-          case "QUERY_COMPLETE":
+          case "QUERY_COMPLETE": {
+            // If no timestamp has been recorded for this message, record one now
+            if (!queryCompleteTimestampsRef.current.has(index)) {
+              const last = useChatStore.getState().lastMessageSentTime;
+              const elapsed = last
+                ? new Date().getTime() - last.getTime()
+                : null;
+              queryCompleteTimestampsRef.current.set(index, elapsed);
+            }
+
+            const timeElapsed = queryCompleteTimestampsRef.current.get(index);
+
             return (
               <div
                 key={index}
-                className="flex items-center mt-1 space-x-2 font-medium text-green-500"
+                className="mt-1 flex items-center space-x-2 font-medium text-green-500"
               >
                 <span>✓</span>
-                <span>Task Completed</span>
+                {timeElapsed !== null ? (
+                  <span>{`Task Completed in ${timeElapsed / 1000} sec.`}</span>
+                ) : (
+                  <span>Task Completed</span>
+                )}
               </div>
             );
+          }
 
           case "ERROR":
             return (
