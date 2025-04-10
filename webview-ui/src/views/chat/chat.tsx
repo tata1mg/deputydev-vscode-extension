@@ -124,7 +124,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } finally {
     }
   };
@@ -331,9 +331,14 @@ export function ChatUI() {
           <div>
             <div>
               <div className="mb-12 mt-8">
-                <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
+                <img
+                  src="https://onemg.gumlet.io/dd_logo_with_name_10_04.png"
+                  alt="DeputyDev Logo"
+                  className="h-10 w-auto px-4"
+                />
+                {/* <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
                   Develop with DeputyDev
-                </h1>
+                </h1> */}
               </div>
               {showDefaultContent && (
                 <div className="h-[128px] px-4 fade-in">
@@ -419,7 +424,7 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                      useChatStore.getState().currentEditorReference.length - 1
+                    useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
@@ -440,10 +445,10 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                    "data-tooltip-id": "repo-tooltip",
-                    "data-tooltip-content":
-                      "Please wait, DeputyDev is initializing.",
-                  })}
+                  "data-tooltip-id": "repo-tooltip",
+                  "data-tooltip-content":
+                    "Please wait, DeputyDev is initializing.",
+                })}
                 autoFocus
               />
             </div>
