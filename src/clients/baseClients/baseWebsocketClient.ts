@@ -15,7 +15,7 @@ export class BaseWebSocketClient {
     baseUrl: string,
     endpoint: string,
     authToken: string,
-    messageHandler: (event: RawData) => "RESOLVE" | "REJECT" | "WAIT",
+    messageHandler: (event: RawData) => "RESOLVE" | "REJECT" | "WAIT" | "REJECT_AND_RETRY",
     extraHeaders?: Record<string, string>
   ) {
     this.url = `${baseUrl}${endpoint}`;
@@ -39,7 +39,7 @@ export class BaseWebSocketClient {
   }
 
   private setupEventListeners(
-    messageHandler: (event: RawData) => "RESOLVE" | "REJECT" | "WAIT"
+    messageHandler: (event: RawData) => "RESOLVE" | "REJECT" | "WAIT" | "REJECT_AND_RETRY"
   ) {
     this.socket.on("open", () => {
     });
@@ -54,6 +54,9 @@ export class BaseWebSocketClient {
           this.close();
         } else if (messgaeHandlerResult === "REJECT") {
           this.rejectResponse(new Error("Some error"));
+          this.close();
+        } else if (messgaeHandlerResult === "REJECT_AND_RETRY") {
+          this.rejectResponse("RETRY_NEEDED");
           this.close();
         }
       } catch (error) {
