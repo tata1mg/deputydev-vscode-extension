@@ -57,16 +57,8 @@ export function ChatUI() {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
-  const [showDefaultContent, setShowDefaultContent] = useState(false);
   const backspaceCountRef = useRef(0);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowDefaultContent(true);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     const handleCopy = () => {
@@ -339,7 +331,7 @@ export function ChatUI() {
                   Develop with DeputyDev
                 </h1> */}
               </div>
-              {showDefaultContent && (
+              {!repoSelectorEmbedding && (
                 <div className="h-[128px] px-4 fade-in">
                   <div className="flex items-center gap-2">
                     <p className="mb-2 text-lg text-gray-400">
@@ -353,12 +345,6 @@ export function ChatUI() {
                   </p>
                 </div>
               )}
-            </div>
-            <div className="p-4">
-              <p className="mt-4 text-left text-xs text-gray-500">
-                DeputyDev is powered by AI. It can make mistakes. Please double
-                check all output.
-              </p>
             </div>
           </div>
         )}
@@ -398,6 +384,13 @@ export function ChatUI() {
               />
             ))}
           </div> */}
+
+          <div className="px-4">
+            <p className="mb-2 mt-4 text-center text-xs text-gray-500">
+              DeputyDev is powered by AI. It can make mistakes. Please double
+              check all output.
+            </p>
+          </div>
 
           {activeRepo ? (
             <div className="mb-[2px] w-full">
