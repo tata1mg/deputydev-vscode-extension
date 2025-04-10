@@ -42,6 +42,7 @@ type SortableItemProps = {
   ) => void;
   isPinned: boolean;
   disablePinning?: boolean;
+  mountPopupOnBottom?: boolean;
 };
 
 const SortableItem: React.FC<SortableItemProps> = ({
@@ -51,6 +52,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
   isPinned,
   disablePinning,
   handlePinUnpinSession,
+  mountPopupOnBottom,
 }) => {
   const {
     attributes,
@@ -63,6 +65,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
     id: session.id,
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -71,18 +74,34 @@ const SortableItem: React.FC<SortableItemProps> = ({
     backgroundColor: "var(--vscode-editor-background)",
   };
 
+  useEffect(() => {
+    if (!showDeleteConfirm) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!e.target) return;
+      const target = e.target as HTMLElement;
+      if (!target.closest(".delete-confirmation-popup")) {
+        setShowDeleteConfirm(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showDeleteConfirm]);
+
   const getLocaleTimeString = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = new Date(dateString + "Z");
     const dateOptions: Intl.DateTimeFormatOptions = {
       month: "long",
       day: "numeric",
+      year: "numeric",
     };
     const timeOptions: Intl.DateTimeFormatOptions = {
       hour: "numeric",
       minute: "numeric",
       hour12: true,
     };
-    // console.log(navigator.language);
+
     const locale = navigator.language || "en-US";
     const datePart = date.toLocaleDateString(locale, dateOptions);
     const timePart = date.toLocaleTimeString(locale, timeOptions);
@@ -149,16 +168,38 @@ const SortableItem: React.FC<SortableItemProps> = ({
       </div>
 
       {isPinned ? (
-        <PinOff
-          size={16}
-          style={{
-            color: "var(--vscode-icon-foreground)",
-            cursor: "pointer",
-            transition: "opacity 0.2s",
-          }}
-          className="flex-shrink-0 hover:opacity-70"
-          onMouseDown={() => handlePinUnpinSession(session, "UNPINNED")}
-        />
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <PinOff
+                size={16}
+                style={{
+                  color: "var(--vscode-icon-foreground)",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                className="flex-shrink-0 hover:opacity-70"
+                onMouseDown={() => handlePinUnpinSession(session, "UNPINNED")}
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="top"
+                className="rounded-md px-2 py-1 text-xs shadow-md"
+                style={{
+                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                  color: "var(--vscode-editorHoverWidget-foreground)",
+                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                }}
+              >
+                Unpin conversation
+                <Tooltip.Arrow
+                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       ) : disablePinning ? (
         <Tooltip.Provider>
           <Tooltip.Root>
@@ -194,45 +235,99 @@ const SortableItem: React.FC<SortableItemProps> = ({
           </Tooltip.Root>
         </Tooltip.Provider>
       ) : (
-        <Pin
-          size={16}
-          style={{
-            color: "var(--vscode-icon-foreground)",
-            cursor: "pointer",
-            transition: "opacity 0.2s",
-          }}
-          className="flex-shrink-0 hover:opacity-70"
-          onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
-        />
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              <Pin
+                size={16}
+                style={{
+                  color: "var(--vscode-icon-foreground)",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                className="flex-shrink-0 hover:opacity-70"
+                onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
+              />
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                side="top"
+                className="rounded-md px-2 py-1 text-xs shadow-md"
+                style={{
+                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                  color: "var(--vscode-editorHoverWidget-foreground)",
+                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                }}
+              >
+                Pin conversation
+                <Tooltip.Arrow
+                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
       )}
       <div className="relative flex-shrink-0">
         {!showDeleteConfirm ? (
-          <Trash2
-            size={16}
-            style={{
-              color: "var(--vscode-icon-foreground)",
-              cursor: "pointer",
-              transition: "opacity 0.2s",
-            }}
-            className="hover:opacity-70"
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              setShowDeleteConfirm(true);
-            }}
-          />
+          <Tooltip.Provider>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <Trash2
+                  size={16}
+                  style={{
+                    color: "var(--vscode-icon-foreground)",
+                    cursor: "pointer",
+                    transition: "opacity 0.2s",
+                  }}
+                  className="hover:opacity-70"
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    setTriggerRect(e.currentTarget.getBoundingClientRect());
+                    setShowDeleteConfirm(true);
+                  }}
+                />
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  side="top"
+                  className="rounded-md px-2 py-1 text-xs shadow-md"
+                  style={{
+                    backgroundColor:
+                      "var(--vscode-editorHoverWidget-background)",
+                    color: "var(--vscode-editorHoverWidget-foreground)",
+                    border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  }}
+                >
+                  Delete conversation
+                  <Tooltip.Arrow
+                    style={{
+                      fill: "var(--vscode-editorHoverWidget-background)",
+                    }}
+                  />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         ) : (
           <div
-            className="absolute bottom-full right-0 z-10 mb-2 flex min-w-[180px] animate-[fadeInSlideUp_0.2s_ease-out] flex-col gap-2 rounded-sm border p-3 shadow-md"
+            className="fixed z-[9999] flex min-w-[180px] animate-[fadeInSlideDown_0.2s_ease-out] flex-col gap-2 rounded-sm border p-3 shadow-md"
             style={{
               backgroundColor: "var(--vscode-editorHoverWidget-background)",
               borderColor: "var(--vscode-editorHoverWidget-border)",
+              marginRight: "20px",
+              top: mountPopupOnBottom
+                ? `calc(${triggerRect?.y || 0}px + 20px)`
+                : `calc(${triggerRect?.y || 0}px - 100px)`,
+              left: `calc(${triggerRect?.x || 0}px - 220px)`,
+              maxWidth: "calc(100vw - 32px)",
             }}
           >
             <span
               className="text-xs"
               style={{ color: "var(--vscode-editorHoverWidget-foreground)" }}
             >
-              Are you sure you want to delete this session?
+              Are you sure you want to delete this Conversation?
             </span>
             <div className="mt-1 flex justify-end gap-2">
               <button
@@ -271,10 +366,18 @@ const SortableItem: React.FC<SortableItemProps> = ({
 };
 
 export default function History() {
-  const { sessions, sessionsPerPage, pinnedSessions, currentSessionsPage, setCurrentSessionsPage } = useSessionsStore();
+  const {
+    sessions,
+    sessionsPerPage,
+    pinnedSessions,
+    currentSessionsPage,
+    setCurrentSessionsPage,
+  } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [disableLoader, setDisableLoader] = useState(false);
-  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState("Loading your DeputyDev sessions history...");
+  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState(
+    "Loading your DeputyDev sessions history...",
+  );
 
   const handleGetSessionChats = async (sessionId: number) => {
     getSessionChats(sessionId);
@@ -334,7 +437,7 @@ export default function History() {
     const offset = (pageNumber - 1) * sessionsPerPage;
     getSessions(limit, offset);
     setSessionsLoading(false);
-    setCurrentSessionsPage(prev => prev + 1);
+    setCurrentSessionsPage((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -346,10 +449,12 @@ export default function History() {
 
   useEffect(() => {
     const checkActiveSessions = async () => {
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
       if (pinnedSessions.length === 0 && sessions.length === 0) {
-        setNoActiveSessionsMessage("Your session history will appear here once you begin your AI development journey with DeputyDev");
+        setNoActiveSessionsMessage(
+          "Your session history will appear here once you begin your AI development journey with DeputyDev",
+        );
         setDisableLoader(true);
       }
     };
@@ -386,28 +491,29 @@ export default function History() {
   };
 
   return (
-    <div className="flex flex-col h-screen"
+    <div
+      className="flex h-screen flex-col"
       style={{
         padding: "1rem",
         backgroundColor: "var(--vscode-sidebar-background-rgb)",
       }}
     >
-      {noActiveSessionsMessage && sessions.length === 0 && pinnedSessions.length === 0 && (
-        <div className="flex flex-col justify-center items-center mt-[250px]">
-          {!disableLoader &&
-            <div
-              className="animate-spin inline-block w-16 h-16 border-4 border-current border-t-transparent rounded-full"
-              role="status"
-              aria-label="loading"
-            />
-          }
-          <div
-            className="mt-[10px] text-gray-500 text-center"
-          >
-            {noActiveSessionsMessage}
+      {noActiveSessionsMessage &&
+        sessions.length === 0 &&
+        pinnedSessions.length === 0 && (
+          <div className="mt-[250px] flex flex-col items-center justify-center">
+            {!disableLoader && (
+              <div
+                className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-current border-t-transparent"
+                role="status"
+                aria-label="loading"
+              />
+            )}
+            <div className="mt-[10px] text-center text-gray-500">
+              {noActiveSessionsMessage}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Pinned Sessions container */}
       {pinnedSessions.length > 0 && (
@@ -423,54 +529,63 @@ export default function History() {
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext
-              items={pinnedSessions}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="relative flex flex-col gap-2 overflow-hidden">
-                {pinnedSessions.map((session) => (
-                  <SortableItem
-                    key={session.id}
-                    session={session}
-                    handleGetSessionChats={handleGetSessionChats}
-                    handleDeleteSession={handleDeleteSession}
-                    isPinned={true}
-                    handlePinUnpinSession={handlePinUnpinSession}
-                  />
-                ))}
-              </div>
-            </SortableContext>
+            <div className="relative">
+              <SortableContext
+                items={pinnedSessions}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="relative flex flex-col gap-2">
+                  {pinnedSessions.map((session, index) => (
+                    <SortableItem
+                      key={session.id}
+                      session={session}
+                      handleGetSessionChats={handleGetSessionChats}
+                      handleDeleteSession={handleDeleteSession}
+                      isPinned={true}
+                      handlePinUnpinSession={handlePinUnpinSession}
+                      mountPopupOnBottom={index === 0}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </div>
           </DndContext>
         </div>
       )}
 
       {/* Unpinned Sessions container */}
       {sessions.length > 0 && (
-        <div className="flex-1">
+        <div className="flex flex-1 flex-col">
           <h3
             className="mb-2 mt-6 text-lg font-semibold"
             style={{ color: "var(--vscode-editor-foreground)" }}
           >
             Past Conversations
           </h3>
-          <div className="flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              {sessions.map((session) => (
-                <SortableItem
-                  key={session.id}
-                  session={session}
-                  handleGetSessionChats={handleGetSessionChats}
-                  handleDeleteSession={handleDeleteSession}
-                  isPinned={false}
-                  disablePinning={pinnedSessions.length >= 5}
-                  handlePinUnpinSession={handlePinUnpinSession}
-                />
-              ))}
-              {useSessionsStore.getState().hasMore &&
-                <div className="mt-2 animate-bounce flex justify-center cursor-pointer" onClick={() => fetchSessions(currentSessionsPage)}>
-                  <ArrowDown />
-                </div>
-              }
+          <div className="flex flex-1 flex-col">
+            {/* Move overflow to inner container */}
+            <div className="overflow-y-auto">
+              <div className="flex flex-col gap-2">
+                {sessions.map((session) => (
+                  <SortableItem
+                    key={session.id}
+                    session={session}
+                    handleGetSessionChats={handleGetSessionChats}
+                    handleDeleteSession={handleDeleteSession}
+                    isPinned={false}
+                    disablePinning={pinnedSessions.length >= 5}
+                    handlePinUnpinSession={handlePinUnpinSession}
+                  />
+                ))}
+                {useSessionsStore.getState().hasMore && (
+                  <div
+                    className="mt-2 flex animate-bounce cursor-pointer justify-center"
+                    onClick={() => fetchSessions(currentSessionsPage)}
+                  >
+                    <ArrowDown />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
