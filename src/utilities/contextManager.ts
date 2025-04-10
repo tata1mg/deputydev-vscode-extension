@@ -53,6 +53,15 @@ export function sendForceUpgrade() {
   sidebarProvider?.sendMessageToSidebar("force-upgrade-needed");
 }
 
+export function sendNotVerified() {
+  extensionContext?.workspaceState.update("isAuthenticated", false);
+  // delay for 0.2 second
+  setTimeout(() => {
+    sidebarProvider?.sendMessageToSidebar("NOT_VERIFIED");
+  }, 200);
+}
+
+
 export function sendForceUgradeData(data: {url: string, upgradeVersion: string}) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
