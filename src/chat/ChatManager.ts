@@ -26,7 +26,7 @@ import { UsageTrackingRequest } from "../types";
 
 
 export class ChatManager {
-  private querySolverService = new QuerySolverService();
+  private querySolverService = new QuerySolverService(this.context);
   private sidebarProvider?: SidebarProvider; // Optional at first
   private historyService = new HistoryService();
   private focusChunksService = new FocusChunksService();

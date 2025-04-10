@@ -1,5 +1,5 @@
 import { AxiosError } from "axios";
-import { sendForceUgradeData, sendForceUpgrade } from "../../utilities/contextManager";
+import { sendForceUgradeData, sendForceUpgrade, sendNotVerified } from "../../utilities/contextManager";
 import { SingletonLogger } from "../../utilities/Singleton-logger";
 
 export class ApiErrorHandler {
@@ -27,6 +27,9 @@ export class ApiErrorHandler {
           url: errorData.meta?.client_download_link,
           upgradeVersion: errorData.meta?.upgrade_version
         });
+      }
+      if (axiosError.response?.status === 400 && errorData?.error?.message === 'NOT_VERIFIED') {
+        sendNotVerified();
       }
     } else {
       const raw = error as any;
