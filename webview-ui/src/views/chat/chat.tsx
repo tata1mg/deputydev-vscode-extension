@@ -385,12 +385,14 @@ export function ChatUI() {
             ))}
           </div> */}
 
-          <div className="px-4">
-            <p className="mb-2 mt-4 text-center text-xs text-gray-500">
-              DeputyDev is powered by AI. It can make mistakes. Please double
-              check all output.
-            </p>
-          </div>
+          {messages.length === 0 &&
+            <div className="px-4">
+              <p className="mb-2 mt-4 text-center text-xs text-gray-500">
+                DeputyDev is powered by AI. It can make mistakes. Please double
+                check all output.
+              </p>
+            </div>
+          }
 
           {activeRepo ? (
             <div className="mb-[2px] w-full">
