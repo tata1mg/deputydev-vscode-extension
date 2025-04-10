@@ -8,41 +8,15 @@ export class SingletonLogger {
 
   private logFilePath: string;
   private debugMode: boolean;
+  private pid: string;
+  private currentDate: string;
 
   private constructor() {
     this.debugMode = true;
-
-    const homeDir = os.homedir();
-    const baseDir = path.join(homeDir, '.deputydev', 'logs');
-    const pid = process.pid.toString();
-
-    if (!fs.existsSync(baseDir)) {
-      fs.mkdirSync(baseDir, { recursive: true });
-    }
-
-    const pidFolderPrefix = `pid_${pid}_`;
-    const existingPidFolder = fs.readdirSync(baseDir).find(folder =>
-      folder.startsWith(pidFolderPrefix)
-    );
-
-    let pidDir: string;
-    if (existingPidFolder) {
-      pidDir = existingPidFolder;
-    } else {
-      const startDate = new Date().toISOString().slice(0, 10);
-      pidDir = `${pidFolderPrefix}${startDate}`;
-      fs.mkdirSync(path.join(baseDir, pidDir));
-    }
-
-    const today = new Date().toISOString().slice(0, 10);
-    const logDir = path.join(baseDir, pidDir, today);
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-
-    this.logFilePath = path.join(logDir, 'debug.log');
-
-    // console.log('DeputyDev (singleton) debug logs filepath is:', this.logFilePath);
+    this.pid = process.pid.toString();
+    this.currentDate = new Date().toISOString().slice(0, 10);
+    this.logFilePath = this.getLogFilePath(this.currentDate);
+    console.log('DeputyDev (singleton) debug logs filepath is:', this.logFilePath);
   }
 
   public static getInstance(): SingletonLogger {
@@ -50,6 +24,17 @@ export class SingletonLogger {
       SingletonLogger._instance = new SingletonLogger();
     }
     return SingletonLogger._instance;
+  }
+
+  private getLogFilePath(date: string): string {
+    const homeDir = os.homedir();
+    const baseDir = path.join(homeDir, '.deputydev', 'logs');
+    const pidDir = path.join(baseDir, `pid_${this.pid}`);
+    const logDir = path.join(pidDir, date);
+
+    fs.mkdirSync(logDir, { recursive: true });
+
+    return path.join(logDir, 'debug.log');
   }
 
   deleteLogsOlderThan(days: number) {
@@ -91,6 +76,12 @@ export class SingletonLogger {
   private log(level: string, ...args: any[]) {
     if (!this.debugMode) return;
 
+    const today = new Date().toISOString().slice(0, 10);
+    if (today !== this.currentDate) {
+      this.currentDate = today;
+      this.logFilePath = this.getLogFilePath(today); // 🔄 Switch to new day's log
+    }
+
     const formatted = this.formatArgs(level, args);
 
     try {
@@ -117,22 +108,11 @@ export class SingletonLogger {
   }
 
   async showCurrentProcessLogs() {
-    const pid = process.pid.toString();
     const homeDir = os.homedir();
     const baseDir = path.join(homeDir, '.deputydev', 'logs');
-
-    const pidFolderPrefix = `pid_${pid}_`;
-    const pidFolder = fs.readdirSync(baseDir).find(folder =>
-      folder.startsWith(pidFolderPrefix)
-    );
-
-    if (!pidFolder) {
-      return;
-    }
-
-    const logDir = path.join(baseDir, pidFolder);
+    const pidDir = path.join(baseDir, `pid_${this.pid}`);
     const today = new Date().toISOString().slice(0, 10);
-    const logFilePath = path.join(logDir, today, 'debug.log');
+    const logFilePath = path.join(pidDir, today, 'debug.log');
 
     if (!fs.existsSync(logFilePath)) {
       return;
