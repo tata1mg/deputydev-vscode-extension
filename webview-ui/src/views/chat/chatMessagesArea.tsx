@@ -204,13 +204,23 @@ export function ChatArea() {
             );
 
           case "QUERY_COMPLETE":
+            const lastMessageSentTime =
+              useChatStore.getState().lastMessageSentTime;
+            const timeElapsed =
+              lastMessageSentTime !== null
+                ? new Date().getTime() - lastMessageSentTime.getTime()
+                : null;
             return (
               <div
                 key={index}
-                className="flex items-center mt-1 space-x-2 font-medium text-green-500"
+                className="mt-1 flex items-center space-x-2 font-medium text-green-500"
               >
                 <span>✓</span>
-                <span>Task Completed</span>
+                {timeElapsed ? (
+                  <span>{`Task Completed in ${timeElapsed / 1000} sec.`}</span>
+                ) : (
+                  <span>Task Completed</span>
+                )}
               </div>
             );
 
