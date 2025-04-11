@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useRef, useEffect } from "react";
 import { AutocompleteOption } from "@/types";
 import { Folder, File, Code, Boxes } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
@@ -21,9 +21,26 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   onSelect,
 }) => {
   const { selectedOptionIndex } = useChatStore();
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (listRef.current && selectedOptionIndex !== -1) {
+      const selectedElement = listRef.current.children[selectedOptionIndex];
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth"
+        });
+      }
+    }
+  }, [selectedOptionIndex]);
+
   return (
     <div className={`${options.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackground)] border border-[#3c3c3c] rounded-md shadow-xl z-50`}>
-      <ul className="p-1 space-y-1">
+      <ul
+        className="p-1 space-y-1"
+        ref={listRef}
+      >
         {options.length === 0 && (
           <li className="text-center py-2 text-xs opacity-70">
             No results found
