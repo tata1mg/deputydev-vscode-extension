@@ -91,7 +91,8 @@ export function CodeActionPanel({
           event: "generated",
           properties: {
             file_path: filepath || "",
-            lines: content.split("\n").length,
+            lines: content.split("\n").filter((line) => line.trim() !== "")
+              .length,
             source: getSource(),
           },
         };
@@ -161,7 +162,7 @@ export function CodeActionPanel({
   const filename = filepath ? filepath.split("/").pop() : "";
 
   return (
-    <div className="w-full overflow-hidden rounded-md border border-gray-500 mt-3 bg-gray-900">
+    <div className="mt-3 w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
       <div className="flex h-8 min-w-0 items-center justify-between gap-2 border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
         {is_diff && filepath && diff && isApplicable ? (
           <div className="flex min-w-0 items-center gap-1">
