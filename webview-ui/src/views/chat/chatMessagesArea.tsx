@@ -213,10 +213,25 @@ export function ChatArea() {
               const elapsed = last
                 ? new Date().getTime() - last.getTime()
                 : null;
-              queryCompleteTimestampsRef.current.set(index, elapsed);
+
+              if (elapsed !== null) {
+                queryCompleteTimestampsRef.current.set(index, elapsed);
+              }
             }
 
-            const timeElapsed = queryCompleteTimestampsRef.current.get(index);
+            const rawElapsed = queryCompleteTimestampsRef.current.get(index);
+            let timeElapsed;
+
+            if (rawElapsed != null) {
+              const totalSeconds = Math.round(rawElapsed / 1000);
+              if (totalSeconds >= 60) {
+                const min = Math.floor(totalSeconds / 60);
+                const sec = totalSeconds % 60;
+                timeElapsed = `${min} min ${Math.floor(sec)} sec`;
+              } else {
+                timeElapsed = `${Math.floor(totalSeconds)} sec`;
+              }
+            }
 
             return (
               <div
@@ -225,7 +240,7 @@ export function ChatArea() {
               >
                 <span>✓</span>
                 {timeElapsed !== null ? (
-                  <span>{`Task Completed in ${timeElapsed / 1000} sec.`}</span>
+                  <span>{`Task Completed in ${timeElapsed}.`}</span>
                 ) : (
                   <span>Task Completed</span>
                 )}
