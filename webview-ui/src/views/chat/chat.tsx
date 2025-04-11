@@ -36,12 +36,11 @@ export function ChatUI() {
     sendChatMessage,
     cancelChat,
     showSessionsBox,
-    showAllSessions,
     ChatAutocompleteOptions,
     progressBars,
+    selectedOptionIndex
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
-  const visibleSessions = 3;
   const { activeRepo } = useWorkspaceStore();
 
   const repoSelectorEmbedding = useMemo(() => {
@@ -139,7 +138,35 @@ export function ChatUI() {
   const handleTextAreaKeyDown = (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
   ) => {
-    if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey) {
+    const options = useChatStore.getState().ChatAutocompleteOptions;
+
+    if (showAutocomplete && options.length > 0) {
+      // Prevent default behavior for up/down arrows when autocomplete is active
+      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const newIndex = e.key === "ArrowUp"
+          ? (selectedOptionIndex - 1 + options.length) % options.length
+          : (selectedOptionIndex + 1) % options.length;
+        useChatStore.setState({ selectedOptionIndex: newIndex });
+        return;
+      }
+
+      // Handle enter key for autocomplete selection
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (selectedOptionIndex >= 0) {
+          const selectedOption = options[selectedOptionIndex];
+          if (selectedOption) {
+            handleAutoCompleteSelect(selectedOption);
+            useChatStore.setState({ selectedOptionIndex: -1 });
+          }
+          return;
+        }
+      }
+    }
+
+    // Handle regular enter key when not in autocomplete mode
+    if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey && !showAutocomplete) {
       e.preventDefault();
       if (!isLoading) {
         handleSend();
@@ -256,6 +283,7 @@ export function ChatUI() {
       }
     }
     useChatStore.setState({ chipIndexBeingEdited: -1 });
+    useChatStore.setState({ selectedOptionIndex: -1 });
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
