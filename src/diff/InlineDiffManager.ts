@@ -798,6 +798,30 @@ export class InlineDiffViewManager
         const rangeToReveal = new vscode.Range(line, 0, line, 0);
         editor.revealRange(rangeToReveal, vscode.TextEditorRevealType.InCenter);
       }
+      let numLines = 0;
+      for (const change of changes) {
+        if (change.type === "modified") {
+          numLines += change.removed.count + change.added.count;
+        } else {
+          numLines += change.count;
+        }
+      }
+
+      if (is_inline_modify) {
+        const usageTrackingData: UsageTrackingRequest = {
+          event: "generated",
+          properties: {
+            file_path: vscode.workspace.asRelativePath(
+              vscode.Uri.parse(data.path)
+            ),
+            lines: numLines,
+            session_id: session_id,
+            source: "inline-modify",
+          },
+        };
+        const usageTrackingManager = new UsageTrackingManager();
+        usageTrackingManager.trackUsage(usageTrackingData);
+      }
 
       // Log success
       this.outputChannel.debug(`Applied inline diff for ${data.path}`);
