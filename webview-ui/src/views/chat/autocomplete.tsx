@@ -20,7 +20,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   onSelect,
 }) => {
   return (
-    <div className={`${options.length > 0 ? "min-h-[200px] max-h-[300px]" : "h-auto"} overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackground)] border border-[#3c3c3c] rounded-md shadow-xl z-50`}>
+    <div className={`${options.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackground)] border border-[#3c3c3c] rounded-md shadow-xl z-50`}>
       <ul className="p-1 space-y-1">
         {options.length === 0 && (
           <li className="text-center py-2 text-xs opacity-70">
