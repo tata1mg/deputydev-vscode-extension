@@ -85,6 +85,7 @@ export const useChatStore = create(
         progressBars: [] as ProgressBarData[], // Todo: move these to separate store(s)
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
+        selectedOptionIndex: -1,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
