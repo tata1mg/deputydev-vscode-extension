@@ -106,7 +106,7 @@ export function CodeActionPanel({
           source: getSource(),
           lines: showApplyButton
             ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
-            : content.split("\n").length,
+            : content.split("\n").filter((line) => line.trim() !== "").length,
         },
       };
       usageTracking(usageTrackingData);
