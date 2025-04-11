@@ -765,7 +765,6 @@ export class ChatManager {
           },
         },
       }
-      console.log("******tool use retry payload*******",toolUseRetryPayload)
       await this.apiChat(toolUseRetryPayload, chunkCallback);
     }
   }
