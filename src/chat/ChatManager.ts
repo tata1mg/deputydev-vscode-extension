@@ -752,7 +752,6 @@ export class ChatManager {
         },
       });
       // Do NOT continue chat if the tool itself failed critically
-      rawResult = "This tool request failed, please try with different query"
       const toolUseRetryPayload = {
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
@@ -762,7 +761,7 @@ export class ChatManager {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
           response: {
-            "failed_message": `Tool use request failed due to ${error.message}, please retry`,
+            "failed_message": `Tool use failed, you might want to retry`,
           },
         },
       }
