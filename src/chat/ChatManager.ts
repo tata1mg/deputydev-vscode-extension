@@ -752,6 +752,21 @@ export class ChatManager {
         },
       });
       // Do NOT continue chat if the tool itself failed critically
+      const toolUseRetryPayload = {
+        message_id: messageId, // Pass original message ID for context if needed by UI later
+        write_mode: toolRequest.write_mode,
+        is_tool_response: true,
+        tool_use_failed: true,
+        tool_use_response: {
+          tool_name: toolRequest.tool_name,
+          tool_use_id: toolRequest.tool_use_id,
+          response: {
+            "message": "Tool use failed, you might want to retry",
+            "error_message": error.message
+          },
+        },
+      }
+      await this.apiChat(toolUseRetryPayload, chunkCallback);
     }
   }
 
