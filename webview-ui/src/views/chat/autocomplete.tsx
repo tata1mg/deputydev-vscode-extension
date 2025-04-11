@@ -35,7 +35,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             className={`flex items-center gap-3 px-3 py-2 rounded-sm transition-all duration-150 cursor-pointer ${
               index === selectedOptionIndex
                 ? "bg-[var(--deputydev-active-selection-background)] text-[--vscode-list-activeSelectionForeground]"
-                : "hover:bg-[var(--deputydev-active-selection-background)]"
+                : ""
             }`}
             onMouseDown={(e) => {
               e.preventDefault(); // Prevent textarea from losing focus
