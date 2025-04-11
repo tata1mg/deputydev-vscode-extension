@@ -761,7 +761,7 @@ export class ChatManager {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
           response: {
-            "failed_message": `Tool use failed, you might want to retry`,
+            "message": "Tool use failed, you might want to retry",
           },
         },
       }
