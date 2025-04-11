@@ -84,6 +84,19 @@ export function CodeActionPanel({
       return "chat";
     }
   };
+
+  const getLineCountFromContent = (content: string) => {
+    const lines = content.split("\n");
+    let line_count = lines.length;
+    if (lines[line_count - 1] === "") {
+      line_count--;
+    }
+    if (lines[0] === "") {
+      line_count--;
+    }
+    return line_count;
+  };
+
   const handleCopy = () => {
     if (!copyCooldown) {
       if (!showApplyButton && is_live_chat) {
@@ -91,7 +104,7 @@ export function CodeActionPanel({
           event: "generated",
           properties: {
             file_path: filepath || "",
-            lines: content.split("\n").length,
+            lines: getLineCountFromContent(content),
             source: getSource(),
           },
         };
@@ -105,7 +118,7 @@ export function CodeActionPanel({
           source: getSource(),
           lines: showApplyButton
             ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
-            : content.split("\n").length,
+            : getLineCountFromContent(content),
         },
       };
       usageTracking(usageTrackingData);
@@ -161,7 +174,7 @@ export function CodeActionPanel({
   const filename = filepath ? filepath.split("/").pop() : "";
 
   return (
-    <div className="w-full overflow-hidden rounded-md border border-gray-500 mt-3 bg-gray-900">
+    <div className="mt-3 w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
       <div className="flex h-8 min-w-0 items-center justify-between gap-2 border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
         {is_diff && filepath && diff && isApplicable ? (
           <div className="flex min-w-0 items-center gap-1">
