@@ -84,6 +84,19 @@ export function CodeActionPanel({
       return "chat";
     }
   };
+
+  const getLineCountFromContent = (content: string) => {
+    const lines = content.split("\n");
+    let line_count = lines.length;
+    if (lines[line_count - 1] === "") {
+      line_count--;
+    }
+    if (lines[0] === "") {
+      line_count--;
+    }
+    return line_count;
+  };
+
   const handleCopy = () => {
     if (!copyCooldown) {
       if (!showApplyButton && is_live_chat) {
@@ -91,8 +104,7 @@ export function CodeActionPanel({
           event: "generated",
           properties: {
             file_path: filepath || "",
-            lines: content.split("\n").filter((line) => line.trim() !== "")
-              .length,
+            lines: getLineCountFromContent(content),
             source: getSource(),
           },
         };
@@ -106,7 +118,7 @@ export function CodeActionPanel({
           source: getSource(),
           lines: showApplyButton
             ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
-            : content.split("\n").filter((line) => line.trim() !== "").length,
+            : getLineCountFromContent(content),
         },
       };
       usageTracking(usageTrackingData);
