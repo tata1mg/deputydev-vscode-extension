@@ -491,8 +491,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       modifiedFiles,
       active_repo,
       getSessionId(),
+      data.write_mode,
       data.is_inline,
-      data.write_mode
     );
     return;
   }
