@@ -4,3 +4,5 @@ out
 *.local
 webview-ui/.env
 .deputydevrules
+*.vsix
+*.code-workspace
