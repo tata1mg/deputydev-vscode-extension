@@ -102,5 +102,6 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("sessionId", undefined);
   await extensionContext.workspaceState.update("force-upgrade-storage", undefined);
   await extensionContext.workspaceState.update("loader-view-state-storage", undefined);
+  await extensionContext.workspaceState.update("vscode-theme-storage", undefined);
 }
 
