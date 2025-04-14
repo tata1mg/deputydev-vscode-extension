@@ -23,8 +23,8 @@ export function setBinaryPort(port: number) {
 }
 
 export function getBinaryPort(): number | null {
-  return 8001;
-  // return BINARY_PORT;
+  // return 8001;
+  return BINARY_PORT;
 }
 
 
