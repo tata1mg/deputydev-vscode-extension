@@ -94,6 +94,8 @@ export class ChatManager {
         auth_token: await this.authService.loadAuthToken(),
         repo_path: active_repo,
         chunks: chunkDetails,
+        search_item_name: data.referenceList?.[0]?.value,
+        search_item_type: data.referenceList?.[0]?.type,
       }) : [];
       // only print few words only
       this.outputChannel.info(
