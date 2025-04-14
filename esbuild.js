@@ -9,5 +9,5 @@ esbuild.build({
   outfile: "out/extension.js",
   external: ["vscode"], // vscode is provided by the editor
   sourcemap: true,
-  minify: false,
+  minify: true,
 }).catch(() => process.exit(1));
