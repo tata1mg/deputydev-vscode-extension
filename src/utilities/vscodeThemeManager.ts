@@ -40,6 +40,8 @@ export class ThemeManager {
                 return 'light';
             case vscode.ColorThemeKind.HighContrast:
                 return 'high-contrast';
+            case vscode.ColorThemeKind.HighContrastLight:
+                return 'high-contrast-light';
             default:
                 return 'unknown';
         }
