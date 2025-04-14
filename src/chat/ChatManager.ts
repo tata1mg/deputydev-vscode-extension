@@ -609,19 +609,20 @@ export class ChatManager {
     command: string,
     requires_approval: boolean,
     chunkCallback: ChunkCallback,
-    toolRequest: ToolRequest
+    toolRequest: ToolRequest,
+    messageId?: string,
   ): Promise<any> {
     if (!command) {
       throw new Error("Command is empty.");
     }
   
     const parsedContent = JSON.parse(toolRequest.accumulatedContent);
-    const isApproved = parsedContent.user_approved ?? false;
+    const exists_in_deny_list =  true;
   
     this.outputChannel.info(`Running execute command: ${command}`);
     this.outputChannel.info(`Approval required for command: ${requires_approval}`);
   
-    if (requires_approval && !isApproved) {
+    if (requires_approval || exists_in_deny_list) {
       // Step 1: Request approval
       chunkCallback({
         name: "TERMINAL_APPROVAL",
@@ -629,7 +630,6 @@ export class ChatManager {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
           terminal_approval_required: true,
-          message: `Command "${command}" requires your approval to run.`,
         },
       });
   
@@ -640,13 +640,13 @@ export class ChatManager {
     // Step 2: Actually execute the command (if approved or not needed)
     try {
       // ⚠️ Replace this with your actual backend logic to run the command:
-      const result = await this._runTerminalCommand(command);
+      // const result = await this._runTerminalCommand(command);
   
-      this.outputChannel.info("Command executed successfully.");
-      return { output: result };
+      // this.outputChannel.info("Command executed successfully.");
+      // return { output: result };
     } catch (err: any) {
-      this.logger.error(`Command execution failed: ${err.message}`);
-      throw new Error(`Command failed: ${err.message}`);
+      // this.logger.error(`Command execution failed: ${err.message}`);
+      // throw new Error(`Command failed: ${err.message}`);
     }
   }
   
@@ -727,7 +727,7 @@ export class ChatManager {
           break;
         case "execute_command":
           this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runExecuteCommand(parsedContent.command , parsedContent.requires_approval , chunkCallback , toolRequest );
+          rawResult = await this._runExecuteCommand(parsedContent.command , parsedContent.requires_approval , chunkCallback , toolRequest , messageId || "" );
           break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);

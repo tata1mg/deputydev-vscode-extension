@@ -570,6 +570,39 @@ export const useChatStore = create(
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
+
+                  case "TERMINAL_APPROVAL": {
+                    console.log("Terminal approval event received");
+                    const terminalApprovalData = event.data as {
+                      tool_name: string;
+                      tool_use_id: string;
+                      terminal_approval_required: boolean;
+                    };
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === "TOOL_USE_REQUEST") {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (
+                            toolMsg.content.tool_use_id ===
+                            terminalApprovalData.tool_use_id
+                          ) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                terminal_approval:
+                                  terminalApprovalData.terminal_approval_required,
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                  }
+
+                  
                   case "TOOL_USE_RESULT": {
                     const toolResultData = event.data as {
                       tool_name: string;
