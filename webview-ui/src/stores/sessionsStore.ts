@@ -7,6 +7,8 @@ export const useSessionsStore = create<{
   sessionsPerPage: number;
   currentSessionsPage: number;
   hasMore: boolean;
+  noUnpinnedSessions: boolean;
+  noPinnedSessions: boolean;
   setCurrentSessionsPage: (updater: (prev: number) => number) => void;
   setSessions: (
     sessions: Session[] | ((prevSessions: Session[]) => Session[]),
@@ -24,6 +26,8 @@ export const useSessionsStore = create<{
   sessionsPerPage: 20,
   currentSessionsPage: 1,
   hasMore: true,
+  noUnpinnedSessions: false,
+  noPinnedSessions: false,
   setCurrentSessionsPage: (updater) =>
     set((state) => ({
       currentSessionsPage: updater(state.currentSessionsPage),
