@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -334,6 +334,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }
