@@ -499,7 +499,7 @@ export default function History() {
       ) : (
         <div>
           {loadingPinnedSessions && loadingUnpinnedSessions ? (
-            <div className="mt-[250px] flex flex-col items-center justify-center">
+            <div className="mt-[350px] flex flex-col items-center justify-center">
               <div
                 className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-current border-t-transparent"
                 role="status"
