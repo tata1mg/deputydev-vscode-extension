@@ -12,6 +12,7 @@ import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
 import { useRef } from "react";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export function ChatArea() {
   const {
@@ -20,6 +21,7 @@ export function ChatArea() {
     showSkeleton,
     showSessionsBox,
   } = useChatStore();
+  const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
 
   // console.log("messages in parser", messages);
@@ -76,7 +78,10 @@ export function ChatArea() {
             }
             if (msg.actor === "ASSISTANT") {
               return (
-                <div key={index} className="markdown-body">
+                <div
+                  key={index}
+                  className={`markdown-body ${["high-contrast", "high-contrast-light"].includes(themeKind) ? themeKind : ""}`}
+                >
                   <Markdown>{String(msg.content?.text)}</Markdown>
                 </div>
               );
@@ -89,68 +94,6 @@ export function ChatArea() {
               </div>
             );
 
-          // case "CODE_BLOCK_STREAMING":
-          //   if (msg.write_mode && msg.content.is_diff) {
-          //     return (
-          //       <div key={index}>
-          //         <FileEditedChip
-          //           filepath={msg.content.file_path}
-          //           language={msg.content.language}
-          //           content={msg.content.code}
-          //           added_lines={msg.content.added_lines}
-          //           removed_lines={msg.content.removed_lines}
-          //           status={msg.status}
-          //         />
-          //       </div>
-          //     );
-          //   } else {
-          //     return (
-          //       <div key={index} className="text-white">
-          //         <CodeActionPanel
-          //           language={msg.content.language}
-          //           filepath={msg.content.file_path}
-          //           is_diff={msg.content.is_diff} // ✅ fixed here
-          //           content={msg.content.code}
-          //           inline={false}
-          //           diff={msg.content.diff}
-          //           added_lines={msg.content.added_lines}
-          //           removed_lines={msg.content.removed_lines}
-          //         />
-          //       </div>
-          //     );
-          //   }
-
-          // case "CODE_BLOCK":
-          //   if (msg.content.is_diff) {
-          //     return (
-          //       <div key={index}>
-          //         <FileEditedChip
-          //           filepath={msg.content.file_path}
-          //           language={msg.content.language}
-          //           content={msg.content.code}
-          //           added_lines={msg.content.added_lines}
-          //           removed_lines={msg.content.removed_lines}
-          //           status={"idle"}
-          //           past_session={true}
-          //         />
-          //       </div>
-          //     );
-          //   } else {
-          //     return (
-          //       <div key={index} className="text-white">
-          //         <CodeActionPanel
-          //           language={msg.content.language}
-          //           filepath={msg.content.file_path}
-          //           is_diff={msg.content.is_diff} // ✅ fixed here
-          //           content={msg.content.code}
-          //           inline={false}
-          //           diff={msg.content.diff}
-          //           added_lines={msg.content.added_lines}
-          //           removed_lines={msg.content.removed_lines}
-          //         />
-          //       </div>
-          //     );
-          //   }
           case "CODE_BLOCK_STREAMING":
           case "CODE_BLOCK": {
             const isStreaming = msg.type === "CODE_BLOCK_STREAMING";
@@ -199,7 +142,10 @@ export function ChatArea() {
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
-              <div key={index} className="markdown-body">
+              <div
+                key={index}
+                className={`markdown-body ${["high-contrast", "high-contrast-light"].includes(themeKind) ? themeKind : ""}`}
+              >
                 {msg.content.tool_name === "ask_user_input" ? (
                   <Markdown>{msg.content.tool_input_json?.prompt}</Markdown>
                 ) : null}
@@ -266,7 +212,10 @@ export function ChatArea() {
 
       {showSkeleton && showSessionsBox === false && <Shimmer />}
       {current && typeof current.content?.text === "string" && (
-        <div key="streaming" className="markdown-body text-base">
+        <div
+          key="streaming"
+          className={`markdown-body text-base ${["high-contrast", "high-contrast-light"].includes(themeKind) ? themeKind : ""}`}
+        >
           <Markdown>{current.content.text}</Markdown>
         </div>
       )}
