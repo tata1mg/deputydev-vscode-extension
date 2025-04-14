@@ -524,7 +524,7 @@ export default function History() {
         </div>
       ) : (
         <div>
-          {pinnedSessions.length > 0 && sessions.length > 0 ? (
+          {pinnedSessions.length > 0 || sessions.length > 0 ? (
             <div>
               {/* pinned sessions  */}
               <div>

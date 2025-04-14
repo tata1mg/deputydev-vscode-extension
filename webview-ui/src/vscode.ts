@@ -245,10 +245,8 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-addCommandEventListener("sessions-history", ({ data } : any) => {
-  if (data.unpinnedSessions && data.unpinnedSessions.length === 0) {
-    useSessionsStore.setState({noUnpinnedSessions: true});
-  }
+addCommandEventListener("sessions-history", ({ data }: any) => {
+  useSessionsStore.setState({ noUnpinnedSessions: data.unpinnedSessions.length === 0 });
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
   if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
@@ -259,10 +257,8 @@ addCommandEventListener("sessions-history", ({ data } : any) => {
   }
 });
 
-addCommandEventListener("pinned-sessions", ({ data } : any) => {
-  if (data && data.length ===0) {
-    useSessionsStore.setState({noPinnedSessions: true});
-  }
+addCommandEventListener("pinned-sessions", ({ data }: any) => {
+  useSessionsStore.setState({ noPinnedSessions: data.lenght === 0});
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
     // Append new sessions to the existing ones
