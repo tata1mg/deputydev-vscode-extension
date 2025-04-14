@@ -119,7 +119,7 @@ export class QuerySolverService {
       () => websocketClient.close()
     ).catch(
       (error) => {
-        console.error("Error sending message to WebSocket:", error);
+        // console.error("Error sending message to WebSocket:", error);
         streamError = error;
         websocketClient.close();
       }
@@ -168,7 +168,7 @@ export class QuerySolverService {
             () => websocketClient.close()
           ).catch(
             (error) => {
-              console.error("Error sending message to WebSocket:", error);
+              // console.error("Error sending message to WebSocket:", error);
               streamError = error;
               websocketClient.close();
             }
