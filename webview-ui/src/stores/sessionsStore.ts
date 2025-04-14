@@ -9,6 +9,8 @@ export const useSessionsStore = create<{
   hasMore: boolean;
   noUnpinnedSessions: boolean;
   noPinnedSessions: boolean;
+  loadingPinnedSessions: boolean;
+  loadingUnpinnedSessions: boolean;
   setCurrentSessionsPage: (updater: (prev: number) => number) => void;
   setSessions: (
     sessions: Session[] | ((prevSessions: Session[]) => Session[]),
@@ -21,6 +23,8 @@ export const useSessionsStore = create<{
   clearPinnedSessions: () => void;
   clearCurrentSessionsPage: () => void;
 }>()((set) => ({
+  loadingPinnedSessions: true,
+  loadingUnpinnedSessions: true,
   sessions: [] as Session[],
   pinnedSessions: [] as Session[],
   sessionsPerPage: 20,
