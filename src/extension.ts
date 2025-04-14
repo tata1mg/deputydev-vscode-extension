@@ -30,6 +30,7 @@ import { ProfileUiService } from "./services/profileUi/profileUiService";
 import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
+import { ThemeManager } from "./utilities/vscodeThemeManager";
 export async function activate(context: vscode.ExtensionContext) {
   // if playform is windows then return and error
   if (os.platform() === "win32") {
@@ -141,7 +142,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   // sidebarProvider.setViewType("loader");
-
+  new ThemeManager(sidebarProvider, logger);
 
   const pinger = new BackgroundPinger(
     sidebarProvider,
