@@ -2,13 +2,13 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "2.0.5",
+  "version": "2.1.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
     "vscode": "^1.84.0"
   },
-  "icon": "assets/DD.png",
+  "icon": "assets/dd_logo_light.png",
   "categories": [
     "Other"
   ],
@@ -176,7 +176,7 @@
         {
           "id": "deputydev-sidebar-view",
           "title": "DeputyDev",
-          "icon": "assets/DD.png"
+          "icon": "assets/dd_logo_light.png"
         }
       ]
     },
@@ -186,7 +186,7 @@
           "type": "webview",
           "id": "deputydev-sidebar",
           "name": "DeputyDev",
-          "icon": "assets/DD.png"
+          "icon": "assets/dd_logo_light.png"
         }
       ]
     },
