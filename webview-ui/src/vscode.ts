@@ -215,6 +215,8 @@ addCommandEventListener("set-view-type", ({ data }) => {
   if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
+    useSessionsStore.setState({loadingPinnedSessions: true});
+    useSessionsStore.setState({loadingUnpinnedSessions: true});
   }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
@@ -250,6 +252,7 @@ addCommandEventListener("sessions-history", ({ data }: any) => {
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
   if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
+    useSessionsStore.setState({loadingUnpinnedSessions: false});
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
@@ -261,6 +264,7 @@ addCommandEventListener("pinned-sessions", ({ data }: any) => {
   useSessionsStore.setState({ noPinnedSessions: data.lenght === 0});
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
+    useSessionsStore.setState({loadingPinnedSessions: false})
     // Append new sessions to the existing ones
     useSessionsStore.setState({
       pinnedSessions: data as Session[],
