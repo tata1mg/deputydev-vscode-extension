@@ -26,6 +26,7 @@ import { ChatUserMessage } from "@/types";
 import ProgressBar from "./chatElements/progressBar";
 import { keywordSearch, keywordTypeSearch } from "@/commandApi";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -42,6 +43,12 @@ export function ChatUI() {
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
+  const { themeKind } = useThemeStore();
+
+  const deputyDevLogo =
+  themeKind === "light" || themeKind === "high-contrast-light"
+    ? "https://onemg.gumlet.io/dd_logo_dark_name_14_04.png"
+    : "https://onemg.gumlet.io/dd_logo_with_name_10_04.png";
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
@@ -351,10 +358,11 @@ export function ChatUI() {
           <div>
             <div>
               <div className="mb-12 mt-8">
+              
                 <img
-                  src="https://onemg.gumlet.io/dd_logo_with_name_10_04.png"
+                  src={deputyDevLogo}
                   alt="DeputyDev Logo"
-                  className="h-10 w-auto px-4"
+                  className="h-10 w-auto px-4 opacity-90"
                 />
                 {/* <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
                   Develop with DeputyDev
