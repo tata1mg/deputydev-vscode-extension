@@ -11,11 +11,13 @@ import {
   ChatReferenceItem,
   ProfileUiDiv,
   ProgressBarData,
+  ThemeKind,
 } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
+import { useThemeStore } from "./stores/useThemeStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -385,6 +387,11 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
 addCommandEventListener("loader-message", ({ data }) => {
   const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
+});
+
+addCommandEventListener("theme-change", ({ data }) => {
+  const theme = data as ThemeKind;
+  useThemeStore.setState({ themeKind: theme });
 });
 
 addCommandEventListener("send-client-version", ({ data }) => {
