@@ -371,7 +371,9 @@ export default function History() {
     currentSessionsPage,
     setCurrentSessionsPage,
     loadingPinnedSessions,
-    loadingUnpinnedSessions
+    loadingUnpinnedSessions,
+    noPinnedSessions,
+    noUnpinnedSessions
   } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [disableLoader, setDisableLoader] = useState(false);
@@ -485,7 +487,7 @@ export default function History() {
       }}
     >
 
-      {useSessionsStore.getState().noPinnedSessions && useSessionsStore.getState().noUnpinnedSessions ? (
+      {noPinnedSessions && noUnpinnedSessions ? (
         <div className="mt-[250px] flex flex-col items-center justify-center">
           <div className="mt-[10px] text-center text-gray-500">
             Your session history will appear here once you begin your AI development journey with DeputyDev
