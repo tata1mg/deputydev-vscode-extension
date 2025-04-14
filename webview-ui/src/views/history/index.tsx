@@ -370,6 +370,8 @@ export default function History() {
     pinnedSessions,
     currentSessionsPage,
     setCurrentSessionsPage,
+    loadingPinnedSessions,
+    loadingUnpinnedSessions
   } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [disableLoader, setDisableLoader] = useState(false);
@@ -491,84 +493,7 @@ export default function History() {
         </div>
       ) : (
         <div>
-          {pinnedSessions.length > 0 || sessions.length > 0 ? (
-            <div>
-              {/* pinned sessions  */}
-              <div>
-                <h3
-                  className="mb-2 text-lg font-semibold"
-                  style={{ color: "var(--vscode-editor-foreground)" }}
-                >
-                  Pinned Conversations
-                </h3>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="relative">
-                    <SortableContext
-                      items={pinnedSessions}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      <div className="relative flex flex-col gap-2">
-                        {pinnedSessions.map((session, index) => (
-                          <SortableItem
-                            key={session.id}
-                            session={session}
-                            handleGetSessionChats={handleGetSessionChats}
-                            handleDeleteSession={handleDeleteSession}
-                            isPinned={true}
-                            handlePinUnpinSession={handlePinUnpinSession}
-                            mountPopupOnBottom={index === 0}
-                          />
-                        ))}
-                      </div>
-                    </SortableContext>
-                  </div>
-                </DndContext>
-              </div>
-
-              {/* unpinned sessions */}
-              <div className="flex flex-1 flex-col">
-                <h3
-                  className="mb-2 mt-6 text-lg font-semibold"
-                  style={{ color: "var(--vscode-editor-foreground)" }}
-                >
-                  Past Conversations
-                </h3>
-                <div className="flex flex-1 flex-col">
-                  {/* Move overflow to inner container */}
-                  <div className="overflow-y-auto">
-                    <div className="flex flex-col gap-2">
-                      {sessions.map((session, index) => (
-                        <SortableItem
-                          key={session.id}
-                          session={session}
-                          handleGetSessionChats={handleGetSessionChats}
-                          handleDeleteSession={handleDeleteSession}
-                          isPinned={false}
-                          disablePinning={pinnedSessions.length >= 5}
-                          handlePinUnpinSession={handlePinUnpinSession}
-                          mountPopupOnBottom={
-                            index === 0 && pinnedSessions.length === 0
-                          }
-                        />
-                      ))}
-                      {useSessionsStore.getState().hasMore && (
-                        <div
-                          className="mt-2 flex animate-bounce cursor-pointer justify-center"
-                          onClick={() => fetchSessions(currentSessionsPage)}
-                        >
-                          <ArrowDown />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {loadingPinnedSessions && loadingUnpinnedSessions ? (
             <div className="mt-[250px] flex flex-col items-center justify-center">
               <div
                 className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-current border-t-transparent"
@@ -578,6 +503,88 @@ export default function History() {
               <div className="mt-[10px] text-center text-gray-500">
                 Loading your DeputyDev sessions history...
               </div>
+            </div>
+          ) : (
+            <div>
+
+              {/* pinned sessions  */}
+              {pinnedSessions.length > 0 &&
+                <div>
+                  <h3
+                    className="mb-2 text-lg font-semibold"
+                    style={{ color: "var(--vscode-editor-foreground)" }}
+                  >
+                    Pinned Conversations
+                  </h3>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <div className="relative">
+                      <SortableContext
+                        items={pinnedSessions}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="relative flex flex-col gap-2">
+                          {pinnedSessions.map((session, index) => (
+                            <SortableItem
+                              key={session.id}
+                              session={session}
+                              handleGetSessionChats={handleGetSessionChats}
+                              handleDeleteSession={handleDeleteSession}
+                              isPinned={true}
+                              handlePinUnpinSession={handlePinUnpinSession}
+                              mountPopupOnBottom={index === 0}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </div>
+                  </DndContext>
+                </div>
+              }
+
+              {/* unpinned sessions */}
+              {sessions.length > 0 &&
+                <div className="flex flex-1 flex-col">
+                  <h3
+                    className="mb-2 mt-6 text-lg font-semibold"
+                    style={{ color: "var(--vscode-editor-foreground)" }}
+                  >
+                    Past Conversations
+                  </h3>
+                  <div className="flex flex-1 flex-col">
+                    {/* Move overflow to inner container */}
+                    <div className="overflow-y-auto">
+                      <div className="flex flex-col gap-2">
+                        {sessions.map((session, index) => (
+                          <SortableItem
+                            key={session.id}
+                            session={session}
+                            handleGetSessionChats={handleGetSessionChats}
+                            handleDeleteSession={handleDeleteSession}
+                            isPinned={false}
+                            disablePinning={pinnedSessions.length >= 5}
+                            handlePinUnpinSession={handlePinUnpinSession}
+                            mountPopupOnBottom={
+                              index === 0 && pinnedSessions.length === 0
+                            }
+                          />
+                        ))}
+                        {useSessionsStore.getState().hasMore && (
+                          <div
+                            className="mt-2 flex animate-bounce cursor-pointer justify-center"
+                            onClick={() => fetchSessions(currentSessionsPage)}
+                          >
+                            <ArrowDown />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              }
             </div>
           )}
         </div>
