@@ -445,20 +445,6 @@ export default function History() {
     }
   }, []);
 
-  useEffect(() => {
-    const checkActiveSessions = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-
-      if (pinnedSessions.length === 0 && sessions.length === 0) {
-        setNoActiveSessionsMessage(
-          "Your session history will appear here once you begin your AI development journey with DeputyDev",
-        );
-        setDisableLoader(true);
-      }
-    };
-
-    checkActiveSessions();
-  }, [sessions, pinnedSessions]);
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -496,22 +482,6 @@ export default function History() {
         backgroundColor: "var(--vscode-sidebar-background-rgb)",
       }}
     >
-      {/* {noActiveSessionsMessage &&
-        sessions.length === 0 &&
-        pinnedSessions.length === 0 && (
-          <div className="mt-[250px] flex flex-col items-center justify-center">
-            {!disableLoader && (
-              <div
-                className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-current border-t-transparent"
-                role="status"
-                aria-label="loading"
-              />
-            )}
-            <div className="mt-[10px] text-center text-gray-500">
-              {noActiveSessionsMessage}
-            </div>
-          </div>
-        )} */}
 
       {useSessionsStore.getState().noPinnedSessions && useSessionsStore.getState().noUnpinnedSessions ? (
         <div className="mt-[250px] flex flex-col items-center justify-center">
@@ -612,85 +582,6 @@ export default function History() {
           )}
         </div>
       )}
-
-      {/* Pinned Sessions container */}
-      {/* {pinnedSessions.length > 0 && (
-        <div>
-          <h3
-            className="mb-2 text-lg font-semibold"
-            style={{ color: "var(--vscode-editor-foreground)" }}
-          >
-            Pinned Conversations
-          </h3>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="relative">
-              <SortableContext
-                items={pinnedSessions}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="relative flex flex-col gap-2">
-                  {pinnedSessions.map((session, index) => (
-                    <SortableItem
-                      key={session.id}
-                      session={session}
-                      handleGetSessionChats={handleGetSessionChats}
-                      handleDeleteSession={handleDeleteSession}
-                      isPinned={true}
-                      handlePinUnpinSession={handlePinUnpinSession}
-                      mountPopupOnBottom={index === 0}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </div>
-          </DndContext>
-        </div>
-      )} */}
-
-      {/* Unpinned Sessions container */}
-      {/* {sessions.length > 0 && (
-        <div className="flex flex-1 flex-col">
-          <h3
-            className="mb-2 mt-6 text-lg font-semibold"
-            style={{ color: "var(--vscode-editor-foreground)" }}
-          >
-            Past Conversations
-          </h3>
-          <div className="flex flex-1 flex-col">
-
-            <div className="overflow-y-auto">
-              <div className="flex flex-col gap-2">
-                {sessions.map((session, index) => (
-                  <SortableItem
-                    key={session.id}
-                    session={session}
-                    handleGetSessionChats={handleGetSessionChats}
-                    handleDeleteSession={handleDeleteSession}
-                    isPinned={false}
-                    disablePinning={pinnedSessions.length >= 5}
-                    handlePinUnpinSession={handlePinUnpinSession}
-                    mountPopupOnBottom={
-                      index === 0 && pinnedSessions.length === 0
-                    }
-                  />
-                ))}
-                {useSessionsStore.getState().hasMore && (
-                  <div
-                    className="mt-2 flex animate-bounce cursor-pointer justify-center"
-                    onClick={() => fetchSessions(currentSessionsPage)}
-                  >
-                    <ArrowDown />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 }
