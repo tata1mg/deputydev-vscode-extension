@@ -261,7 +261,7 @@ addCommandEventListener("sessions-history", ({ data }: any) => {
 });
 
 addCommandEventListener("pinned-sessions", ({ data }: any) => {
-  useSessionsStore.setState({ noPinnedSessions: data.lenght === 0});
+  useSessionsStore.setState({ noPinnedSessions: data.length === 0});
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
     useSessionsStore.setState({loadingPinnedSessions: false})
