@@ -4,7 +4,7 @@ import * as os from 'os';
 import { execSync } from 'child_process';
 import * as vscode from "vscode";
 
-function isCompatible(): boolean {
+function isNotCompatible(): boolean {
   const platform = os.platform(); // 'darwin', 'linux', 'win32', etc.
 
   if (platform === 'win32') {
@@ -38,4 +38,4 @@ function isCompatible(): boolean {
   return false;
 }
 
-export {isCompatible};
+export {isNotCompatible};
