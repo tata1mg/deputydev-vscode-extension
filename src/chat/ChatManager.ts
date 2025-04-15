@@ -607,6 +607,18 @@ export class ChatManager {
       throw error;
     }
   }
+
+
+
+  async _runCreateNewWorkspace(
+    active_repo: string,
+    query: string,
+  ): Promise<void> {
+    
+  }
+
+
+    
   async _runExecuteCommand(
     command: string,
     requires_approval: boolean,
@@ -727,10 +739,13 @@ export class ChatManager {
           this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms)
           break;
+        case "create_new_workspace":
+          this.outputChannel.info(`Running create_new_workspace with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this._runCreateNewWorkspace(active_repo, parsedContent);
         case "execute_command":
           this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runExecuteCommand(parsedContent.command , parsedContent.requires_approval , chunkCallback , toolRequest , messageId || "" );
-          break;
+        break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
           // Treat as completed but with a message indicating it's unknown

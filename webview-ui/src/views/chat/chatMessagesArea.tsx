@@ -12,8 +12,9 @@ import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
 import { TerminalPanel } from "./chatElements/TerminalPanel";
-import { useRef } from "react";
+import { JSX, useRef } from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { CreateNewWorkspace } from "./chatElements/CreateNewWorkspace";
 
 export function ChatArea() {
   const {
@@ -29,6 +30,9 @@ export function ChatArea() {
 
   return (
     <>
+    <CreateNewWorkspace
+                      content={ ""}
+                    />
       {messages.map((msg, index) => {
         switch (msg.type) {
           case "TEXT_BLOCK":
@@ -135,22 +139,35 @@ export function ChatArea() {
           }
 
           case "TOOL_USE_REQUEST":
-            return (
-              <div key={index}>
-                {msg.content.tool_name === "execute_command" ? (
+            let contentComponent: JSX.Element;
+          
+            switch (msg.content.tool_name) {
+              case "execute_command":
+                contentComponent = (
                   <TerminalPanel
                     content={(msg.content.input_params_json as string) || ""}
                     terminal_output={msg.content.result_json}
                     status={msg.content.status}
-                    terminal_approval_required={
-                      msg.content.terminal_approval_required
-                    }
+                    terminal_approval_required={msg.content.terminal_approval_required}
                   />
-                ) : (
-                  <SearchedCodebase status={msg.content.status} />
-                )}
-              </div>
-            );
+                );
+                break;
+              
+                case "create_new_workspace":
+                  contentComponent = (
+                    <CreateNewWorkspace
+                      content={(msg.content.input_params_json as string) || ""}
+                    />
+                  );
+                  break;
+          
+              default:
+                contentComponent = <SearchedCodebase status={msg.content.status} />;
+                break;
+            }
+          
+            return <div key={index}>{contentComponent}</div>;
+          
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
