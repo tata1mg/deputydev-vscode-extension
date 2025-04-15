@@ -19,6 +19,9 @@ function isNotCompatible(): boolean {
       const version = execSync('sw_vers -productVersion').toString().trim(); // e.g., 14.0.1
       const [major, minor] = version.split('.').map(Number);
       if (major < 14 || (major === 14 && minor < 1)) {
+        vscode.window.showWarningMessage(
+          "DeputyDev requires macOS 14.1 or later. Please update your OS to use this extension."
+        );
         return true;
       }
     } catch (err) {
@@ -31,6 +34,9 @@ function isNotCompatible(): boolean {
     const kernel = release.split('-')[0]; // '6.2.0'
     const [major, minor] = kernel.split('.').map(Number);
     if (major < 6 || (major === 6 && minor < 8)) {
+      vscode.window.showWarningMessage(
+        "DeputyDev requires Linux kernel 6.8 or later. Please update your OS to use this extension."
+      );
       return true;
     }
   }
