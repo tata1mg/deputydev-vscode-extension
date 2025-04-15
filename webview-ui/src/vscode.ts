@@ -11,11 +11,13 @@ import {
   ChatReferenceItem,
   ProfileUiDiv,
   ProgressBarData,
+  ThemeKind,
 } from "@/types";
 import { logToOutput, getSessions } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
+import { useThemeStore } from "./stores/useThemeStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -215,6 +217,8 @@ addCommandEventListener("set-view-type", ({ data }) => {
   if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
+    useSessionsStore.setState({loadingPinnedSessions: true});
+    useSessionsStore.setState({loadingUnpinnedSessions: true});
   }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
@@ -245,10 +249,12 @@ addCommandEventListener("set-workspace-repos", ({ data }) => {
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-addCommandEventListener("sessions-history", ({ data } : any) => {
+addCommandEventListener("sessions-history", ({ data }: any) => {
+  useSessionsStore.setState({ noUnpinnedSessions: data.unpinnedSessions.length === 0 });
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
   if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
+    useSessionsStore.setState({loadingUnpinnedSessions: false});
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
@@ -256,9 +262,11 @@ addCommandEventListener("sessions-history", ({ data } : any) => {
   }
 });
 
-addCommandEventListener("pinned-sessions", ({ data }) => {
+addCommandEventListener("pinned-sessions", ({ data }: any) => {
+  useSessionsStore.setState({ noPinnedSessions: data.length === 0});
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
+    useSessionsStore.setState({loadingPinnedSessions: false})
     // Append new sessions to the existing ones
     useSessionsStore.setState({
       pinnedSessions: data as Session[],
@@ -385,6 +393,11 @@ addCommandEventListener("force-upgrade-data", ({ data }) => {
 addCommandEventListener("loader-message", ({ data }) => {
   const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
+});
+
+addCommandEventListener("theme-change", ({ data }) => {
+  const theme = data as ThemeKind;
+  useThemeStore.setState({ themeKind: theme });
 });
 
 addCommandEventListener("send-client-version", ({ data }) => {
