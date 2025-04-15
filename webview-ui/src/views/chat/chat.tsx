@@ -262,6 +262,7 @@ export function ChatUI() {
       useChatStore.getState().ChatAutocompleteOptions;
     if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
       setUserInput(userInput.split("@")[0] + `@${option.value}`);
+      setShowAutocomplete(false);
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
@@ -358,7 +359,6 @@ export function ChatUI() {
           <div>
             <div>
               <div className="mb-12 mt-8">
-              
                 <img
                   src={deputyDevLogo}
                   alt="DeputyDev Logo"
