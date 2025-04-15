@@ -31,11 +31,11 @@ import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
-import { isCompatible } from "./utilities/checkOsVersion";
+import { isNotCompatible } from "./utilities/checkOsVersion";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
-  const compatibilityCheck = isCompatible();
-  if (compatibilityCheck) {
+  const isNotCompatibleCheck = isNotCompatible();
+  if (isNotCompatibleCheck) {
     return;
   }
   setExtensionContext(context);
