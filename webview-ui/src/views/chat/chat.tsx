@@ -20,6 +20,7 @@ import { isEqual as lodashIsEqual } from "lodash";
 import "../../styles/markdown-body.css";
 import { AutocompleteMenu } from "./autocomplete";
 import ProgressBar from "./chatElements/progressBar";
+import ReferenceChip from "./referencechip";
 
 
 export function ChatUI() {
