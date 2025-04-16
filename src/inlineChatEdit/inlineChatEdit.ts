@@ -111,10 +111,9 @@ export class InlineChatEditManager {
   }
 
   public async inlineChat() {
-    vscode.commands.registerCommand("deputydev.chatWithDeputy", () => {
-      vscode.commands.executeCommand(
-        "workbench.view.extension.deputydev-sidebar-view"
-      );
+    vscode.commands.registerCommand("deputydev.chatWithDeputy", async () => {
+      this.sidebarProvider.setViewType("chat");
+      await vscode.commands.executeCommand("deputydev-sidebar.focus");
       this.editor = vscode.window.activeTextEditor;
       if (!this.editor) {
         return;
