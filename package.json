@@ -114,6 +114,11 @@
         "command": "deputydev.aiEdit",
         "title": "Modify",
         "enablement": "!commentIsEmpty"
+      },
+      {
+        "command": "deputydev.ViewLogs",
+        "title": "View Logs",
+        "category": "DeputyDev"
       }
     ],
     "menus": {
@@ -139,6 +144,11 @@
           "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@3"
+        },
+        {
+          "command": "deputydev.ViewLogs",
+          "when": "view == deputydev-sidebar",
+          "group": "menu@2"
         }
       ],
       "editor/context": [

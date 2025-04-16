@@ -1,32 +1,26 @@
 // file: webview-ui/src/components/Chat.tsx
+import { Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
-import { ChatTypeToggle } from "./chatElements/chatTypeToggle";
 import {
+initialAutocompleteOptions,
   useChatSettingStore,
   useChatStore,
-  initialAutocompleteOptions,
 } from "../../stores/chatStore";
-import { Check } from "lucide-react";
-// import Markdown from 'react-markdown';
+import { ChatTypeToggle } from "./chatElements/chatTypeToggle";
 import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import { ChatArea } from "./chatMessagesArea";
 import RepoSelector from "./chatElements/RepoSelector";
-// import { useRepoSelectorStore } from '../../stores/repoSelectorStore';
-import { logToOutput } from "@/commandApi";
-
-import Markdown from "react-markdown";
-import "../../styles/markdown-body.css";
-import { AutocompleteOption, ChatReferenceItem } from "@/types";
-import ReferenceChip from "./referencechip";
-import { AutocompleteMenu } from "./autocomplete";
-import { isEqual as lodashIsEqual, set } from "lodash";
-import { ChatUserMessage } from "@/types";
-import ProgressBar from "./chatElements/progressBar";
-import { keywordSearch, keywordTypeSearch } from "@/commandApi";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { ChatArea } from "./chatMessagesArea";
+import { keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from "@/types";
+import { isEqual as lodashIsEqual } from "lodash";
+import "../../styles/markdown-body.css";
+import { AutocompleteMenu } from "./autocomplete";
+import ProgressBar from "./chatElements/progressBar";
+import ReferenceChip from "./referencechip";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
