@@ -169,7 +169,6 @@ const SortableItem: React.FC<SortableItemProps> = ({
       </div>
 
       {isPinned ? (
-
         <Tooltip.Provider>
           <Tooltip.Root>
             <Tooltip.Trigger asChild>
@@ -187,14 +186,14 @@ const SortableItem: React.FC<SortableItemProps> = ({
             <Tooltip.Portal>
               <Tooltip.Content
                 side="top"
-                className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                className="rounded-md px-2 py-1 text-xs shadow-md"
                 style={{
                   backgroundColor: "var(--vscode-editorHoverWidget-background)",
                   color: "var(--vscode-editorHoverWidget-foreground)",
                   border: "1px solid var(--vscode-editorHoverWidget-border)",
                 }}
               >
-                Unpin
+                Unpin conversation
                 <Tooltip.Arrow
                   style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
                 />
@@ -254,14 +253,14 @@ const SortableItem: React.FC<SortableItemProps> = ({
             <Tooltip.Portal>
               <Tooltip.Content
                 side="top"
-                className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                className="rounded-md px-2 py-1 text-xs shadow-md"
                 style={{
                   backgroundColor: "var(--vscode-editorHoverWidget-background)",
                   color: "var(--vscode-editorHoverWidget-foreground)",
                   border: "1px solid var(--vscode-editorHoverWidget-border)",
                 }}
               >
-                Pin
+                Pin conversation
                 <Tooltip.Arrow
                   style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
                 />
@@ -285,6 +284,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
                   className="hover:opacity-70"
                   onMouseDown={(e) => {
                     e.stopPropagation();
+                    setTriggerRect(e.currentTarget.getBoundingClientRect());
                     setShowDeleteConfirm(true);
                   }}
                 />
@@ -292,16 +292,19 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <Tooltip.Portal>
                 <Tooltip.Content
                   side="top"
-                  className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
+                  className="rounded-md px-2 py-1 text-xs shadow-md"
                   style={{
-                    backgroundColor: "var(--vscode-editorHoverWidget-background)",
+                    backgroundColor:
+                      "var(--vscode-editorHoverWidget-background)",
                     color: "var(--vscode-editorHoverWidget-foreground)",
                     border: "1px solid var(--vscode-editorHoverWidget-border)",
                   }}
                 >
-                  Delete
+                  Delete conversation
                   <Tooltip.Arrow
-                    style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
+                    style={{
+                      fill: "var(--vscode-editorHoverWidget-background)",
+                    }}
                   />
                 </Tooltip.Content>
               </Tooltip.Portal>

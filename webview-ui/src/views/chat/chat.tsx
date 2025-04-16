@@ -20,7 +20,9 @@ import { isEqual as lodashIsEqual } from "lodash";
 import "../../styles/markdown-body.css";
 import { AutocompleteMenu } from "./autocomplete";
 import ProgressBar from "./chatElements/progressBar";
-import ReferenceChip from "./referencechip";
+import { keywordSearch, keywordTypeSearch } from "@/commandApi";
+import { useWorkspaceStore } from "@/stores/workspaceStore";
+import { useThemeStore } from "@/stores/useThemeStore";
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -256,6 +258,7 @@ export function ChatUI() {
       useChatStore.getState().ChatAutocompleteOptions;
     if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
       setUserInput(userInput.split("@")[0] + `@${option.value}`);
+      setShowAutocomplete(false);
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
@@ -352,7 +355,6 @@ export function ChatUI() {
           <div>
             <div>
               <div className="mb-12 mt-8">
-              
                 <img
                   src={deputyDevLogo}
                   alt="DeputyDev Logo"

@@ -76,6 +76,7 @@ export class AuthenticationManager {
                 }
                 this.context.globalState.update("userData", userData)
                 this.context.workspaceState.update("isAuthenticated", true);
+                this.context.workspaceState.update("isAuthenticated", true);
                 return true;
                 // return false;
             } else if (response.data.status === 'EXPIRED') {
@@ -88,6 +89,7 @@ export class AuthenticationManager {
                         }
                         this.context.globalState.update("userData", userData)
                         this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
+                        this.context.workspaceState.update("isAuthenticated", true);
                         this.context.workspaceState.update("isAuthenticated", true);
                         return true;
                         // return false;
