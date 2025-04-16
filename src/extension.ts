@@ -31,17 +31,17 @@ import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
+<<<<<<< HEAD
 
+=======
+import { isCompatible } from "./utilities/checkOsVersion";
+>>>>>>> 809fcfd (system check)
 export async function activate(context: vscode.ExtensionContext) {
-  // if playform is windows then return and error
-  if (os.platform() === "win32") {
-    vscode.window.showWarningMessage(
-      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
-    );
+  // context reset from past session
+  const compatibilityCheck = isCompatible();
+  if (compatibilityCheck) {
     return;
   }
-
-  // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = false;
