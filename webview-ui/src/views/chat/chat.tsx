@@ -20,9 +20,7 @@ import { isEqual as lodashIsEqual } from "lodash";
 import "../../styles/markdown-body.css";
 import { AutocompleteMenu } from "./autocomplete";
 import ProgressBar from "./chatElements/progressBar";
-import { keywordSearch, keywordTypeSearch } from "@/commandApi";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { useThemeStore } from "@/stores/useThemeStore";
+
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
