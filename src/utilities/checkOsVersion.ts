@@ -1,5 +1,3 @@
-// file: checkOsVersion.ts
-
 import * as os from 'os';
 import { execSync } from 'child_process';
 import * as vscode from "vscode";
@@ -9,8 +7,8 @@ function isNotCompatible(): boolean {
 
   if (platform === 'win32') {
     vscode.window.showWarningMessage(
-          "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
-        );
+      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
+    );
     return true;
   }
 
@@ -25,7 +23,7 @@ function isNotCompatible(): boolean {
         return true;
       }
     } catch (err) {
-      console.error('Error reading macOS version:', err);
+      // console.error('Error reading macOS version:', err);
     }
   }
 
@@ -41,7 +39,25 @@ function isNotCompatible(): boolean {
     }
   }
 
+  // Check for Git version >= 2.36.0
+  try {
+    const gitOutput = execSync('git --version').toString().trim(); // e.g., git version 2.36.0
+    const gitVersion = gitOutput.split(' ')[2]; // "2.36.0"
+    const [major, minor] = gitVersion.split('.').map(Number);
+    if (major < 2 || (major === 2 && minor < 36)) {
+      vscode.window.showWarningMessage(
+        `DeputyDev requires Git version 2.36.0 or later. You have ${gitVersion}. Please update Git to continue.`
+      );
+      return true;
+    }
+  } catch (err) {
+    vscode.window.showWarningMessage(
+      "Git is not installed or not available in PATH. Please install Git (version 2.40.0 or later) to use this extension."
+    );
+    return true;
+  }
+
   return false;
 }
 
-export {isNotCompatible};
+export { isNotCompatible };
