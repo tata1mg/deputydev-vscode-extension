@@ -220,3 +220,6 @@ export function acceptTerminalCommand() {
 export function rejectTerminalCommand() {
   return callCommand("reject-terminal-command", {});
 }
+ export function createNewWorkspace() {
+  return callCommand("create-new-workspace", {});
+}

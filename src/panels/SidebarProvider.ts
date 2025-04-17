@@ -23,6 +23,7 @@ import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
+import { createNewWorkspace } from "../terminal/workspace/CreateNewWorkspace";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -195,13 +196,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "delete-secret-state":
           promise = this.deleteSecretState(data);
           break;
+
         case "initiate-login":
           promise = this.initiateLogin(data);
           break;
-
         case "sign-out":
           promise = this.signOut();
           break;
+        
+        // past sessions
         case "get-sessions":
           promise = this.getSessions(data);
           break;
@@ -221,14 +224,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.historyService.pinOrUnpinSession(data);
           break;
 
-        // Extention's focus state
-        case "webview-focus-state":
-          if (data.focused) {
-            this._onWebviewFocused.fire();
-          }
-          break;
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);
+          break;
+        case "create-new-workspace": 
+          createNewWorkspace();
           break;
 
         // diff

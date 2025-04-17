@@ -1,5 +1,8 @@
+import { createNewWorkspace } from "@/commandApi";
+
 export function CreateNewWorkspace({ content }: { content: string }) {
   const handleContinue = () => {
+    createNewWorkspace();
     console.log("Continue clicked");
   };
 
