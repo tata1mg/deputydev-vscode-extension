@@ -2,9 +2,10 @@
 
 import { DiffViewManager } from "./DiffManager";
 import * as vscode from "vscode";
-import { diffLines } from "diff";
 import { UsageTrackingRequest } from "../types";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
+import { createTwoFilesPatch } from 'diff';
+
 
 type RemovedChange = {
   type: "removed";
@@ -158,6 +159,17 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     };
   }
 
+  private getDiskFileContent = async (uri: string): Promise<string> => {
+    const fileUri = vscode.Uri.file(uri);
+    try {
+      const fileContent = await vscode.workspace.fs.readFile(fileUri);
+      return fileContent.toString();
+    } catch (error) {
+      this.outputChannel.error(`Error reading file: ${error}`);
+      throw error;
+    }
+  };
+
   // This method retrieves the current content of the file based on the URI.
   // It checks if the fileChangeStateMap has the URI. If it does, it returns the original content from the fileChangeStateMap.
   // If it doesn't, it tries to read the file content from the file system.
@@ -168,18 +180,49 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
 
     // if fileChangeState is not found, try to read the file content and return it
     if (!fileChangeState) {
-      const fileUri = vscode.Uri.file(uri);
-      try {
-        const fileContent = vscode.workspace.fs
-          .readFile(fileUri)
-          .then((buffer) => buffer.toString());
-        return fileContent;
-      } catch (error) {
-        this.outputChannel.error(`Error reading file: ${error}`);
-        throw error;
-      }
+      const fileContent = await this.getDiskFileContent(uri);
+      return fileContent;
+    }
+    return fileChangeState.modifiedContent;
+  }
+
+
+  getOriginalContentToShowDiffOn = async (
+    uri: string,
+  ): Promise<string> => {
+    const fileChangeState = this.fileChangeStateMap.get(uri);
+
+    // if fileChangeState is not found, try to read the file content and return it
+    if (!fileChangeState) {
+      const fileContent = await this.getDiskFileContent(uri);
+      return fileContent;
     }
     return fileChangeState.originalContent;
+  }
+
+
+  private getPreSaveEdits = async (document: vscode.TextDocument): Promise<vscode.TextEdit[]>  => {
+    // if document is not in fileChangeStateMap, return empty array
+    const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
+    if (!fileChangeState) {
+      return [];
+    }
+
+    const originalText = document.getText();
+  
+    // 🔧 Your transformation logic here
+    const newText = fileChangeState.modifiedContent;
+  
+    if (newText === originalText) {
+      return []; // No edits needed
+    }
+  
+    const fullRange = new vscode.Range(
+      document.positionAt(0),
+      document.positionAt(originalText.length)
+    );
+  
+    return [vscode.TextEdit.replace(fullRange, newText)];
   }
 
 
@@ -320,6 +363,28 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
             false
           );
         }
+      }),
+      vscode.workspace.onWillSaveTextDocument(event => {
+        // Modify the content before save by providing edits via waitUntil
+        event.waitUntil(this.getPreSaveEdits(event.document));
+      }),
+      vscode.workspace.onDidSaveTextDocument(async document => {
+        const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === document.uri.toString());
+        if (!editor) return;
+    
+        // re-display the diff
+        const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
+        if (!fileChangeState) {
+          return;
+        }
+        const displayableUdiff = fileChangeState.currentUdiff;
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(
+          new vscode.Position(0, 0),
+          new vscode.Position(editor.document.lineCount, 0)
+        );
+        edit.replace(editor.document.uri, fullRange, displayableUdiff);
+        await vscode.workspace.applyEdit(edit);
       })
     );
   }
@@ -816,79 +881,100 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     is_inline_modify?: boolean
   ): Promise<void> {
     try {
-      this.outputChannel.info(`command write file: ${data.path}`);
-      let uri = vscode.Uri.file(data.path);
-      try {
-        await vscode.workspace.fs.stat(uri);
-      } catch {
-        // file doesn't exist => treat as untitled
-        uri = uri.with({ scheme: "untitled" });
+      this.outputChannel.info(`opening diff view: ${data.path}`);
+
+      // get the diff between original content and the newely received content
+      const originalContent = await this.getOriginalContentToShowDiffOn(
+        data.path
+      );
+
+      const computedUdiff = createTwoFilesPatch(data.path, data.path, originalContent, data.content);
+
+      // update the fileChangeStateMap with the original and modified content from the udiff
+      // initialContent is updated only when the file is opened for the first time
+      this.updateFileStateInFileChangeStateMap(
+        data.path,
+        computedUdiff,
+        originalContent
+      );
+
+      const fileChangeState = this.fileChangeStateMap.get(data.path);
+      if (!fileChangeState) {
+        throw new Error(`File change state not found for ${data.path}`);
       }
 
+      // show the diff view
+      let uri = vscode.Uri.file(data.path);
+      // try {
+      //   await vscode.workspace.fs.stat(uri);
+      // } catch {
+      //   // file doesn't exist => treat as untitled
+      //   uri = uri.with({ scheme: "untitled" });
+      // }
       const document = await vscode.workspace.openTextDocument(uri);
       const editor = await vscode.window.showTextDocument(document, {
         preview: false,
         preserveFocus: true,
       });
-
       const lineEol =
         vscode.EndOfLine.CRLF === editor.document.eol ? "\r\n" : "\n";
-      const modifiedContent = data.content.replace(/\r?\n/g, lineEol);
-      const currentContent = editor.document.getText();
-      const differences = diffLines(currentContent, modifiedContent);
-      this.outputChannel.debug("diffs", differences);
-      let lineNumber = 0;
-      let combineContent = "";
-      const changes: Change[] = [];
-      let lastRemoved: RemovedChange | undefined;
+      const displayableUdiff = fileChangeState.currentUdiff.replace(/\r?\n/g, lineEol);
+      // const currentContent = editor.document.getText();
+    
+      // const differences = diffLines(currentContent, modifiedContent);
+      // this.outputChannel.debug("diffs", differences);
+      // let lineNumber = 0;
+      // let combineContent = "";
+      // const changes: Change[] = [];
+      // let lastRemoved: RemovedChange | undefined;
 
-      for (const part of differences) {
-        let currentChange: Change | undefined;
+      // for (const part of differences) {
+      //   let currentChange: Change | undefined;
 
-        if (part.removed) {
-          lastRemoved = {
-            type: "removed",
-            line: lineNumber,
-            count: part.count!,
-            value: part.value,
-          };
-          // If last part is removed
-          if (part === differences[differences.length - 1]) {
-            currentChange = lastRemoved;
-          }
-        } else if (part.added) {
-          const added: AddedChange = {
-            type: "added",
-            line: lineNumber,
-            count: part.count!,
-            value: part.value,
-          };
-          if (lastRemoved) {
-            currentChange = {
-              type: "modified",
-              removed: lastRemoved,
-              added,
-            };
-            lastRemoved = undefined;
-          } else {
-            currentChange = added;
-          }
-        } else if (lastRemoved) {
-          // no 'added' part matched => finalize that removal
-          currentChange = lastRemoved;
-          lastRemoved = undefined;
-        }
+      //   if (part.removed) {
+      //     lastRemoved = {
+      //       type: "removed",
+      //       line: lineNumber,
+      //       count: part.count!,
+      //       value: part.value,
+      //     };
+      //     // If last part is removed
+      //     if (part === differences[differences.length - 1]) {
+      //       currentChange = lastRemoved;
+      //     }
+      //   } else if (part.added) {
+      //     const added: AddedChange = {
+      //       type: "added",
+      //       line: lineNumber,
+      //       count: part.count!,
+      //       value: part.value,
+      //     };
+      //     if (lastRemoved) {
+      //       currentChange = {
+      //         type: "modified",
+      //         removed: lastRemoved,
+      //         added,
+      //       };
+      //       lastRemoved = undefined;
+      //     } else {
+      //       currentChange = added;
+      //     }
+      //   } else if (lastRemoved) {
+      //     // no 'added' part matched => finalize that removal
+      //     currentChange = lastRemoved;
+      //     lastRemoved = undefined;
+      //   }
 
-        if (currentChange) {
-          currentChange.session_id = session_id;
-          currentChange.is_inline = is_inline;
-          currentChange.write_mode = write_mode;
-          currentChange.is_inline_modify = is_inline_modify;
-          changes.push(currentChange);
-        }
-        combineContent += part.value;
-        lineNumber += part.count!;
-      }
+      //   if (currentChange) {
+      //     currentChange.session_id = session_id;
+      //     currentChange.is_inline = is_inline;
+      //     currentChange.write_mode = write_mode;
+      //     currentChange.is_inline_modify = is_inline_modify;
+      //     changes.push(currentChange);
+      //   }
+      //   combineContent += part.value;
+      //   lineNumber += part.count!;
+      // }
 
       // Replace entire content with the combined text
       const edit = new vscode.WorkspaceEdit();
@@ -896,16 +982,10 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
         new vscode.Position(0, 0),
         new vscode.Position(editor.document.lineCount, 0)
       );
-      edit.replace(editor.document.uri, fullRange, combineContent);
+      edit.replace(editor.document.uri, fullRange, displayableUdiff);
       await vscode.workspace.applyEdit(edit);
 
-      // Keep record
-      this.fileChangeMap.set(uri.toString(), {
-        originalContent: currentContent,
-        modifiedContent: modifiedContent,
-        changes,
-      });
-      this._onDidChange.fire({ type: "add", path: uri.fsPath });
+      // this._onDidChange.fire({ type: "add", path: uri.fsPath });
 
       vscode.commands.executeCommand(
         "setContext",
@@ -913,44 +993,44 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
         true
       );
       // Highlight changes visually
-      this.drawChanges(editor, { changes });
+      // this.drawChanges(editor, { changes });
 
-      // ✅ Scroll to the first diff line
-      if (changes.length > 0) {
-        const firstChange = changes[0];
-        let line = 0;
-        if (firstChange.type === "modified") {
-          line = firstChange.removed.line;
-        } else {
-          line = firstChange.line;
-        }
-        const rangeToReveal = new vscode.Range(line, 0, line, 0);
-        editor.revealRange(rangeToReveal, vscode.TextEditorRevealType.InCenter);
-      }
-      let numLines = 0;
-      for (const change of changes) {
-        if (change.type === "modified") {
-          numLines += change.removed.count + change.added.count;
-        } else {
-          numLines += change.count;
-        }
-      }
+      // // ✅ Scroll to the first diff line
+      // if (changes.length > 0) {
+      //   const firstChange = changes[0];
+      //   let line = 0;
+      //   if (firstChange.type === "modified") {
+      //     line = firstChange.removed.line;
+      //   } else {
+      //     line = firstChange.line;
+      //   }
+      //   const rangeToReveal = new vscode.Range(line, 0, line, 0);
+      //   editor.revealRange(rangeToReveal, vscode.TextEditorRevealType.InCenter);
+      // }
+      // let numLines = 0;
+      // for (const change of changes) {
+      //   if (change.type === "modified") {
+      //     numLines += change.removed.count + change.added.count;
+      //   } else {
+      //     numLines += change.count;
+      //   }
+      // }
 
-      if (is_inline_modify) {
-        const usageTrackingData: UsageTrackingRequest = {
-          event: "generated",
-          properties: {
-            file_path: vscode.workspace.asRelativePath(
-              vscode.Uri.parse(data.path)
-            ),
-            lines: numLines,
-            session_id: session_id,
-            source: "inline-modify",
-          },
-        };
-        const usageTrackingManager = new UsageTrackingManager();
-        usageTrackingManager.trackUsage(usageTrackingData);
-      }
+      // if (is_inline_modify) {
+      //   const usageTrackingData: UsageTrackingRequest = {
+      //     event: "generated",
+      //     properties: {
+      //       file_path: vscode.workspace.asRelativePath(
+      //         vscode.Uri.parse(data.path)
+      //       ),
+      //       lines: numLines,
+      //       session_id: session_id,
+      //       source: "inline-modify",
+      //     },
+      //   };
+      //   const usageTrackingManager = new UsageTrackingManager();
+      //   usageTrackingManager.trackUsage(usageTrackingData);
+      // }
 
       // Log success
       this.outputChannel.debug(`Applied inline diff for ${data.path}`);
