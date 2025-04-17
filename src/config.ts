@@ -1,11 +1,8 @@
 // required for essential config fetching
 export const CLIENT = "VSCODE_EXT";
-export const CLIENT_VERSION = "2.1.0";
+export const CLIENT_VERSION = "2.1.1";
 export const DD_HOST = "https://api.deputydev.ai";
-export const DD_HOST_WS = "wss://cnkilg390a.execute-api.ap-south-1.amazonaws.com";
 // export const DD_HOST = "http://localhost:8084";
-// export const DD_HOST_WS = "ws://localhost:8084";
-
 
 // move this to config based, please add these in config.json
 export const POLLING_MAX_ATTEMPTS = 20;
