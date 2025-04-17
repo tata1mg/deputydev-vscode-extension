@@ -26,7 +26,6 @@ export class QuerySolverService {
     if (!configData) {
       throw new Error("Config data not found in workspace state");
     }
-    console.log("configData", configData);
     this.DD_HOST_WS = configData.DD_HOST_WS;
     this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
   }
