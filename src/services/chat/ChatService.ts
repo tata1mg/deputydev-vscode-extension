@@ -1,17 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
-import { API_ENDPOINTS } from '../api/endpoints';
-import { api } from '../api/axios';
 import { getSessionId, sendNotVerified } from "../../utilities/contextManager";
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from "ws";
 import { BaseWebSocketClient } from "../../clients/baseClients/baseWebsocketClient";
-import { DD_HOST_WS } from '../../config';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
 import { SESSION_TYPE } from '../../constants';
+import { config } from "process";
 
 interface StreamEvent {
   type: string;
@@ -21,10 +16,19 @@ interface StreamEvent {
 export class QuerySolverService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private context: vscode.ExtensionContext;
+  private DD_HOST_WS : string;
+  private QUERY_SOLVER_ENDPOINT : string;
 
   constructor(context: vscode.ExtensionContext) {
     this.logger = SingletonLogger.getInstance();
     this.context = context;
+    const configData = this.context.workspaceState.get("essentialConfigData") as any;
+    if (!configData) {
+      throw new Error("Config data not found in workspace state");
+    }
+    console.log("configData", configData);
+    this.DD_HOST_WS = configData.DD_HOST_WS;
+    this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
   }
 
   public async *querySolver(
@@ -105,8 +109,8 @@ export class QuerySolverService {
     };
 
     let websocketClient = new BaseWebSocketClient(
-      DD_HOST_WS,
-      API_ENDPOINTS.QUERY_SOLVER,
+      this.DD_HOST_WS,
+      this.QUERY_SOLVER_ENDPOINT,
       authToken,
       handleMessage,
       {
@@ -154,8 +158,8 @@ export class QuerySolverService {
           }
           authToken = await authService.loadAuthToken();
           websocketClient = new BaseWebSocketClient(
-            DD_HOST_WS,
-            API_ENDPOINTS.QUERY_SOLVER,
+            this.DD_HOST_WS,
+            this.QUERY_SOLVER_ENDPOINT,
             authToken,
             handleMessage,
             {
