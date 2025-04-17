@@ -56,7 +56,7 @@ export class DiffEditorViewManager extends DiffViewManager {
             'workbench.action.closeActiveEditor',
           );
 
-          this.outputChannel.debug(
+          this.outputChannel.info(
             `path: ${uri.path} modified content is written`,
           );
           vscode.window.showInformationMessage(
@@ -69,7 +69,7 @@ export class DiffEditorViewManager extends DiffViewManager {
         if (
           document.uri.scheme === DiffEditorViewManager.DiffContentProviderId
         ) {
-          this.outputChannel.debug(
+          this.outputChannel.info(
             `Diff document closed for: ${document.uri.path}`,
           );
           this.fileChangeSet.delete(document.uri.toString());
@@ -93,13 +93,18 @@ export class DiffEditorViewManager extends DiffViewManager {
     }
 
     try {
-      const originalUri = isNewFile
-        ? vscode.Uri.parse(
+      let originalContentBase64 = Buffer.from('').toString('base64');
+      if (!isNewFile) {
+        const originalContent = await fsPromise.readFile(data.path);
+        originalContentBase64 = Buffer.from(originalContent).toString(
+          'base64',
+        );
+      }
+      const originalUri = vscode.Uri.parse(
             `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
           ).with({
-            query: Buffer.from('').toString('base64'),
-          })
-        : vscode.Uri.file(data.path);
+            query: originalContentBase64,
+          });
       const modifiedUri = vscode.Uri.parse(
         `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
       ).with({
@@ -115,10 +120,63 @@ export class DiffEditorViewManager extends DiffViewManager {
         modifiedUri,
         `${name} ${isNewFile ? 'Created' : 'Modified'}`,
         {
-          viewColumn: vscode.ViewColumn.Two,
           preview: false,
         },
       );
+
+      setTimeout(() => {
+        const tabGroups = vscode.window.tabGroups.all;
+        for (const group of tabGroups) {
+          // Find tabs that match our diff URI scheme
+          const diffTabs = group.tabs.filter(
+            (tab) =>
+              tab.input instanceof vscode.TabInputTextDiff &&
+              tab.input.modified.scheme ===
+                DiffEditorViewManager.DiffContentProviderId,
+          );
+          
+
+          // get the diff editor from the tab
+          const diffEditor = diffTabs.find(
+            (tab) =>
+              tab.input instanceof vscode.TabInputTextDiff &&
+              tab.input.modified.path === data.path,
+          );
+          
+          // get the content of the diff editor
+          if (diffEditor) {
+            const diffEditorUri = diffEditor.input as vscode.TabInputTextDiff;
+            const modifiedUri = diffEditorUri.modified;
+            const originalUri = diffEditorUri.original;
+            this.outputChannel.info(
+              `Diff editor opened for: ${modifiedUri.path} (original: ${originalUri.path})`,
+            );
+            this.outputChannel.info(
+              `Diff editor content: ${modifiedUri.query}`,
+            );
+            this.outputChannel.info(
+              `Diff editor original content: ${originalUri.query}`,
+            );
+          }
+        }
+
+
+
+        const editors = vscode.window.visibleTextEditors;
+        for (const editor of editors) {
+          // You can check which editor is for which document
+          if (editor.document.getText().includes('Line X')) {
+            // Right-side editor (modified)
+            const decorationType = vscode.window.createTextEditorDecorationType({
+              backgroundColor: 'rgba(255,255,0,0.3)',
+              isWholeLine: true,
+            });
+
+            const line = editor.document.lineAt(1); // Line with "Line X"
+            editor.setDecorations(decorationType, [line.range]);
+          }
+        }
+      }, 500);
     } catch (error) {
       this.outputChannel.error(`Error opening diff: ${error}`);
     }

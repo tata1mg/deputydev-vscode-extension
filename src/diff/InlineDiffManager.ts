@@ -41,10 +41,15 @@ type Change =
       is_inline_modify?: boolean;
     };
 
-export class InlineDiffViewManager
-  extends DiffViewManager
-  implements vscode.CodeLensProvider
-{
+
+type FileChangeState = {
+  initialFileContent: string; // The initial content of the file before any changes. Used to revert to the original state.
+  originalContent: string; // The original content based on the current udiff
+  modifiedContent: string; // The modified content based on the current udiff
+  currentUdiff: string; // The current udiff content
+}
+
+export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.CodeLensProvider {
   private deletionDecorationType: vscode.TextEditorDecorationType;
   private insertionDecorationType: vscode.TextEditorDecorationType;
   // These properties store decoration types used to visually differentiate deleted and inserted content in the editor.
@@ -53,6 +58,130 @@ export class InlineDiffViewManager
   readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
   // _onDidChangeCodeLenses is an event emitter to notify when the CodeLens should be updated.
   // onDidChangeCodeLenses exposes this event so other components can subscribe to it.
+
+  // This map keeps track of the state of each file being edited.
+  private readonly fileChangeStateMap = new Map<string, FileChangeState>();
+
+  // This function parses the udiff string and extracts the original and modified content.
+  // It returns an object containing the original and modified content.
+  // The udiff format is a unified diff format, which is a common way to represent changes between two files.
+  private getOriginalAndModifiedContentFromUdiff = (
+    udiff: string,
+  ): {
+    originalContent: string;
+    modifiedContent: string;
+  } => {
+    // Parse the udiff to extract original and modified content
+    // This is a placeholder implementation. You need to implement the actual parsing logic.
+
+    // firslly, handle CLRF and LF
+    const lineEol = udiff.includes("\r\n") ? "\r\n" : "\n";
+    const udiffWithEol = udiff.replace(/\r?\n/g, lineEol);
+
+    // Split the udiff into lines
+    // The udiff format typically starts with a line that begins with "@@", which indicates the start of a diff chunk.
+    // The lines that start with "-" indicate lines that were removed, and lines that start with "+" indicate lines that were added.
+    // The rest of the lines are context lines.
+    const lines = udiffWithEol.split(lineEol);
+    let originalContent = "";
+    let modifiedContent = "";
+
+    for (const line of lines) {
+      if (line.startsWith("@@") || line.startsWith("---") || line.startsWith("+++")) {
+        // Skip the header line, or file path lines
+        continue;
+      }
+      if (line.startsWith("-")) {
+        originalContent += line.substring(1) + lineEol;
+      } else if (line.startsWith("+")) {
+        modifiedContent += line.substring(1) + lineEol;
+      } else {
+        // Context lines are added to both original and modified content
+        originalContent += line + lineEol;
+        modifiedContent += line + lineEol;
+      }
+    }
+    return {
+      originalContent: originalContent,
+      modifiedContent: modifiedContent
+    };
+  };
+
+
+  // This method updates the fileChangeStateMap with the original and modified content from the udiff.
+  // It checks if the fileChangeStateMap already has the URI. If not, it sets the initial file content and udiff in the fileChangeStateMap.
+  // If it does, it updates the udiff in the fileChangeStateMap.
+  // It returns the original and modified content extracted from the udiff.
+  private updateFileStateInFileChangeStateMap = (
+    uri: string,
+    udiff: string,
+    initialFileContent?: string,
+  ): {
+    originalContent: string;
+    modifiedContent: string;
+  } => {
+    // get original and modified content from the udiff
+    const parsedUdiffContent =
+      this.getOriginalAndModifiedContentFromUdiff(udiff);
+
+
+    // Check if the fileChangeStateMap has the URI
+    // if not, set the fileChangeState in fileChangeStateMap
+    if (!this.fileChangeStateMap.has(uri)) {
+      // if initialFileContent is not provided, throw an error
+      if (!initialFileContent) {
+        throw new Error(
+          `Initial file content is required for the first time setting the udiff for ${uri}`
+        );
+      }
+      // Set the initial file content and udiff in the fileChangeStateMap
+      this.fileChangeStateMap.set(uri, {
+        initialFileContent: initialFileContent,
+        originalContent: parsedUdiffContent.originalContent,
+        modifiedContent: parsedUdiffContent.modifiedContent,
+        currentUdiff: udiff,   
+      });
+    } else {
+      // update the udiff in the fileChangeStateMap
+      this.fileChangeStateMap.set(uri, {
+        ...this.fileChangeStateMap.get(uri)!,
+        currentUdiff: udiff,
+        originalContent: parsedUdiffContent.originalContent,  
+        modifiedContent: parsedUdiffContent.modifiedContent,
+      });
+    }
+
+    // return the original and modified content
+    return {
+      originalContent: parsedUdiffContent.originalContent,
+      modifiedContent: parsedUdiffContent.modifiedContent,
+    };
+  }
+
+  // This method retrieves the current content of the file based on the URI.
+  // It checks if the fileChangeStateMap has the URI. If it does, it returns the original content from the fileChangeStateMap.
+  // If it doesn't, it tries to read the file content from the file system.
+  getCurrentContentOnWhichChangesAreToBeApplied = async (
+    uri: string,
+  ): Promise<string> => {
+    const fileChangeState = this.fileChangeStateMap.get(uri);
+
+    // if fileChangeState is not found, try to read the file content and return it
+    if (!fileChangeState) {
+      const fileUri = vscode.Uri.file(uri);
+      try {
+        const fileContent = vscode.workspace.fs
+          .readFile(fileUri)
+          .then((buffer) => buffer.toString());
+        return fileContent;
+      } catch (error) {
+        this.outputChannel.error(`Error reading file: ${error}`);
+        throw error;
+      }
+    }
+    return fileChangeState.originalContent;
+  }
+
 
   private fileChangeMap = new Map<
     string,
