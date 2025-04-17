@@ -133,7 +133,7 @@ export default function Profile() {
                   return null;
                 })}
               </div>
-              <button
+              {/* <button
                 className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
                 onClick={opensetting}
               >
@@ -173,7 +173,7 @@ export default function Profile() {
                   />
                   <span>Show Logs</span>
                 </div>
-              </button>
+              </button> */}
               <button
                 className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
                 onClick={handleSignOut}
