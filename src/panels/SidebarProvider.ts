@@ -25,6 +25,7 @@ import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
+  private isWebviewInitialized = false;
   private pendingMessages: any[] = [];
   private _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
@@ -57,11 +58,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this._extensionUri],
     };
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    // Flush any pending messages now that the view is initialized
-    while (this.pendingMessages.length > 0) {
-      const message = this.pendingMessages.shift();
-      this._view.webview.postMessage(message);
-    }
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message: any) => {
@@ -254,6 +250,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
+          break; 
+        
+        case "webview-initialized":
+          this.isWebviewInitialized = true;
+          this.sendPendingMessages();
           break;
       }
 
@@ -677,6 +678,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // console.error("Error while deleting session:", error);
     }
   }
+  async sendPendingMessages() {
+        // Flush any pending messages now that the view is initialized
+        while (this.pendingMessages.length > 0) {
+          const message = this.pendingMessages.shift();
+          this._view?.webview.postMessage(message);
+        }
+    }
 
   setViewType(
     viewType:
@@ -785,10 +793,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Helper to send messages from extension to webview.
    */
   public sendMessageToSidebar(message: any) {
-    if (this._view) {
+    if (this._view && this.isWebviewInitialized) {
       this._view.webview.postMessage(message);
     } else {
+      // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
-  }
+  }  
 }
