@@ -3,7 +3,7 @@
 import * as vscode from "vscode";
 import * as os from "os";
 import { DiffViewManager } from "./diff/DiffManager";
-import { InlineDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
+import { DeputyDevDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
 import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
 import { SidebarProvider } from "./panels/SidebarProvider";
 import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
@@ -43,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
-  const ENABLE_OUTPUT_CHANNEL = false;
+  const ENABLE_OUTPUT_CHANNEL = true;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -86,7 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
   let diffViewManager: DiffViewManager;
   if (inlineDiffEnable) {
     // inline diff view manager
-    const inlineDiffViewManager = new InlineDiffViewManager(
+    const inlineDiffViewManager = new DeputyDevDiffViewManager(
       context,
       outputChannel
     );
