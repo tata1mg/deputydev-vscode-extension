@@ -20,6 +20,13 @@ Install now and experience the difference that truly intelligent, context-aware 
 
 ## Getting Started
 
+### System Requirements
+
+- VSCode version 1.60.0 or higher
+- Node.js 14.x or higher
+- Minimum 4GB RAM
+- Stable internet connection
+
 ### Installation
 
 <p></p>

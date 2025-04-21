@@ -31,6 +31,8 @@ import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
+import { DiffEditorProvider } from "./diff/customTextEditor";
+import { InMemoryFsProvider } from "./diff/fsProvider";
 export async function activate(context: vscode.ExtensionContext) {
   // if playform is windows then return and error
   if (os.platform() === "win32") {
@@ -140,6 +142,25 @@ export async function activate(context: vscode.ExtensionContext) {
       { webviewOptions: { retainContextWhenHidden: true } }
     )
   );
+
+  context.subscriptions.push(
+    vscode.workspace.registerFileSystemProvider('deputydev-custom', new InMemoryFsProvider(), { isReadonly: false })
+  );
+
+
+  context.subscriptions.push(
+    vscode.window.registerCustomEditorProvider(
+      DiffEditorProvider.viewType,
+      new DiffEditorProvider(context),
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true
+        },
+        supportsMultipleEditorsPerDocument: false
+      }
+    )
+  );
+
 
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);

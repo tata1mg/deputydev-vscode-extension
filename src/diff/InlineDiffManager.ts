@@ -260,6 +260,15 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       }
     );
 
+    // const diffProvider = new DiffContentProvider();
+    // const providerRegistration =
+    //   vscode.workspace.registerTextDocumentContentProvider(
+    //     'deputydev-custom',
+    //     diffProvider,
+    //   );
+
+    // this.disposables.push(providerRegistration);
+
     this.disposables.push(
       this.deletionDecorationType,
       this.insertionDecorationType,
@@ -364,28 +373,28 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
           );
         }
       }),
-      vscode.workspace.onWillSaveTextDocument(event => {
-        // Modify the content before save by providing edits via waitUntil
-        event.waitUntil(this.getPreSaveEdits(event.document));
-      }),
-      vscode.workspace.onDidSaveTextDocument(async document => {
-        const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === document.uri.toString());
-        if (!editor) return;
+      // vscode.workspace.onWillSaveTextDocument(event => {
+      //   // Modify the content before save by providing edits via waitUntil
+      //   event.waitUntil(this.getPreSaveEdits(event.document));
+      // }),
+      // vscode.workspace.onDidSaveTextDocument(async document => {
+      //   const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === document.uri.toString());
+      //   if (!editor) return;
     
-        // re-display the diff
-        const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
-        if (!fileChangeState) {
-          return;
-        }
-        const displayableUdiff = fileChangeState.currentUdiff;
-        const edit = new vscode.WorkspaceEdit();
-        const fullRange = new vscode.Range(
-          new vscode.Position(0, 0),
-          new vscode.Position(editor.document.lineCount, 0)
-        );
-        edit.replace(editor.document.uri, fullRange, displayableUdiff);
-        await vscode.workspace.applyEdit(edit);
-      })
+      //   // re-display the diff
+      //   const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
+      //   if (!fileChangeState) {
+      //     return;
+      //   }
+      //   const displayableUdiff = fileChangeState.currentUdiff;
+      //   const edit = new vscode.WorkspaceEdit();
+      //   const fullRange = new vscode.Range(
+      //     new vscode.Position(0, 0),
+      //     new vscode.Position(editor.document.lineCount, 0)
+      //   );
+      //   edit.replace(editor.document.uri, fullRange, displayableUdiff);
+      //   await vscode.workspace.applyEdit(edit);
+      // })
     );
   }
 
@@ -911,14 +920,14 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       //   // file doesn't exist => treat as untitled
       //   uri = uri.with({ scheme: "untitled" });
       // }
-      const document = await vscode.workspace.openTextDocument(uri);
-      const editor = await vscode.window.showTextDocument(document, {
-        preview: false,
-        preserveFocus: true,
-      });
-      const lineEol =
-        vscode.EndOfLine.CRLF === editor.document.eol ? "\r\n" : "\n";
-      const displayableUdiff = fileChangeState.currentUdiff.replace(/\r?\n/g, lineEol);
+      // const document = await vscode.workspace.openTextDocument(uri);
+      // const editor = await vscode.window.showTextDocument(document, {
+      //   preview: false,
+      //   preserveFocus: true,
+      // });
+      // const lineEol =
+      //   vscode.EndOfLine.CRLF === editor.document.eol ? "\r\n" : "\n";
+      const displayableUdiff = fileChangeState.currentUdiff.replace(/\r?\n/g, "\n");
       // const currentContent = editor.document.getText();
     
       // const differences = diffLines(currentContent, modifiedContent);
@@ -977,13 +986,13 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       // }
 
       // Replace entire content with the combined text
-      const edit = new vscode.WorkspaceEdit();
-      const fullRange = new vscode.Range(
-        new vscode.Position(0, 0),
-        new vscode.Position(editor.document.lineCount, 0)
-      );
-      edit.replace(editor.document.uri, fullRange, displayableUdiff);
-      await vscode.workspace.applyEdit(edit);
+      // const edit = new vscode.WorkspaceEdit();
+      // const fullRange = new vscode.Range(
+      //   new vscode.Position(0, 0),
+      //   new vscode.Position(editor.document.lineCount, 0)
+      // );
+      // edit.replace(editor.document.uri, fullRange, displayableUdiff);
+      // await vscode.workspace.applyEdit(edit);
 
       // this._onDidChange.fire({ type: "add", path: uri.fsPath });
 
@@ -992,6 +1001,22 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
         "deputydev.hasChanges",
         true
       );
+
+
+
+
+      const displayableUdiffUri = vscode.Uri.parse(
+            `deputydev-custom:${data.path}`,
+          ).with({
+            query: Buffer.from(displayableUdiff).toString('base64'),
+          });
+
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        displayableUdiffUri,
+        'deputydev.customDiffEditor'
+      );
+
       // Highlight changes visually
       // this.drawChanges(editor, { changes });
 
