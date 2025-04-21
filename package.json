@@ -24,10 +24,23 @@
     "onCommand:deputydev.RejectAllChanges",
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCustomEditor:deputydev.customDiffEditor"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "deputydev.customDiffEditor",
+        "displayName": "Diff Editor",
+        "selector": [
+          {
+            "filenamePattern": "*",
+            "scheme": "deputydev-custom"
+          }
+        ]
+      }
+    ],
     "keybindings": [
       {
         "command": "deputydev.editThisCode",
@@ -45,6 +58,11 @@
         "command": "deputydev.editThisCode",
         "category": "DeputyDev",
         "title": "Edit this code"
+      },
+      {
+        "command": "deputydev.customDiffEditor",
+        "category": "DeputyDev",
+        "title": "Open in Custom Editor"
       },
       {
         "command": "deputydev.chatWithDeputy",
