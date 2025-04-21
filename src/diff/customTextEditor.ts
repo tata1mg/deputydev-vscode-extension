@@ -1,6 +1,15 @@
 import * as vscode from 'vscode';
 import { DiffContentDocument } from './diffContentDocument';
 
+function getNonce(): string {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+  }
+
 export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffContentDocument> {
   static readonly viewType = 'deputydev.customDiffEditor';
 
@@ -52,45 +61,86 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
   }
 
   private getHtmlForWebview(text: string): string {
-    console.log('Generating HTML for webview with text:', text);
     const escaped = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
+      .replace(/>/g, '&gt;')
+      .replace(/`/g, '\\`'); // Escape backticks
+  
+    const nonce = getNonce();
+  
     return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-    }
-    textarea {
-      width: 100%;
-      height: 100%;
-      font-family: monospace;
-      font-size: 14px;
-      padding: 10px;
-      box-sizing: border-box;
-      resize: none;
-    }
-  </style>
-</head>
-<body>
-  <textarea id="editor">${escaped}</textarea>
-  <script>
-    const vscode = acquireVsCodeApi();
-    const textarea = document.getElementById('editor');
-    textarea.focus();
-    textarea.addEventListener('input', () => {
-      vscode.postMessage({ type: 'edit', text: textarea.value });
-    });
-  </script>
-</body>
-</html>`;
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      html, body, #container {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      .button-container {
+        position: absolute;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+        top: 60px; /* Position on 3rd line, adjust based on line height */
+      }
+      .accept-button, .reject-button {
+        padding: 5px 10px;
+        border: none;
+        background-color: #007acc;
+        color: white;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .accept-button:hover, .reject-button:hover {
+        background-color: #005a9e;
+      }
+    </style>
+    <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div class="button-container">
+      <button class="accept-button">Accept</button>
+      <button class="reject-button">Reject</button>
+    </div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+  
+      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+      require(['vs/editor/editor.main'], function () {
+        const editor = monaco.editor.create(document.getElementById('container'), {
+          value: \`${escaped}\`,
+          language: 'plaintext',
+          theme: 'vs-dark',
+          automaticLayout: true
+        });
+  
+        editor.onDidChangeModelContent(() => {
+          vscode.postMessage({
+            type: 'edit',
+            text: editor.getValue()
+          });
+        });
+  
+        // Handling button clicks
+        document.querySelector('.accept-button').addEventListener('click', () => {
+          vscode.postMessage({ type: 'accept' });
+        });
+  
+        document.querySelector('.reject-button').addEventListener('click', () => {
+          vscode.postMessage({ type: 'reject' });
+        });
+      });
+    </script>
+  </body>
+  </html>`;
   }
+  
 
   // --- Required interface methods (with minimal implementations) ---
   private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<DiffContentDocument>>();
