@@ -12,13 +12,14 @@ export class AuthenticationManager {
         private context: vscode.ExtensionContext,
         private configManager: ConfigManager,
         private logger: Logger
-    ) {}
+    ) { }
 
     public async pollSession(supabaseSessionId: string) {
         const configData = this.context.workspaceState.get("essentialConfigData") as any;
         if (!configData) {
-            throw new Error("Config data not found in workspace state");
-          }
+            this.logger.error("Authentication failed, please try again later.");
+            return "AUTHENTICATION_FAILED"
+        }
         const maxAttempts: number = configData.POLLING_MAX_ATTEMPTS;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
