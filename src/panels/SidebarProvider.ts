@@ -120,6 +120,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             sendMessage
           );
           break;
+        case "get-saved-urls":
+          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          break;
         case "usage-tracking":
           promise = this.trackingManager.trackUsage(data);
           break;
@@ -250,8 +253,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
-          break; 
-        
+          break;
+
         case "webview-initialized":
           this.isWebviewInitialized = true;
           this.sendPendingMessages();
@@ -494,7 +497,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       active_repo,
       getSessionId(),
       data.write_mode,
-      data.is_inline,
+      data.is_inline
     );
     return;
   }
@@ -615,14 +618,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore},
+        data: { unpinnedSessions, hasMore },
       });
     } catch (error) {
       const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore : false},
+        data: { unpinnedSessions, hasMore: false },
       });
     }
   }
@@ -680,12 +683,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
   async sendPendingMessages() {
-        // Flush any pending messages now that the view is initialized
-        while (this.pendingMessages.length > 0) {
-          const message = this.pendingMessages.shift();
-          this._view?.webview.postMessage(message);
-        }
+    // Flush any pending messages now that the view is initialized
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      this._view?.webview.postMessage(message);
     }
+  }
 
   setViewType(
     viewType:
@@ -800,5 +803,5 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
-  }  
+  }
 }
