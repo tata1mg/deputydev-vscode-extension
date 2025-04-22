@@ -1,7 +1,6 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { ConfigManager } from "../utilities/ConfigManager";
-import { POLLING_MAX_ATTEMPTS } from "../config";
 import { Logger } from "../utilities/Logger";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
@@ -13,10 +12,16 @@ export class AuthenticationManager {
         private context: vscode.ExtensionContext,
         private configManager: ConfigManager,
         private logger: Logger
-    ) {}
+    ) { }
 
     public async pollSession(supabaseSessionId: string) {
-        const maxAttempts: number = POLLING_MAX_ATTEMPTS;
+        const configData: any = this.context.workspaceState.get("essentialConfigData");
+        const maxAttempts = configData?.POLLING_MAX_ATTEMPTS;
+        if (!maxAttempts) {
+            this.logger.error("Authentication failed, please try again later.");
+            return "AUTHENTICATION_FAILED";
+        }
+
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);

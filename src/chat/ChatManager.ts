@@ -105,17 +105,12 @@ export class ChatManager {
       let finalResult: Array<any> = [];
       data.referenceList?.forEach((element) => {
         let finalChunkInfos: Array<any> = [];
-        element.chunks?.forEach((chunk) => {
-          this.outputChannel.info(`chunk: ${JSON.stringify(result)}`);
-          let selectedChunkInfo = result.find((res: any) => {
-            return res.chunk_hash === chunk.chunk_hash;
-          }
-          );
-          if (selectedChunkInfo) {
-            finalChunkInfos.push(selectedChunkInfo.chunk_info);
-          }
-        });
-
+        if (result.length) {
+          result.forEach((chunkInfoWithHash: any) => {
+            const chunkInfo = chunkInfoWithHash.chunk_info;
+            finalChunkInfos.push(chunkInfo);
+          });
+        }
         finalResult.push({
           "type": element.type,
           "value": element.value,
