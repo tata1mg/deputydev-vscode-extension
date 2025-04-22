@@ -52,7 +52,7 @@ function isNotCompatible(): boolean {
     }
   } catch (err) {
     vscode.window.showWarningMessage(
-      "Git is not installed or not available in PATH. Please install Git (version 2.40.0 or later) to use this extension."
+      "Git is not installed or not available in PATH. Please install Git (version 2.36.0 or later) to use this extension."
     );
     return true;
   }

@@ -415,6 +415,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       this.logger.error("Binary initialization failed");
       this.outputChannel.error("🚨 Binary initialization failed.");
+      throw new Error("Binary initialization failed");
     }
   }
 

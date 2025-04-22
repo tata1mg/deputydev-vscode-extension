@@ -54,6 +54,7 @@ export function sendForceUpgrade() {
 }
 
 export function sendNotVerified() {
+  vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
   extensionContext?.workspaceState.update("isAuthenticated", false);
   // delay for 0.2 second
   setTimeout(() => {
