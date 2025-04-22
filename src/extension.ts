@@ -15,9 +15,9 @@ import {
   setExtensionContext,
   setSidebarProvider,
   clearWorkspaceStorage,
+  deleteSessionId,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
-import { deleteSessionId } from "./utilities/contextManager";
 import { HistoryService } from "./services/history/HistoryService";
 import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
 import { AuthService } from "./services/auth/AuthService";
@@ -33,16 +33,13 @@ import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { DiffEditorProvider } from "./diff/customTextEditor";
 import { InMemoryFsProvider } from "./diff/fsProvider";
+import { isNotCompatible } from "./utilities/checkOsVersion";
 export async function activate(context: vscode.ExtensionContext) {
-  // if playform is windows then return and error
-  if (os.platform() === "win32") {
-    vscode.window.showWarningMessage(
-      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
-    );
+  // context reset from past session
+  const isNotCompatibleCheck = isNotCompatible();
+  if (isNotCompatibleCheck) {
     return;
   }
-
-  // context reset from past session
   setExtensionContext(context);
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = true;
@@ -51,36 +48,30 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
 
-  // // 0) Fetch and store essential config data
+  // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
-  if (await !configManager.getAllConfigEssentials()) {
+  if (!(await configManager.getAllConfigEssentials())) {
+    logger.error("Failed to fetch essential configuration. Aborting activation.");
+    outputChannel.error("Failed to fetch essential configuration. Aborting activation.");
+    vscode.window.showErrorMessage("DeputyDev failed to initialize: Could not load essential configuration.");
     return;
   }
 
   logger.info(`Extension "DeputyDev" is now active!`);
   outputChannel.info('Extension "DeputyDev" is now active!');
-  const config = configManager.getAllConfigEssentials();
-  // outputChannel.info(`Essential Config: ${JSON.stringify(config)}`);
 
-  // 0.1 download and executes binary
-  const serverManager = new ServerManager(
-    context,
-    outputChannel,
-    logger,
-    configManager
-  );
-  // await serverManager.ensureBinaryExists();
-  // await serverManager.startServer();
+  // 3. Core Services Initialization
+  const serverManager = new ServerManager(context, outputChannel, logger, configManager);
+  const authenticationManager = new AuthenticationManager(context, configManager, logger);
+  const authService = new AuthService();
+  const historyService = new HistoryService();
+  const profileService = new ProfileUiService();
+  const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
+  const referenceService = new ReferenceManager(context, outputChannel);
 
-  // 1) Authentication Flow
-  const authenticationManager = new AuthenticationManager(
-    context,
-    configManager,
-    logger
-  );
 
-  //  2) Choose & Initialize a Diff View Manager
+  // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace
     .getConfiguration("deputydev")
     .get("inlineDiff.enable");
@@ -104,13 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const referenceService = new ReferenceManager(context, outputChannel);
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
-  const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
-
-  const historyService = new HistoryService();
-  const authService = new AuthService();
-  const profileService = new ProfileUiService();
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -173,40 +158,54 @@ export async function activate(context: vscode.ExtensionContext) {
     configManager
   );
 
-(async () => {
-  // sidebarProvider.setViewType("loader");
-  await serverManager.ensureBinaryExists();
-  await serverManager.startServer();
-  outputChannel.info("this binary host now is " + getBinaryHost());
-  pinger.start();
+  (async () => {
+    // sidebarProvider.setViewType("loader");
+    await serverManager.ensureBinaryExists();
+    await serverManager.startServer();
+    outputChannel.info("this binary host now is " + getBinaryHost());
+    pinger.start();
 
 
-  authenticationManager
-    .validateCurrentSession()
-    .then((status) => {
-      outputChannel.info(`Authentication result: ${status}`);
-      if (status) {
-        configManager.fetchAndStoreConfig();
-        sidebarProvider.initiateBinary();
-        logger.info("User is authenticated.");
-        outputChannel.info("User is authenticated.");
-        sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
-        sidebarProvider.setViewType("chat");
-      } else {
-        logger.info("User is not authenticated.");
-        outputChannel.info("User is not authenticated.");
+    authenticationManager
+      .validateCurrentSession()
+      .then((status) => {
+        outputChannel.info(`Authentication result: ${status}`);
+        if (status) {
+          configManager.fetchAndStoreConfig();
+          sidebarProvider.initiateBinary();
+          logger.info("User is authenticated.");
+          outputChannel.info("User is authenticated.");
+          sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
+          vscode.commands.executeCommand(
+            "setContext",
+            "deputydev.isAuthenticated",
+            true
+          );
+          sidebarProvider.setViewType("chat");
+        } else {
+          logger.info("User is not authenticated.");
+          outputChannel.info("User is not authenticated.");
+          sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
+          sidebarProvider.setViewType("auth");
+          vscode.commands.executeCommand(
+            "setContext",
+            "deputydev.isAuthenticated",
+            false
+          );
+        }
+      })
+      .catch((error) => {
+        logger.error(`Authentication failed, Please try again`);
+        outputChannel.error(`Authentication failed: ${error}`);
         sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
         sidebarProvider.setViewType("auth");
-      }
-    })
-    .catch((error) => {
-      logger.error(`Authentication failed, Please try again`);
-      outputChannel.error(`Authentication failed: ${error}`);
-      sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-      sidebarProvider.setViewType("auth");
-    });
-
-})();
+        vscode.commands.executeCommand(
+          "setContext",
+          "deputydev.isAuthenticated",
+          false
+        );
+      });
+  })();
 
 
   chatService.setSidebarProvider(sidebarProvider);
@@ -343,16 +342,22 @@ export async function activate(context: vscode.ExtensionContext) {
       sidebarProvider.setViewType("history");
     })
   );
-  outputChannel.info(
-    `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
+
+  context.subscriptions.push(
+  //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
+  //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
+  // }),
+  
+    vscode.commands.registerCommand("deputydev.ViewLogs", () => {
+      logger.showCurrentProcessLogs();
+    })
   );
+  
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );
 
-  //  8) Show the output channel if needed & start server
 
-  // chatService.start();
 }
 
 export async function deactivate() {

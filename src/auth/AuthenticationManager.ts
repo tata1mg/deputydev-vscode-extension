@@ -1,7 +1,6 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { ConfigManager } from "../utilities/ConfigManager";
-import { POLLING_MAX_ATTEMPTS } from "../config";
 import { Logger } from "../utilities/Logger";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
@@ -13,10 +12,16 @@ export class AuthenticationManager {
         private context: vscode.ExtensionContext,
         private configManager: ConfigManager,
         private logger: Logger
-    ) {}
+    ) { }
 
     public async pollSession(supabaseSessionId: string) {
-        const maxAttempts: number = POLLING_MAX_ATTEMPTS;
+        const configData: any = this.context.workspaceState.get("essentialConfigData");
+        const maxAttempts = configData?.POLLING_MAX_ATTEMPTS;
+        if (!maxAttempts) {
+            this.logger.error("Authentication failed, please try again later.");
+            return "AUTHENTICATION_FAILED";
+        }
+
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);
@@ -33,18 +38,22 @@ export class AuthenticationManager {
                             this.configManager.fetchAndStoreConfig();
                             this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                             this.context.workspaceState.update("isAuthenticated", true);
+                            vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", true);
                             return response.data.status;
                         } else {
                             this.context.workspaceState.update("isAuthenticated", false);
+                            vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
                             return 'NOT_AUTHENTICATED';
                         }
                     } else {
                         this.context.workspaceState.update("isAuthenticated", false);
+                        vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
                         return 'NOT_AUTHENTICATED';
                     }
                 }
             } catch (error) {
                 this.context.workspaceState.update("isAuthenticated", false);
+                vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
                 this.logger.error('Error while polling session');
                 return 'AUTHENTICATION_FAILED';
             }
@@ -72,6 +81,7 @@ export class AuthenticationManager {
                 }
                 this.context.globalState.update("userData", userData)
                 this.context.workspaceState.update("isAuthenticated", true);
+                this.context.workspaceState.update("isAuthenticated", true);
                 return true;
                 // return false;
             } else if (response.data.status === 'EXPIRED') {
@@ -85,21 +95,25 @@ export class AuthenticationManager {
                         this.context.globalState.update("userData", userData)
                         this.context.workspaceState.update("authToken", response.data.encrypted_session_data);
                         this.context.workspaceState.update("isAuthenticated", true);
+                        this.context.workspaceState.update("isAuthenticated", true);
                         return true;
                         // return false;
                     }
                 } else {
                     this.context.workspaceState.update("isAuthenticated", false);
+                    vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
                     return false;
                     // return true;
                 }
             } else {
                 this.context.workspaceState.update("isAuthenticated", false);
+                vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
                 return false;
                 // return true;
             }
         } catch (error) {
             this.context.workspaceState.update("isAuthenticated", false);
+            vscode.commands.executeCommand("setContext", "deputydev.isAuthenticated", false);
             this.logger.error("Authentication failed, please try again later.")
             throw error
         }

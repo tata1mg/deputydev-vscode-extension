@@ -2,6 +2,7 @@ import { FC, useRef, useEffect } from "react";
 import { AutocompleteOption } from "@/types";
 import { Folder, File, Code, Boxes } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
+import { useSafeAutocompleteBackground } from "../../utils/BgColorPatch";
 
 interface AutocompleteMenuProps {
   options: AutocompleteOption[];
@@ -20,6 +21,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   options,
   onSelect,
 }) => {
+  const safeBg = useSafeAutocompleteBackground();
   const { selectedOptionIndex } = useChatStore();
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -36,7 +38,8 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   }, [selectedOptionIndex]);
 
   return (
-    <div className={`${options.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto w-full bg-[var(--vscode-list-inactiveSelectionBackground)] border border-[#3c3c3c] rounded-md shadow-xl z-50`}>
+    <div className={`${options.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto w-full border border-[#3c3c3c] rounded-md shadow-xl z-50`}
+    style={{ backgroundColor: safeBg }}> 
       <ul
         className="p-1 space-y-1"
         ref={listRef}
