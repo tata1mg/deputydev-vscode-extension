@@ -1006,7 +1006,8 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
 
 
       const displayableUdiffUri = vscode.Uri.parse(
-            `deputydev-custom:${data.path}`,
+            `deputydev-custom:${data.path.split('/').pop()}.dddiff`,
+            true,
           ).with({
             query: Buffer.from(displayableUdiff).toString('base64'),
           });

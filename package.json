@@ -35,7 +35,7 @@
         "displayName": "Diff Editor",
         "selector": [
           {
-            "filenamePattern": "*",
+            "filenamePattern": "*.dddiff",
             "scheme": "deputydev-custom"
           }
         ]
