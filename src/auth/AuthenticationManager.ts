@@ -1,7 +1,6 @@
 import { BrowserClient } from "../clients/BrowserClient";
 import { AuthService } from "../services/auth/AuthService";
 import { ConfigManager } from "../utilities/ConfigManager";
-import { POLLING_MAX_ATTEMPTS } from "../config";
 import { Logger } from "../utilities/Logger";
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
@@ -16,7 +15,11 @@ export class AuthenticationManager {
     ) {}
 
     public async pollSession(supabaseSessionId: string) {
-        const maxAttempts: number = POLLING_MAX_ATTEMPTS;
+        const configData = this.context.workspaceState.get("essentialConfigData") as any;
+        if (!configData) {
+            throw new Error("Config data not found in workspace state");
+          }
+        const maxAttempts: number = configData.POLLING_MAX_ATTEMPTS;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);
