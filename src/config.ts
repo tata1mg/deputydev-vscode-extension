@@ -5,7 +5,6 @@ export const DD_HOST = "https://api.deputydev.ai";
 // export const DD_HOST = "http://localhost:8084";
 
 // move this to config based, please add these in config.json
-export const POLLING_MAX_ATTEMPTS = 20;
 export const WS_TIMEOUT = 1800000;
 
 
