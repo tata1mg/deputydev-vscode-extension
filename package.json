@@ -25,13 +25,13 @@
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
     "onStartupFinished",
-    "onCustomEditor:deputydev.customDiffEditor"
+    "onCustomEditor:deputydev.proposedChangeEditor"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "customEditors": [
       {
-        "viewType": "deputydev.customDiffEditor",
+        "viewType": "deputydev.proposedChangeEditor",
         "displayName": "Diff Editor",
         "selector": [
           {
@@ -60,7 +60,7 @@
         "title": "Edit this code"
       },
       {
-        "command": "deputydev.customDiffEditor",
+        "command": "deputydev.proposedChangeEditor",
         "category": "DeputyDev",
         "title": "Open in Custom Editor"
       },

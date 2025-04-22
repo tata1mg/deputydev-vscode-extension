@@ -11,7 +11,7 @@ function getNonce(): string {
   }
 
 export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffContentDocument> {
-  static readonly viewType = 'deputydev.customDiffEditor';
+  static readonly viewType = 'deputydev.proposedChangeEditor';
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
