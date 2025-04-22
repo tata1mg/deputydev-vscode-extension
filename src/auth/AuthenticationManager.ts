@@ -21,6 +21,10 @@ export class AuthenticationManager {
             return "AUTHENTICATION_FAILED"
         }
         const maxAttempts: number = configData.POLLING_MAX_ATTEMPTS;
+        if (!maxAttempts) {
+            this.logger.error("Authentication failed, please try again later.");
+            return "AUTHENTICATION_FAILED"
+        }
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);
