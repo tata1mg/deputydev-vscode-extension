@@ -15,16 +15,13 @@ export class AuthenticationManager {
     ) { }
 
     public async pollSession(supabaseSessionId: string) {
-        const configData = this.context.workspaceState.get("essentialConfigData") as any;
-        if (!configData) {
-            this.logger.error("Authentication failed, please try again later.");
-            return "AUTHENTICATION_FAILED"
-        }
-        const maxAttempts: number = configData.POLLING_MAX_ATTEMPTS;
+        const configData: any = this.context.workspaceState.get("essentialConfigData");
+        const maxAttempts = configData?.POLLING_MAX_ATTEMPTS;
         if (!maxAttempts) {
             this.logger.error("Authentication failed, please try again later.");
-            return "AUTHENTICATION_FAILED"
+            return "AUTHENTICATION_FAILED";
         }
+
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             try {
                 const response = await this.authService.getSession(supabaseSessionId);
