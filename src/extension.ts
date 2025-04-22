@@ -130,6 +130,7 @@ export async function activate(context: vscode.ExtensionContext) {
   new ThemeManager(sidebarProvider, logger);
 
   const pinger = new BackgroundPinger(
+    context,
     sidebarProvider,
     serverManager,
     outputChannel,
