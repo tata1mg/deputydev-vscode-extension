@@ -1,7 +1,6 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
-import * as os from "os";
 import { DiffViewManager } from "./diff/DiffManager";
 import { InlineDiffViewManager } from "./diff/InlineDiffManager";
 import { DiffEditorViewManager } from "./diff/SideDiffManager";
