@@ -210,3 +210,7 @@ export function showUserLogs() {
 export function sendRetryEmbedding() {
   return callCommand("hit-retry-embedding", {});
 }
+
+export function webviewInitialized() {
+  return callCommand("webview-initialized", {});
+}
