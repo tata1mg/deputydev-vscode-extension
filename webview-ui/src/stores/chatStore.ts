@@ -59,6 +59,13 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     description: "A short piece of reusable class code",
     chunks: [],
   },
+  {
+    icon: "url",
+    label: "URL",
+    value: "url: ",
+    description: "A web address or link to a resource",
+    chunks: [],
+  },
 ];
 
 /*===========================================================================

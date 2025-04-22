@@ -217,8 +217,8 @@ addCommandEventListener("set-view-type", ({ data }) => {
   if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
-    useSessionsStore.setState({loadingPinnedSessions: true});
-    useSessionsStore.setState({loadingUnpinnedSessions: true});
+    useSessionsStore.setState({ loadingPinnedSessions: true });
+    useSessionsStore.setState({ loadingUnpinnedSessions: true });
   }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
@@ -232,41 +232,41 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
 });
 
 addCommandEventListener("set-workspace-repos", ({ data }) => {
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(data)}`,
-  );
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(data)}`);
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(repos)}`,
-  );
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(activeRepo)}`,
-  );
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(repos)}`);
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
 addCommandEventListener("sessions-history", ({ data }: any) => {
-  useSessionsStore.setState({ noUnpinnedSessions: data.unpinnedSessions.length === 0 });
+  useSessionsStore.setState({
+    noUnpinnedSessions: data.unpinnedSessions.length === 0,
+  });
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
-  if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
-    useSessionsStore.setState({loadingUnpinnedSessions: false});
+  if (
+    data.unpinnedSessions &&
+    Array.isArray(data.unpinnedSessions) &&
+    data.unpinnedSessions.length > 0
+  ) {
+    useSessionsStore.setState({ loadingUnpinnedSessions: false });
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
-      .setSessions((prevSessions) => [...prevSessions, ...(data.unpinnedSessions as Session[])]);
+      .setSessions((prevSessions) => [
+        ...prevSessions,
+        ...(data.unpinnedSessions as Session[]),
+      ]);
   }
 });
 
 addCommandEventListener("pinned-sessions", ({ data }: any) => {
-  useSessionsStore.setState({ noPinnedSessions: data.length === 0});
+  useSessionsStore.setState({ noPinnedSessions: data.length === 0 });
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
-    useSessionsStore.setState({loadingPinnedSessions: false})
+    useSessionsStore.setState({ loadingPinnedSessions: false });
     // Append new sessions to the existing ones
     useSessionsStore.setState({
       pinnedSessions: data as Session[],
@@ -328,6 +328,10 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
     // );
     return;
   }
+});
+
+addCommandEventListener("get-saved-urls-response", ({ data }) => {
+  console.log("get-saved-urls-response", data);
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {

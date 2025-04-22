@@ -63,6 +63,10 @@ export function keywordTypeSearch(payload: unknown) {
   return callCommand("keyword-type-search", payload);
 }
 
+export function getSavedUrls() {
+  return callCommand("get-saved-urls", null);
+}
+
 // accept/reject file
 
 /**
