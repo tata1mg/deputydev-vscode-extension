@@ -1014,7 +1014,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       await vscode.commands.executeCommand(
         'vscode.openWith',
         displayableUdiffUri,
-        'deputydev.customDiffEditor'
+        'deputydev.proposedChangeEditor'
       );
 
       // Highlight changes visually
