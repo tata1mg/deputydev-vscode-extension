@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiffContentDocument } from './diffContentDocument';
+import { DiffContentDocument } from '../diffContentDocument';
 
 function getNonce(): string {
   let text = '';
@@ -11,7 +11,7 @@ function getNonce(): string {
 }
 
 export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffContentDocument> {
-  static readonly viewType = 'deputydev.proposedChangeEditor';
+  static readonly viewType = 'deputydev.changeProposer';
 
   constructor(private readonly context: vscode.ExtensionContext) { }
 
@@ -34,6 +34,9 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
   ): Promise<void> {
 
     console.log('Resolving custom editor for document:', document.uri.toString());
+
+    webviewPanel.title = 'DeputyDev Change Proposer';
+    webviewPanel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'dd_logo_light.png');
     webviewPanel.webview.options = {
       enableScripts: true
     };

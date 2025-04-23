@@ -25,20 +25,20 @@
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
     "onStartupFinished",
-    "onCustomEditor:deputydev.proposedChangeEditor"
+    "onCustomEditor:deputydev.changeProposer"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "customEditors": [
       {
-        "viewType": "deputydev.proposedChangeEditor",
-        "displayName": "Diff Editor",
+        "viewType": "deputydev.changeProposer",
+        "displayName": "DeputyDev Change Proposer",
         "selector": [
           {
-            "filenamePattern": "*.dddiff",
-            "scheme": "deputydev-custom"
+            "filenamePattern": "*.ddproposed"
           }
-        ]
+        ],
+        "priority": "default"
       }
     ],
     "keybindings": [
@@ -60,7 +60,7 @@
         "title": "Edit this code"
       },
       {
-        "command": "deputydev.proposedChangeEditor",
+        "command": "deputydev.changeProposer",
         "category": "DeputyDev",
         "title": "Open in Custom Editor"
       },
@@ -183,18 +183,13 @@
       ],
       "editor/title": [
         {
-          "command": "deputydev.ConfirmModify",
-          "group": "navigation@1",
-          "when": "isInDiffEditor && resourceScheme == 'deputydev'"
-        },
-        {
           "command": "deputydev.AcceptAllChanges",
-          "when": "deputydev.hasChanges",
+          "when": "deputydev.changeProposer.hasChanges",
           "group": "navigation@2"
         },
         {
           "command": "deputydev.RejectAllChanges",
-          "when": "deputydev.hasChanges",
+          "when": "deputydev.changeProposer.hasChanges",
           "group": "navigation@3"
         }
       ]

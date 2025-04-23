@@ -7,42 +7,6 @@ import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { createTwoFilesPatch } from 'diff';
 
 
-type RemovedChange = {
-  type: "removed";
-  line: number;
-  count: number;
-  value: string;
-  session_id?: number;
-  is_inline?: boolean;
-  write_mode?: boolean;
-  is_inline_modify?: boolean;
-};
-
-type AddedChange = {
-  type: "added";
-  line: number;
-  count: number;
-  value: string;
-  session_id?: number;
-  is_inline?: boolean;
-  write_mode?: boolean;
-  is_inline_modify?: boolean;
-};
-
-type Change =
-  | RemovedChange
-  | AddedChange
-  | {
-    type: "modified";
-    removed: RemovedChange;
-    added: AddedChange;
-    session_id?: number;
-    is_inline?: boolean;
-    write_mode?: boolean;
-    is_inline_modify?: boolean;
-  };
-
-
 type FileChangeState = {
   initialFileContent: string; // The initial content of the file before any changes. Used to revert to the original state.
   originalContent: string; // The original content based on the current udiff
@@ -50,16 +14,7 @@ type FileChangeState = {
   currentUdiff: string; // The current udiff content
 }
 
-export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.CodeLensProvider {
-  private deletionDecorationType: vscode.TextEditorDecorationType;
-  private insertionDecorationType: vscode.TextEditorDecorationType;
-  // These properties store decoration types used to visually differentiate deleted and inserted content in the editor.
-
-  private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
-  readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
-  // _onDidChangeCodeLenses is an event emitter to notify when the CodeLens should be updated.
-  // onDidChangeCodeLenses exposes this event so other components can subscribe to it.
-
+export class DeputyDevDiffViewManager extends DiffViewManager {
   // This map keeps track of the state of each file being edited.
   private readonly fileChangeStateMap = new Map<string, FileChangeState>();
 
@@ -201,42 +156,6 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
   }
 
 
-  private getPreSaveEdits = async (document: vscode.TextDocument): Promise<vscode.TextEdit[]> => {
-    // if document is not in fileChangeStateMap, return empty array
-    const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
-    if (!fileChangeState) {
-      return [];
-    }
-
-    const originalText = document.getText();
-
-    // 🔧 Your transformation logic here
-    const newText = fileChangeState.modifiedContent;
-
-    if (newText === originalText) {
-      return []; // No edits needed
-    }
-
-    const fullRange = new vscode.Range(
-      document.positionAt(0),
-      document.positionAt(originalText.length)
-    );
-
-    return [vscode.TextEdit.replace(fullRange, newText)];
-  }
-
-
-  private fileChangeMap = new Map<
-    string,
-    {
-      originalContent: string;
-      modifiedContent: string;
-      changes: Change[];
-    }
-  >();
-
-  // fileChangeMap keeps track of the file changes.
-
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel
@@ -244,317 +163,10 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     super();
 
     // Set initial context value
-    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
-
-    this.deletionDecorationType = vscode.window.createTextEditorDecorationType({
-      light: { backgroundColor: "#fddbe2" },
-      dark: { backgroundColor: "#3e1c23" },
-      isWholeLine: true,
-    });
-
-    this.insertionDecorationType = vscode.window.createTextEditorDecorationType(
-      {
-        light: { backgroundColor: "#e6fde8" },
-        dark: { backgroundColor: "#1c331e" },
-        isWholeLine: true,
-      }
-    );
-
-    // const diffProvider = new DiffContentProvider();
-    // const providerRegistration =
-    //   vscode.workspace.registerTextDocumentContentProvider(
-    //     'deputydev-custom',
-    //     diffProvider,
-    //   );
-
-    // this.disposables.push(providerRegistration);
-
-    this.disposables.push(
-      this.deletionDecorationType,
-      this.insertionDecorationType,
-
-      vscode.workspace.onDidCloseTextDocument((doc) => {
-        if (doc.uri.scheme === "file" || doc.uri.scheme === "untitled") {
-          const uri = doc.uri.toString();
-          if (!this.fileChangeMap.has(uri)) {
-            return;
-          }
-          this.fileChangeMap.delete(uri);
-          this._onDidChange.fire({
-            type: "reject",
-            path: doc.uri.scheme === "file" ? doc.uri.fsPath : doc.uri.path,
-          });
-          this.outputChannel.debug(
-            `Cleaned up decorations for ${doc.uri.fsPath}`
-          );
-        }
-      }),
-
-      // Listens for the event onDidCloseTextDocument, triggered when a document is closed in the editor.Checks if the closed document belongs to either file or untitled schemes.
-      // If the document is tracked in fileChangeMap, it:Removes its entry from fileChangeMap.,Fires a change event (_onDidChange) of type 'reject' to indicate the file's changes are no longer valid.
-
-      // Provide code lenses for file/untitled URIs
-      vscode.languages.registerCodeLensProvider(
-        [{ scheme: "file" }, { scheme: "untitled" }],
-        this
-      ),
-      this._onDidChangeCodeLenses,
-      // CodeLensProvider for files and untitled documents.. Associates the current instance of InlineDiffViewManager (this) as the provider,
-      // enabling it to generate and manage CodeLens annotations in the supported documents.Registers a
-
-      // Registering Commands
-
-      // uriStr: string: The string representation of the file's URI where the diff chunk exists.
-      // i: number: The index of the specific diff chunk to be accepted.
-
-      // Accept single diff chunk
-      vscode.commands.registerCommand(
-        "deputydev.AcceptChange",
-        (uriStr: string, i: number) => {
-          if (typeof uriStr !== "string") {
-            const uri = vscode.window.activeTextEditor?.document.uri;
-            if (!uri) return;
-            uriStr = uri.toString();
-          }
-          this.acceptChange(uriStr, i);
-        }
-      ),
-
-      // Reject single diff chunk
-      vscode.commands.registerCommand(
-        "deputydev.RejectChange",
-        (uriStr: string, i: number) => {
-          if (typeof uriStr !== "string") {
-            const uri = vscode.window.activeTextEditor?.document.uri;
-            if (!uri) return;
-            uriStr = uri.toString();
-          }
-          this.rejectChange(uriStr, i);
-        }
-      ),
-
-      // Accept all changes in a file
-      vscode.commands.registerCommand(
-        "deputydev.AcceptAllChanges",
-        (uri: vscode.Uri) => {
-          this.acceptAllChanges(uri);
-        }
-      ),
-
-      // Reject all changes in a file
-      vscode.commands.registerCommand(
-        "deputydev.RejectAllChanges",
-        (uri: vscode.Uri) => {
-          this.rejectAllChanges(uri);
-        }
-      ),
-
-      // When active editor changes, re-draw decorations
-      // if tab or file change. The extension checks the current opened file's URI in fileChangeMap. deputydev.hasChanges - > True if there are changes in the file, False otherwise.
-
-      vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (editor) {
-          const uri = editor.document.uri.toString();
-          const fileChange = this.fileChangeMap.get(uri);
-          vscode.commands.executeCommand(
-            "setContext",
-            "deputydev.hasChanges",
-            fileChange !== undefined && fileChange.changes.length > 0
-          );
-          if (fileChange) {
-            this.outputChannel.debug("filechange here", fileChange);
-            this.drawChanges(editor, fileChange);
-          }
-        } else {
-          vscode.commands.executeCommand(
-            "setContext",
-            "deputydev.hasChanges",
-            false
-          );
-        }
-      }),
-      // vscode.workspace.onWillSaveTextDocument(event => {
-      //   // Modify the content before save by providing edits via waitUntil
-      //   event.waitUntil(this.getPreSaveEdits(event.document));
-      // }),
-      // vscode.workspace.onDidSaveTextDocument(async document => {
-      //   const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === document.uri.toString());
-      //   if (!editor) return;
-
-      //   // re-display the diff
-      //   const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
-      //   if (!fileChangeState) {
-      //     return;
-      //   }
-      //   const displayableUdiff = fileChangeState.currentUdiff;
-      //   const edit = new vscode.WorkspaceEdit();
-      //   const fullRange = new vscode.Range(
-      //     new vscode.Position(0, 0),
-      //     new vscode.Position(editor.document.lineCount, 0)
-      //   );
-      //   edit.replace(editor.document.uri, fullRange, displayableUdiff);
-      //   await vscode.workspace.applyEdit(edit);
-      // })
-    );
+    vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
   }
 
-  /**
-   * Provide code lenses for each chunk so the user can individually accept/reject.
-   */
-  async provideCodeLenses(
-    document: vscode.TextDocument
-  ): Promise<vscode.CodeLens[]> {
-    const uri = document.uri.toString();
-    const fileChange = this.fileChangeMap.get(uri);
-    if (!fileChange) {
-      return [];
-    }
-    const codeLenses: vscode.CodeLens[] = [];
 
-    for (let i = 0; i < fileChange.changes.length; i++) {
-      const change = fileChange.changes[i];
-      const line =
-        change.type === "modified" ? change.removed.line : change.line;
-
-      const range = new vscode.Range(
-        new vscode.Position(line, 0),
-        new vscode.Position(line, 0)
-      );
-
-      codeLenses.push(
-        new vscode.CodeLens(range, {
-          title: "Accept",
-          command: "deputydev.AcceptChange",
-          arguments: [document.uri.toString(), i],
-        }),
-        new vscode.CodeLens(range, {
-          title: "Reject",
-          command: "deputydev.RejectChange",
-          arguments: [document.uri.toString(), i],
-        })
-      );
-    }
-    return codeLenses;
-  }
-
-  /**
-   * Re-draw the decorations (added/removed lines) after changes.
-   * If `index` & `count` are provided, we remove that chunk from memory.
-   */
-  private drawChanges(
-    editor: vscode.TextEditor,
-    fileChange: { changes: Change[] },
-    index?: number,
-    count?: number
-  ) {
-    // If we accepted/rejected a chunk, remove it and adjust subsequent line indices of other changes
-    if (index !== undefined && count !== undefined) {
-      for (let i = index + 1; i < fileChange.changes.length; i++) {
-        const change = fileChange.changes[i];
-        if (change.type === "modified") {
-          change.removed.line -= count;
-          change.added.line -= count;
-        } else {
-          change.line -= count;
-        }
-      }
-      fileChange.changes.splice(index, 1);
-    }
-
-    // Build decoration arrays
-    let deletions: vscode.DecorationOptions[] = [];
-    let insertions: vscode.DecorationOptions[] = [];
-
-    for (const change of fileChange.changes) {
-      if (change.type === "removed") {
-        deletions.push({
-          range: new vscode.Range(
-            new vscode.Position(change.line, 0),
-            new vscode.Position(change.line + change.count - 1, 0)
-          ),
-        });
-      } else if (change.type === "added") {
-        insertions.push({
-          range: new vscode.Range(
-            new vscode.Position(change.line, 0),
-            new vscode.Position(change.line + change.count - 1, 0)
-          ),
-        });
-      } else {
-        // modified chunk => has removed + added parts
-        deletions.push({
-          range: new vscode.Range(
-            new vscode.Position(change.removed.line, 0),
-            new vscode.Position(
-              change.removed.line + change.removed.count - 1,
-              0
-            )
-          ),
-        });
-        insertions.push({
-          range: new vscode.Range(
-            new vscode.Position(change.added.line, 0),
-            new vscode.Position(change.added.line + change.added.count - 1, 0)
-          ),
-        });
-      }
-    }
-
-    // Apply to editor
-    editor.setDecorations(this.deletionDecorationType, deletions);
-    editor.setDecorations(this.insertionDecorationType, insertions);
-
-    this._onDidChangeCodeLenses.fire();
-  }
-
-  /**
-   * Utility: figure out which chunk the cursor is in (for AcceptChange/RejectChange w/o explicit index).
-   */
-  private getChangeIndex(
-    editor: vscode.TextEditor,
-    fileChange: { changes: Change[] }
-  ): number {
-    const line = editor.selection.active.line;
-
-    for (let i = 0; i < fileChange.changes.length; i++) {
-      const change = fileChange.changes[i];
-      if (change.type === "added" || change.type === "removed") {
-        if (line >= change.line && line < change.line + change.count) {
-          return i;
-        }
-      } else {
-        // 'modified'
-        const start = change.removed.line;
-        const end =
-          change.removed.line + change.removed.count + change.added.count;
-        if (line >= start && line < end) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  }
-
-  private getSourceForUsageTracking = (
-    is_inline?: boolean,
-    write_mode?: boolean,
-    is_inline_modify?: boolean
-  ) => {
-    if (is_inline_modify) {
-      return "inline-modify";
-    }
-    if (is_inline) {
-      if (write_mode) {
-        return "inline-chat-act";
-      }
-      return "inline-chat";
-    } else {
-      if (write_mode) {
-        return "act";
-      }
-      return "chat";
-    }
-  };
 
   /**
    * Accept a single chunk (removed, added, or modified).
@@ -641,7 +253,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     if (fileChange.changes.length === 0) {
       vscode.commands.executeCommand(
         "setContext",
-        "deputydev.hasChanges",
+        "deputydev.changeProposer.hasChanges",
         false
       );
       this.fileChangeMap.delete(uri);
@@ -717,7 +329,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     if (fileChange.changes.length === 0) {
       vscode.commands.executeCommand(
         "setContext",
-        "deputydev.hasChanges",
+        "deputydev.changeProposer.hasChanges",
         false
       );
       this.fileChangeMap.delete(uri);
@@ -808,7 +420,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       path: uri.fsPath,
     });
 
-    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
+    vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
     await this.saveDocument(editor);
     this._onDidChangeCodeLenses.fire();
   }
@@ -857,7 +469,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       path: uri.fsPath,
     });
 
-    vscode.commands.executeCommand("setContext", "deputydev.hasChanges", false);
+    vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
     if (editor.document.uri.scheme === "file") {
       await this.saveDocument(editor);
     } else {
@@ -985,7 +597,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
 
       vscode.commands.executeCommand(
         "setContext",
-        "deputydev.hasChanges",
+        "deputydev.changeProposer.hasChanges",
         true
       );
 
@@ -995,12 +607,13 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       const displayableUdiffUri = vscode.Uri.from({
         scheme: 'deputydev-custom',
         query: Buffer.from(displayableUdiff).toString('base64'),
+        path: `${data.path}.ddproposed`
       });
 
       await vscode.commands.executeCommand(
         'vscode.openWith',
         displayableUdiffUri,
-        'deputydev.proposedChangeEditor'
+        'deputydev.changeProposer'
       );
 
       // Highlight changes visually
