@@ -30,8 +30,8 @@ import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
-import { DiffEditorProvider } from "./diff/customTextEditor";
-import { ProposedChangeEditorFsProvider } from "./diff/fsProvider";
+import { DiffEditorProvider } from "./diff/viewer/customTextEditor";
+import { ProposedChangeEditorFsProvider } from "./diff/viewer/fsProvider";
 import { isNotCompatible } from "./utilities/checkOsVersion";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
