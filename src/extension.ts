@@ -31,7 +31,7 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { DiffEditorProvider } from "./diff/customTextEditor";
-import { InMemoryFsProvider } from "./diff/fsProvider";
+import { ProposedChangeEditorFsProvider } from "./diff/fsProvider";
 import { isNotCompatible } from "./utilities/checkOsVersion";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
@@ -128,7 +128,7 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider('deputydev-custom', new InMemoryFsProvider(), { isReadonly: false })
+    vscode.workspace.registerFileSystemProvider('deputydev-custom', new ProposedChangeEditorFsProvider(), { isReadonly: false })
   );
 
 
@@ -344,15 +344,15 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-  //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
-  //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
-  // }),
-  
+    //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
+    //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
+    // }),
+
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
       logger.showCurrentProcessLogs();
     })
   );
-  
+
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );
