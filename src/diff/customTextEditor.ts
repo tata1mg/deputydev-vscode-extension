@@ -2,18 +2,18 @@ import * as vscode from 'vscode';
 import { DiffContentDocument } from './diffContentDocument';
 
 function getNonce(): string {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-    }
-    return text;
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
   }
+  return text;
+}
 
 export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffContentDocument> {
   static readonly viewType = 'deputydev.proposedChangeEditor';
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) { }
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -49,8 +49,8 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
         document.content = message.text;
         this._onDidChangeCustomDocument.fire({
           document,
-          undo: () => {},
-          redo: () => {}
+          undo: () => { },
+          redo: () => { }
         });
       }
     });
@@ -66,9 +66,9 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/`/g, '\\`'); // Escape backticks
-  
+
     const nonce = getNonce();
-  
+
     return `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -140,7 +140,7 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
   </body>
   </html>`;
   }
-  
+
 
   // --- Required interface methods (with minimal implementations) ---
   private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<DiffContentDocument>>();
@@ -164,7 +164,7 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
   backupCustomDocument(): Thenable<vscode.CustomDocumentBackup> {
     return Promise.resolve({
       id: 'backup',
-      delete: () => {}
+      delete: () => { }
     });
   }
 }

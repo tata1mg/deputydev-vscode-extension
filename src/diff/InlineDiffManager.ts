@@ -33,14 +33,14 @@ type Change =
   | RemovedChange
   | AddedChange
   | {
-      type: "modified";
-      removed: RemovedChange;
-      added: AddedChange;
-      session_id?: number;
-      is_inline?: boolean;
-      write_mode?: boolean;
-      is_inline_modify?: boolean;
-    };
+    type: "modified";
+    removed: RemovedChange;
+    added: AddedChange;
+    session_id?: number;
+    is_inline?: boolean;
+    write_mode?: boolean;
+    is_inline_modify?: boolean;
+  };
 
 
 type FileChangeState = {
@@ -140,14 +140,14 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
         initialFileContent: initialFileContent,
         originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
-        currentUdiff: udiff,   
+        currentUdiff: udiff,
       });
     } else {
       // update the udiff in the fileChangeStateMap
       this.fileChangeStateMap.set(uri, {
         ...this.fileChangeStateMap.get(uri)!,
         currentUdiff: udiff,
-        originalContent: parsedUdiffContent.originalContent,  
+        originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
       });
     }
@@ -201,7 +201,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
   }
 
 
-  private getPreSaveEdits = async (document: vscode.TextDocument): Promise<vscode.TextEdit[]>  => {
+  private getPreSaveEdits = async (document: vscode.TextDocument): Promise<vscode.TextEdit[]> => {
     // if document is not in fileChangeStateMap, return empty array
     const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
     if (!fileChangeState) {
@@ -209,19 +209,19 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
     }
 
     const originalText = document.getText();
-  
+
     // 🔧 Your transformation logic here
     const newText = fileChangeState.modifiedContent;
-  
+
     if (newText === originalText) {
       return []; // No edits needed
     }
-  
+
     const fullRange = new vscode.Range(
       document.positionAt(0),
       document.positionAt(originalText.length)
     );
-  
+
     return [vscode.TextEdit.replace(fullRange, newText)];
   }
 
@@ -380,7 +380,7 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       // vscode.workspace.onDidSaveTextDocument(async document => {
       //   const editor = vscode.window.visibleTextEditors.find(e => e.document.uri.toString() === document.uri.toString());
       //   if (!editor) return;
-    
+
       //   // re-display the diff
       //   const fileChangeState = this.fileChangeStateMap.get(document.uri.fsPath);
       //   if (!fileChangeState) {
@@ -913,23 +913,10 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
       }
 
       // show the diff view
-      let uri = vscode.Uri.file(data.path);
-      // try {
-      //   await vscode.workspace.fs.stat(uri);
-      // } catch {
-      //   // file doesn't exist => treat as untitled
-      //   uri = uri.with({ scheme: "untitled" });
-      // }
-      // const document = await vscode.workspace.openTextDocument(uri);
-      // const editor = await vscode.window.showTextDocument(document, {
-      //   preview: false,
-      //   preserveFocus: true,
-      // });
-      // const lineEol =
-      //   vscode.EndOfLine.CRLF === editor.document.eol ? "\r\n" : "\n";
+      // let uri = vscode.Uri.file(data.path);
       const displayableUdiff = fileChangeState.currentUdiff.replace(/\r?\n/g, "\n");
       // const currentContent = editor.document.getText();
-    
+
       // const differences = diffLines(currentContent, modifiedContent);
       // this.outputChannel.debug("diffs", differences);
       // let lineNumber = 0;
@@ -1005,12 +992,10 @@ export class DeputyDevDiffViewManager extends DiffViewManager implements vscode.
 
 
 
-      const displayableUdiffUri = vscode.Uri.parse(
-            `deputydev-custom:${data.path.split('/').pop()}.dddiff`,
-            true,
-          ).with({
-            query: Buffer.from(displayableUdiff).toString('base64'),
-          });
+      const displayableUdiffUri = vscode.Uri.from({
+        scheme: 'deputydev-custom',
+        query: Buffer.from(displayableUdiff).toString('base64'),
+      });
 
       await vscode.commands.executeCommand(
         'vscode.openWith',
