@@ -8,7 +8,12 @@ export type ViewType =
   | "error"
   | "force-upgrade";
 export type ProgressStatus = "Completed" | "Failed" | "In Progress";
-export type ThemeKind =  'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
+export type ThemeKind =
+  | "dark"
+  | "light"
+  | "high-contrast"
+  | "high-contrast-light"
+  | "unknown";
 export type UserData = {
   email: string;
   userName: string;
@@ -215,3 +220,8 @@ export type UsageTrackingRequest = {
   event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };
+
+export interface SaveUrlRequest {
+  name: string;
+  url: string;
+}

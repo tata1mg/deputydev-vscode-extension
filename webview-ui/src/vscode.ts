@@ -187,6 +187,27 @@ export function addCommandEventListener(
   events[command].push(listener);
 }
 
+const getLocaleTimeString = (dateString: string) => {
+  const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
+  const date = new Date(cleanedDateString);
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  };
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  };
+
+  const locale = navigator.language || "en-US";
+  const datePart = date.toLocaleDateString(locale, dateOptions);
+  const timePart = date.toLocaleTimeString(locale, timeOptions);
+
+  return `${datePart}, ${timePart}`;
+};
+
 export function removeCommandEventListener(
   command: string,
   listener: EventListener,
@@ -331,7 +352,20 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 });
 
 addCommandEventListener("get-saved-urls-response", ({ data }) => {
-  console.log("get-saved-urls-response", data);
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      icon: "url",
+      label: item.name,
+      value: item.url,
+      description: `Indexed at ${getLocaleTimeString(item.last_indexed)}`,
+      chunks: item.chunks ? item.chunks : null,
+    };
+  });
+  logToOutput(
+    "info",
+    `AutoSearchResponse :: ${JSON.stringify((AutoSearchResponse))}`,
+  );
+  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {

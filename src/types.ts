@@ -67,3 +67,8 @@ export interface CurrentDiffRequest {
   filepath: string;
   raw_diff: string;
 }
+
+export interface SaveUrlRequest {
+  name: string;
+  url: string;
+}
