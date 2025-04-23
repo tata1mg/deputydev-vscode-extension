@@ -1,7 +1,6 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
-import * as os from "os";
 import { DiffViewManager } from "./diff/DiffManager";
 import { DeputyDevDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
 import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
@@ -151,6 +150,7 @@ export async function activate(context: vscode.ExtensionContext) {
   new ThemeManager(sidebarProvider, logger);
 
   const pinger = new BackgroundPinger(
+    context,
     sidebarProvider,
     serverManager,
     outputChannel,

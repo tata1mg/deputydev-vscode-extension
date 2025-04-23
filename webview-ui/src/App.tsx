@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect } from 'react';
-import { sendWebviewFocusState } from "@/commandApi";
+import { sendWebviewFocusState, webviewInitialized } from "@/commandApi";
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -23,6 +23,8 @@ function App() {
   let view;
 
   useEffect(() => {
+    // Send a message to the extension host when the webview is initialized
+    webviewInitialized();
     function handleMessage(event: MessageEvent) {
       const response = event.data || {};
 
