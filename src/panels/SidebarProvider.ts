@@ -123,6 +123,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "get-saved-urls":
           promise = this.codeReferenceService.getSavedUrls(sendMessage);
           break;
+        case "save-url":
+          promise = this.codeReferenceService.saveUrl(data, sendMessage);
+          break;
         case "usage-tracking":
           promise = this.trackingManager.trackUsage(data);
           break;

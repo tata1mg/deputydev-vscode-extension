@@ -2,6 +2,7 @@ import exp = require("constants");
 import * as vscode from "vscode";
 import { ReferenceService } from "../services/references/ReferenceService";
 import { v4 as uuidv4 } from "uuid";
+import { SaveUrlRequest } from "../types";
 
 export class ReferenceManager {
   onStarted: () => void = () => {};
@@ -57,6 +58,16 @@ export class ReferenceManager {
   async getSavedUrls(sendMessage: (message: Object) => void) {
     const response = await this.referenceService.getSavedUrls();
     this.outputChannel.info("getSavedUrls-response", response);
+    sendMessage({
+      id: uuidv4(),
+      command: "get-saved-urls-response",
+      data: response.urls,
+    });
+  }
+
+  async saveUrl(payload: SaveUrlRequest, sendMessage: (message: Object) => void) {
+    const response = await this.referenceService.saveUrl(payload);
+    this.outputChannel.info("saveUrl-response", response);
     sendMessage({
       id: uuidv4(),
       command: "get-saved-urls-response",

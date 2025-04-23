@@ -28,4 +28,5 @@ export const API_ENDPOINTS = {
   ITERATIVELY_READ_FILE: "/v1/iteratively-read-file",
   GREP_SEARCH: "/v1/grep-search",
   GET_SAVED_URLS: "/saved_url/list",
+  SAVE_URL: "/saved_url",
 };

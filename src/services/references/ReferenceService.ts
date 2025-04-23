@@ -2,6 +2,7 @@ import { binaryApi, api } from "../api/axios";
 import { API_ENDPOINTS } from "../api/endpoints";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
 import { AuthService } from "../auth/AuthService";
+import { SaveUrlRequest } from "../../types";
 
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
@@ -47,6 +48,21 @@ export class ReferenceService {
         },
         // headers,
       });
+      return response.data;
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
+  public async saveUrl(payload: SaveUrlRequest): Promise<any> {
+    let response;
+    try {
+      // const authToken = await this.fetchAuthToken();
+      // const headers = {
+      //   Authorization: `Bearer ${authToken}`,
+      // };
+      await api.post(API_ENDPOINTS.SAVE_URL, payload);
+      response = await this.getSavedUrls();
       return response.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
