@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
 import { AuthenticationManager } from "../auth/AuthenticationManager";
 import { ChatManager } from "../chat/ChatManager";
-import { DiffViewManager } from "../diff/diffManagerOld";
 import { getUri } from "../utilities/getUri";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
@@ -23,6 +22,7 @@ import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
+import { DiffManager } from "../diff/diffManager";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -35,7 +35,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
-    private readonly diffViewManager: DiffViewManager,
+    private readonly diffManager: DiffManager,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly logger: Logger,
     private chatService: ChatManager,
@@ -126,10 +126,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // File Operations
         case "accept-file":
-          promise = this.acceptFile(data.path);
+          promise = this.diffManager.acceptFile(data.path);
           break;
         case "reject-file":
-          promise = this.rejectFile(data.path);
+          promise = this.diffManager.rejectFile(data.path);
           break;
         case "get-opened-files":
           promise = this.getOpenedFiles();
@@ -445,15 +445,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // File Operations
-
-  private async acceptFile(path: string) {
-    return this.diffViewManager.acceptFile(path);
-  }
-
-  private async rejectFile(path: string) {
-    return this.diffViewManager.rejectFile(path);
-  }
-
   private async openFile(file_path: string) {
     const active_repo = getActiveRepo();
     if (!active_repo) {
