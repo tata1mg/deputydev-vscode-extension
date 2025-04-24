@@ -1,4 +1,3 @@
-import { DiffViewManager } from '../../diffManagerOld';
 import * as vscode from 'vscode';
 import * as fsPromise from 'fs/promises';
 import * as path from 'path';
@@ -10,7 +9,7 @@ class DiffContentProvider implements vscode.TextDocumentContentProvider {
   }
 }
 
-export class DiffEditorViewManager extends DiffViewManager {
+export class DiffEditorViewManager {
   static readonly DiffContentProviderId = 'deputydev';
 
   // uri -> content
@@ -20,7 +19,6 @@ export class DiffEditorViewManager extends DiffViewManager {
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
   ) {
-    super();
     // diff content provider
     const diffProvider = new DiffContentProvider();
     const providerRegistration =
@@ -29,7 +27,7 @@ export class DiffEditorViewManager extends DiffViewManager {
         diffProvider,
       );
 
-    this.disposables.push(
+    this.context.subscriptions.push(
       providerRegistration,
       vscode.commands.registerCommand(
         'deputydev.ConfirmModify',
@@ -47,10 +45,6 @@ export class DiffEditorViewManager extends DiffViewManager {
           }
 
           this.fileChangeSet.delete(uri.toString());
-          this._onDidChange.fire({
-            type: 'accept',
-            path: fileUri.fsPath,
-          });
 
           await vscode.commands.executeCommand(
             'workbench.action.closeActiveEditor',
@@ -73,15 +67,11 @@ export class DiffEditorViewManager extends DiffViewManager {
             `Diff document closed for: ${document.uri.path}`,
           );
           this.fileChangeSet.delete(document.uri.toString());
-          this._onDidChange.fire({
-            type: 'reject',
-            path: document.uri.fsPath,
-          });
         }
       }),
     );
   }
-  
+
   async openDiffView(data: { path: string; content: string }): Promise<void> {
     this.outputChannel.info(`command write file: ${data.path}`);
 
@@ -101,10 +91,10 @@ export class DiffEditorViewManager extends DiffViewManager {
         );
       }
       const originalUri = vscode.Uri.parse(
-            `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
-          ).with({
-            query: originalContentBase64,
-          });
+        `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
+      ).with({
+        query: originalContentBase64,
+      });
       const modifiedUri = vscode.Uri.parse(
         `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
       ).with({
@@ -132,9 +122,9 @@ export class DiffEditorViewManager extends DiffViewManager {
             (tab) =>
               tab.input instanceof vscode.TabInputTextDiff &&
               tab.input.modified.scheme ===
-                DiffEditorViewManager.DiffContentProviderId,
+              DiffEditorViewManager.DiffContentProviderId,
           );
-          
+
 
           // get the diff editor from the tab
           const diffEditor = diffTabs.find(
@@ -142,7 +132,7 @@ export class DiffEditorViewManager extends DiffViewManager {
               tab.input instanceof vscode.TabInputTextDiff &&
               tab.input.modified.path === data.path,
           );
-          
+
           // get the content of the diff editor
           if (diffEditor) {
             const diffEditorUri = diffEditor.input as vscode.TabInputTextDiff;
@@ -182,10 +172,6 @@ export class DiffEditorViewManager extends DiffViewManager {
     }
 
     this.fileChangeSet.set(vscode.Uri.file(data.path).toString(), data.content);
-    this._onDidChange.fire({
-      type: 'add',
-      path: data.path,
-    });
   }
 
   // close all diff editor with DiffContentProviderId
@@ -199,7 +185,7 @@ export class DiffEditorViewManager extends DiffViewManager {
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
           tab.input.modified.scheme ===
-            DiffEditorViewManager.DiffContentProviderId,
+          DiffEditorViewManager.DiffContentProviderId,
       );
 
       // Close the matching tabs
@@ -237,7 +223,7 @@ export class DiffEditorViewManager extends DiffViewManager {
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
           tab.input.modified.scheme ===
-            DiffEditorViewManager.DiffContentProviderId &&
+          DiffEditorViewManager.DiffContentProviderId &&
           tab.input.modified.path === path,
       );
 
