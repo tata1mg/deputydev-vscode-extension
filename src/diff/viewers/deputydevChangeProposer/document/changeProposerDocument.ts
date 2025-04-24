@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export class DiffContentDocument implements vscode.CustomDocument {
+export class ChangeProposerDocument implements vscode.CustomDocument {
 public content: string = '';
 
   constructor(public readonly uri: vscode.Uri) {}

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export class ProposedChangeEditorFsProvider implements vscode.FileSystemProvider {
+export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>().event;
 
   watch(): vscode.Disposable {

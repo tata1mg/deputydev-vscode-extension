@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DiffContentDocument } from '../diffContentDocument';
+import { ChangeProposerDocument } from '../document/changeProposerDocument';
 
 function getNonce(): string {
   let text = '';
@@ -10,7 +10,7 @@ function getNonce(): string {
   return text;
 }
 
-export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffContentDocument> {
+export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
 
   constructor(private readonly context: vscode.ExtensionContext) { }
@@ -19,16 +19,16 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
     uri: vscode.Uri,
     _openContext: vscode.CustomDocumentOpenContext,
     _token: vscode.CancellationToken
-  ): Promise<DiffContentDocument> {
+  ): Promise<ChangeProposerDocument> {
     console.log('Opening custom document:', uri.toString());
-    const document = new DiffContentDocument(uri);
+    const document = new ChangeProposerDocument(uri);
     await document.init(); // load file content
     console.log('Document content loaded:', document.content);
     return document;
   }
 
   async resolveCustomEditor(
-    document: DiffContentDocument,
+    document: ChangeProposerDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
@@ -146,7 +146,7 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
 
 
   // --- Required interface methods (with minimal implementations) ---
-  private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<DiffContentDocument>>();
+  private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<ChangeProposerDocument>>();
   readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
   saveCustomDocument(): Thenable<void> {
@@ -154,7 +154,7 @@ export class DiffEditorProvider implements vscode.CustomEditorProvider<DiffConte
   }
 
   saveCustomDocumentAs(
-    document: DiffContentDocument,
+    document: ChangeProposerDocument,
     destination: vscode.Uri
   ): Thenable<void> {
     return vscode.workspace.fs.writeFile(destination, Buffer.from(document.content, 'utf-8'));
