@@ -159,4 +159,8 @@ export class FileChangeStateManager {
     }
     return fileChangeState.originalContent;
   }
+
+  public getFileChangeState = (uri: string): FileChangeState | undefined => {
+    return this.fileChangeStateMap.get(uri);
+  }
 }
