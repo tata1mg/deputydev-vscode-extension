@@ -69,6 +69,7 @@ export interface CurrentDiffRequest {
 }
 
 export interface SaveUrlRequest {
+  id?: string;
   name: string;
   url: string;
 }

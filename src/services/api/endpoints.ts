@@ -29,4 +29,5 @@ export const API_ENDPOINTS = {
   GREP_SEARCH: "/v1/grep-search",
   GET_SAVED_URLS: "/saved_url/list",
   SAVE_URL: "/saved_url",
+  DELETE_SAVED_URL: "/saved_url/delete",
 };

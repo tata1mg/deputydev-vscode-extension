@@ -18,6 +18,7 @@ import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
 import { useThemeStore } from "./stores/useThemeStore";
+import { url } from "inspector";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -354,10 +355,12 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
 addCommandEventListener("get-saved-urls-response", ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
+      id: item.id,
+      url: item.url,
       icon: "url",
       label: item.name,
-      value: item.url,
-      description: `Indexed at ${getLocaleTimeString(item.last_indexed)}`,
+      value: item.name,
+      description: `Indexed ${getLocaleTimeString(item.last_indexed)}`,
       chunks: item.chunks ? item.chunks : null,
     };
   });
