@@ -21,41 +21,39 @@ export class DiffManager {
     this.outputChannel = outputChannel;
     this.authService = authService;
 
-      // 7) Register commands for Accept/Reject etc
-      //
-      // Accept changes in the active file
-      // this.vscodeContext.subscriptions.push(
-      //   vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
-      //     const editor = vscode.window.activeTextEditor;
-      //     if (!editor) {
-      //       vscode.window.showErrorMessage(
-      //         "No active editor to accept changes for."
-      //       );
-      //       return;
-      //     }
-      //     const fileUri = editor.document.uri;
-      //     outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
-      //     await diffViewManager.acceptFile(fileUri.fsPath);
-      //     vscode.window.showInformationMessage("Changes accepted successfully.");
-      //   })
-      // );
+      
+      this.vscodeContext.subscriptions.push(
+        vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) {
+            vscode.window.showErrorMessage(
+              "No active editor to accept changes for."
+            );
+            return;
+          }
+          const fileUri = editor.document.uri;
+          outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
+          await this.acceptFile(fileUri.fsPath);
+          vscode.window.showInformationMessage("Changes accepted successfully.");
+        })
+      );
     
-      // // Reject changes in the active file
-      // this.vscodeContext.subscriptions.push(
-      //   vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
-      //     const editor = vscode.window.activeTextEditor;
-      //     if (!editor) {
-      //       vscode.window.showErrorMessage(
-      //         "No active editor to reject changes for."
-      //       );
-      //       return;
-      //     }
-      //     const fileUri = editor.document.uri;
-      //     outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
-      //     await diffViewManager.rejectFile(fileUri.fsPath);
-      //     vscode.window.showInformationMessage("Changes rejected successfully.");
-      //   })
-      // );
+      // Reject changes in the active file
+      this.vscodeContext.subscriptions.push(
+        vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
+          const editor = vscode.window.activeTextEditor;
+          if (!editor) {
+            vscode.window.showErrorMessage(
+              "No active editor to reject changes for."
+            );
+            return;
+          }
+          const fileUri = editor.document.uri;
+          outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
+          await this.rejectFile(fileUri.fsPath);
+          vscode.window.showInformationMessage("Changes rejected successfully.");
+        })
+      );
     
       // If you want commands for accepting or rejecting ALL tracked files:
       this.vscodeContext.subscriptions.push(
@@ -166,4 +164,6 @@ export class DiffManager {
   }
   public acceptAllFiles = async () => { }
   public rejectAllFiles = async () => { }
+  public acceptFile = async (path: string) => { }
+  public rejectFile = async (path: string) => { }
 }

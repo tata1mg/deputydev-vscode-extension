@@ -1,5 +1,3 @@
-// File: src/extension.ts
-
 import * as vscode from "vscode";
 import { SidebarProvider } from "./panels/SidebarProvider";
 import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
