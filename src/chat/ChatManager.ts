@@ -1,7 +1,6 @@
 // import * as path from 'node:path';
 import { join } from "path";
 import * as vscode from "vscode";
-import { DiffViewManager } from "../diff/diffManagerOld";
 import { SidebarProvider } from "../panels/SidebarProvider";
 import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
@@ -23,6 +22,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { UsageTrackingRequest } from "../types";
+import { DiffManager } from "../diff/diffManager";
 
 
 export class ChatManager {
@@ -40,7 +40,7 @@ export class ChatManager {
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager,
+    private diffManager: DiffManager,
 
   ) {
     this.logger = SingletonLogger.getInstance();
@@ -614,7 +614,8 @@ export class ChatManager {
   ): Promise<void> {
     for (const [relative_path, content] of Object.entries(modifiedFiles)) {
       const fullPath = join(active_repo, relative_path);
-      await this.diffViewManager.openDiffView({ path: fullPath, content }, session_id, write_mode, is_inline, is_inline_modify);
+      // await this.diffViewManager.openDiffView({ path: fullPath, content }, session_id, write_mode, is_inline, is_inline_modify);
+      await this.diffManager.applyDiff(fullPath, content, session_id, write_mode, is_inline, is_inline_modify);
     }
   }
 

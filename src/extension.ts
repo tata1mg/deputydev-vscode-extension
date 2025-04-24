@@ -92,8 +92,9 @@ export async function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
+  const diffManager = new DiffManager(context, '', outputChannel, authService);
+  await diffManager.init();
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
-
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
@@ -117,9 +118,6 @@ export async function activate(context: vscode.ExtensionContext) {
       { webviewOptions: { retainContextWhenHidden: true } }
     )
   );
-
-  const diffManager = new DiffManager(context, '', outputChannel);
-  await diffManager.init();
 
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
