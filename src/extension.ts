@@ -2,7 +2,7 @@
 
 import * as vscode from "vscode";
 import { DiffViewManager } from "./diff/DiffManager";
-import { DeputyDevDiffViewManager } from "./diff/InlineDiffManager"; //inline diff manager
+import { DeputyDevDiffViewManager } from "./diff/viewers/deputydevChangeProposer/deputydevChangeProposer"; //inline diff manager
 import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
 import { SidebarProvider } from "./panels/SidebarProvider";
 import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
@@ -30,8 +30,8 @@ import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
-import { DiffEditorProvider } from "./diff/viewer/customTextEditor";
-import { ProposedChangeEditorFsProvider } from "./diff/viewer/fsProvider";
+import { ChangeProposerEditor } from "./diff/viewers/deputydevChangeProposer/editor/changeProposerEditor";
+import { ChangeProposerFsProvider } from "./diff/viewers/deputydevChangeProposer/fsProvider/changeProposerFsProvider";
 import { isNotCompatible } from "./utilities/checkOsVersion";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
@@ -96,13 +96,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const chatService = new ChatManager(context, outputChannel, diffViewManager);
 
-  // //  * 3) Register Custom TextDocumentContentProvider
-  // const diffContentProvider = new DiffContentProvider();
-  // const providerReg = vscode.workspace.registerTextDocumentContentProvider(
-  //   'my-diff-scheme',
-  //   diffContentProvider
-  // );
-  // context.subscriptions.push(providerReg);
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
@@ -128,14 +121,14 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider('deputydev-custom', new ProposedChangeEditorFsProvider(), { isReadonly: false })
+    vscode.workspace.registerFileSystemProvider('deputydev-custom', new ChangeProposerFsProvider(), { isReadonly: false })
   );
 
 
   context.subscriptions.push(
     vscode.window.registerCustomEditorProvider(
-      DiffEditorProvider.viewType,
-      new DiffEditorProvider(context),
+      ChangeProposerEditor.viewType,
+      new ChangeProposerEditor(context),
       {
         webviewOptions: {
           retainContextWhenHidden: true
