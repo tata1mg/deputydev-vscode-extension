@@ -70,40 +70,31 @@ export class ChatManager {
     data: ChatPayload,
   ): Promise<string[]> {
 
+    const active_repo = getActiveRepo();
+    if (!active_repo) {
+      throw new Error("Active repository is not defined.");
+    }
 
-    let chunkDetails: Array<Chunk> = [];
-
+    let finalResult: Array<any> = [];
     this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
-    data.referenceList?.forEach((element) => {
-      if (element.chunks !== null) {
-        chunkDetails = chunkDetails.concat(element.chunks);
-      }
-    });
-
-    this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
-
     try {
-      // Retrieve the active repository path.
-      const active_repo = getActiveRepo();
-      if (!active_repo) {
-        throw new Error("Active repository is not defined.");
-      }
-
-      // Call the external function to fetch relevant chunks.
-      const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
-        auth_token: await this.authService.loadAuthToken(),
-        repo_path: active_repo,
-        chunks: chunkDetails,
-        search_item_name: data.referenceList?.[0]?.value,
-        search_item_type: data.referenceList?.[0]?.type,
-      }) : [];
-      // only print few words only
-      this.outputChannel.info(
-        `Relevant chunks: ${JSON.stringify(result.slice(0, 1))}`
-      );
-
-      let finalResult: Array<any> = [];
-      data.referenceList?.forEach((element) => {
+      data.referenceList?.forEach(async (element) => {
+        let chunkDetails: Array<Chunk> = [];
+        if (element.chunks !== null) {
+          chunkDetails = chunkDetails.concat(element.chunks);
+        }
+  
+        this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
+  
+        // Call the external function to fetch relevant chunks.
+        const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
+          auth_token: await this.authService.loadAuthToken(),
+          repo_path: active_repo,
+          chunks: chunkDetails,
+          search_item_name: element.value,
+          search_item_type: element.type,
+          search_item_path: element.path,
+        }) : [];
         let finalChunkInfos: Array<any> = [];
         if (result.length) {
           result.forEach((chunkInfoWithHash: any) => {
@@ -118,7 +109,6 @@ export class ChatManager {
           "path": element.path
         });
       });
-
       return finalResult;
     } catch (error) {
       this.outputChannel.error(`Error fetching focus chunks: ${error}`);
