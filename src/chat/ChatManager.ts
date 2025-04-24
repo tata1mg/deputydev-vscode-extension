@@ -1,7 +1,7 @@
 // import * as path from 'node:path';
 import { join } from "path";
 import * as vscode from "vscode";
-import { DiffViewManager } from "../diff/DiffManager";
+import { DiffViewManager } from "../diff/diffManagerOld";
 import { SidebarProvider } from "../panels/SidebarProvider";
 import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";

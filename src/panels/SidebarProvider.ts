@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import * as vscode from "vscode";
 import { AuthenticationManager } from "../auth/AuthenticationManager";
 import { ChatManager } from "../chat/ChatManager";
-import { DiffViewManager } from "../diff/DiffManager";
+import { DiffViewManager } from "../diff/diffManagerOld";
 import { getUri } from "../utilities/getUri";
 import { HistoryService } from "../services/history/HistoryService";
 import { AuthService } from "../services/auth/AuthService";
