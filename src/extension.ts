@@ -1,9 +1,9 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
-import { DiffViewManager } from "./diff/DiffManager";
+import { DiffManager, DiffViewManager } from "./diff/diffManager";
 import { DeputyDevDiffViewManager } from "./diff/viewers/deputydevChangeProposer/deputydevChangeProposer"; //inline diff manager
-import { DiffEditorViewManager } from "./diff/SideDiffManager"; // side-by-side diff manager
+import { DiffEditorViewManager } from "./diff/viewers/nativeDiffViewer/SideDiffManager"; // side-by-side diff manager
 import { SidebarProvider } from "./panels/SidebarProvider";
 import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
 import { AuthenticationManager } from "./auth/AuthenticationManager";
@@ -120,24 +120,8 @@ export async function activate(context: vscode.ExtensionContext) {
     )
   );
 
-  context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider('deputydev-custom', new ChangeProposerFsProvider(), { isReadonly: false })
-  );
-
-
-  context.subscriptions.push(
-    vscode.window.registerCustomEditorProvider(
-      ChangeProposerEditor.viewType,
-      new ChangeProposerEditor(context),
-      {
-        webviewOptions: {
-          retainContextWhenHidden: true
-        },
-        supportsMultipleEditorsPerDocument: false
-      }
-    )
-  );
-
+  const diffManager = new DiffManager(context, '', outputChannel);
+  await diffManager.init();
 
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);

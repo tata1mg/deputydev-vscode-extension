@@ -1,19 +1,42 @@
-import { DiffViewManager } from "../../DiffManager";
+import { DiffViewManager } from "../../diffManagerOld";
 import * as vscode from "vscode";
 import { createTwoFilesPatch } from 'diff';
 import { FileChangeStateManager } from "../../fileChangeStateManager/fileChangeStateManager";
+import { ChangeProposerFsProvider } from "./fsProvider/changeProposerFsProvider";
+import { ChangeProposerEditor } from "./editor/changeProposerEditor";
 
 
 export class DeputydevChangeProposer extends DiffViewManager {
+
   constructor(
-    private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel,
+    private readonly vscodeContext: vscode.ExtensionContext,
+    private readonly outputChannel: vscode.LogOutputChannel,
     private readonly fileChangeStateManager: FileChangeStateManager,
   ) {
     super();
+  }
 
-    // Set initial context value
-    vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
+
+  public init = async () => {
+    this.outputChannel.info("Initializing DeputydevChangeProposer");
+    this.outputChannel.info("Registering custom editor provider");
+    this.vscodeContext.subscriptions.push(
+      vscode.workspace.registerFileSystemProvider('deputydev-custom', new ChangeProposerFsProvider(), { isReadonly: false })
+    );
+
+
+    this.vscodeContext.subscriptions.push(
+      vscode.window.registerCustomEditorProvider(
+        ChangeProposerEditor.viewType,
+        new ChangeProposerEditor(this.vscodeContext),
+        {
+          webviewOptions: {
+            retainContextWhenHidden: true
+          },
+          supportsMultipleEditorsPerDocument: false
+        }
+      )
+    );
   }
 
 
@@ -24,6 +47,7 @@ export class DeputydevChangeProposer extends DiffViewManager {
     data: { path: string; content: string },
   ): Promise<void> {
     try {
+      vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
       this.outputChannel.info(`opening diff view: ${data.path}`);
 
       // get the diff between original content and the newely received content

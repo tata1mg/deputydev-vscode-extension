@@ -1,4 +1,4 @@
-import { DiffViewManager } from './DiffManager';
+import { DiffViewManager } from '../../diffManagerOld';
 import * as vscode from 'vscode';
 import * as fsPromise from 'fs/promises';
 import * as path from 'path';
