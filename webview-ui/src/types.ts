@@ -34,6 +34,8 @@ export type ProfileUiDiv = {
 };
 
 export type AutocompleteOption = {
+  id?: string;
+  url?: string;
   icon: string;
   label: string;
   value: string;
@@ -222,6 +224,7 @@ export type UsageTrackingRequest = {
 };
 
 export interface SaveUrlRequest {
+  id?: string;
   name: string;
   url: string;
 }

@@ -41,7 +41,7 @@ export class ReferenceService {
       // const headers = {
       //   Authorization: `Bearer ${authToken}`,
       // };
-      response = await api.get(API_ENDPOINTS.GET_SAVED_URLS, {
+      response = await binaryApi().get(API_ENDPOINTS.GET_SAVED_URLS, {
         params: {
           limit: 5,
           offset: 0,
@@ -61,7 +61,42 @@ export class ReferenceService {
       // const headers = {
       //   Authorization: `Bearer ${authToken}`,
       // };
-      await api.post(API_ENDPOINTS.SAVE_URL, payload);
+      await binaryApi().post(API_ENDPOINTS.SAVE_URL, payload);
+      response = await this.getSavedUrls();
+      return response.data;
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+  public async deleteSavedUrl(id: string): Promise<any> {
+    let response;
+    try {
+      // const authToken = await this.fetchAuthToken();
+      // const headers = {
+      //   Authorization: `Bearer ${authToken}`,
+      // };
+      await binaryApi().get(API_ENDPOINTS.DELETE_SAVED_URL, {
+        params: { id },
+        // headers,
+      });
+      response = await this.getSavedUrls();
+      return response.data;
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
+  public async updateSavedUrl(payload: {
+    id: string;
+    name: string;
+  }): Promise<any> {
+    let response;
+    try {
+      // const authToken = await this.fetchAuthToken();
+      // const headers = {
+      //   Authorization: `Bearer ${authToken}`,
+      // };
+      await binaryApi().put(`${API_ENDPOINTS.SAVE_URL}?${payload.id}`, payload);
       response = await this.getSavedUrls();
       return response.data;
     } catch (error) {

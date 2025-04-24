@@ -65,9 +65,35 @@ export class ReferenceManager {
     });
   }
 
-  async saveUrl(payload: SaveUrlRequest, sendMessage: (message: Object) => void) {
+  async saveUrl(
+    payload: SaveUrlRequest,
+    sendMessage: (message: Object) => void
+  ) {
     const response = await this.referenceService.saveUrl(payload);
     this.outputChannel.info("saveUrl-response", response);
+    sendMessage({
+      id: uuidv4(),
+      command: "get-saved-urls-response",
+      data: response.urls,
+    });
+  }
+
+  async deleteSavedUrl(id: string, sendMessage: (message: Object) => void) {
+    const response = await this.referenceService.deleteSavedUrl(id);
+    this.outputChannel.info("deleteSavedUrl-response", response);
+    sendMessage({
+      id: uuidv4(),
+      command: "get-saved-urls-response",
+      data: response.urls,
+    });
+  }
+
+  async updateSavedUrl(
+    payload: { id: string; name: string },
+    sendMessage: (message: Object) => void
+  ) {
+    const response = await this.referenceService.updateSavedUrl(payload);
+    this.outputChannel.info("updateSavedUrl-response", response);
     sendMessage({
       id: uuidv4(),
       command: "get-saved-urls-response",

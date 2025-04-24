@@ -71,6 +71,14 @@ export function saveUrl(payload: SaveUrlRequest) {
   return callCommand("save-url", payload);
 }
 
+export function deleteSavedUrl(id: string) {
+  return callCommand("delete-saved-url", { id });
+}
+
+export function updateSavedUrl(payload: { id: string; name: string }) {
+  return callCommand("update-saved-url", payload);
+}
+
 // accept/reject file
 
 /**
