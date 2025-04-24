@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { createTwoFilesPatch } from "diff";
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -65,23 +66,27 @@ export class FileChangeStateManager {
     };
   };
 
-
   // This method updates the fileChangeStateMap with the original and modified content from the udiff.
   // It checks if the fileChangeStateMap already has the URI. If not, it sets the initial file content and udiff in the fileChangeStateMap.
   // If it does, it updates the udiff in the fileChangeStateMap.
   // It returns the original and modified content extracted from the udiff.
-  public updateFileStateInFileChangeStateMap = (
+  // TODO: Handle rename
+  public updateFileStateInFileChangeStateMap = async (
     uri: string,
-    udiff: string,
+    newFileContent: string,
+    newUri: string,
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
-  ): {
+  ): Promise<{
     originalContent: string;
     modifiedContent: string;
-  } => {
+  }> => {
+    const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(uri);
+    // get the udiff from the new file content. The udiff is always between the new file content and the original file content
+    const udiff = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContent);
+
     // get original and modified content from the udiff
     const parsedUdiffContent =
       this.getOriginalAndModifiedContentFromUdiff(udiff);
-
 
     // Check if the fileChangeStateMap has the URI
     // if not, set the fileChangeState in fileChangeStateMap
