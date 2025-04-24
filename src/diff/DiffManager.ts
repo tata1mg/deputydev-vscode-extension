@@ -3,20 +3,23 @@ import { FileChangeStateManager } from "./fileChangeStateManager/fileChangeState
 import { DeputydevChangeProposer } from "./viewers/deputydevChangeProposer/deputydevChangeProposer";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { binaryApi } from "../services/api/axios";
+import { AuthService } from "../services/auth/AuthService";
 
 
 export class DiffManager {
   private changeStateStorePath: string;
   private vscodeContext: vscode.ExtensionContext;
   private outputChannel: vscode.LogOutputChannel;
+  private authService: AuthService;
 
   private deputydevChangeProposer: DeputydevChangeProposer | undefined;
   private fileChangeStateManager: FileChangeStateManager | undefined;
 
-  constructor(vscodeContext: vscode.ExtensionContext, changeStateStorePath: string, outputChannel: vscode.LogOutputChannel) {
+  constructor(vscodeContext: vscode.ExtensionContext, changeStateStorePath: string, outputChannel: vscode.LogOutputChannel, authService: AuthService) {
     this.changeStateStorePath = changeStateStorePath;
     this.vscodeContext = vscodeContext;
     this.outputChannel = outputChannel;
+    this.authService = authService;
   }
 
   // initialize the diff manager
@@ -43,16 +46,20 @@ export class DiffManager {
     }
   }
 
-  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string) => {
+  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string): Promise<boolean> => {
     this.checkInit();
     // first get the current content of the file to apply the diff on
-    const originalContent = await this.fileChangeStateManager.getOriginalContentToShowDiffOn(
+    const originalContent = await (this.fileChangeStateManager as FileChangeStateManager).getOriginalContentToShowDiffOn(
       data.path
     );
 
     // then apply the diff to the original content
-    let newContent = originalContent;
+    let newContent;
     try {
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        "Authorization": `Bearer ${authToken}`
+      }
       const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, {
         repo_path: repoPath,
         file_path_to_diff_map: {
@@ -65,15 +72,17 @@ export class DiffManager {
       newContent = response.data.file_path_to_diff_map[data.path];
     } catch (error) {
       this.outputChannel.error(`Error applying diff: ${error}`);
-      throw error;
+      return false;
     }
 
     // update the fileChangeStateMap with the original and modified content from the udiff
-    this.fileChangeStateManager.updateFileStateInFileChangeStateMap(
+    await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMap(
       data.path,
       newContent,
       originalContent
     );
+
+    return true;
   }
 
 
