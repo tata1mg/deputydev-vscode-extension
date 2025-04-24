@@ -352,38 +352,23 @@ export class ChatManager {
                 };
                 const usageTrackingManager = new UsageTrackingManager();
                 usageTrackingManager.trackUsage(usageTrackingData);
-                const modifiedFiles =
-                  await this.getModifiedRequest(currentDiffRequest);
-                if (modifiedFiles) {
-                  //  only log 1st words
-                  this.outputChannel.error(
-                    `the modified file at vscode side is:  ${JSON.stringify(
-                      modifiedFiles
-                    ).slice(0, 1)}`
-                  );
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: "chunk",
-                    data: {
-                      name: "APPLY_DIFF_RESULT",
-                      data: "completed",
-                    },
-                  });
-                  await this.handleModifiedFiles(modifiedFiles, active_repo, getSessionId(), payload.write_mode, payload.is_inline);
-                }
-                else {
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: "chunk",
-                    data: {
-                      name: "APPLY_DIFF_RESULT",
-                      data: "error",
-                    },
-                  });
-                }
-
+                const isDiffApplied = await this.diffManager.applyDiff(
+                  {
+                    path: currentDiffRequest.filepath,
+                    incrementalUdiff: currentDiffRequest.raw_diff,
+                  },
+                  active_repo,
+                  true
+                );
+                this.sidebarProvider?.sendMessageToSidebar({
+                  id: messageId,
+                  command: "chunk",
+                  data: {
+                    name: "APPLY_DIFF_RESULT",
+                    data: isDiffApplied ? "completed": "error",
+                  },
+                });
               }
-
               currentDiffRequest = null;
             } else {
               chunkCallback({ name: event.type, data: event.content });
@@ -602,23 +587,6 @@ export class ChatManager {
       throw error;
     }
   }
-
-
-  async handleModifiedFiles(
-    modifiedFiles: Record<string, string>,
-    active_repo: string,
-    session_id?: number,
-    write_mode?: boolean,
-    is_inline?: boolean,
-    is_inline_modify?: boolean
-  ): Promise<void> {
-    for (const [relative_path, content] of Object.entries(modifiedFiles)) {
-      const fullPath = join(active_repo, relative_path);
-      // await this.diffViewManager.openDiffView({ path: fullPath, content }, session_id, write_mode, is_inline, is_inline_modify);
-      await this.diffManager.applyDiff(fullPath, content, session_id, write_mode, is_inline, is_inline_modify);
-    }
-  }
-
 
   /**
     * Routes a tool request to the appropriate handler based on the tool name.

@@ -20,6 +20,73 @@ export class DiffManager {
     this.vscodeContext = vscodeContext;
     this.outputChannel = outputChannel;
     this.authService = authService;
+
+      // 7) Register commands for Accept/Reject etc
+      //
+      // Accept changes in the active file
+      // this.vscodeContext.subscriptions.push(
+      //   vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
+      //     const editor = vscode.window.activeTextEditor;
+      //     if (!editor) {
+      //       vscode.window.showErrorMessage(
+      //         "No active editor to accept changes for."
+      //       );
+      //       return;
+      //     }
+      //     const fileUri = editor.document.uri;
+      //     outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
+      //     await diffViewManager.acceptFile(fileUri.fsPath);
+      //     vscode.window.showInformationMessage("Changes accepted successfully.");
+      //   })
+      // );
+    
+      // // Reject changes in the active file
+      // this.vscodeContext.subscriptions.push(
+      //   vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
+      //     const editor = vscode.window.activeTextEditor;
+      //     if (!editor) {
+      //       vscode.window.showErrorMessage(
+      //         "No active editor to reject changes for."
+      //       );
+      //       return;
+      //     }
+      //     const fileUri = editor.document.uri;
+      //     outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
+      //     await diffViewManager.rejectFile(fileUri.fsPath);
+      //     vscode.window.showInformationMessage("Changes rejected successfully.");
+      //   })
+      // );
+    
+      // If you want commands for accepting or rejecting ALL tracked files:
+      this.vscodeContext.subscriptions.push(
+        vscode.commands.registerCommand("deputydev.acceptAllChanges", async () => {
+          outputChannel.info(`Accepting changes for all file`);
+          await this.acceptAllFiles();
+          vscode.window.showInformationMessage("All changes accepted.");
+        })
+      );
+      this.vscodeContext.subscriptions.push(
+        vscode.commands.registerCommand("deputydev.rejectAllChanges", async () => {
+          await this.rejectAllFiles();
+          vscode.window.showInformationMessage("All changes rejected.");
+        })
+      );
+
+        // Command to open a diff view for any file path + new content
+        this.vscodeContext.subscriptions.push(
+          vscode.commands.registerCommand(
+            "deputydev.openDiffView",
+            async (path: string, content: string) => {
+              try {
+                await this.openDiffView(path);
+                vscode.window.showInformationMessage(`Diff view opened for ${path}`);
+              } catch (error) {
+                outputChannel.error(`Failed to open diff view: ${error}`);
+                vscode.window.showErrorMessage("Failed to open diff view.");
+              }
+            }
+          )
+        );
   }
 
   // initialize the diff manager
@@ -46,7 +113,7 @@ export class DiffManager {
     }
   }
 
-  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string): Promise<boolean> => {
+  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string, openViewer: boolean): Promise<boolean> => {
     this.checkInit();
     // first get the current content of the file to apply the diff on
     const originalContent = await (this.fileChangeStateManager as FileChangeStateManager).getOriginalContentToShowDiffOn(
@@ -81,6 +148,11 @@ export class DiffManager {
       newContent,
       originalContent
     );
+
+    if (openViewer) {
+      // open the diff view
+      await this.openDiffView(data.path);
+    }
 
     return true;
   }

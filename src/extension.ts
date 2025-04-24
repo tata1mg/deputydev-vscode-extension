@@ -1,9 +1,6 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
-import { DiffManager, DiffViewManager } from "./diff/diffManager";
-import { DeputyDevDiffViewManager } from "./diff/viewers/deputydevChangeProposer/deputydevChangeProposer"; //inline diff manager
-import { DiffEditorViewManager } from "./diff/viewers/nativeDiffViewer/SideDiffManager"; // side-by-side diff manager
 import { SidebarProvider } from "./panels/SidebarProvider";
 import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
 import { AuthenticationManager } from "./auth/AuthenticationManager";
@@ -31,6 +28,10 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
+import { DiffManager } from "./diff/diffManager";
+
+
+
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   const isNotCompatibleCheck = isNotCompatible();
@@ -73,34 +74,16 @@ export async function activate(context: vscode.ExtensionContext) {
     .getConfiguration("deputydev")
     .get("inlineDiff.enable");
 
-  let diffViewManager: DiffViewManager;
-  if (inlineDiffEnable) {
-    // inline diff view manager
-    const inlineDiffViewManager = new DeputyDevDiffViewManager(
-      context,
-      outputChannel
-    );
-    context.subscriptions.push(inlineDiffViewManager);
-    diffViewManager = inlineDiffViewManager;
-  } else {
-    // diff editor diff manager
-    const diffEditorDiffManager = new DiffEditorViewManager(
-      context,
-      outputChannel
-    );
-    context.subscriptions.push(diffEditorDiffManager);
-    diffViewManager = diffEditorDiffManager;
-  }
 
   const diffManager = new DiffManager(context, '', outputChannel, authService);
   await diffManager.init();
-  const chatService = new ChatManager(context, outputChannel, diffViewManager);
+  const chatService = new ChatManager(context, outputChannel, diffManager);
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
     context,
     context.extensionUri,
-    diffViewManager,
+    diffManager,
     outputChannel,
     logger,
     chatService,
@@ -219,78 +202,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
-  // 7) Register commands for Accept/Reject etc
-  //
-  // Accept changes in the active file
-  context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage(
-          "No active editor to accept changes for."
-        );
-        return;
-      }
-      const fileUri = editor.document.uri;
-      outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
-      await diffViewManager.acceptFile(fileUri.fsPath);
-      vscode.window.showInformationMessage("Changes accepted successfully.");
-    })
-  );
-
-  // Reject changes in the active file
-  context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showErrorMessage(
-          "No active editor to reject changes for."
-        );
-        return;
-      }
-      const fileUri = editor.document.uri;
-      outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
-      await diffViewManager.rejectFile(fileUri.fsPath);
-      vscode.window.showInformationMessage("Changes rejected successfully.");
-    })
-  );
-
-  // If you want commands for accepting or rejecting ALL tracked files:
-  context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.acceptAllChanges", async () => {
-      outputChannel.info(`Accepting changes for all file`);
-      await diffViewManager.acceptAllFile();
-      vscode.window.showInformationMessage("All changes accepted.");
-    })
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.rejectAllChanges", async () => {
-      await diffViewManager.rejectAllFile();
-      vscode.window.showInformationMessage("All changes rejected.");
-    })
-  );
-
-  // Command to open a diff view for any file path + new content
-  context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "deputydev.openDiffView",
-      async (path: string, content: string) => {
-        if (!diffViewManager) {
-          vscode.window.showErrorMessage(
-            "Diff view manager is not initialized."
-          );
-          return;
-        }
-        try {
-          await diffViewManager.openDiffView({ path, content });
-          vscode.window.showInformationMessage(`Diff view opened for ${path}`);
-        } catch (error) {
-          outputChannel.error(`Failed to open diff view: ${error}`);
-          vscode.window.showErrorMessage("Failed to open diff view.");
-        }
-      }
-    )
-  );
 
   // add button click
   context.subscriptions.push(
