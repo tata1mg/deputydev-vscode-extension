@@ -86,11 +86,11 @@ export class DiffManager {
   }
 
 
-  public openDiffView = async (data: { path: string; content: string }) => {
+  public openDiffView = async (uri: string) => {
     if (!this.deputydevChangeProposer) {
       throw new Error("DiffManager not initialized");
     }
-    await this.deputydevChangeProposer.openDiffView(data);
+    await this.deputydevChangeProposer.openDiffView(uri);
   }
   public acceptAllFiles = async () => { }
   public rejectAllFiles = async () => { }
