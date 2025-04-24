@@ -69,12 +69,11 @@ export class DiffManager {
     }
 
     // update the fileChangeStateMap with the original and modified content from the udiff
-    this.fileChangeStateManager?.updateFileStateInFileChangeStateMap(
+    this.fileChangeStateManager.updateFileStateInFileChangeStateMap(
       data.path,
       newContent,
       originalContent
     );
-
   }
 
 
