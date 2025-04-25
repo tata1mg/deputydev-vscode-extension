@@ -214,3 +214,7 @@ export function sendRetryEmbedding() {
 export function webviewInitialized() {
   return callCommand("webview-initialized", {});
 }
+
+export function submitFeedback(feedback: string) {
+  return callCommand("submit-feedback", {feedback})
+}
