@@ -4,7 +4,7 @@ import { AuthService } from "../auth/AuthService";
 import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
 import { ApiErrorHandler } from "../api/apiErrorHandler";
 import { SESSION_TYPE } from "../../constants";
-import { getQueryId, getSessionId } from "../../utilities/contextManager";
+import { getSessionId } from "../../utilities/contextManager";
 
 const fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -15,11 +15,10 @@ const fetchAuthToken = async () => {
 export class FeedbackService {
     private apiErrorHandler = new ApiErrorHandler();
 
-    public async submitFeedback(feedback: string): Promise<any> {
+    public async submitFeedback(feedback: string, queryId: number): Promise<any> {
         try {
           const authToken = await fetchAuthToken();
           const sessionId = getSessionId();
-          const queryId = getQueryId();
           const headers = {
             "X-Session-ID": sessionId,
             Authorization: `Bearer ${authToken}`,

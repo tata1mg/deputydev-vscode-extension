@@ -24,6 +24,8 @@ export function ChatArea() {
   } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
+  const queryIdMap = new Map();
+  let queryId: number;
 
   // console.log("messages in parser", messages);
 
@@ -31,6 +33,10 @@ export function ChatArea() {
     <>
       {messages.map((msg, index) => {
         switch (msg.type) {
+          case "RESPONSE_METADATA": {
+            queryId = msg.content.query_id;
+            break;
+          }
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               if (msg.content.focus_items?.length) {
@@ -180,6 +186,8 @@ export function ChatArea() {
               }
             }
 
+            queryIdMap.set(index, queryId);
+
             return (
               <div
                 key={index}
@@ -197,13 +205,13 @@ export function ChatArea() {
                   <ThumbsUp
                       className="cursor-pointer h-4 w-4 hover:text-green-500 hover:fill-green-500"
                     onClick={() => {
-                      submitFeedback("UPVOTE")
+                      submitFeedback("UPVOTE", queryIdMap.get(index))
                     }}
                   />
                   <ThumbsDown
                     className="cursor-pointer h-4 w-4 hover:text-green-500 hover:fill-green-500"
                     onClick={() => {
-                      submitFeedback("DOWNVOTE")
+                      submitFeedback("DOWNVOTE", queryIdMap.get(index))
                     }}
                   />
                 </div>
