@@ -697,13 +697,13 @@ export class ChatManager {
     }
   }
 
-  async _runPublicUrlContentReader(urls: string[]) {
+  async _runPublicUrlContentReader(payload: { urls: string[] }) {
     try {
       const authToken = await this.authService.loadAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };
       const response = await binaryApi().post(
         API_ENDPOINTS.PUBLIC_URL_CONTENT_READER,
-        { urls },
+        { urls: payload.urls },
         { headers }
       );
       if (response.status === 200) {
