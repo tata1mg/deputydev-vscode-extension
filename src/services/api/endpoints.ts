@@ -31,4 +31,5 @@ export const API_ENDPOINTS = {
   SAVE_URL: "/v1/saved_url",
   DELETE_SAVED_URL: "/v1/saved_url/delete",
   SEARCH_URL: "/v1/search_url",
+  PUBLIC_URL_CONTENT_READER: "/vi/url_reader"
 };
