@@ -75,6 +75,7 @@ export type ChatChunkMessage = {
 };
 
 export type ChatMessage =
+  | ChatMetaData
   | ChatUserMessage
   | ChatAssistantMessage
   | ChatToolUseMessage
@@ -82,6 +83,14 @@ export type ChatMessage =
   | ChatCodeBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage;
+
+export type ChatMetaData = {
+  type: "RESPONSE_METADATA"
+  content: {
+    session_id: number
+    query_id: number
+  }
+}
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
