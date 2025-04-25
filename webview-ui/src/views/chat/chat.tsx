@@ -252,6 +252,7 @@ export function ChatUI() {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
+      setShowAddNewButton(false);
       setShowAutocomplete(true);
       setChipEditMode(true);
     }
