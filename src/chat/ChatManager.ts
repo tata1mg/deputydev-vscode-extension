@@ -23,6 +23,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { UsageTrackingRequest } from "../types";
+import osName from "os-name"
+import { getShell } from "../terminal/utils/shell";
+import { TerminalManager } from "../terminal/TerminalManager";
 
 
 export class ChatManager {
@@ -33,7 +36,8 @@ export class ChatManager {
   private authService = new AuthService();
   private currentAbortController: AbortController | null = null;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
-
+  public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string }>();
+  public onTerminalApprove = this._onTerminalApprove.event;
 
   onStarted: () => void = () => { };
   onError: (error: Error) => void = () => { };
@@ -41,7 +45,7 @@ export class ChatManager {
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
     private diffViewManager: DiffViewManager,
-
+    private terminalManager: TerminalManager,
   ) {
     this.logger = SingletonLogger.getInstance();
   }
@@ -239,7 +243,8 @@ export class ChatManager {
       if (deputyDevRules) {
         payload.deputy_dev_rules = deputyDevRules;
       }
-
+      payload.os_name = osName();
+      payload.shell = getShell();
 
       this.outputChannel.info("Payload prepared for QuerySolverService.");
       // console.log(payload)
@@ -450,9 +455,9 @@ export class ChatManager {
 
     if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);
-      vscode.window.showErrorMessage(
-        "No file updated after search and replace."
-      );
+      // vscode.window.showErrorMessage(
+      //   "No file updated after search and replace."
+      // );
       return null;
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
@@ -631,12 +636,12 @@ export class ChatManager {
     }
   
     const parsedContent = JSON.parse(toolRequest.accumulatedContent);
-    const exists_in_deny_list =  true;
+    const isInDenyList =  true;
   
     this.outputChannel.info(`Running execute command: ${command}`);
     this.outputChannel.info(`Approval required for command: ${requires_approval}`);
   
-    if (requires_approval || exists_in_deny_list) {
+    if (requires_approval || isInDenyList) {
       // Step 1: Request approval
       chunkCallback({
         name: "TERMINAL_APPROVAL",
@@ -647,20 +652,39 @@ export class ChatManager {
         },
       });
   
-      // Stop here. Don't run the command yet.
-      return;
+      
+      // 2) wait for the matching approval event
+      await new Promise<void>(resolve => {
+        const disposable = this.onTerminalApprove(({ toolUseId }) => {
+          if (toolUseId === toolRequest.tool_use_id) {
+            disposable.dispose();
+            resolve();
+          }
+        });
+      });
     }
+    // console.log(`Command ${command} approved or not needed.`);
   
     // Step 2: Actually execute the command (if approved or not needed)
     try {
-      // ⚠️ Replace this with your actual backend logic to run the command:
-      // const result = await this._runTerminalCommand(command);
-  
-      // this.outputChannel.info("Command executed successfully.");
-      // return { output: result };
+      const activeRepo = getActiveRepo();
+      if (!activeRepo) {
+        throw new Error(`Command failed: Active repository is not defined.`);
+      }
+        this.outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
+        const terminalInfo = await this.terminalManager.getOrCreateTerminal(activeRepo);
+        terminalInfo.terminal.show();
+        const process = this.terminalManager.runCommand(terminalInfo, command);
+        process.on('line', (line) => {
+          this.outputChannel.info(`Terminal output: ${line}`);
+      });
+        await process;
+        const output = this.terminalManager.getUnretrievedOutput(terminalInfo.id);
+        this.outputChannel.info(`Terminal command executed: ${terminalInfo.id}`);
+        return output;
     } catch (err: any) {
-      // this.logger.error(`Command execution failed: ${err.message}`);
-      // throw new Error(`Command failed: ${err.message}`);
+      this.logger.error(`Command execution failed: ${err.message}`);
+      throw new Error(`Command failed: ${err.message}`);
     }
   }
   
@@ -703,7 +727,10 @@ export class ChatManager {
     let rawResult: any;
     let status: "completed" | "error" = "error"; // Default to error
     let resultForUI: any; // This will hold what's sent in TOOL_USE_RESULT
-
+    if (toolRequest.tool_name == "create_new_workspace") {
+      this.outputChannel.info(`Running create_new_workspace tool`);
+      return;
+    }
     try {
       const active_repo = getActiveRepo();
       if (!active_repo) {
@@ -739,9 +766,6 @@ export class ChatManager {
           this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms)
           break;
-        case "create_new_workspace":
-          this.outputChannel.info(`Running create_new_workspace with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runCreateNewWorkspace(active_repo, parsedContent);
         case "execute_command":
           this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runExecuteCommand(parsedContent.command , parsedContent.requires_approval , chunkCallback , toolRequest , messageId || "" );
@@ -783,6 +807,8 @@ export class ChatManager {
           tool_use_id: toolRequest.tool_use_id,
           response: structuredResponse, // Use the structured response for the backend
         },
+        os_name : osName(),
+        shell : getShell()
         // TODO: Consider if previous_query_ids need to be passed down through tool calls
       };
 
@@ -836,6 +862,9 @@ export class ChatManager {
             "error_message": error.message
           },
         },
+        os_name : osName(),
+        shell : getShell()
+        
       }
       await this.apiChat(toolUseRetryPayload, chunkCallback);
     }

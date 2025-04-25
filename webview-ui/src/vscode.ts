@@ -103,7 +103,7 @@ export function callCommand(
 ): Promise<any> | AsyncIterableIterator<any> {
   const id = uuidv4();
 
-  if (command === "get-workspace-state") {
+  if (command === "get-workspace-state" || command === "get-global-state") {
     // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
 
     return new Promise((resolve, reject) => {
@@ -403,6 +403,63 @@ addCommandEventListener("theme-change", ({ data }) => {
 addCommandEventListener("send-client-version", ({ data }) => {
   useExtensionStore.setState({ clientVersion: data as string });
 });
+
+addCommandEventListener("last-chat-data", ({ data }) => {
+  const lastChatData = data as string;
+  const lastChatDataParsed = JSON.parse(lastChatData).state;
+  useChatStore.setState({ history: lastChatDataParsed.history as ChatMessage[] });
+  useChatStore.setState({ isLoading: true });
+  useChatStore.setState({ showSessionsBox: lastChatDataParsed.showSessionsBox });
+  useChatStore.setState({ showAllSessions: lastChatDataParsed.showAllSessions });
+  useChatStore.setState({ showSkeleton: true });
+  const rawTime = lastChatDataParsed.lastMessageSentTime;
+  const parsedTime = rawTime ? new Date(rawTime) : null;
+
+  useChatStore.setState({ lastMessageSentTime: parsedTime });
+  const lastMessage = [...lastChatDataParsed.history]
+    .reverse()
+    .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace");
+  const continuationPayload = {
+    write_mode: useChatSettingStore.getState().chatType === "write",
+    is_tool_response: true,
+    tool_use_response: {
+      tool_name: lastMessage.content.tool_name,
+      tool_use_id: lastMessage.content.tool_use_id,
+      response: {
+        "message": `Workspace Created Successfully, and now we are inside new Workspace. 
+         If you need to create new files inside this workspace, please use code blocks with <is_diff>true</is_diff> tag.
+         Also use execute_command tool to run any command inside this workspace.`,
+      }
+    },
+  }
+  // console.log("continuationPayload", continuationPayload);
+  const { sendChatMessage } = useChatStore.getState();
+  sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+  // console log new history
+  // console.log("new history", useChatStore.getState().history);
+});
+
+
+addCommandEventListener("update-workspace-tool-status", ({ data }) => {
+  const { tool_use_id, status } = data as { tool_use_id: string; status: string };
+  const currentHistory = useChatStore.getState().history;
+  // if toolId matches with any of the history, then update the status
+  const updatedHistory = currentHistory.map((msg) => {
+    if (msg.type === "TOOL_USE_REQUEST" && msg.content.tool_use_id === tool_use_id) {
+      return {
+        ...msg,
+        content: {
+          ...msg.content,
+          status: "completed",
+        },
+      };
+    }
+    return msg;
+  });
+  // console.log("timestamp", new Date().toISOString());
+  useChatStore.setState({ history: updatedHistory as ChatMessage[]});
+});
+
 // addCommandEventListener('current-editor-changed', ({ data }) => {
 //   const item = data as ChatReferenceFileItem;
 //   useChatStore.setState({ currentEditorReference: item });

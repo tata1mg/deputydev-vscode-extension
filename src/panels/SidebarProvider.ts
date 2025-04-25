@@ -14,8 +14,9 @@ import {
   getSessionId,
   setSessionId,
   sendProgress,
+  clearWorkspaceStorage,
 } from "../utilities/contextManager";
-import { binaryApi } from "../services/api/axios";
+import { api, binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
@@ -23,7 +24,12 @@ import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
-import { createNewWorkspace } from "../terminal/workspace/CreateNewWorkspace";
+import { createNewWorkspaceFn } from "../terminal/workspace/CreateNewWorkspace";
+import { ContinueNewWorkspace } from "../terminal/workspace/ContinueNewWorkspace";
+import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToken";
+import { SESSION_TYPE } from "../constants";
+import osName from "os-name";
+import { getShell } from "../terminal/utils/shell";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private pendingMessages: any[] = [];
@@ -44,7 +50,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private codeReferenceService: ReferenceManager,
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
-    private trackingManager: UsageTrackingManager
+    private trackingManager: UsageTrackingManager,
+    private continueWorkspace : ContinueNewWorkspace,
   ) {}
 
   public resolveWebviewView(
@@ -228,7 +235,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.setWorkspaceRepo(data);
           break;
         case "create-new-workspace": 
-          createNewWorkspace();
+          promise = this.createNewWorkspace(data.tool_use_id);
+          break;
+        case "accept-terminal-command":
+          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id });
+          break;
+        case "edit-terminal-command":
+          promise = this.editTerminalCommand(data);
           break;
 
         // diff
@@ -273,6 +286,33 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     });
   }
+
+  async editTerminalCommand(data: {user_query: string, old_command: string}) {
+    try {
+      const {user_query, old_command} = data;
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+        "X-Session-Type": SESSION_TYPE,
+      };
+      const payload = {
+        query:  user_query,
+        old_terminal_command : old_command,
+        os_name : osName(),
+        shell : getShell()
+      };
+      const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
+        headers,
+      });
+      this.outputChannel.info("Terminal command edit response:", response.data.data.terminal_command);
+      refreshCurrentToken(response.headers);
+      return response.data.data.terminal_command;
+    } catch (error) {
+      this.logger.error("Error while fetching past chats:", error);
+      this.outputChannel.error("Error while fetching past chats:", error);
+    }
+  
+  }
   // For browser pages
   async openBrowserPage(data: { url: string }) {
     await vscode.env.openExternal(vscode.Uri.parse(data.url));
@@ -306,6 +346,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.info("Signed out successfully");
       this.context.workspaceState.update("isAuthenticated", false);
       this.setViewType("auth");
+      clearWorkspaceStorage(true);
     }
   }
 
@@ -391,6 +432,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
+        this.continueWorkspace.triggerAuthChange(true);
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(
           `📁 Creating embedding for repo: ${activeRepo}`
@@ -676,6 +718,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       // console.error("Error while deleting session:", error);
     }
+  }
+
+  async createNewWorkspace(tool_use_id: string ) {  
+    createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
   }
 
   setViewType(

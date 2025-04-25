@@ -77,25 +77,53 @@ export function loaderMessage(showMsg: boolean) {
   })
 }
 
+export function sendLastChatData(data: string) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "last-chat-data",
+    data: data,
+  })
+}
+
+
+export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: string }) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "update-workspace-tool-status",
+    data: data,
+  })
+}
+
 
 
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
 
-export async function clearWorkspaceStorage() {
+export async function clearWorkspaceStorage(isLogout: boolean = false) {
   if (!extensionContext)
    {
-    // console.log('extensionContext is not defined');
     return;
    }
+  if (isLogout) {
+    await extensionContext.workspaceState.update("authToken", false);
+    await extensionContext.workspaceState.update("configData", undefined);
+    await extensionContext.workspaceState.update("auth-storage", undefined);
+    await extensionContext.workspaceState.update("chat-storage", undefined);
+    await extensionContext.workspaceState.update("user-profile-store", undefined);
+    await extensionContext.workspaceState.update("sessionId", undefined);
+    await extensionContext.workspaceState.update("isAuthenticated", false);
+    await extensionContext.workspaceState.update("sessions-storage", undefined);
+    return;
+  }
   await extensionContext.workspaceState.update("authToken", false);
   await extensionContext.workspaceState.update("essentialConfigData", undefined);
   await extensionContext.workspaceState.update("configData", undefined);
   await extensionContext.workspaceState.update("auth-storage", undefined);
   await extensionContext.workspaceState.update("workspace-storage", undefined);
   await extensionContext.workspaceState.update("view-state-storage", undefined);
-  await extensionContext.workspaceState.update("chat-type-storage", undefined);
+  // await extensionContext.workspaceState.update("chat-type-storage", undefined);
+  await extensionContext.workspaceState.update("sessions-storage", undefined);
   await extensionContext.workspaceState.update("chat-storage", undefined);
   await extensionContext.workspaceState.update("user-profile-store", undefined);
   await extensionContext.workspaceState.update("repo-selector-storage", false);
@@ -103,5 +131,7 @@ export async function clearWorkspaceStorage() {
   await extensionContext.workspaceState.update("force-upgrade-storage", undefined);
   await extensionContext.workspaceState.update("loader-view-state-storage", undefined);
   await extensionContext.workspaceState.update("vscode-theme-storage", undefined);
+  await extensionContext.workspaceState.update("isAuthenticated", false);
+  await extensionContext.workspaceState.update("activeRepo", undefined);
 }
 

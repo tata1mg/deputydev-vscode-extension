@@ -214,12 +214,16 @@ export function sendRetryEmbedding() {
 
 
 // terminal
-export function acceptTerminalCommand() {
-  return callCommand("accept-terminal-command", {});
+export function acceptTerminalCommand(tool_use_id: string) {
+  return callCommand("accept-terminal-command", {tool_use_id});
 }
 export function rejectTerminalCommand() {
   return callCommand("reject-terminal-command", {});
 }
- export function createNewWorkspace() {
-  return callCommand("create-new-workspace", {});
+ export function createNewWorkspace(tool_use_id: string) {
+  console.log("createNewWorkspace sent from ui", tool_use_id);
+  return callCommand("create-new-workspace", {tool_use_id});
+}
+export function editTerminalCommand(data: {user_query: string, old_command: string}) {
+  return callCommand("edit-terminal-command", data);
 }

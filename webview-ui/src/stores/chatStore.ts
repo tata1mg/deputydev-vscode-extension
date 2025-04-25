@@ -9,7 +9,7 @@ import {
   showErrorMessage,
 } from "@/commandApi";
 
-import { persistStorage } from "./lib";
+import { persistGlobalStorage, persistStorage } from "./lib";
 import pick from "lodash/pick";
 import {
   AutocompleteOption,
@@ -110,79 +110,89 @@ export const useChatStore = create(
             chunkCallback: (data: { name: string; data: any }) => void,
             retryChat?: boolean,
             retry_payload?: any,
+            create_new_workspace_payload?: any,
           ) {
+
             logToOutput("info", `sendChatMessage: ${message}`);
-            const { history, lastToolUseResponse } = get();
-
-            // Create the user message
-            const userMessage: ChatUserMessage = {
-              type: "TEXT_BLOCK",
-              content: { text: message },
-              referenceList: editorReferences,
-              actor: "USER",
-            };
-
-            if (!retryChat) {
-              set({
-                history: [...history, userMessage],
-                current: {
-                  type: "TEXT_BLOCK",
-                  content: { text: "" },
-                  actor: "ASSISTANT",
-                },
-              });
-            }
-
-            // Remove any error messages from history
-            set((state) => ({
-              history: state.history.filter((msg) => msg.type !== "ERROR"),
-            }));
-
-            set({
-              isLoading: true,
-              showSkeleton: true,
-            });
-
-            // Build the payload
-            const payload: any = {
-              query: message,
-              is_tool_response: false,
-              relevant_chunks: [] as string[],
-              write_mode: useChatSettingStore.getState().chatType === "write",
-              referenceList: userMessage.referenceList,
-              is_inline:
-                useChatSettingStore.getState().chatSource === "inline-chat",
-            };
-
-            // If a tool response was stored, add it to the payload
-            if (lastToolUseResponse) {
-              payload.is_tool_response = true;
-              payload.tool_use_response = {
-                tool_name: lastToolUseResponse.tool_name,
-                tool_use_id: lastToolUseResponse.tool_use_id,
-                response: {
-                  user_response: message,
-                },
-              };
-              // Clear it so it doesn't affect subsequent messages.
-              set({ lastToolUseResponse: undefined });
-            }
-
             let stream;
-            if (retryChat) {
-              logToOutput(
-                "info",
-                `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`,
-              );
-              stream = apiChat(retry_payload);
-            } else {
-              stream = apiChat(payload);
+            if (create_new_workspace_payload) {
+              stream = apiChat(create_new_workspace_payload);
             }
+            else {
+              const { history, lastToolUseResponse } = get();
+
+              // Create the user message
+              const userMessage: ChatUserMessage = {
+                type: "TEXT_BLOCK",
+                content: { text: message },
+                referenceList: editorReferences,
+                actor: "USER",
+              };
+
+              if (!retryChat) {
+                set({
+                  history: [...history, userMessage],
+                  current: {
+                    type: "TEXT_BLOCK",
+                    content: { text: "" },
+                    actor: "ASSISTANT",
+                  },
+                });
+              }
+
+              // Remove any error messages from history
+              set((state) => ({
+                history: state.history.filter((msg) => msg.type !== "ERROR"),
+              }));
+
+              set({
+                isLoading: true,
+                showSkeleton: true,
+              });
+
+              // Build the payload
+              const payload: any = {
+                query: message,
+                is_tool_response: false,
+                relevant_chunks: [] as string[],
+                write_mode: useChatSettingStore.getState().chatType === "write",
+                referenceList: userMessage.referenceList,
+                is_inline:
+                  useChatSettingStore.getState().chatSource === "inline-chat",
+              };
+
+              // If a tool response was stored, add it to the payload
+              if (lastToolUseResponse) {
+                payload.is_tool_response = true;
+                payload.tool_use_response = {
+                  tool_name: lastToolUseResponse.tool_name,
+                  tool_use_id: lastToolUseResponse.tool_use_id,
+                  response: {
+                    user_response: message,
+                  },
+                };
+                // Clear it so it doesn't affect subsequent messages.
+                set({ lastToolUseResponse: undefined });
+              }
+
+              if (retryChat) {
+                logToOutput(
+                  "info",
+                  `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`,
+                );
+                stream = apiChat(retry_payload);
+              } else {
+                stream = apiChat(payload);
+              }
+            }
+
+
 
             // console.log("stream received in FE : ", stream);
 
             try {
               for await (const event of stream) {
+                console.log("event received in FE : ", event);
                 switch (event.name) {
                   case "TEXT_START": {
                     // Initialize a new current message with the desired structure
@@ -570,7 +580,6 @@ export const useChatStore = create(
                   }
 
                   case "TERMINAL_APPROVAL": {
-                    console.log("Terminal approval event received");
                     const terminalApprovalData = event.data as {
                       tool_name: string;
                       tool_use_id: string;
@@ -588,7 +597,7 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                terminal_approval:
+                                terminal_approval_required:
                                   terminalApprovalData.terminal_approval_required,
                               },
                             };
@@ -598,6 +607,8 @@ export const useChatStore = create(
                       });
                       return { history: newHistory };
                     });
+                    chunkCallback({ name: event.name, data: event.data });
+                    break;
                   }
 
 
@@ -746,7 +757,7 @@ export const useChatSettingStore = create(
     ),
     {
       name: "chat-type-storage",
-      storage: persistStorage,
+      storage: persistGlobalStorage,
       partialize: (state) => pick(state, ["chatType", "chatSource"]),
     },
   ),

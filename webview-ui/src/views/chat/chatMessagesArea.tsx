@@ -30,9 +30,19 @@ export function ChatArea() {
 
   return (
     <>
-    <CreateNewWorkspace
-                      content={ ""}
-                    />
+      {/* <SearchedCodebase status={"completed"} />
+      
+      <TerminalPanel
+        tool_id="hi123"
+        terminal_command={`{"command":"cd /home/jo"}`}
+        status={"completed"}
+        terminal_approval_required={true}
+      />
+       */}
+       
+      {/* <CreateNewWorkspace tool_id="12" status="completed" /> */}
+      
+
       {messages.map((msg, index) => {
         switch (msg.type) {
           case "TEXT_BLOCK":
@@ -140,34 +150,40 @@ export function ChatArea() {
 
           case "TOOL_USE_REQUEST":
             let contentComponent: JSX.Element;
-          
+
             switch (msg.content.tool_name) {
               case "execute_command":
                 contentComponent = (
                   <TerminalPanel
-                    content={(msg.content.input_params_json as string) || ""}
-                    terminal_output={msg.content.result_json}
+                    tool_id={msg.content.tool_use_id}
+                    terminal_command={
+                      (msg.content.input_params_json as string) || ""
+                    }
                     status={msg.content.status}
-                    terminal_approval_required={msg.content.terminal_approval_required}
+                    terminal_approval_required={
+                      msg.content.terminal_approval_required
+                    }
                   />
                 );
                 break;
-              
-                case "create_new_workspace":
-                  contentComponent = (
-                    <CreateNewWorkspace
-                      content={(msg.content.input_params_json as string) || ""}
-                    />
-                  );
-                  break;
-          
+
+              case "create_new_workspace":
+                contentComponent = (
+                  <CreateNewWorkspace
+                    tool_id={msg.content.tool_use_id}
+                    status={(msg.content.status) || "pending"}
+                  />
+                );
+                break;
+
               default:
-                contentComponent = <SearchedCodebase status={msg.content.status} />;
+                contentComponent = (
+                  <SearchedCodebase status={msg.content.status} />
+                );
                 break;
             }
-          
+
             return <div key={index}>{contentComponent}</div>;
-          
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
@@ -188,7 +204,6 @@ export function ChatArea() {
               const elapsed = last
                 ? new Date().getTime() - last.getTime()
                 : null;
-
               if (elapsed !== null) {
                 queryCompleteTimestampsRef.current.set(index, elapsed);
               }

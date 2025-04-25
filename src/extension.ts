@@ -16,6 +16,7 @@ import {
   setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
+  getActiveRepo,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
 import { HistoryService } from "./services/history/HistoryService";
@@ -32,19 +33,49 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
+import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
+// import { Terminal } from "./terminal/TerminalManager";
+// import { autoExecutePingCommand } from "./terminal/autoExecutePingCommand";
+import { TerminalManager } from "./terminal/TerminalManager";
+
 export async function activate(context: vscode.ExtensionContext) {
-  // context reset from past session
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
     return;
   }
   setExtensionContext(context);
+  
   await clearWorkspaceStorage();
-  const ENABLE_OUTPUT_CHANNEL = false;
+  const ENABLE_OUTPUT_CHANNEL = true;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
+  const terminalManager = new TerminalManager()
 
+  const activeRepo = "/Users/vaibhavmeena/Desktop/"
+  if (activeRepo) {
+    outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
+    const terminalInfo = await terminalManager.getOrCreateTerminal("/Users/vaibhavmeena/Desktop");
+    terminalInfo.terminal.show();
+    const process = terminalManager.runCommand(terminalInfo, "ping google.com");
+
+    process.on('line', (line) => {
+      outputChannel.info(`Terminal output: ${line}`);
+    });
+    const output = terminalManager.getUnretrievedOutput(terminalInfo.id);
+    outputChannel.info(`Terminal command executed id: ${terminalInfo.id}`);
+    outputChannel.info(`Terminal command executed command: ${terminalInfo.lastCommand}`);
+    // add 5 seconds delay
+    // await new Promise(resolve => setTimeout(resolve, 5000));
+    const command_output = terminalManager.getUnretrievedOutput(terminalInfo.id);
+    outputChannel.info(`Terminal command output get unreteived output: ${command_output}`);
+
+    
+    
+    await process;
+    outputChannel.info(`Terminal command executed: ${terminalInfo.lastCommand}`);
+    return
+  }
 
   // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
@@ -93,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const chatService = new ChatManager(context, outputChannel, diffViewManager);
+  const chatService = new ChatManager(context, outputChannel, diffViewManager, terminalManager);
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -102,6 +133,10 @@ export async function activate(context: vscode.ExtensionContext) {
   //   diffContentProvider
   // );
   // context.subscriptions.push(providerReg);
+
+
+  const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
+  continueNewWorkspace.init();
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
@@ -116,7 +151,8 @@ export async function activate(context: vscode.ExtensionContext) {
     referenceService,
     configManager,
     profileService,
-    usageTrackingManager
+    usageTrackingManager,
+    continueNewWorkspace
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -224,6 +260,9 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
+
+
+
 
   // 7) Register commands for Accept/Reject etc
   //

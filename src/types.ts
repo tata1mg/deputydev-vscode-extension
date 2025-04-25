@@ -49,6 +49,8 @@ export interface ChatPayload {
   focus_items?: Array<any>;
   deputy_dev_rules?: string;
   is_inline?: boolean;
+  os_name: string;
+  shell : string;
 }
 
 export interface SearchTerm {

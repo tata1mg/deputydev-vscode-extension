@@ -1,0 +1,78 @@
+import * as vscode from 'vscode';
+import { v4 as uuidv4 } from 'uuid';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { sendLastChatData } from '../../utilities/contextManager';
+
+export class ContinueNewWorkspace {
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private _onDidAuthChange = new vscode.EventEmitter<boolean>();
+  public readonly onDidAuthChange = this._onDidAuthChange.event;
+
+  private restoredSessionId?: string;
+  private restoredChatData?: string;
+  private hasRestored = false;
+
+  constructor(
+    private context: vscode.ExtensionContext,
+    private outputChannel: vscode.LogOutputChannel,
+  ) {
+    this.logger = SingletonLogger.getInstance();
+  }
+
+  public async init() {
+    const sessionId = (await this.context.globalState.get("sessionId-copy")) as string | undefined;
+    const lastChatData = (await this.context.globalState.get("chat-storage-copy")) as string | undefined;
+
+    if (sessionId && lastChatData) {
+      const CONTINUE = "Continue Setup";
+      await vscode.commands.executeCommand("deputydev-sidebar.focus");
+
+      // // only one button ⇒ no extra “Cancel” button
+      // const choice = await vscode.window.showInformationMessage(
+      //   "Continue Workspace Setup?",
+      //   {
+      //     modal: true,
+      //     detail: "DeputyDev will resume setting up the workspace by creating the necessary files."
+      //   },
+      //   CONTINUE
+      // );
+  
+      // if (choice !== CONTINUE) {
+      //   // user hit Esc or closed the dialog
+      //   this.outputChannel.info("User cancelled workspace restoration.");
+      //   await this.context.globalState.update("sessionId-copy", undefined);
+      //   await this.context.globalState.update("chat-storage-copy", undefined);
+      //   return;
+      // }
+  
+      // user did click “Continue Setup”:
+      this.outputChannel.info(`Session ID: ${sessionId}`);
+  
+      await this.context.workspaceState.update("sessionId", sessionId);
+      await this.context.globalState.update("sessionId-copy", undefined);
+      await this.context.globalState.update("chat-storage-copy", undefined);
+  
+      this.restoredSessionId = sessionId;
+      this.restoredChatData = lastChatData;
+      const isAuthenticated = !!(await this.context.workspaceState.get("isAuthenticated"));
+      this.triggerAuthChange(isAuthenticated);
+      this.logger.info("Restored session from previous workspace");
+    }
+
+    // Authentication listener
+    this.onDidAuthChange((isAuthenticated) => {
+      if (
+        isAuthenticated &&
+        this.restoredChatData &&
+        !this.hasRestored
+      ) {
+        sendLastChatData(this.restoredChatData);
+        this.hasRestored = true;
+      }
+    });
+  }
+
+  public triggerAuthChange(isAuthenticated: boolean) {
+    this._onDidAuthChange.fire(isAuthenticated);
+  }
+}
