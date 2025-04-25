@@ -3,7 +3,7 @@ import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  SearchedCodebase,
+  ToolUseStatusMessage,
   ThinkingChip,
   FileEditedChip,
   RetryChip,
@@ -136,7 +136,7 @@ export function ChatArea() {
           case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
-                <SearchedCodebase status={msg.content.status} />
+                <ToolUseStatusMessage status={msg.content.status} tool_name={msg.content.tool_name} />
               </div>
             );
 
