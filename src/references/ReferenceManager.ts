@@ -100,4 +100,17 @@ export class ReferenceManager {
       data: response.urls,
     });
   }
+
+  async urlSearch(
+    payload: { keyword: string },
+    sendMessage: (message: Object) => void
+  ) {
+    const response = await this.referenceService.urlSearch(payload);
+    this.outputChannel.info("urlSearch-response", response);
+    sendMessage({
+      id: uuidv4(),
+      command: "get-saved-urls-response",
+      data: response.urls,
+    });
+  }
 }

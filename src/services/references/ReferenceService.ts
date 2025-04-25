@@ -128,4 +128,26 @@ export class ReferenceService {
       this.apiErrorHandler.handleApiError(error);
     }
   }
+  public async urlSearch(payload: { keyword: string }): Promise<any> {
+    try {
+      const authToken = await this.fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      const searchResponse = await binaryApi().get(
+        `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}&limit=5`,
+        { headers }
+      );
+
+      if (searchResponse.status === 200 || searchResponse.status === 204) {
+        const response = await this.getSavedUrls();
+        return response.data;
+      } else {
+        throw new Error("Failed to update URL");
+      }
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
 }
