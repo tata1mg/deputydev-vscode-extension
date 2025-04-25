@@ -145,6 +145,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.openBrowserPage(data);
           break;
 
+        // Feedback
+        case "submit-feedback":
+          promise = this.submitFeedback(data);
+          break;
+
         // Logging and Messages
         case "log-to-output":
           promise = this.logToOutput(data);
@@ -250,8 +255,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
-          break; 
-        
+          break;
+
         case "webview-initialized":
           this.isWebviewInitialized = true;
           this.sendPendingMessages();
@@ -723,6 +728,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  submitFeedback(data: {feedback: string}) {
+    console.log("Submitting feedback", data.feedback);
+  }
+
   newChat() {
     this.sendMessageToSidebar({
       id: uuidv4(),
@@ -800,5 +809,5 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
-  }  
+  }
 }
