@@ -21,6 +21,7 @@ export function ChatArea() {
     current,
     showSkeleton,
     showSessionsBox,
+    feedbackState
   } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
@@ -203,15 +204,41 @@ export function ChatArea() {
                 </div>
                 <div className="flex items-center space-x-3">
                   <ThumbsUp
-                      className="cursor-pointer h-4 w-4 hover:text-green-500 hover:fill-green-500"
+                    className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "UPVOTE"
+                      ? "text-green-500 fill-green-500"
+                      : "hover:text-green-500 hover:fill-green-500"
+                      }`}
                     onClick={() => {
-                      submitFeedback("UPVOTE", queryIdMap.get(index))
+                      const currentFeedback = feedbackState.get(index);
+                      if (currentFeedback === "UPVOTE") {
+                        const newMap = new Map(feedbackState);
+                        newMap.set(index, "UPVOTE");
+                        useChatStore.setState({ feedbackState: newMap });
+                      } else {
+                        const newMap = new Map(feedbackState);
+                        newMap.set(index, "UPVOTE");
+                        useChatStore.setState({ feedbackState: newMap });
+                        submitFeedback("UPVOTE", queryIdMap.get(index));
+                      }
                     }}
                   />
                   <ThumbsDown
-                    className="cursor-pointer h-4 w-4 hover:text-green-500 hover:fill-green-500"
+                    className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
+                      ? "text-green-500 fill-green-500"
+                      : "hover:text-green-500 hover:fill-green-500"
+                      }`}
                     onClick={() => {
-                      submitFeedback("DOWNVOTE", queryIdMap.get(index))
+                      const currentFeedback = feedbackState.get(index);
+                      if (currentFeedback === "DOWNVOTE") {
+                        const newMap = new Map(feedbackState);
+                        newMap.delete(index);
+                        useChatStore.setState({ feedbackState: newMap });
+                      } else {
+                        const newMap = new Map(feedbackState);
+                        newMap.set(index, "DOWNVOTE");
+                        useChatStore.setState({ feedbackState: newMap });
+                        submitFeedback("DOWNVOTE", queryIdMap.get(index));
+                      }
                     }}
                   />
                 </div>
