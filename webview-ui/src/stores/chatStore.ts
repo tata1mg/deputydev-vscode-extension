@@ -87,6 +87,7 @@ export const useChatStore = create(
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
+        feedbackState: new Map(),
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -102,6 +103,7 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
+              feedbackState: new Map(),
             });
           },
 
