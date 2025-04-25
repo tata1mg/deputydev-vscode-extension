@@ -615,12 +615,6 @@ export class ChatManager {
 
 
 
-  async _runCreateNewWorkspace(
-    active_repo: string,
-    query: string,
-  ): Promise<void> {
-    
-  }
 
 
     
@@ -630,7 +624,7 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     toolRequest: ToolRequest,
     messageId?: string,
-  ): Promise<any> {
+  ): Promise<string> {
     if (!command) {
       throw new Error("Command is empty.");
     }
@@ -671,25 +665,86 @@ export class ChatManager {
       if (!activeRepo) {
         throw new Error(`Command failed: Active repository is not defined.`);
       }
-        this.outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
-        const terminalInfo = await this.terminalManager.getOrCreateTerminal(activeRepo);
-        terminalInfo.terminal.show();
-        const process = this.terminalManager.runCommand(terminalInfo, command);
-        process.on('line', (line) => {
-          this.outputChannel.info(`Terminal output: ${line}`);
+  
+      this.outputChannel.info(`now running terminal manager: ${activeRepo}`);
+      const terminalInfo = await this.terminalManager.getOrCreateTerminal(activeRepo);
+      terminalInfo.terminal.show();
+  
+      const process = this.terminalManager.runCommand(terminalInfo, command);
+  
+      // Buffer every line
+      let output = "";
+      process.on("line", (line) => {
+        this.outputChannel.info(`Terminal output: ${line}`);
+        output += line + "\n";
       });
-        await process;
-        const output = this.terminalManager.getUnretrievedOutput(terminalInfo.id);
-        this.outputChannel.info(`Terminal command executed: ${terminalInfo.id}`);
-        return output;
+  
+      // Race between:
+      //  • natural completion
+      //  • shell-integration fallback
+      //  • error
+      //  • 15s timeout
+      const result = await new Promise<string>((resolve, reject) => {
+        let settled = false;
+  
+        // 1) Timeout after 15s
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          // Don't kill the underlying process—let it keep running in the terminal.
+          resolve(
+            output +
+              `
+              ===========
+              Process is still running after 15s; returning partial output.
+              ===========
+              `
+          );
+        }, 15_000);
+  
+        // 2) Shell-integration unavailable
+        process.once("no_shell_integration", () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          resolve(
+            `
+              ===========
+              Command sent, but shell-integration isn't available;
+              ===========
+            `
+          );
+        });
+  
+        // 3) Low-level error
+        process.once("error", (err) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(err);
+        });
+  
+        // 4) Natural completion
+        process.once("completed", () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          // grab any trailing output
+          output += this.terminalManager.getUnretrievedOutput(terminalInfo.id);
+          resolve(output);
+        });
+      });
+      this.outputChannel.info(`Terminal command finished: ${result}`);
+      this.outputChannel.info(`Terminal command finished (wrapper resolved).`);
+      return result;
+
     } catch (err: any) {
       this.logger.error(`Command execution failed: ${err.message}`);
       throw new Error(`Command failed: ${err.message}`);
     }
   }
   
-  async _runTerminalCommand (command: string): Promise<any> {
-  }
+
   
 
 
