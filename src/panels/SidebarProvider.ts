@@ -149,7 +149,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // Feedback
         case "submit-feedback":
-          promise = this.submitFeedback(data);
+          promise = this.feedbackService.submitFeedback(data.feedback);
           break;
 
         // Logging and Messages
@@ -730,9 +730,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  submitFeedback(data: {feedback: string}) {
-    this.feedbackService.submitFeedback(data.feedback);
-  }
 
   newChat() {
     this.sendMessageToSidebar({
