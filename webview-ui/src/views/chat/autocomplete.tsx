@@ -80,7 +80,6 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   }, []);
 
   const handleAction = (e: React.MouseEvent, action: string) => {
-    console.log(selectedOption);
     e.stopPropagation();
     setOpenDropdownIndex(null);
     switch (action) {
@@ -137,14 +136,12 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     const finalName = customName ?? name;
     const finalUrl = customUrl ?? url;
 
-    console.log("handleSave", { finalName, finalUrl, editMode });
     if (!finalName || !finalUrl || urlError) return;
 
     if (editMode) {
       updateSavedUrl({ id, name: finalName });
     } else {
       const payload: SaveUrlRequest = { name: finalName, url: finalUrl };
-      console.log("payload", payload);
       saveUrl(payload);
     }
 
@@ -177,7 +174,6 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     setOpenDropdownIndex(index);
     setDropdownPosition({ top, left });
   };
-  console.log("options lappa", options);
 
   return (
     <div
