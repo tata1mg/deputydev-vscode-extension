@@ -295,6 +295,7 @@ export function ChatUI() {
           path: option.description,
           chunks: option.chunks,
           value: option.value,
+          url: option.url,
         };
         useChatStore.setState({
           currentEditorReference: [...allChips, newChatRefrenceItem],
@@ -463,6 +464,7 @@ export function ChatUI() {
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
+                  url={chip.url}
                 />
               ))}
               <textarea

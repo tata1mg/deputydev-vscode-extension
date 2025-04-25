@@ -153,10 +153,13 @@ export const useChatStore = create(
             // Build the payload
             const payload: any = {
               query: message,
+              urls: userMessage.referenceList.filter((item) => item.url),
               is_tool_response: false,
               relevant_chunks: [] as string[],
               write_mode: useChatSettingStore.getState().chatType === "write",
-              referenceList: userMessage.referenceList,
+              referenceList: userMessage.referenceList.filter(
+                (item) => !item.url,
+              ),
               is_inline:
                 useChatSettingStore.getState().chatSource === "inline-chat",
             };

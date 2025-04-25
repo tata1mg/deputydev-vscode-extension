@@ -30,6 +30,7 @@ type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   value?: string;
+  url?: string;
 };
 
 export interface ChatPayload {
