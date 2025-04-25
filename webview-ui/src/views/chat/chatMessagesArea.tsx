@@ -66,6 +66,7 @@ export function ChatArea() {
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
+                          url={reference.url}
                         />
                       ))}
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
