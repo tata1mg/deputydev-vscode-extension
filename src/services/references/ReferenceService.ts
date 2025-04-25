@@ -67,7 +67,7 @@ export class ReferenceService {
 
       if (postResponse.status === 200 || postResponse.status === 201) {
         const response = await this.getSavedUrls();
-        return response.data;
+        return response;
       } else {
         throw new Error("Failed to save URL");
       }
@@ -93,7 +93,7 @@ export class ReferenceService {
 
       if (deleteResponse.status === 200 || deleteResponse.status === 204) {
         const response = await this.getSavedUrls();
-        return response.data;
+        return response;
       } else {
         throw new Error("Failed to delete URL");
       }
@@ -120,7 +120,7 @@ export class ReferenceService {
 
       if (updateResponse.status === 200 || updateResponse.status === 204) {
         const response = await this.getSavedUrls();
-        return response.data;
+        return response;
       } else {
         throw new Error("Failed to update URL");
       }
