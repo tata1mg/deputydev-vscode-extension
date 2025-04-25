@@ -110,6 +110,7 @@ export function ToolUseStatusMessage({
       } else if (status === "error") {
         displayText = "Error Analysing URL";
       }
+      break
     default:
       displayText = "Searched codebase";
       if (status === "pending") {
