@@ -33,7 +33,6 @@ export class FeedbackService {
             { headers }
           );
           refreshCurrentToken(response.headers);
-          console.log(response.data)
           return response.data;
         } catch (error) {
           this.apiErrorHandler.handleApiError(error);
