@@ -732,7 +732,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   submitFeedback(data: {feedback: string}) {
     this.feedbackService.submitFeedback(data.feedback);
-    console.log("Submitting feedback", data.feedback);
   }
 
   newChat() {
