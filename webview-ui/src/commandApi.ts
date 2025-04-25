@@ -215,6 +215,6 @@ export function webviewInitialized() {
   return callCommand("webview-initialized", {});
 }
 
-export function submitFeedback(feedback: string) {
-  return callCommand("submit-feedback", {feedback})
+export function submitFeedback(feedback: string, queryId: number) {
+  return callCommand("submit-feedback", {feedback, queryId})
 }

@@ -149,7 +149,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // Feedback
         case "submit-feedback":
-          promise = this.feedbackService.submitFeedback(data.feedback);
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
           break;
 
         // Logging and Messages
