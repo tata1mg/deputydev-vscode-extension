@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { createTwoFilesPatch } from "diff";
+import path = require("path");
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -72,15 +73,18 @@ export class FileChangeStateManager {
   // It returns the original and modified content extracted from the udiff.
   // TODO: Handle rename
   public updateFileStateInFileChangeStateMap = async (
-    uri: string,
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
     newFileContent: string,
-    newUri: string,
+    newFilePath: string,
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
   ): Promise<{
     originalContent: string;
     modifiedContent: string;
   }> => {
-    const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(uri);
+    const uri = path.join(repoPath, filePath);
+    const newUri = path.join(repoPath, newFilePath);
+    const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
     // get the udiff from the new file content. The udiff is always between the new file content and the original file content
     const udiff = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContent);
 
@@ -134,8 +138,10 @@ export class FileChangeStateManager {
 
   // This method retrieves current modified content of the file based on the URI.
   public getCurrentContentOnWhichChangesAreToBeApplied = async (
-    uri: string,
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
   ): Promise<string> => {
+    const uri = path.join(repoPath, filePath);
     const fileChangeState = this.fileChangeStateMap.get(uri);
 
     // if fileChangeState is not found, try to read the file content and return it
@@ -148,8 +154,10 @@ export class FileChangeStateManager {
 
   // This method retrieves the current original content of the file based on the URI.
   public getOriginalContentToShowDiffOn = async (
-    uri: string,
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
   ): Promise<string> => {
+    const uri = path.join(repoPath, filePath);
     const fileChangeState = this.fileChangeStateMap.get(uri);
 
     // if fileChangeState is not found, try to read the file content and return it
@@ -160,7 +168,8 @@ export class FileChangeStateManager {
     return fileChangeState.originalContent;
   }
 
-  public getFileChangeState = (uri: string): FileChangeState | undefined => {
+  public getFileChangeState = (filePath: string, repoPath: string): FileChangeState | undefined => {
+    const uri = path.join(repoPath, filePath);
     return this.fileChangeStateMap.get(uri);
   }
 }

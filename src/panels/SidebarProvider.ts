@@ -10,7 +10,6 @@ import { ReferenceManager } from "../references/ReferenceManager";
 import {
   deleteSessionId,
   getActiveRepo,
-  getSessionId,
   setSessionId,
   sendProgress,
 } from "../utilities/contextManager";
@@ -45,7 +44,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager
-  ) {}
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -228,30 +227,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         // diff
-        case "write-file":
-          promise = this.writeFile(data);
+        case "write-file": {
+          const activeRepo = getActiveRepo();
+          if (!activeRepo) {
+            this.outputChannel.error("No active repo found");
+            return;
+          }
+          promise = this.diffManager.applyDiff({ path: data.filePath, incrementalUdiff: data.raw_diff }, activeRepo, true);
           break;
+        }
         case "open-file":
           this.openFile(data.path);
           break;
 
         case "check-diff-applicable": {
-          try {
-            const diffRecord = (await this.chatService.getModifiedRequest({
-              filepath: data.filePath,
-              raw_diff: data.raw_diff,
-            })) as Record<string, string>;
-            // check diffRecord has keys and values
-            promise = diffRecord && Object.keys(diffRecord).length > 0;
-          } catch (error) {
-            // console.error("Error while checking diff applicability:", error);
+          const activeRepo = getActiveRepo();
+          if (!activeRepo) {
+            this.outputChannel.error("No active repo found");
+            return;
           }
+          promise = await this.diffManager.checkIsDiffApplicable({ path: data.filePath, incrementalUdiff: data.raw_diff }, activeRepo);
           break;
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
-          break; 
-        
+          break;
+
         case "webview-initialized":
           this.isWebviewInitialized = true;
           this.sendPendingMessages();
@@ -458,38 +459,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  /**
-   * Example of applying changes (like "openDiffView" in your other code)
-   */
-
-  private async writeFile(data: {
-    filePath: string;
-    raw_diff: string;
-    is_inline?: boolean;
-    write_mode?: boolean;
-  }) {
-    const modifiedFiles = (await this.chatService.getModifiedRequest({
-      filepath: data.filePath,
-      raw_diff: data.raw_diff,
-    })) as Record<string, string>;
-
-    this.outputChannel.info(`Writing file(s) for: ${data.filePath}`);
-
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      this.outputChannel.error("No active repo found");
-      return;
-    }
-    this.chatService.handleModifiedFiles(
-      modifiedFiles,
-      active_repo,
-      getSessionId(),
-      data.write_mode,
-      data.is_inline,
-    );
-    return;
-  }
-
   private async getOpenedFiles() {
     const basePathSet = new Set<string>();
     const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
@@ -606,14 +575,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore},
+        data: { unpinnedSessions, hasMore },
       });
     } catch (error) {
       const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore : false},
+        data: { unpinnedSessions, hasMore: false },
       });
     }
   }
@@ -671,12 +640,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
   async sendPendingMessages() {
-        // Flush any pending messages now that the view is initialized
-        while (this.pendingMessages.length > 0) {
-          const message = this.pendingMessages.shift();
-          this._view?.webview.postMessage(message);
-        }
+    // Flush any pending messages now that the view is initialized
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      this._view?.webview.postMessage(message);
     }
+  }
 
   setViewType(
     viewType:
@@ -791,5 +760,5 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
-  }  
+  }
 }

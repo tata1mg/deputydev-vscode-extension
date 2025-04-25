@@ -171,7 +171,8 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
     logger,
     chatService,
-    sidebarProvider
+    sidebarProvider,
+    diffManager
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
@@ -243,6 +244,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }
