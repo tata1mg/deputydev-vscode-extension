@@ -700,7 +700,11 @@ export class ChatManager {
   async _runPublicUrlContentReader(payload: { urls: string[] }) {
     try {
       const authToken = await this.authService.loadAuthToken();
-      const headers = { Authorization: `Bearer ${authToken}` };
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+        "X-Session-Type": SESSION_TYPE,
+        "X-Session-Id": getSessionId(),
+      };
       const response = await binaryApi().post(
         API_ENDPOINTS.PUBLIC_URL_CONTENT_READER,
         { urls: payload.urls },
