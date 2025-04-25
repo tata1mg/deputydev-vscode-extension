@@ -37,16 +37,16 @@ export class ReferenceService {
   public async getSavedUrls(): Promise<any> {
     let response;
     try {
-      // const authToken = await this.fetchAuthToken();
-      // const headers = {
-      //   Authorization: `Bearer ${authToken}`,
-      // };
+      const authToken = await this.fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
       response = await binaryApi().get(API_ENDPOINTS.GET_SAVED_URLS, {
         params: {
           limit: 5,
           offset: 0,
         },
-        // headers,
+        headers,
       });
       return response.data;
     } catch (error) {
@@ -55,32 +55,48 @@ export class ReferenceService {
   }
 
   public async saveUrl(payload: SaveUrlRequest): Promise<any> {
-    let response;
+    const authToken = await this.fetchAuthToken();
+    const headers = {
+      Authorization: `Bearer ${authToken}`,
+    };
     try {
-      // const authToken = await this.fetchAuthToken();
-      // const headers = {
-      //   Authorization: `Bearer ${authToken}`,
-      // };
-      await binaryApi().post(API_ENDPOINTS.SAVE_URL, { url: payload });
-      response = await this.getSavedUrls();
-      return response.data;
+      const postResponse = await binaryApi().post(API_ENDPOINTS.SAVE_URL, {
+        url: payload,
+        headers,
+      });
+
+      if (postResponse.status === 200 || postResponse.status === 201) {
+        const response = await this.getSavedUrls();
+        return response.data;
+      } else {
+        throw new Error("Failed to save URL");
+      }
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
     }
   }
+
   public async deleteSavedUrl(id: string): Promise<any> {
-    let response;
     try {
-      // const authToken = await this.fetchAuthToken();
-      // const headers = {
-      //   Authorization: `Bearer ${authToken}`,
-      // };
-      await binaryApi().get(API_ENDPOINTS.DELETE_SAVED_URL, {
-        params: { id },
-        // headers,
-      });
-      response = await this.getSavedUrls();
-      return response.data;
+      const authToken = await this.fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      const deleteResponse = await binaryApi().get(
+        API_ENDPOINTS.DELETE_SAVED_URL,
+        {
+          params: { id },
+          headers,
+        }
+      );
+
+      if (deleteResponse.status === 200 || deleteResponse.status === 204) {
+        const response = await this.getSavedUrls();
+        return response.data;
+      } else {
+        throw new Error("Failed to delete URL");
+      }
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
     }
@@ -90,17 +106,24 @@ export class ReferenceService {
     id: string;
     name: string;
   }): Promise<any> {
-    let response;
     try {
-      // const authToken = await this.fetchAuthToken();
-      // const headers = {
-      //   Authorization: `Bearer ${authToken}`,
-      // };
-      await binaryApi().put(`${API_ENDPOINTS.SAVE_URL}?${payload.id}`, {
-        url: payload,
-      });
-      response = await this.getSavedUrls();
-      return response.data;
+      const authToken = await this.fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+
+      const updateResponse = await binaryApi().put(
+        `${API_ENDPOINTS.SAVE_URL}?id=${payload.id}`,
+        { url: payload },
+        { headers }
+      );
+
+      if (updateResponse.status === 200 || updateResponse.status === 204) {
+        const response = await this.getSavedUrls();
+        return response.data;
+      } else {
+        throw new Error("Failed to update URL");
+      }
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
     }

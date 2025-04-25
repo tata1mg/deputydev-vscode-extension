@@ -16,7 +16,12 @@ import {
 } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
 import { useSafeAutocompleteBackground } from "../../utils/BgColorPatch";
-import { saveUrl, deleteSavedUrl, updateSavedUrl } from "@/commandApi";
+import {
+  saveUrl,
+  deleteSavedUrl,
+  updateSavedUrl,
+  openBrowserPage,
+} from "@/commandApi";
 
 interface AutocompleteMenuProps {
   showAddNewButton?: boolean;
@@ -49,6 +54,8 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null,
   );
+  const [selectedOption, setSelectedOption] =
+    useState<AutocompleteOption | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -72,34 +79,31 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     };
   }, []);
 
-  const handleAction = (
-    e: React.MouseEvent,
-    option: AutocompleteOption,
-    action: string,
-  ) => {
+  const handleAction = (e: React.MouseEvent, action: string) => {
+    console.log(selectedOption);
     e.stopPropagation();
     setOpenDropdownIndex(null);
     switch (action) {
       case "edit":
         setEditMode(true);
-        setName(option.label);
-        option.url && setUrl(option.url);
-        option.id && setId(option.id);
+        selectedOption && setName(selectedOption.label);
+        selectedOption?.url && setUrl(selectedOption.url);
+        selectedOption?.id && setId(selectedOption.id);
         setShowAddNewForm(true);
         break;
       case "reindex":
-        // reindexUrl(option);
-        // Handle regenerate action
+        handleSave(selectedOption?.label, selectedOption?.url);
         break;
       case "open":
-        // Handle open action
+        selectedOption?.url && openBrowserPage(selectedOption.url);
         break;
       case "delete":
-        option.id && deleteSavedUrl(option.id);
+        selectedOption?.id && deleteSavedUrl(selectedOption.id);
         break;
       default:
         break;
     }
+    setSelectedOption(null);
   };
 
   useEffect(() => {
@@ -129,14 +133,21 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     setUrlError(validateUrl(value) ? "" : "Please enter a valid URL");
   };
 
-  const handleSave = () => {
-    if (!name || !url || urlError) return;
+  const handleSave = (customName?: string, customUrl?: string) => {
+    const finalName = customName ?? name;
+    const finalUrl = customUrl ?? url;
+
+    console.log("handleSave", { finalName, finalUrl, editMode });
+    if (!finalName || !finalUrl || urlError) return;
+
     if (editMode) {
-      updateSavedUrl({ id, name });
+      updateSavedUrl({ id, name: finalName });
     } else {
-      const payload: SaveUrlRequest = { name, url };
+      const payload: SaveUrlRequest = { name: finalName, url: finalUrl };
+      console.log("payload", payload);
       saveUrl(payload);
     }
+
     setName("");
     setUrl("");
     setUrlError("");
@@ -144,8 +155,13 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     setEditMode(false);
   };
 
-  const handleMoreClick = (e: React.MouseEvent, index: number) => {
+  const handleMoreClick = (
+    e: React.MouseEvent,
+    option: AutocompleteOption,
+    index: number,
+  ) => {
     e.stopPropagation();
+    setSelectedOption(option);
     const button = e.currentTarget;
     const buttonRect = button.getBoundingClientRect();
     const dropdownHeight = 160;
@@ -161,6 +177,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     setOpenDropdownIndex(index);
     setDropdownPosition({ top, left });
   };
+  console.log("options lappa", options);
 
   return (
     <div
@@ -237,7 +254,9 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             </button>
             <button
               className="rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-              onClick={handleSave}
+              onClick={() => {
+                handleSave();
+              }}
               disabled={!name || !url || !!urlError}
             >
               Save
@@ -286,7 +305,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   className="relative ml-auto"
                 >
                   <button
-                    onClick={(e) => handleMoreClick(e, index)}
+                    onClick={(e) => handleMoreClick(e, option, index)}
                     className="text-muted-foreground p-1 hover:text-white"
                   >
                     <MoreVertical size={16} />
@@ -301,25 +320,25 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                     >
                       <ul>
                         <li
-                          onClick={(e) => handleAction(e, option, "edit")}
+                          onClick={(e) => handleAction(e, "edit")}
                           className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                         >
                           <Pencil size={16} /> Edit
                         </li>
                         <li
-                          onClick={(e) => handleAction(e, option, "reindex")}
+                          onClick={(e) => handleAction(e, "reindex")}
                           className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                         >
                           <RefreshCw size={16} /> Re-Index
                         </li>
                         <li
-                          onClick={(e) => handleAction(e, option, "open")}
+                          onClick={(e) => handleAction(e, "open")}
                           className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                         >
                           <ExternalLink size={16} /> Open Page
                         </li>
                         <li
-                          onClick={(e) => handleAction(e, option, "delete")}
+                          onClick={(e) => handleAction(e, "delete")}
                           className="flex cursor-pointer items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700"
                         >
                           <Trash2 size={16} /> Delete
