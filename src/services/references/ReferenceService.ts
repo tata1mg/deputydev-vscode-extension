@@ -61,7 +61,7 @@ export class ReferenceService {
       // const headers = {
       //   Authorization: `Bearer ${authToken}`,
       // };
-      await binaryApi().post(API_ENDPOINTS.SAVE_URL, payload);
+      await binaryApi().post(API_ENDPOINTS.SAVE_URL, { url: payload });
       response = await this.getSavedUrls();
       return response.data;
     } catch (error) {
@@ -96,7 +96,9 @@ export class ReferenceService {
       // const headers = {
       //   Authorization: `Bearer ${authToken}`,
       // };
-      await binaryApi().put(`${API_ENDPOINTS.SAVE_URL}?${payload.id}`, payload);
+      await binaryApi().put(`${API_ENDPOINTS.SAVE_URL}?${payload.id}`, {
+        url: payload,
+      });
       response = await this.getSavedUrls();
       return response.data;
     } catch (error) {
