@@ -17,6 +17,7 @@ import {
   keywordTypeSearch,
   logToOutput,
   getSavedUrls,
+  urlSearch,
 } from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -240,6 +241,11 @@ export function ChatUI() {
         keywordTypeSearch({
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
+        });
+      } else if (valueArr[0].toLowerCase() === "url") {
+        setShowAutocomplete(true);
+        urlSearch({
+          keyword: valueArr[1].trim(),
         });
       } else {
         setShowAutocomplete(true);
