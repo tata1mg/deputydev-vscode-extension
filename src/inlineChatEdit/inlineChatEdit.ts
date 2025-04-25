@@ -4,6 +4,7 @@ import { ChatManager } from "../chat/ChatManager";
 import { InlineEditService } from "../services/inlineEdit/inlineEditService";
 import { getActiveRepo } from "../utilities/contextManager";
 import * as path from "node:path";
+import * as fs from "fs";
 import { SidebarProvider } from "../panels/SidebarProvider";
 import { Logger } from "../utilities/Logger";
 import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
@@ -12,8 +13,7 @@ import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { SearchTerm } from "../types";
 import { AuthService } from "../services/auth/AuthService";
-import { UsageTrackingRequest } from "../types";
-import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
+
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
@@ -35,6 +35,20 @@ interface RelevantChunksPayload {
   query: string;
   focus_files?: string[];
 }
+
+
+// Returns true if the file is read-only
+function isReadOnly(filePath: string): boolean {
+  try {
+    const stats = fs.statSync(filePath);
+    // Check if file is readable (4), writable (2) for owner, group, others
+    // 0o222 is octal for write bits (owner, group, others)
+    return (stats.mode & 0o222) === 0;
+  } catch (err) {
+    return true; // if can't stat, assume read-only
+  }
+}
+
 
 export class InlineChatEditManager {
   private inlineEditService = new InlineEditService();
@@ -65,34 +79,26 @@ export class InlineChatEditManager {
   }
 
   public async inlineChatEditQuickFixes() {
-    // Register the CodeLensProvider for any language
+    // Register the CodeActionsProvider for any language
     this.context.subscriptions.push(
       vscode.languages.registerCodeActionsProvider(
         { scheme: "file", language: "*" },
         {
-          provideCodeActions(
+          provideCodeActions: (
             document: vscode.TextDocument,
-            range: vscode.Range,
-            context: vscode.CodeActionContext,
-            token: vscode.CancellationToken
-          ): vscode.ProviderResult<vscode.CodeAction[]> {
+            _range: vscode.Range,
+            _context: vscode.CodeActionContext,
+            _token: vscode.CancellationToken
+          ): vscode.ProviderResult<vscode.CodeAction[]> => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) return [];
+          
+            const selection = editor.selection;
+            if (selection.isEmpty) return [];
+          
+            const selectedText = document.getText(selection);
             const codeActions: vscode.CodeAction[] = [];
-            const selection = vscode.window.activeTextEditor?.selection;
-
-            if (!selection) {
-              return;
-            }
-
-            const actionEdit = new vscode.CodeAction(
-              "Modify using DeputyDev ⌘ I",
-              vscode.CodeActionKind.QuickFix
-            );
-            actionEdit.command = {
-              command: "deputydev.editThisCode",
-              title: "Modify",
-            };
-            codeActions.push(actionEdit);
-
+          
             const actionChat = new vscode.CodeAction(
               "Chat using DeputyDev ⌘ L",
               vscode.CodeActionKind.QuickFix
@@ -102,9 +108,26 @@ export class InlineChatEditManager {
               title: "Chat",
             };
             codeActions.push(actionChat);
-
+          
+            const isNonWhitespace = /\S/.test(selectedText);
+            const isFile = document.uri.scheme === "file";
+            const readOnly = isFile && isReadOnly(document.uri.fsPath);
+          
+            if (isNonWhitespace && (!isFile || !readOnly)) {
+              const actionEdit = new vscode.CodeAction(
+                "Modify using DeputyDev ⌘ I",
+                vscode.CodeActionKind.QuickFix
+              );
+              actionEdit.command = {
+                command: "deputydev.editThisCode",
+                title: "Modify",
+              };
+              codeActions.push(actionEdit);
+            }
+          
             return codeActions;
-          },
+          }
+                 
         }
       )
     );
@@ -222,9 +245,12 @@ export class InlineChatEditManager {
         this.endLineOfSelectedText = selection.end.line; // End line number
 
         // Create a range using the start and end positions
+        // Clamp to 0 so we don't go out of bounds at top of file
+        const commentLine = Math.max(this.startLineOfSelectedText - 1, 0);
+        // Use a zero-length range (same start and end) to anchor comment box
         this.range = new vscode.Range(
-          new vscode.Position(this.startLineOfSelectedText, 0),
-          new vscode.Position(this.endLineOfSelectedText, 0)
+          new vscode.Position(commentLine, 0),
+          new vscode.Position(commentLine, 0)
         );
 
         // outputChannel.info(`Start Line: ${startLineOfSelectedText}, End Line: ${endLineOfSelectedText}`);

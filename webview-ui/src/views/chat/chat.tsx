@@ -12,7 +12,7 @@ import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import RepoSelector from "./chatElements/RepoSelector";
 import { ChatArea } from "./chatMessagesArea";
-import { keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
+import { editTerminalCommand, keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from "@/types";
@@ -419,7 +419,7 @@ export function ChatUI() {
 
           {messages.length === 0 && !showAutocomplete &&
             <div className="px-4">
-              <p className="mb-2 mt-4 text-center text-xs text-gray-500">
+              <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                 DeputyDev is powered by AI. It can make mistakes. Please double
                 check all output.
               </p>

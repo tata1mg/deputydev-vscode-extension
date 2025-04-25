@@ -106,7 +106,8 @@ export interface ChatAssistantMessage {
 
 
 export interface TerminalPanelProps {
-  content: string;
+  tool_id : string;
+  terminal_command: string;
   terminal_output?: string;
   status?: string;
   terminal_approval_required?: boolean;

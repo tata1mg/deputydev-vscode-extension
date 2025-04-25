@@ -40,7 +40,7 @@ interface ThinkingChipProps {
 /**
  * Status Icon Component - Prevents duplication of status icon logic.
  */
-const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
+export const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
   switch (status) {
     case "pending":
       return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
