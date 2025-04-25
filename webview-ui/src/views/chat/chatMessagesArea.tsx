@@ -160,7 +160,7 @@ export function ChatArea() {
                       (msg.content.input_params_json as string) || ""
                     }
                     status={msg.content.status}
-                    terminal_approval_required={
+                    show_approval_options={
                       msg.content.terminal_approval_required
                     }
                   />

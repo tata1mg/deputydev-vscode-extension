@@ -7,14 +7,33 @@ import { parse, Allow } from "partial-json";
 import { TerminalPanelProps } from "@/types";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { TerminalIcon, LoaderCircle } from "lucide-react";
+import { useChatStore } from "@/stores/chatStore";
+
+function updateTerminalApproval(tool_use_id: string , status: boolean) {
+  const { history } = useChatStore();
+
+  const updatedHistory = history.map((msg) => {
+      if (msg.type === "TOOL_USE_REQUEST" && msg.content.tool_use_id === tool_use_id) {
+        return {
+          ...msg,
+          content: {
+            ...msg.content,
+            terminal_approval_required: status,
+          },
+        };
+      }
+      return msg;
+    });
+    useChatStore.setState({ history: updatedHistory});
+
+}
 
 export function TerminalPanel({
   tool_id,
   terminal_command,
   status,
-  terminal_approval_required,
+  show_approval_options,
 }: TerminalPanelProps) {
-  const [executed, setExecuted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editInput, setEditInput] = useState("");
@@ -64,7 +83,7 @@ export function TerminalPanel({
 
   const handleExecute = () => {
     acceptTerminalCommand(tool_id);
-    setExecuted(true);
+    updateTerminalApproval(tool_id, false);
   };
 
   const handleEditOpen = () => {
@@ -121,7 +140,7 @@ export function TerminalPanel({
       </div>
 
       {/* only show these when not editing */}
-      {terminal_approval_required && !executed && !editOpen && (
+      {show_approval_options && !editOpen && (
         <>
           <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
             This command requires your approval before it can be executed.
@@ -144,8 +163,7 @@ export function TerminalPanel({
         </>
       )}
 
-      {(terminal_approval_required === false ||
-        (terminal_approval_required && executed)) && (
+      {(show_approval_options === false) && (
         <div className="flex items-center gap-2 px-2 py-2 text-xs">
           <strong>Status:</strong>
           {status === "pending" ? (

@@ -110,7 +110,7 @@ export interface TerminalPanelProps {
   terminal_command: string;
   terminal_output?: string;
   status?: string;
-  terminal_approval_required?: boolean;
+  show_approval_options?: boolean;
 }
 
 export interface ChatToolUseMessage {
