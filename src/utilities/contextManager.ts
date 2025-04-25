@@ -40,6 +40,17 @@ export function setSessionId(value: number) {
   return
 }
 
+export function getQueryId(): number | undefined {
+  const queryId = extensionContext?.workspaceState.get<number>('queryId');
+  return queryId
+}
+
+export function setQueryId(value: number) {
+  logOutputChannel?.info(`Setting query ID received for update: ${value}`);
+  extensionContext?.workspaceState.update('queryId', value);
+  return
+}
+
 
 export function sendProgress(progressBarData: {repo: string, progress: number, status: string }) {
   sidebarProvider?.sendMessageToSidebar({
