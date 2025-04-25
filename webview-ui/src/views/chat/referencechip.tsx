@@ -6,6 +6,7 @@ import {
   logToOutput,
   openFile,
   urlSearch,
+  openBrowserPage,
 } from "@/commandApi";
 import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
 import { Chunk } from "@/types";
@@ -135,7 +136,7 @@ export default function ReferenceChip({
 
   const handleDisplayClick = () => {
     if (displayOnly) {
-      openFile(path ? path : "");
+      url ? openBrowserPage(url) : openFile(path ? path : "");
     }
   };
 
