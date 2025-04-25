@@ -13,7 +13,7 @@ import {
   ProgressBarData,
   ThemeKind,
 } from "@/types";
-import { logToOutput, getSessions } from "./commandApi";
+import { logToOutput } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
@@ -217,8 +217,8 @@ addCommandEventListener("set-view-type", ({ data }) => {
   if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
-    useSessionsStore.setState({loadingPinnedSessions: true});
-    useSessionsStore.setState({loadingUnpinnedSessions: true});
+    useSessionsStore.setState({ loadingPinnedSessions: true });
+    useSessionsStore.setState({ loadingUnpinnedSessions: true });
   }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
@@ -254,7 +254,7 @@ addCommandEventListener("sessions-history", ({ data }: any) => {
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
   if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
-    useSessionsStore.setState({loadingUnpinnedSessions: false});
+    useSessionsStore.setState({ loadingUnpinnedSessions: false });
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
@@ -263,10 +263,10 @@ addCommandEventListener("sessions-history", ({ data }: any) => {
 });
 
 addCommandEventListener("pinned-sessions", ({ data }: any) => {
-  useSessionsStore.setState({ noPinnedSessions: data.length === 0});
+  useSessionsStore.setState({ noPinnedSessions: data.length === 0 });
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
-    useSessionsStore.setState({loadingPinnedSessions: false})
+    useSessionsStore.setState({ loadingPinnedSessions: false })
     // Append new sessions to the existing ones
     useSessionsStore.setState({
       pinnedSessions: data as Session[],
@@ -290,20 +290,8 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
   );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
-    // console.error("Invalid data format for 'keyword-search-response'", data);
     return;
   }
-
-  // const editorReference: ChatReferenceFileItem[] = (
-  //   data as SearchResponseItem[]
-  // ).map((item) => ({
-  //   id: item.value,
-  //   type: "file",
-  //   name: item.path.split("/").pop() || item.path,
-  //   fsPath: item.path,
-  // }));
-
-  // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
 addCommandEventListener("keyword-type-search-response", ({ data }) => {
@@ -322,10 +310,6 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
   );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
-    // console.error(
-    //   "Invalid data format for 'keyword-type-search-response'",
-    //   data
-    // );
     return;
   }
 });
@@ -403,58 +387,3 @@ addCommandEventListener("theme-change", ({ data }) => {
 addCommandEventListener("send-client-version", ({ data }) => {
   useExtensionStore.setState({ clientVersion: data as string });
 });
-// addCommandEventListener('current-editor-changed', ({ data }) => {
-//   const item = data as ChatReferenceFileItem;
-//   useChatStore.setState({ currentEditorReference: item });
-// });
-
-// addCommandEventListener('server-started', async ({ data }) => {
-//   console.debug('server-started', data);
-//   useExtensionStore.setState({
-//     isStarted: true,
-//     serverUrl: data as string,
-//   });
-// });
-
-// addCommandEventListener('generate-code', ({ data }) => {
-//   console.debug('generate-code', data);
-//   useChatStore.setState({
-//     generateCodeSnippet: data as ChatReferenceSnippetItem,
-//   });
-// });
-
-// addCommandEventListener('insert-into-chat', ({ data }) => {
-//   console.debug('insert-into-chat', data);
-//   if (data) {
-//     useChatStore.setState((state) => ({
-//       ...state,
-//       chatReferenceList: [
-//         ...state.chatReferenceList,
-//         data as ChatReferenceSnippetItem,
-//       ],
-//     }));
-//   }
-//   useExtensionStore.setState({ viewType: 'chat' });
-// });
-
-// addCommandEventListener('diff-view-change', (params) => {
-//   const data = params.data as DiffViewChange;
-//   console.debug('diff-view-change', data);
-//   useChatStore.setState((state) => {
-//     const isExist = state.currentEditFiles.some(
-//       (file) => file.path === data.path,
-//     );
-//     if (isExist) {
-//       return {
-//         ...state,
-//         currentEditFiles: state.currentEditFiles.map((item) =>
-//           item.path === data.path ? data : item,
-//         ),
-//       };
-//     }
-//     return {
-//       ...state,
-//       currentEditFiles: [...state.currentEditFiles, data],
-//     };
-//   });
-// });

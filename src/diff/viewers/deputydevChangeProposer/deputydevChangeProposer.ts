@@ -41,15 +41,16 @@ export class DeputydevChangeProposer {
    * Open a diff view for a file: calculates line-based diffs and highlights them inline.
    */
   async openDiffView(
-    uri: string
+    filePath: string,
+    repoPath: string,
   ): Promise<void> {
     try {
       vscode.commands.executeCommand("setContext", "deputydev.changeProposer.hasChanges", false);
-      this.outputChannel.info(`opening diff view for: ${uri}`);
+      this.outputChannel.info(`opening diff view for: ${filePath}`);
 
-      const fileChangeState = this.fileChangeStateManager.getFileChangeState(uri);
+      const fileChangeState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
       if (!fileChangeState) {
-        throw new Error(`File change state not found for ${uri}`);
+        throw new Error(`File change state not found for ${filePath}`);
       }
 
       // show the diff view
@@ -66,7 +67,7 @@ export class DeputydevChangeProposer {
       const displayableUdiffUri = vscode.Uri.from({
         scheme: 'deputydev-custom',
         query: Buffer.from(displayableUdiff).toString('base64'),
-        path: `${uri}.ddproposed`
+        path: `${filePath}.ddproposed`
       });
 
       await vscode.commands.executeCommand(

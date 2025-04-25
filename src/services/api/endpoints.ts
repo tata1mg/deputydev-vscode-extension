@@ -15,7 +15,7 @@ export const API_ENDPOINTS = {
     DELETE_SESSION: "/end_user/v1/history/delete-session",
     GENERATE_INLINE_EDIT: "/end_user/v2/code-gen/generate-inline-edit",
     GET_INLINE_EDIT_RESULT: "/end_user/v1/code-gen/get-job-status",
-    DIFF_APPLIER : "/v1/diff-applicator/apply-unified-diff",
+    DIFF_APPLIER : "/v1/diff-applicator/apply-diff",
     BATCH_CHUNKS_SEARCH : "/v1/batch_chunks_search",
     RELEVANT_CHAT_HISTORY: "/end_user/v1/history/relevant-chat-history",
     INIT_BINARY: "/v1/init",

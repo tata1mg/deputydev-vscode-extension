@@ -8,9 +8,9 @@ import { AuthService } from "../services/auth/AuthService";
 
 export class DiffManager {
   private changeStateStorePath: string;
-  private vscodeContext: vscode.ExtensionContext;
-  private outputChannel: vscode.LogOutputChannel;
-  private authService: AuthService;
+  private readonly vscodeContext: vscode.ExtensionContext;
+  private readonly outputChannel: vscode.LogOutputChannel;
+  private readonly authService: AuthService;
 
   private deputydevChangeProposer: DeputydevChangeProposer | undefined;
   private fileChangeStateManager: FileChangeStateManager | undefined;
@@ -21,70 +21,74 @@ export class DiffManager {
     this.outputChannel = outputChannel;
     this.authService = authService;
 
-      
-      this.vscodeContext.subscriptions.push(
-        vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
-          const editor = vscode.window.activeTextEditor;
-          if (!editor) {
-            vscode.window.showErrorMessage(
-              "No active editor to accept changes for."
-            );
-            return;
-          }
-          const fileUri = editor.document.uri;
-          outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
-          await this.acceptFile(fileUri.fsPath);
-          vscode.window.showInformationMessage("Changes accepted successfully.");
-        })
-      );
-    
-      // Reject changes in the active file
-      this.vscodeContext.subscriptions.push(
-        vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
-          const editor = vscode.window.activeTextEditor;
-          if (!editor) {
-            vscode.window.showErrorMessage(
-              "No active editor to reject changes for."
-            );
-            return;
-          }
-          const fileUri = editor.document.uri;
-          outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
-          await this.rejectFile(fileUri.fsPath);
-          vscode.window.showInformationMessage("Changes rejected successfully.");
-        })
-      );
-    
-      // If you want commands for accepting or rejecting ALL tracked files:
-      this.vscodeContext.subscriptions.push(
-        vscode.commands.registerCommand("deputydev.acceptAllChanges", async () => {
-          outputChannel.info(`Accepting changes for all file`);
-          await this.acceptAllFiles();
-          vscode.window.showInformationMessage("All changes accepted.");
-        })
-      );
-      this.vscodeContext.subscriptions.push(
-        vscode.commands.registerCommand("deputydev.rejectAllChanges", async () => {
-          await this.rejectAllFiles();
-          vscode.window.showInformationMessage("All changes rejected.");
-        })
-      );
 
-        // Command to open a diff view for any file path + new content
-        this.vscodeContext.subscriptions.push(
-          vscode.commands.registerCommand(
-            "deputydev.openDiffView",
-            async (path: string, content: string) => {
-              try {
-                await this.openDiffView(path);
-                vscode.window.showInformationMessage(`Diff view opened for ${path}`);
-              } catch (error) {
-                outputChannel.error(`Failed to open diff view: ${error}`);
-                vscode.window.showErrorMessage("Failed to open diff view.");
-              }
-            }
-          )
-        );
+    this.vscodeContext.subscriptions.push(
+      vscode.commands.registerCommand("deputydev.acceptChanges", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showErrorMessage(
+            "No active editor to accept changes for."
+          );
+          return;
+        }
+        const fileUri = editor.document.uri;
+        outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
+        await this.acceptFile(fileUri.fsPath);
+        vscode.window.showInformationMessage("Changes accepted successfully.");
+      })
+    );
+
+    // Reject changes in the active file
+    this.vscodeContext.subscriptions.push(
+      vscode.commands.registerCommand("deputydev.rejectChanges", async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+          vscode.window.showErrorMessage(
+            "No active editor to reject changes for."
+          );
+          return;
+        }
+        const fileUri = editor.document.uri;
+        outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
+        await this.rejectFile(fileUri.fsPath);
+        vscode.window.showInformationMessage("Changes rejected successfully.");
+      })
+    );
+
+    // If you want commands for accepting or rejecting ALL tracked files:
+    this.vscodeContext.subscriptions.push(
+      vscode.commands.registerCommand("deputydev.acceptAllChanges", async () => {
+        outputChannel.info(`Accepting changes for all file`);
+        await this.acceptAllFiles();
+        vscode.window.showInformationMessage("All changes accepted.");
+      })
+    );
+    this.vscodeContext.subscriptions.push(
+      vscode.commands.registerCommand("deputydev.rejectAllChanges", async () => {
+        await this.rejectAllFiles();
+        vscode.window.showInformationMessage("All changes rejected.");
+      })
+    );
+
+    // Command to open a diff view for any file path + new content
+    this.vscodeContext.subscriptions.push(
+      vscode.commands.registerCommand(
+        "deputydev.openDiffView",
+        async (path: string, content: string) => {
+          try {
+            await this.applyDiff(
+              { path, incrementalUdiff: content },
+              path,
+              true
+            );
+            vscode.window.showInformationMessage(`Diff view opened for ${path}`);
+          } catch (error) {
+            outputChannel.error(`Failed to open diff view: ${error}`);
+            vscode.window.showErrorMessage("Failed to open diff view.");
+          }
+        }
+      )
+    );
   }
 
   // initialize the diff manager
@@ -111,57 +115,88 @@ export class DiffManager {
     }
   }
 
-  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string, openViewer: boolean): Promise<boolean> => {
+  private getOriginalAndModifiedContentAfterApplyingDiff = async (data: { path: string, incrementalUdiff: string }, repoPath: string): Promise<{
+    originalContent: string;
+    newContent: string;
+  }> => {
     this.checkInit();
     // first get the current content of the file to apply the diff on
     const originalContent = await (this.fileChangeStateManager as FileChangeStateManager).getOriginalContentToShowDiffOn(
-      data.path
+      data.path,
+      repoPath
     );
-
     // then apply the diff to the original content
-    let newContent;
+    let newContent = originalContent;
     try {
       const authToken = await this.authService.loadAuthToken();
       const headers = {
         "Authorization": `Bearer ${authToken}`
       }
       const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, {
-        repo_path: repoPath,
-        file_path_to_diff_map: {
-          [data.path]: data.incrementalUdiff,
-        },
+        diff_application_requests: [{
+          file_path: data.path,
+          repo_path: repoPath,
+          current_content: originalContent,
+          diff_data: {type: "UDIFF", incremental_udiff: data.incrementalUdiff}
+        }]
       }, { headers });
       if (response.status !== 200) {
         throw new Error(`Error applying diff: ${response.statusText}`);
       }
-      newContent = response.data.file_path_to_diff_map[data.path];
+      this.outputChannel.debug(`Diff apply call result from binary: ${JSON.stringify(response.data)}`);
+      newContent = response.data["diff_application_results"][0]["new_content"];
     } catch (error) {
       this.outputChannel.error(`Error applying diff: ${error}`);
-      return false;
     }
+
+    // return the new content
+    return {
+      originalContent,
+      newContent
+    }
+  }
+
+  public checkIsDiffApplicable = async (data: { path: string; incrementalUdiff: string }, repoPath: string): Promise<boolean> => {
+    this.outputChannel.debug(`Checking if diff is applicable for ${data.path} with repo path ${repoPath} and diff ${data.incrementalUdiff}`);
+
+    // get original and modified content after applying diff
+    const { originalContent, newContent: modifiedContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
+    this.outputChannel.debug(`Original content: ${originalContent}`);
+    this.outputChannel.debug(`Modified content: ${modifiedContent}`);
+
+    // return true if the original content is different from the modified content
+    return originalContent !== modifiedContent;
+  }
+
+  public openDiffView = async (filePath: string, repoPath: string) => {
+    if (!this.deputydevChangeProposer) {
+      throw new Error("DiffManager not initialized");
+    }
+    await this.deputydevChangeProposer.openDiffView(filePath, repoPath);
+  }
+
+  public applyDiff = async (data: { path: string; incrementalUdiff: string }, repoPath: string, openViewer: boolean): Promise<boolean> => {
+    this.checkInit();
+    // first get the original and modified content after applying diff
+    const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
 
     // update the fileChangeStateMap with the original and modified content from the udiff
     await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMap(
       data.path,
+      repoPath,
       newContent,
+      data.path,
       originalContent
     );
 
     if (openViewer) {
       // open the diff view
-      await this.openDiffView(data.path);
+      await this.openDiffView(data.path, repoPath);
     }
 
     return true;
   }
 
-
-  public openDiffView = async (uri: string) => {
-    if (!this.deputydevChangeProposer) {
-      throw new Error("DiffManager not initialized");
-    }
-    await this.deputydevChangeProposer.openDiffView(uri);
-  }
   public acceptAllFiles = async () => { }
   public rejectAllFiles = async () => { }
   public acceptFile = async (path: string) => { }
