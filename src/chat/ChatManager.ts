@@ -10,6 +10,7 @@ import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
 import {
   getActiveRepo,
   getSessionId,
+  setQueryId,
   setSessionId,
 } from "../utilities/contextManager";
 import { HistoryService } from "../services/history/HistoryService";
@@ -265,6 +266,8 @@ export class ChatManager {
         switch (event.type) {
           case "RESPONSE_METADATA":
             if (event.content?.session_id) { // Set session ID if not already set
+              setQueryId(event.content.query_id);
+              this.outputChannel.info(`Query ID set: ${event.content.query_id}`);
               setSessionId(event.content.session_id);
               this.outputChannel.info(`Session ID set: ${event.content.session_id}`);
             }

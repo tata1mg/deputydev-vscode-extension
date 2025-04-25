@@ -27,4 +27,5 @@ export const API_ENDPOINTS = {
     SHUTDOWN : "/v1/shutdown",
     ITERATIVELY_READ_FILE: "/v1/iteratively-read-file",
     GREP_SEARCH: "/v1/grep-search",
+    SUBMIT_FEEDBACK: "/end_user/v1/feedbacks/submit"
 }
