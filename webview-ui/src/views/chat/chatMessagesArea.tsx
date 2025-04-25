@@ -224,8 +224,8 @@ export function ChatArea() {
                   />
                   <ThumbsDown
                     className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
-                      ? "text-green-500 fill-green-500"
-                      : "hover:text-green-500 hover:fill-green-500"
+                      ? "text-red-500 fill-red-500"
+                      : "hover:text-red-500 hover:fill-red-500"
                       }`}
                     onClick={() => {
                       const currentFeedback = feedbackState.get(index);
