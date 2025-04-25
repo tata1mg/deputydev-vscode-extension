@@ -139,13 +139,7 @@ export class ReferenceService {
         `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}&limit=5`,
         { headers }
       );
-
-      if (searchResponse.status === 200 || searchResponse.status === 204) {
-        const response = await this.getSavedUrls();
-        return response.data;
-      } else {
-        throw new Error("Failed to update URL");
-      }
+      return searchResponse.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
     }
