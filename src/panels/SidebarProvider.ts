@@ -23,6 +23,7 @@ import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
+import { FeedbackService } from "../services/feedback/feedbackService";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -44,7 +45,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private codeReferenceService: ReferenceManager,
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
-    private trackingManager: UsageTrackingManager
+    private trackingManager: UsageTrackingManager,
+    private feedbackService: FeedbackService
   ) {}
 
   public resolveWebviewView(
@@ -161,6 +163,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "open-requested-browser-page":
           promise = this.openBrowserPage(data);
+          break;
+
+        // Feedback
+        case "submit-feedback":
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
           break;
 
         // Logging and Messages
@@ -740,6 +747,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       });
     });
   }
+
 
   newChat() {
     this.sendMessageToSidebar({
