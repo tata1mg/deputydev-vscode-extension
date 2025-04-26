@@ -299,7 +299,6 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                       "var(--vscode-widget-shadow) 0px 1px 4px";
                   }}
                   placeholder="http://example.com"
-                  maxLength={50}
                 />
 
                 {urlError && (
