@@ -206,7 +206,7 @@ const getLocaleTimeString = (dateString: string) => {
   const datePart = date.toLocaleDateString(locale, dateOptions);
   const timePart = date.toLocaleTimeString(locale, timeOptions);
 
-  return `${datePart}, ${timePart}`;
+  return `${datePart}, ${timePart.toUpperCase()}`;
 };
 
 export function removeCommandEventListener(
@@ -360,7 +360,7 @@ addCommandEventListener("get-saved-urls-response", ({ data }) => {
       icon: "url",
       label: item.name,
       value: item.name,
-      description: `Indexed ${getLocaleTimeString(item.last_indexed)}`,
+      description: `Indexed on ${getLocaleTimeString(item.last_indexed)}`,
       chunks: item.chunks ? item.chunks : null,
     };
   });

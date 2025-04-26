@@ -202,14 +202,14 @@ export function ChatUI() {
         setShowAutocomplete(false);
       }
 
-      if (userInput.endsWith("@") && !isEntireTextSelected) {
+      else if (userInput.endsWith("@") && !isEntireTextSelected) {
         e.preventDefault();
         setShowAutocomplete(false);
         setChipEditMode(false);
         setUserInput(userInput.slice(0, -1));
       }
 
-      if (userInput === "" && !isEntireTextSelected) {
+      else if (userInput === "" && !isEntireTextSelected) {
         backspaceCountRef.current += 1;
         if (backspaceCountRef.current === 2) {
           const allChips = [...useChatStore.getState().currentEditorReference];
@@ -226,6 +226,10 @@ export function ChatUI() {
         }
         setTimeout(() => (backspaceCountRef.current = 0), 300);
       }
+      else {
+        setUserInput(userInput.slice(0, -1));
+      }
+
     }
   };
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

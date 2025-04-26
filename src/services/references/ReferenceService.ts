@@ -43,7 +43,7 @@ export class ReferenceService {
       };
       response = await binaryApi().get(API_ENDPOINTS.GET_SAVED_URLS, {
         params: {
-          limit: 5,
+          limit: 4,
           offset: 0,
         },
         headers,
