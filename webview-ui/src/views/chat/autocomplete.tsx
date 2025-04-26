@@ -13,7 +13,6 @@ import {
   ExternalLink,
   Trash2,
   MoreVertical,
-  XCircle,
 } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
 import { useSafeAutocompleteBackground } from "../../utils/BgColorPatch";
@@ -385,7 +384,10 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   {iconMap[option.icon as keyof typeof iconMap]}
                 </div>
                 <div className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
+                  <span
+                    className="block truncate text-sm font-medium"
+                    title={option.label}
+                  >
                     {option.label}
                   </span>
                   <p className="block truncate text-xs opacity-70">
