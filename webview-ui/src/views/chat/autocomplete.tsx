@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Trash2,
   MoreVertical,
+  XCircle,
 } from "lucide-react";
 import { useChatStore } from "@/stores/chatStore";
 import { useSafeAutocompleteBackground } from "../../utils/BgColorPatch";
@@ -47,6 +48,9 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   const listRef = useRef<HTMLUListElement>(null);
   const [showAddNewForm, setShowAddNewForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<
+    string | null
+  >(null);
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [id, setId] = useState("");
@@ -81,7 +85,6 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
 
   const handleAction = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
-    setOpenDropdownIndex(null);
     switch (action) {
       case "edit":
         setEditMode(true);
@@ -89,20 +92,31 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
         selectedOption?.url && setUrl(selectedOption.url);
         selectedOption?.id && setId(selectedOption.id);
         setShowAddNewForm(true);
+        setSelectedOption(null);
+        setOpenDropdownIndex(null);
         break;
       case "reindex":
         handleSave(selectedOption?.label, selectedOption?.url);
+        setSelectedOption(null);
+        setOpenDropdownIndex(null);
         break;
       case "open":
         selectedOption?.url && openBrowserPage(selectedOption.url);
+        setSelectedOption(null);
+        setOpenDropdownIndex(null);
         break;
       case "delete":
+        selectedOption?.id && setConfirmingDeleteIndex(selectedOption.id);
+        break;
+      case "confirm-delete":
         selectedOption?.id && deleteSavedUrl(selectedOption.id);
+        setConfirmingDeleteIndex(null);
+        setSelectedOption(null);
+        setOpenDropdownIndex(null);
         break;
       default:
         break;
     }
-    setSelectedOption(null);
   };
 
   useEffect(() => {
@@ -183,61 +197,142 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       style={{ backgroundColor: safeBg }}
     >
       {showAddNewForm ? (
-        <div className="flex flex-col space-y-4 p-4">
+        <div
+          className="flex flex-col space-y-4 p-4"
+          style={{ fontFamily: "var(--vscode-font-family)" }}
+        >
           <div className="flex items-center justify-between">
             <button
-              className="flex items-center gap-1 text-sm text-blue-500 hover:underline"
+              className="flex items-center text-sm transition-all hover:text-[var(--vscode-textLink-activeForeground)]"
               onClick={() => {
                 setShowAddNewForm(false);
                 setEditMode(false);
               }}
             >
-              <ArrowLeft className="h-4 w-4" />
-              Back
+              <ArrowLeft className="mr-2 h-4 w-4 transition-transform hover:-translate-x-0.5" />
+              <span className="hover:underline">Back to list</span>
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white">
+              <label
+                className="mb-1 block text-sm font-medium"
+                style={{ color: "var(--vscode-foreground)" }}
+              >
                 Name
+                <span className="ml-1 text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-600 bg-[#1e1e1e] p-2 text-white placeholder-gray-400 focus:outline-none"
-                placeholder="Enter name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-white">
-                URL
-              </label>
-              <input
-                type="text"
-                value={url}
-                onChange={handleUrlChange}
-                className={`mt-1 w-full rounded-md border ${
-                  urlError ? "border-red-500" : "border-gray-600"
-                } ${
-                  editMode
-                    ? "cursor-not-allowed bg-[#2a2a2a] text-gray-500 opacity-70"
-                    : "bg-[#1e1e1e] text-white"
-                } p-2 placeholder-gray-400 focus:outline-none`}
-                placeholder="Enter URL"
-                disabled={editMode}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
+                  style={{
+                    background: "var(--vscode-input-background)",
+                    color: "var(--vscode-input-foreground)",
+                    border: "1px solid var(--vscode-input-border)",
+                    boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
+                    transition: "all 0.2s ease", // Smooth transition
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.border =
+                      "1px solid var(--vscode-focusBorder)";
+                    e.target.style.boxShadow =
+                      "var(--vscode-widget-shadow) 0px 2px 6px";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.border =
+                      "1px solid var(--vscode-input-border)";
+                    e.target.style.boxShadow =
+                      "var(--vscode-widget-shadow) 0px 1px 4px";
+                  }}
+                  placeholder="Friendly URL Name"
+                  maxLength={50}
+                />
 
-              {urlError && (
-                <p className="mt-1 text-xs text-red-500">{urlError}</p>
-              )}
+                <div
+                  className="absolute bottom-1.5 right-3 text-xs opacity-70"
+                  style={{ color: "var(--vscode-descriptionForeground)" }}
+                >
+                  {name.length}/50
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label
+                className="mb-1 block text-sm font-medium"
+                style={{ color: "var(--vscode-foreground)" }}
+              >
+                URL
+                <span className="ml-1 text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={url}
+                  onChange={handleUrlChange}
+                  className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
+                  style={{
+                    background: "var(--vscode-input-background)",
+                    color: "var(--vscode-input-foreground)",
+                    border: urlError
+                      ? "1px solid var(--vscode-errorForeground)"
+                      : "1px solid var(--vscode-input-border)",
+                    boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
+                    transition: "all 0.2s ease", // Smooth transition
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.border = urlError
+                      ? "1px solid var(--vscode-errorForeground)"
+                      : "1px solid var(--vscode-focusBorder)";
+                    e.target.style.boxShadow =
+                      "var(--vscode-widget-shadow) 0px 2px 6px";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.border = urlError
+                      ? "1px solid var(--vscode-errorForeground)"
+                      : "1px solid var(--vscode-input-border)";
+                    e.target.style.boxShadow =
+                      "var(--vscode-widget-shadow) 0px 1px 4px";
+                  }}
+                  placeholder="http://example.com"
+                  maxLength={50}
+                />
+
+                {urlError && (
+                  <div className="mt-1">
+                    <p
+                      className="text-[0.75rem] font-medium"
+                      style={{ color: "var(--vscode-errorForeground)" }}
+                    >
+                      {urlError}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 flex justify-end gap-3">
+          <div
+            style={
+              urlError
+                ? {
+                    marginTop: "0px",
+                    paddingTop: "5px",
+                  }
+                : {}
+            }
+            className="mt-3 flex justify-end gap-3 pt-4"
+          >
             <button
-              className="rounded-md px-4 py-2 text-sm text-gray-400 hover:underline"
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+              style={{
+                color: "var(--vscode-button-secondaryForeground)",
+                background: "var(--vscode-button-secondaryBackground)",
+              }}
               onClick={() => {
                 setShowAddNewForm(false);
                 setEditMode(false);
@@ -246,10 +341,15 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                 setUrlError("");
               }}
             >
-              Cancel
+              Discard
             </button>
             <button
-              className="rounded-md bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
+              className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
+              style={{
+                background: "var(--vscode-button-background)",
+                color: "var(--vscode-button-foreground)",
+                boxShadow: "var(--vscode-widget-shadow) 0px 2px 8px -2px",
+              }}
               onClick={() => {
                 handleSave();
               }}
@@ -281,13 +381,15 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                 useChatStore.setState({ selectedOptionIndex: index })
               }
             >
-              <div className="flex gap-3">
-                <div className="rounded-md bg-[#333]/80 p-1">
+              <div className="flex min-w-0 flex-1 gap-3">
+                <div className="rounded-md p-1">
                   {iconMap[option.icon as keyof typeof iconMap]}
                 </div>
-                <div>
-                  <span className="text-sm font-medium">{option.label}</span>
-                  <p className="whitespace-normal break-words text-xs opacity-70">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {option.label}
+                  </span>
+                  <p className="block truncate text-xs opacity-70">
                     {option.description}
                   </p>
                 </div>
@@ -298,7 +400,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   ref={(el) => {
                     dropdownRefs.current[index] = el;
                   }}
-                  className="relative ml-auto"
+                  className="relative ml-auto flex-shrink-0"
                 >
                   <button
                     onClick={(e) => handleMoreClick(e, option, index)}
@@ -314,32 +416,85 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                         left: `${dropdownPosition.left}px`,
                       }}
                     >
-                      <ul>
-                        <li
-                          onClick={(e) => handleAction(e, "edit")}
-                          className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
-                        >
-                          <Pencil size={16} /> Edit
-                        </li>
-                        <li
-                          onClick={(e) => handleAction(e, "reindex")}
-                          className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
-                        >
-                          <RefreshCw size={16} /> Re-Index
-                        </li>
-                        <li
-                          onClick={(e) => handleAction(e, "open")}
-                          className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
-                        >
-                          <ExternalLink size={16} /> Open Page
-                        </li>
-                        <li
-                          onClick={(e) => handleAction(e, "delete")}
-                          className="flex cursor-pointer items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700"
-                        >
-                          <Trash2 size={16} /> Delete
-                        </li>
-                      </ul>
+                      {confirmingDeleteIndex ? (
+                        <div className="space-y-4 p-3">
+                          <p
+                            className="text-sm"
+                            style={{ color: "var(--vscode-editor-foreground)" }}
+                          >
+                            Are you sure you want to delete this reference?
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmingDeleteIndex(null);
+                              }}
+                              className="rounded-md px-2 py-1 text-sm"
+                              style={{
+                                color: "var(--vscode-button-foreground)",
+                                backgroundColor:
+                                  "var(--vscode-button-secondaryBackground)",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "var(--vscode-button-secondaryHoverBackground)";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "var(--vscode-button-secondaryBackground)";
+                              }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={(e) => handleAction(e, "confirm-delete")}
+                              className="rounded-md px-2 py-1 text-sm"
+                              style={{
+                                color: "var(--vscode-button-foreground)",
+                                backgroundColor: "#de8188",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#ed939a";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor =
+                                  "#de8188";
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <ul>
+                          <li
+                            onClick={(e) => handleAction(e, "edit")}
+                            className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
+                          >
+                            <Pencil size={16} /> Edit
+                          </li>
+                          <li
+                            onClick={(e) => handleAction(e, "reindex")}
+                            className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
+                          >
+                            <RefreshCw size={16} /> Re-Index
+                          </li>
+                          <li
+                            onClick={(e) => handleAction(e, "open")}
+                            className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
+                          >
+                            <ExternalLink size={16} /> Open Page
+                          </li>
+                          <li
+                            onClick={(e) => handleAction(e, "delete")}
+                            className="flex cursor-pointer items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700"
+                          >
+                            <Trash2 size={16} /> Delete
+                          </li>
+                        </ul>
+                      )}
                     </div>
                   )}
                 </div>
@@ -354,7 +509,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                 setShowAddNewForm(true);
               }}
             >
-              <div className="rounded-md bg-[#333]/80 p-1">
+              <div className="rounded-md p-1">
                 <Plus className="h-5 w-5 text-green-500" />
               </div>
               <div>
