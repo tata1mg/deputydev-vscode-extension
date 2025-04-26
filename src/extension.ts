@@ -31,6 +31,7 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
+import { FeedbackService } from "./services/feedback/feedbackService";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   const isNotCompatibleCheck = isNotCompatible();
@@ -66,6 +67,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const profileService = new ProfileUiService();
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
+  const feedBackService = new FeedbackService();
 
 
   // 4. Diff View Manager Initialization
@@ -115,7 +117,8 @@ export async function activate(context: vscode.ExtensionContext) {
     referenceService,
     configManager,
     profileService,
-    usageTrackingManager
+    usageTrackingManager,
+    feedBackService
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -326,12 +329,12 @@ export async function activate(context: vscode.ExtensionContext) {
   //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
   //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
   // }),
-  
+
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
       logger.showCurrentProcessLogs();
     })
   );
-  
+
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );

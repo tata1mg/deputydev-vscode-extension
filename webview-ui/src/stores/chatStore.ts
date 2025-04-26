@@ -24,6 +24,7 @@ import {
   ChatErrorMessage,
   ChatCompleteMessage,
   ProgressBarData,
+  ChatMetaData,
 } from "@/types";
 
 // =============================================================================
@@ -93,6 +94,7 @@ export const useChatStore = create(
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
+        feedbackState: new Map(),
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -108,6 +110,7 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
+              feedbackState: new Map(),
             });
           },
 
@@ -194,6 +197,22 @@ export const useChatStore = create(
             try {
               for await (const event of stream) {
                 switch (event.name) {
+                  case "RESPONSE_METADATA": {
+                    set((state) => ({
+                      history: [...state.history,
+                        {
+                          type: "RESPONSE_METADATA",
+                          content: event.data,
+                        } as ChatMetaData,
+                      ],
+                    }));
+
+                    logToOutput(
+                      "info",
+                      `query complete ${JSON.stringify(event.data)}`,
+                    );
+                    break;
+                  }
                   case "TEXT_START": {
                     // Initialize a new current message with the desired structure
                     set((state) => ({
@@ -214,11 +233,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                            ...state.current,
-                            content: {
-                              text: state.current.content.text + textChunk,
-                            },
-                          }
+                          ...state.current,
+                          content: {
+                            text: state.current.content.text + textChunk,
+                          },
+                        }
                         : state.current,
                     }));
 
@@ -492,13 +511,13 @@ export const useChatStore = create(
                       set((state) => ({
                         current: state.current
                           ? {
-                              ...state.current,
-                              content: {
-                                text: (state.current.content.text + delta)
-                                  .replace(/^\{"prompt":\s*"/, "") // Remove `{"prompt": "`
-                                  .replace(/"}$/, ""), // Remove trailing `"}`
-                              },
-                            }
+                            ...state.current,
+                            content: {
+                              text: (state.current.content.text + delta)
+                                .replace(/^\{"prompt":\s*"/, "") // Remove `{"prompt": "`
+                                .replace(/"}$/, ""), // Remove trailing `"}`
+                            },
+                          }
                           : state.current,
                       }));
                     } else {
