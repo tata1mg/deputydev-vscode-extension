@@ -1,4 +1,4 @@
-import { UsageTrackingRequest } from "./types";
+import { UsageTrackingRequest, SaveUrlRequest } from "./types";
 import { callCommand } from "./vscode";
 
 // export function webviewReady() {
@@ -61,6 +61,26 @@ export function usageTracking(payload: UsageTrackingRequest) {
 
 export function keywordTypeSearch(payload: unknown) {
   return callCommand("keyword-type-search", payload);
+}
+
+export function urlSearch(payload: { keyword: string }) {
+  return callCommand("url-search", payload);
+}
+
+export function getSavedUrls() {
+  return callCommand("get-saved-urls", null);
+}
+
+export function saveUrl(payload: SaveUrlRequest) {
+  return callCommand("save-url", payload);
+}
+
+export function deleteSavedUrl(id: string) {
+  return callCommand("delete-saved-url", { id });
+}
+
+export function updateSavedUrl(payload: { id: string; name: string }) {
+  return callCommand("update-saved-url", payload);
 }
 
 // accept/reject file

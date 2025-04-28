@@ -8,7 +8,12 @@ export type ViewType =
   | "error"
   | "force-upgrade";
 export type ProgressStatus = "Completed" | "Failed" | "In Progress";
-export type ThemeKind =  'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
+export type ThemeKind =
+  | "dark"
+  | "light"
+  | "high-contrast"
+  | "high-contrast-light"
+  | "unknown";
 export type UserData = {
   email: string;
   userName: string;
@@ -29,6 +34,8 @@ export type ProfileUiDiv = {
 };
 
 export type AutocompleteOption = {
+  id?: string;
+  url?: string;
   icon: string;
   label: string;
   value: string;
@@ -65,6 +72,7 @@ export type ChatReferenceItem = {
   chunks: Chunk[];
   value?: string;
   noEdit?: boolean;
+  url?: string;
 };
 
 export type ChatType = "ask" | "write";
@@ -224,3 +232,9 @@ export type UsageTrackingRequest = {
   event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };
+
+export interface SaveUrlRequest {
+  id?: string;
+  name: string;
+  url: string;
+}

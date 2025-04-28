@@ -3,7 +3,7 @@ import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  SearchedCodebase,
+  ToolUseStatusMessage,
   ThinkingChip,
   FileEditedChip,
   RetryChip,
@@ -74,6 +74,7 @@ export function ChatArea() {
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
+                          url={reference.url}
                         />
                       ))}
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
@@ -144,7 +145,7 @@ export function ChatArea() {
           case "TOOL_USE_REQUEST":
             return (
               <div key={index}>
-                <SearchedCodebase status={msg.content.status} />
+                <ToolUseStatusMessage status={msg.content.status} tool_name={msg.content.tool_name} />
               </div>
             );
 

@@ -18,7 +18,7 @@ import { SnippetReference } from "./CodeBlockStyle";
  *
  * Represents the status of chips
  */
-export type Status = "idle" | "pending" | "completed" | "error" 
+export type Status = "idle" | "pending" | "completed" | "error";
 
 /**
  * Props common to both analyzed code and searched codebase.
@@ -92,18 +92,33 @@ const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
  * Displays status and file count based on props from history.
  */
 
-export function SearchedCodebase({
+export function ToolUseStatusMessage({
   status,
+  tool_name,
   fileCount,
 }: {
   status: Status;
   fileCount?: number;
+  tool_name?: string;
 }) {
-  let displayText = "Searched codebase";
-  if (status === "pending") {
-    displayText = "Searching codebase...";
-  } else if (status === "error") {
-    displayText = "Error searching codebase";
+  let displayText;
+  switch (tool_name) {
+    case "public_url_content_reader":
+      displayText = "Analyzed URL";
+      if (status === "pending") {
+        displayText = "Analysing URL...";
+      } else if (status === "error") {
+        displayText = "Error Analysing URL";
+      }
+      break
+    default:
+      displayText = "Searched codebase";
+      if (status === "pending") {
+        displayText = "Searching codebase...";
+      } else if (status === "error") {
+        displayText = "Error searching codebase";
+      }
+      break;
   }
 
   return (
@@ -235,7 +250,7 @@ export function FileEditedChip({
   added_lines,
   removed_lines,
   status,
-  past_session
+  past_session,
 }: {
   filepath?: string;
   language?: string;
@@ -273,7 +288,7 @@ export function FileEditedChip({
         <div className="flex items-center gap-2">
           {past_session && (
             <button
-              className="text-xs text-gray-300 hover:text-white transition"
+              className="text-xs text-gray-300 transition hover:text-white"
               onClick={() => setShowSnippet((prev) => !prev)}
               title={showSnippet ? "Hide code" : "Show code"}
             >
