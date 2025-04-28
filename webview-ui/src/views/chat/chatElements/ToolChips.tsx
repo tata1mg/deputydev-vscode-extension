@@ -18,7 +18,7 @@ import { SnippetReference } from "./CodeBlockStyle";
  *
  * Represents the status of chips
  */
-export type Status = "idle" | "pending" | "completed" | "error" 
+export type Status = "idle" | "pending" | "completed" | "error" | "aborted";
 
 /**
  * Props common to both analyzed code and searched codebase.
@@ -48,6 +48,8 @@ export const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
       return <CheckCircle className="h-4 w-4 text-green-400" />;
     case "error":
       return <XCircle className="h-4 w-4 text-red-400" />;
+    case "aborted":
+      return <XCircle className="h-4 w-4 " />;
     default:
       return null;
   }
@@ -104,6 +106,9 @@ export function SearchedCodebase({
     displayText = "Searching codebase...";
   } else if (status === "error") {
     displayText = "Error searching codebase";
+  }
+  if (status === "aborted") {
+    displayText = "Search aborted";
   }
 
   return (

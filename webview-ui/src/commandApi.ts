@@ -214,8 +214,8 @@ export function sendRetryEmbedding() {
 
 
 // terminal
-export function acceptTerminalCommand(tool_use_id: string) {
-  return callCommand("accept-terminal-command", {tool_use_id});
+export function acceptTerminalCommand(tool_use_id: string , command: string) {
+  return callCommand("accept-terminal-command", {tool_use_id, command});
 }
 export function rejectTerminalCommand() {
   return callCommand("reject-terminal-command", {});

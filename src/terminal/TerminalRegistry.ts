@@ -1,4 +1,5 @@
 import * as vscode from "vscode"
+import { ColorThemeKind } from "vscode"
 
 export interface TerminalInfo {
 	terminal: vscode.Terminal
@@ -13,11 +14,18 @@ export class TerminalRegistry {
 	private static terminals: TerminalInfo[] = []
 	private static nextTerminalId = 1
 
-	static createTerminal(cwd?: string | vscode.Uri | undefined): TerminalInfo {
+
+	static createTerminal(context: vscode.ExtensionContext ,cwd?: string | vscode.Uri | undefined): TerminalInfo {
+
+		
+		const iconPath_local = vscode.Uri.joinPath(context.extensionUri, 'assets', vscode.window.activeColorTheme.kind === vscode.ColorThemeKind.Light
+		? 'DD_logo_light.png'
+		: 'DD_logo_dark.png');
+			
 		const terminal = vscode.window.createTerminal({
 			cwd,
-			name: "Cline",
-			iconPath: new vscode.ThemeIcon("robot"),
+			name: "DeputyDev",
+			iconPath: iconPath_local,
 		})
 		const newInfo: TerminalInfo = {
 			terminal,

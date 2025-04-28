@@ -24,6 +24,7 @@ import {
   ChatErrorMessage,
   ChatCompleteMessage,
   ProgressBarData,
+  ChatTerminalNoShell,
 } from "@/types";
 
 // =============================================================================
@@ -71,6 +72,7 @@ export const useChatStore = create(
       {
         history: [] as ChatMessage[],
         current: undefined as ChatAssistantMessage | undefined,
+        userInput: "",
         currentChatRequest: undefined as any,
         isLoading: false,
         showSessionsBox: true,
@@ -192,7 +194,6 @@ export const useChatStore = create(
 
             try {
               for await (const event of stream) {
-                console.log("event received in FE : ", event);
                 switch (event.name) {
                   case "TEXT_START": {
                     // Initialize a new current message with the desired structure
@@ -416,6 +417,23 @@ export const useChatStore = create(
                     break;
                   }
 
+                  case "TERMINAL_NO_SHELL_INTEGRATION": {
+                    useChatStore.setState({ showSkeleton: false });
+                    set((state) => ({
+                      history: [
+                        ...state.history,
+                        {
+                          type: "TERMINAL_NO_SHELL_INTEGRATION",
+                          actor: "ASSISTANT",
+                        } as ChatTerminalNoShell,
+                      ],
+                    }));
+
+
+                    chunkCallback({ name: "TERMINAL_NO_SHELL_INTEGRATION", data: event.data });
+                    break;
+                  }
+
                   case "APPLY_DIFF_RESULT": {
                     const diffResultData = event.data as "completed" | "error";
                     set((state) => {
@@ -617,7 +635,7 @@ export const useChatStore = create(
                       tool_name: string;
                       tool_use_id: string;
                       result_json: string;
-                      status: "completed" | "error";
+                      status: "completed" | "error" | "aborted";
                     };
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
@@ -713,6 +731,18 @@ export const useChatStore = create(
               if (state.current) {
                 newHistory.push(state.current);
               }
+                const lastMsg = newHistory[newHistory.length - 1];
+                if (lastMsg?.type === "TOOL_USE_REQUEST") {
+                const toolMsg = lastMsg as ChatToolUseMessage;
+                newHistory[newHistory.length - 1] = {
+                  ...toolMsg,
+                  content: {
+                  ...toolMsg.content,
+                  status: "aborted" as "aborted",
+                  terminal_approval_required: toolMsg.content.tool_name === "execute_command" ? false : toolMsg.content.terminal_approval_required
+                  },
+                };
+                }
 
               return {
                 history: newHistory,

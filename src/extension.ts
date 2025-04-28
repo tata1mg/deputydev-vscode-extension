@@ -37,6 +37,7 @@ import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace"
 // import { Terminal } from "./terminal/TerminalManager";
 // import { autoExecutePingCommand } from "./terminal/autoExecutePingCommand";
 import { TerminalManager } from "./terminal/TerminalManager";
+import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -50,32 +51,32 @@ export async function activate(context: vscode.ExtensionContext) {
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
-  const terminalManager = new TerminalManager()
 
-  const activeRepo = "/Users/vaibhavmeena/Desktop/"
-  if (activeRepo) {
-    outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
-    const terminalInfo = await terminalManager.getOrCreateTerminal("/Users/vaibhavmeena/Desktop");
-    terminalInfo.terminal.show();
-    const process = terminalManager.runCommand(terminalInfo, "ping google.com");
+  // const activeRepo = "/Users/vaibhav.meena/Desktop/extention after pratham auth/deputydev-vscode-extension";
+  // if (activeRepo) {
+  //   outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
+  //   const terminalInfo = await terminalManager.getOrCreateTerminal(activeRepo);
+  //   terminalInfo.terminal.show();
+  //   const process = terminalManager.runCommand(terminalInfo, "yarn build:all");
 
-    process.on('line', (line) => {
-      outputChannel.info(`Terminal output: ${line}`);
-    });
-    const output = terminalManager.getUnretrievedOutput(terminalInfo.id);
-    outputChannel.info(`Terminal command executed id: ${terminalInfo.id}`);
-    outputChannel.info(`Terminal command executed command: ${terminalInfo.lastCommand}`);
-    // add 5 seconds delay
-    // await new Promise(resolve => setTimeout(resolve, 5000));
-    const command_output = terminalManager.getUnretrievedOutput(terminalInfo.id);
-    outputChannel.info(`Terminal command output get unreteived output: ${command_output}`);
+  //   process.on('line', (line) => {
+  //     outputChannel.info(`Terminal output: ${line}`);
+  //   });
+  //   const output = terminalManager.getUnretrievedOutput(terminalInfo.id);
+  //   outputChannel.info(`Terminal command executed id: ${terminalInfo.id}`);
+  //   outputChannel.info(`Terminal command executed command: ${terminalInfo.lastCommand}`);
+  //   // add 5 seconds delay
+  //   // await new Promise(resolve => setTimeout(resolve, 5000));
+  //   // await proces
+  //   const command_output = terminalManager.getUnretrievedOutput(terminalInfo.id);
+  //   outputChannel.info(`Terminal command output get unreteived output: ${command_output}`);
 
     
     
-    await process;
-    outputChannel.info(`Terminal command executed: ${terminalInfo.lastCommand}`);
-    return
-  }
+  //   // await process;
+  //   outputChannel.info(`Terminal command executed: ${terminalInfo.lastCommand}`);
+  //   return
+  // }
 
   // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
@@ -98,6 +99,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const profileService = new ProfileUiService();
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
+  const terminalManager = new TerminalManager(context)
 
 
   // 4. Diff View Manager Initialization
@@ -136,7 +138,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
-  continueNewWorkspace.init();
+  await continueNewWorkspace.init();
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
@@ -237,7 +239,6 @@ export async function activate(context: vscode.ExtensionContext) {
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
   inlineChatEditManager.inlineChatEditQuickFixes();
-
   //  6) Register "closeApp" command
   context.subscriptions.push(
     vscode.commands.registerCommand("deputydev.closeApp", () => {
@@ -360,6 +361,57 @@ export async function activate(context: vscode.ExtensionContext) {
       sidebarProvider.setViewType("history");
     })
   );
+
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("deputydev.addTerminalOutputToChat", async () => {
+			const terminal = vscode.window.activeTerminal
+			if (!terminal) {
+				return
+			}
+
+			// Save current clipboard content
+			const tempCopyBuffer = await vscode.env.clipboard.readText()
+
+			try {
+				// Copy the *existing* terminal selection (without selecting all)
+				await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+
+				// Get copied content
+				let terminalContents = (await vscode.env.clipboard.readText()).trim()
+
+				// Restore original clipboard content
+				await vscode.env.clipboard.writeText(tempCopyBuffer)
+
+				if (!terminalContents) {
+					// No terminal content was copied (either nothing selected or some error)
+					return
+				}
+
+				// [Optional] Any additional logic to process multi-line content can remain here
+				// For example:
+				/*
+				const lines = terminalContents.split("\n")
+				const lastLine = lines.pop()?.trim()
+				if (lastLine) {
+					let i = lines.length - 1
+					while (i >= 0 && !lines[i].trim().startsWith(lastLine)) {
+						i--
+					}
+					terminalContents = lines.slice(Math.max(i, 0)).join("\n")
+				}
+				*/
+
+				// Send to sidebar provider
+				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
+			} catch (error) {
+				// Ensure clipboard is restored even if an error occurs
+				await vscode.env.clipboard.writeText(tempCopyBuffer)
+        logger.error("Failed to get terminal contents", error)
+				vscode.window.showErrorMessage("Failed to get terminal contents")
+			}
+		}),
+	)
 
   context.subscriptions.push(
   //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {

@@ -1,4 +1,3 @@
-import exp = require('constants');
 import * as vscode from 'vscode';
 import { ReferenceService } from '../services/references/ReferenceService';
 import { v4 as uuidv4 } from 'uuid';

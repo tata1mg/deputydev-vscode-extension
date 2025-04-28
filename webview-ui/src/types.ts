@@ -82,7 +82,8 @@ export type ChatMessage =
   | ChatThinkingMessage
   | ChatCodeBlockMessage
   | ChatErrorMessage
-  | ChatCompleteMessage;
+  | ChatCompleteMessage
+  | ChatTerminalNoShell
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
@@ -109,7 +110,7 @@ export interface TerminalPanelProps {
   tool_id : string;
   terminal_command: string;
   terminal_output?: string;
-  status?: string;
+  status?: "pending" | "completed" | "error" | "aborted";
   show_approval_options?: boolean;
 }
 
@@ -121,7 +122,7 @@ export interface ChatToolUseMessage {
     input_params_json: { prompt: string } | string;
     tool_input_json?: { prompt: string };
     result_json: string;
-    status: "pending" | "completed" | "error";
+    status: "pending" | "completed" | "error" | "aborted";
     write_mode?: boolean;
     terminal_approval_required?: boolean;
   };
@@ -162,6 +163,11 @@ export interface ChatErrorMessage {
 
 export interface ChatCompleteMessage {
   type: "QUERY_COMPLETE";
+  actor: "ASSISTANT";
+}
+
+export interface ChatTerminalNoShell {
+  type: "TERMINAL_NO_SHELL_INTEGRATION";
   actor: "ASSISTANT";
 }
 

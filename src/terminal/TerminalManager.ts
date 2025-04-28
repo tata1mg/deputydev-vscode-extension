@@ -39,7 +39,7 @@ const terminalManager = new TerminalManager(context);
 const process = terminalManager.runCommand('npm install', '/path/to/project');
 
 process.on('line', (line) => {
-    console.log(line);
+    // console.log(line);
 });
 
 // To wait for the process to complete naturally:
@@ -50,7 +50,7 @@ process.continue();
 
 // Later, if you need to get the unretrieved output:
 const unretrievedOutput = terminalManager.getUnretrievedOutput(terminalId);
-console.log('Unretrieved output:', unretrievedOutput);
+// console.log('Unretrieved output:', unretrievedOutput);
 
 Resources:
 - https://github.com/microsoft/vscode/issues/226655
@@ -93,8 +93,9 @@ export class TerminalManager {
 	private terminalIds: Set<number> = new Set()
 	private processes: Map<number, TerminalProcess> = new Map()
 	private disposables: vscode.Disposable[] = []
-
-	constructor() {
+	private context: vscode.ExtensionContext;
+	constructor(context: vscode.ExtensionContext) {
+		this.context = context;
 		let disposable: vscode.Disposable | undefined
 		try {
 			disposable = (vscode.window as vscode.Window).onDidStartTerminalShellExecution?.(async (e) => {
@@ -121,7 +122,7 @@ export class TerminalManager {
 
 		// if shell integration is not available, remove terminal so it does not get reused as it may be running a long-running process
 		process.once("no_shell_integration", () => {
-			console.log(`no_shell_integration received for terminal ${terminalInfo.id}`)
+			// console.log(`no_shell_integration received for terminal ${terminalInfo.id}`)
 			// Remove the terminal so we can't reuse it (in case it's running a long-running process)
 			TerminalRegistry.removeTerminal(terminalInfo.id)
 			this.terminalIds.delete(terminalInfo.id)
@@ -133,7 +134,7 @@ export class TerminalManager {
 				resolve()
 			})
 			process.once("error", (error) => {
-				console.error(`Error in terminal ${terminalInfo.id}:`, error)
+				// console.error(`Error in terminal ${terminalInfo.id}:`, error)
 				reject(error)
 			})
 		})
@@ -164,7 +165,7 @@ export class TerminalManager {
 			if (t.busy) {
 				return false
 			}
-			const terminalCwd = t.terminal.shellIntegration?.cwd // one of cline's commands could have changed the cwd of the terminal
+			const terminalCwd = t.terminal.shellIntegration?.cwd // one of deputydev's commands could have changed the cwd of the terminal
 			if (!terminalCwd) {
 				return false
 			}
@@ -185,7 +186,7 @@ export class TerminalManager {
 		}
 
 		// If all terminals are busy, create a new one
-		const newTerminalInfo = TerminalRegistry.createTerminal(cwd)
+		const newTerminalInfo = TerminalRegistry.createTerminal(this.context,cwd)
 		this.terminalIds.add(newTerminalInfo.id)
 		return newTerminalInfo
 	}
