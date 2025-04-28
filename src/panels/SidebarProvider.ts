@@ -122,6 +122,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             sendMessage
           );
           break;
+        case "url-search":
+          promise = this.codeReferenceService.urlSearch(data, sendMessage);
+          break;
+        case "get-saved-urls":
+          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          break;
+        case "save-url":
+          promise = this.codeReferenceService.saveUrl(data, sendMessage);
+          break;
+        case "delete-saved-url":
+          promise = this.codeReferenceService.deleteSavedUrl(
+            data.id,
+            sendMessage
+          );
+          break;
+        case "update-saved-url":
+          promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
+          break;
         case "usage-tracking":
           promise = this.trackingManager.trackUsage(data);
           break;
@@ -501,7 +519,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       active_repo,
       getSessionId(),
       data.write_mode,
-      data.is_inline,
+      data.is_inline
     );
     return;
   }
@@ -622,14 +640,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore},
+        data: { unpinnedSessions, hasMore },
       });
     } catch (error) {
       const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore : false},
+        data: { unpinnedSessions, hasMore: false },
       });
     }
   }
@@ -687,12 +705,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
   async sendPendingMessages() {
-        // Flush any pending messages now that the view is initialized
-        while (this.pendingMessages.length > 0) {
-          const message = this.pendingMessages.shift();
-          this._view?.webview.postMessage(message);
-        }
+    // Flush any pending messages now that the view is initialized
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      this._view?.webview.postMessage(message);
     }
+  }
 
   setViewType(
     viewType:

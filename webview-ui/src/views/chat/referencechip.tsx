@@ -5,6 +5,8 @@ import {
   keywordTypeSearch,
   logToOutput,
   openFile,
+  urlSearch,
+  openBrowserPage,
 } from "@/commandApi";
 import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
 import { Chunk } from "@/types";
@@ -18,6 +20,7 @@ type ReferenceChipProps = {
   displayOnly?: boolean;
   path?: string;
   chunks?: Chunk[];
+  url?: string;
 };
 
 export default function ReferenceChip({
@@ -29,6 +32,7 @@ export default function ReferenceChip({
   displayOnly = false,
   path,
   chunks = [] as Chunk[],
+  url,
 }: ReferenceChipProps) {
   const [text, setText] = useState<string>(initialText);
   const [isEditing, setIsEditing] = useState<boolean>(autoEdit);
@@ -74,7 +78,7 @@ export default function ReferenceChip({
 
   const handleEdit = () => {
     if (displayOnly) {
-      return
+      return;
     }
     useChatStore.setState({ chipIndexBeingEdited: chipIndex });
     setIsEditing(true);
@@ -106,6 +110,11 @@ export default function ReferenceChip({
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
         });
+      } else if (valueArr[0].toLowerCase() === "url") {
+        setShowAutoComplete(true);
+        urlSearch({
+          keyword: valueArr[1].trim(),
+        });
       } else {
         setShowAutoComplete(true);
         keywordSearch({ keyword: value });
@@ -127,7 +136,7 @@ export default function ReferenceChip({
 
   const handleDisplayClick = () => {
     if (displayOnly) {
-      openFile(path ? path : "");
+      url ? openBrowserPage(url) : openFile(path ? path : "");
     }
   };
 
