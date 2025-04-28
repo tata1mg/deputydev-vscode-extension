@@ -238,7 +238,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.createNewWorkspace(data.tool_use_id);
           break;
         case "accept-terminal-command":
-          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id });
+          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id , command: data.command});
           break;
         case "edit-terminal-command":
           promise = this.editTerminalCommand(data);
@@ -443,9 +443,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           `📡 Sending WebSocket update: ${JSON.stringify(params)}`
         );
 
-        this.outputChannel.info(
-          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
-        );
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
@@ -784,6 +781,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         basePath,
         path: path.relative(basePath, uri.fsPath),
         fsPath: uri.fsPath,
+      },
+    });
+  }
+
+  async addSelectedTerminalOutputToChat(output: string) {
+    await vscode.commands.executeCommand("deputydev-sidebar.focus");
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: "terminal-output-to-chat",
+      data: {
+        terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\`` 
       },
     });
   }

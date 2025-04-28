@@ -28,6 +28,7 @@ export function ChatUI() {
   const {
     history: messages,
     current,
+    userInput,
     isLoading,
     sendChatMessage,
     cancelChat,
@@ -44,6 +45,9 @@ export function ChatUI() {
   themeKind === "light" || themeKind === "high-contrast-light"
     ? "https://onemg.gumlet.io/dd_logo_dark_name_14_04.png"
     : "https://onemg.gumlet.io/dd_logo_with_name_10_04.png";
+  const borderClass = (themeKind === "high-contrast" || themeKind === "high-contrast-light")
+  ? "outline outline-[1px]  outline-[--deputydev-button-border] "
+  : "";
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
@@ -52,7 +56,7 @@ export function ChatUI() {
   }, [activeRepo, progressBars]);
 
   // const [repoSelectorDisabled] = useState(false);
-  const [userInput, setUserInput] = useState("");
+  const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -388,7 +392,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mx-2 mt-3.5">
+      <div className="absolute bottom-0 left-0 right-0 mb-0 mx-2 mt-3.5">
         <div className="">
           {showAutocomplete && (
             <div className="w-full">
@@ -437,8 +441,8 @@ export function ChatUI() {
           )}
 
           {/* The textarea remains enabled even when a response is pending */}
-          <div className="relative w-full">
-            <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+          <div className="relative w-full ">
+            <div className={`mb-1 flex flex-wrap focus-within:outline focus-within:outline-[1px]  focus-within:outline-[--vscode-list-focusOutline] items-center gap-1 rounded bg-[--deputydev-input-background] p-2 ${borderClass}`}>
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -459,7 +463,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto no-scrollbar bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""

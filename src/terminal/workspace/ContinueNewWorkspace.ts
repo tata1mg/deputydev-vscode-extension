@@ -24,9 +24,13 @@ export class ContinueNewWorkspace {
     const lastChatData = (await this.context.globalState.get("chat-storage-copy")) as string | undefined;
 
     if (sessionId && lastChatData) {
-      const CONTINUE = "Continue Setup";
       await vscode.commands.executeCommand("deputydev-sidebar.focus");
-
+      const folders = vscode.workspace.workspaceFolders;
+      // get last folder
+      const lastFolder = folders?.[folders.length - 1];
+      if (lastFolder) {
+        await this.context.workspaceState.update("activeRepo", lastFolder.uri.fsPath);
+      }
       // // only one button ⇒ no extra “Cancel” button
       // const choice = await vscode.window.showInformationMessage(
       //   "Continue Workspace Setup?",
@@ -57,6 +61,7 @@ export class ContinueNewWorkspace {
       const isAuthenticated = !!(await this.context.workspaceState.get("isAuthenticated"));
       this.triggerAuthChange(isAuthenticated);
       this.logger.info("Restored session from previous workspace");
+
     }
 
     // Authentication listener

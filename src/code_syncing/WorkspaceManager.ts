@@ -166,11 +166,11 @@ export class WorkspaceManager {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
         this.updateWorkspaceRepos();
-        vscode.window.showInformationMessage(
-          `Workspace repositories updated: ${Array.from(this.workspaceRepos.entries())
-            .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
-            .join(', ') || 'None'}`
-        );
+        // vscode.window.showInformationMessage(
+        //   `Workspace repositories updated: ${Array.from(this.workspaceRepos.entries())
+        //     .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
+        //     .join(', ') || 'None'}`
+        // );
       })
     );
   }

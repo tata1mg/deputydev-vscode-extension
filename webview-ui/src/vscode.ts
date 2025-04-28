@@ -12,8 +12,9 @@ import {
   ProfileUiDiv,
   ProgressBarData,
   ThemeKind,
+  ChatToolUseMessage,
 } from "@/types";
-import { logToOutput, getSessions } from "./commandApi";
+import { logToOutput, getSessions, sendWorkspaceRepoChange } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
@@ -458,6 +459,60 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
   });
   // console.log("timestamp", new Date().toISOString());
   useChatStore.setState({ history: updatedHistory as ChatMessage[]});
+});
+
+
+addCommandEventListener("update-workspace-dd", () => {
+  // Get list of current workspace repositories and update active repo to last or latest workspace
+  const workspaceRepos = useWorkspaceStore.getState().workspaceRepos;
+  if (workspaceRepos.length > 0) {
+    const lastWorkspaceRepo = workspaceRepos[workspaceRepos.length - 1];
+    const repoPath = lastWorkspaceRepo.repoPath;
+    if (repoPath) {
+      useWorkspaceStore.setState({ activeRepo: repoPath });
+    } else {
+      logToOutput("error", "repoPath is null or undefined.");
+    }
+    sendWorkspaceRepoChange({ repoPath });
+    useChatStore.setState({ isLoading: true });
+    useChatStore.setState({ showSkeleton: true });
+    const currentHistory = useChatStore.getState().history;
+    const lastToolMessage = [...currentHistory]
+      .reverse()
+      .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace") as ChatToolUseMessage;
+
+    if (!lastToolMessage) {
+      logToOutput("error", "No TOOL_USE_REQUEST message found for creating a new workspace.");
+      return;
+    }
+
+    const continuationPayload = {
+      write_mode: useChatSettingStore.getState().chatType === "write",
+      is_tool_response: true,
+      tool_use_response: {
+        tool_name: lastToolMessage.content.tool_name,
+        tool_use_id: lastToolMessage.content.tool_use_id,
+        response: {
+          "message": `Workspace Created Successfully, and now we are inside new Workspace. 
+          If you need to create new files inside this workspace, please use code blocks with <is_diff>true</is_diff> tag.
+          Also use execute_command tool to run any command inside this workspace.`,
+        }
+      },
+  }
+  const { sendChatMessage } = useChatStore.getState();
+  sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+  } else {
+    logToOutput("error", `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`);
+  }
+});
+
+
+addCommandEventListener("terminal-output-to-chat", ({ data }) => {
+  const terminalOutput = data as {terminalOutput: string}
+  const currentUserInput = useChatStore.getState().userInput;
+  useChatStore.setState({
+    userInput: currentUserInput + terminalOutput.terminalOutput,
+  });
 });
 
 // addCommandEventListener('current-editor-changed', ({ data }) => {

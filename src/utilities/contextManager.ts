@@ -94,6 +94,14 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
   })
 }
 
+export function updateCurrentWorkspaceDD() {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: "update-workspace-dd",
+    data: true,
+  })
+}
+
 
 
 export function getActiveRepo(): string | undefined {

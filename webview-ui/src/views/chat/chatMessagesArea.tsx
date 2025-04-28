@@ -1,4 +1,4 @@
-import { CircleUserRound } from "lucide-react";
+import { CircleUserRound, TriangleAlert } from "lucide-react";
 import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
@@ -36,12 +36,12 @@ export function ChatArea() {
         tool_id="hi123"
         terminal_command={`{"command":"cd /home/jo"}`}
         status={"completed"}
-        terminal_approval_required={true}
-      />
-       */}
-       
-      {/* <CreateNewWorkspace tool_id="12" status="completed" /> */}
-      
+       terminal_approval_required={true}
+      /> */}
+
+
+      {/* <CreateNewWorkspace tool_id="12" status="" /> */}
+
 
       {messages.map((msg, index) => {
         switch (msg.type) {
@@ -76,8 +76,8 @@ export function ChatArea() {
                           key={chipIndex}
                           chipIndex={chipIndex}
                           initialText={reference.keyword}
-                          onDelete={() => {}}
-                          setShowAutoComplete={() => {}}
+                          onDelete={() => { }}
+                          setShowAutoComplete={() => { }}
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
@@ -198,14 +198,14 @@ export function ChatArea() {
             );
 
           case "QUERY_COMPLETE": {
-            // If no timestamp has been recorded for this message, record one now
             if (!queryCompleteTimestampsRef.current.has(index)) {
               const last = useChatStore.getState().lastMessageSentTime;
-              const elapsed = last
-                ? new Date().getTime() - last.getTime()
-                : null;
-              if (elapsed !== null) {
-                queryCompleteTimestampsRef.current.set(index, elapsed);
+              if (last) {
+                const lastDate = last instanceof Date ? last : new Date(last);
+                if (!isNaN(lastDate.getTime())) {
+                  const elapsed = new Date().getTime() - lastDate.getTime();
+                  queryCompleteTimestampsRef.current.set(index, elapsed);
+                }
               }
             }
 
@@ -237,6 +237,22 @@ export function ChatArea() {
               </div>
             );
           }
+          case "TERMINAL_NO_SHELL_INTEGRATION":
+            return (
+              <div key={index} className={`mt-2 flex flex-col items-start gap-1.5 rounded-md  ${["light", "high-contrast-light"].includes(themeKind) ? "bg-yellow-200/80" : "bg-yellow-800/40"} px-3 py-2`}>
+                <div className={`flex items-center   ${["light", "high-contrast-light"].includes(themeKind) ? "text-gray-900" : "text-yellow-500"} gap-2`}>
+                  <TriangleAlert className="h-4 w-4" />
+                  <p className="text-sm font-medium">Shell Integration Unavailable</p>
+                </div>
+                <div className="text-xs">
+                  DeputyDev won't be able to view the command's output. Please update VSCode (<kbd>CMD/CTRL + Shift + P</kbd> → "Update") and make sure you're using a supported shell: zsh, bash, or PowerShell (<kbd>CMD/CTRL + Shift + P</kbd> → "Terminal: Select Default Profile").{" "}
+                  <a href="https://code.visualstudio.com/docs/terminal/shell-integration" target="_blank" rel="noopener noreferrer" className="underline">
+                    Still having trouble?
+                  </a>
+                </div>
+              </div>
+            );
+
 
           case "ERROR":
             return (

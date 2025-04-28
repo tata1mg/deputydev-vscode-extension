@@ -1,6 +1,7 @@
 import { createNewWorkspace } from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { StatusIcon } from "./ToolChips";
+import { useChatStore } from "@/stores/chatStore";
 
 export function CreateNewWorkspace({
   tool_id,
@@ -11,11 +12,12 @@ export function CreateNewWorkspace({
 }) {
   const handleContinue = () => {
     createNewWorkspace(tool_id);
-    console.log("Continue clicked");
   };
 
+  const { cancelChat } = useChatStore();
+
   const handleCancel = () => {
-    console.log("Cancel clicked");
+    cancelChat();
   };
 
   const { themeKind } = useThemeStore();
@@ -25,18 +27,25 @@ export function CreateNewWorkspace({
       ? "border border-[--deputydev-button-border]"
       : "";
   const completed = status === "completed";
+  const aborted = status === "aborted";
 
-  if (completed) {
+  if (completed || aborted) {
     return (
       <div
         className="mt-2 flex w-full items-center gap-2 rounded border border-gray-500/40 px-2 py-2 text-sm"
-        title="Workspace Created"
+        title={
+          completed
+            ? "Workspace created successfully"
+            : "Workspace creation cancelled"
+        }
       >
         <div className="flex min-w-[16px] items-center justify-center">
-          <StatusIcon status="completed" />
+          <StatusIcon status={status} />
         </div>
         <span className="text-sm">
-          Workspace created successfully
+          {completed
+            ? "Workspace created successfully"
+            : "Workspace creation cancelled"}
         </span>
       </div>
     );
