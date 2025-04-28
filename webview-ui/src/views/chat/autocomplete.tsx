@@ -22,6 +22,8 @@ import {
   updateSavedUrl,
   openBrowserPage,
 } from "@/commandApi";
+import { BarLoader } from "react-spinners";
+import { set } from "lodash";
 
 interface AutocompleteMenuProps {
   showAddNewButton?: boolean;
@@ -36,6 +38,17 @@ const iconMap = {
   directory: <Folder className="h-5 w-5 text-blue-400" />,
   url: <Link className="h-5 w-5 text-blue-400" />,
 };
+
+export default function CustomLoader() {
+  return (
+    <div style={{ width: "100%" }}>
+      <BarLoader
+        width="100%"
+        color="var(--vscode-editor-foreground)" // dynamically picks up from VSCode theme
+      />
+    </div>
+  );
+}
 
 export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   showAddNewButton,
@@ -57,6 +70,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null,
   );
+  const [isLoading, setIsLoading] = useState(false);
   const [selectedOption, setSelectedOption] =
     useState<AutocompleteOption | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
@@ -80,7 +94,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [options]);
 
   const handleAction = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
@@ -95,6 +109,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
         setOpenDropdownIndex(null);
         break;
       case "reindex":
+        setIsLoading(true);
         handleSave(selectedOption?.label, selectedOption?.url);
         setSelectedOption(null);
         setOpenDropdownIndex(null);
@@ -108,6 +123,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
         selectedOption?.id && setConfirmingDeleteIndex(selectedOption.id);
         break;
       case "confirm-delete":
+        setIsLoading(true);
         selectedOption?.id && deleteSavedUrl(selectedOption.id);
         setConfirmingDeleteIndex(null);
         setSelectedOption(null);
@@ -130,6 +146,10 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     }
   }, [selectedOptionIndex]);
 
+  useEffect(() => {
+    setIsLoading(false);
+  }, [options]);
+
   const validateUrl = (input: string) => {
     try {
       new URL(input);
@@ -146,6 +166,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   };
 
   const handleSave = (customName?: string, customUrl?: string) => {
+    setIsLoading(true);
     const finalName = customName ?? name;
     const finalUrl = customUrl ?? url;
 
@@ -195,6 +216,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       } z-50 w-full overflow-y-auto rounded-md border border-[#3c3c3c] shadow-xl`}
       style={{ backgroundColor: safeBg }}
     >
+      {isLoading && <CustomLoader />}
       {showAddNewForm ? (
         <div
           className="flex flex-col space-y-4 p-4"
@@ -274,6 +296,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   value={url}
                   onChange={handleUrlChange}
                   className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
+                  disabled={editMode}
                   style={{
                     background: "var(--vscode-input-background)",
                     color: "var(--vscode-input-foreground)",
@@ -423,7 +446,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                             className="text-sm"
                             style={{ color: "var(--vscode-editor-foreground)" }}
                           >
-                            Are you sure you want to delete this reference?
+                            Are you sure you want to delete this URL?
                           </p>
                           <div className="flex justify-end gap-2">
                             <button
@@ -514,9 +537,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                 <Plus className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <span className="text-sm font-medium">
-                  Add new reference document
-                </span>
+                <span className="text-sm font-medium">Save a new URL</span>
               </div>
             </li>
           )}

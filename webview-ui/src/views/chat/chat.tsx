@@ -191,6 +191,7 @@ export function ChatUI() {
     }
 
     if (e.key === "Backspace") {
+      console.log(userInput)
       const textarea = e.currentTarget;
       const isEntireTextSelected =
         textarea.selectionStart === 0 &&
@@ -226,9 +227,6 @@ export function ChatUI() {
         }
         setTimeout(() => (backspaceCountRef.current = 0), 300);
       }
-      else {
-        setUserInput(userInput.slice(0, -1));
-      }
 
     }
   };
@@ -248,7 +246,7 @@ export function ChatUI() {
         });
       } else if (valueArr[0].toLowerCase() === "url") {
         setShowAutocomplete(true);
-        urlSearch({
+        valueArr[1] && urlSearch({
           keyword: valueArr[1].trim(),
         });
       } else {
@@ -483,13 +481,13 @@ export function ChatUI() {
                 value={userInput}
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
-                disabled={repoSelectorEmbedding}
-                {...(repoSelectorEmbedding &&
-                  activeRepo && {
-                    "data-tooltip-id": "repo-tooltip",
-                    "data-tooltip-content":
-                      "Please wait, DeputyDev is initializing.",
-                  })}
+                // disabled={repoSelectorEmbedding}
+                // {...(repoSelectorEmbedding &&
+                //   activeRepo && {
+                //     "data-tooltip-id": "repo-tooltip",
+                //     "data-tooltip-content":
+                //       "Please wait, DeputyDev is initializing.",
+                //   })}
                 autoFocus
               />
             </div>
