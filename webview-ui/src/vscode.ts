@@ -377,7 +377,11 @@ addCommandEventListener("session-chats-history", ({ data }) => {
 });
 
 addCommandEventListener("enhanced-user-query", ({ data }: any) => {
-  useChatStore.setState({enhancedUserQuery: data.enhancedUserQuery as string})
+  if (data && data.enhancedUserQuery && !data.error) {
+    useChatStore.setState({ enhancedUserQuery: data.enhancedUserQuery as string });
+  } else {
+    useChatStore.setState({enhancingUserQuery: false});
+  }
 })
 
 addCommandEventListener("inline-chat-data", ({ data }) => {
