@@ -26,7 +26,7 @@ import { UsageTrackingRequest } from "../types";
 import osName from "os-name"
 import { getShell } from "../terminal/utils/shell";
 import { TerminalManager } from "../terminal/TerminalManager";
-import { TERMINAL_TIMEOUT } from "../config";
+import { DEFAULT_TERMINAL_TIMEOUT } from "../config";
 
 
 export class ChatManager {
@@ -626,6 +626,7 @@ export class ChatManager {
   async _runExecuteCommand(
     command: string,
     requires_approval: boolean,
+    is_long_running: boolean,
     chunkCallback: ChunkCallback,
     toolRequest: ToolRequest,
     messageId?: string,
@@ -633,6 +634,7 @@ export class ChatManager {
     if (!command) {
       throw new Error("Command is empty.");
     }
+    const TERMINAL_TIMEOUT =  is_long_running ? DEFAULT_TERMINAL_TIMEOUT + 40_000 : 15_000;
     let finalCommand = command;
     let edited_command: string | undefined;
     const parsedContent = JSON.parse(toolRequest.accumulatedContent);
@@ -850,7 +852,7 @@ export class ChatManager {
           break;
         case "execute_command":
           this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runExecuteCommand(parsedContent.command, parsedContent.requires_approval, chunkCallback, toolRequest, messageId || "");
+          rawResult = await this._runExecuteCommand(parsedContent.command, parsedContent.requires_approval, !!parsedContent.is_long_running , chunkCallback, toolRequest, messageId || "");
           break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
