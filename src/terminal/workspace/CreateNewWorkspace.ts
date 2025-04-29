@@ -55,7 +55,6 @@ export async function createNewWorkspaceFn(
     const disposable = vscode.workspace.onDidChangeWorkspaceFolders((event) => {
       for (const added of event.added) {
         if (added.uri.toString() === folderUri.toString()) {
-          // console.log("Detected new folder added:", added.uri.fsPath);
           updateCurrentWorkspaceDD();
           disposable.dispose(); // stop tracking
           break;

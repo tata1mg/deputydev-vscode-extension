@@ -12,7 +12,6 @@ import Profile from './views/profile';
 import Error from './views/error';
 import ForceUpgradeView from './views/forceUpgradeView';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
-// import Setting2 from './views/setting_2';
 
 function App() {
   const extensionState = useExtensionStore();
