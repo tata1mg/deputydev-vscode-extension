@@ -31,22 +31,9 @@ export function ChatArea() {
   const queryIdMap = new Map();
   let queryId: number;
 
-  // console.log("messages in parser", messages);
 
   return (
     <>
-      {/* <SearchedCodebase status={"completed"} />
-      
-      <TerminalPanel
-        tool_id="hi123"
-        terminal_command={`{"command":"cd /home/jo"}`}
-        status={"completed"}
-       terminal_approval_required={true}
-      /> */}
-
-
-      {/* <CreateNewWorkspace tool_id="12" status="" /> */}
-
 
       {messages.map((msg, index) => {
         switch (msg.type) {
