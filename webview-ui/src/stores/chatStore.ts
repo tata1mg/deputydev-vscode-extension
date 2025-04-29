@@ -97,6 +97,8 @@ export const useChatStore = create(
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
         feedbackState: new Map(),
+        enhancingUserQuery: false,
+        enhancedUserQuery: "",
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -113,6 +115,8 @@ export const useChatStore = create(
               currentEditorReference: [],
               lastToolUseResponse: undefined,
               feedbackState: new Map(),
+              enhancedUserQuery: "",
+              enhancingUserQuery: false
             });
           },
 
