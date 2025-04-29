@@ -636,12 +636,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   async enhanceUserQuery(userQuery: string) {
-    const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: "enhanced-user-query",
-      data: { enhancedUserQuery: response.enhanced_query },
-    })
+    try {
+      const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { enhancedUserQuery: response.enhanced_query },
+      })
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { error: error},
+      })
+    }
   }
 
   async getSessions(data: { limit: number; offset: number }) {
