@@ -76,7 +76,11 @@
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
-      display: none;
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
@@ -179,6 +183,8 @@ body {
   background-color: var(--deputydev-chat-background);
   height: 100%;
   width: 100%;
+  border-left: solid 1px var(--vscode-sideBar-border);
+  border-right: solid 1px var(--vscode-sideBar-border);
 }
 
 /******************** Panel Layout Styles ********************/
@@ -225,6 +231,19 @@ body {
   --deputydev-sidebar-title-color: var(--vscode-sideBarTitle-foreground);
   --deputydev-icon-color: var(--vscode-icon-foreground);
   --deputydev-disabled-color: var(--vscode-disabledForeground);
+
+  /* button */
+  --deputydev-button-background: var(--vscode-button-background);
+  --deputydev-button-foreground: var(--vscode-button-foreground);
+  --deputydev-button-hover-background: var(--vscode-button-hoverBackground);
+  --deputydev-button-border: var(--vscode-button-border);
+
+
+  --deputydev-button-secondaryForeground: var(--vscode-button-secondaryForeground);
+  --deputydev-button-secondaryBackground: var(--vscode-button-secondaryBackground);
+  --deputydev-button-secondaryHoverBackground: var(--vscode-button-secondaryHoverBackground);
+
+
   /* --border: 0 0% 89.8%; */
   /* --radius: 0.5rem */
 }

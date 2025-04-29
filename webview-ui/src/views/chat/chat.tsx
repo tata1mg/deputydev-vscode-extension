@@ -12,6 +12,7 @@ import { Tooltip } from "react-tooltip";
 import RepoSelector from "./chatElements/RepoSelector";
 import { ChatArea } from "./chatMessagesArea";
 import {
+  editTerminalCommand, 
   keywordSearch,
   keywordTypeSearch,
   logToOutput,
@@ -37,6 +38,7 @@ export function ChatUI() {
   const {
     history: messages,
     current,
+    userInput,
     isLoading,
     sendChatMessage,
     cancelChat,
@@ -52,9 +54,12 @@ export function ChatUI() {
   const { themeKind } = useThemeStore();
 
   const deputyDevLogo =
-    themeKind === "light" || themeKind === "high-contrast-light"
-      ? "https://onemg.gumlet.io/dd_logo_dark_name_14_04.png"
-      : "https://onemg.gumlet.io/dd_logo_with_name_10_04.png";
+  themeKind === "light" || themeKind === "high-contrast-light"
+    ? "https://onemg.gumlet.io/dd_logo_dark_name_14_04.png"
+    : "https://onemg.gumlet.io/dd_logo_with_name_10_04.png";
+  const borderClass = (themeKind === "high-contrast" || themeKind === "high-contrast-light")
+  ? "outline outline-[1px]  outline-[--deputydev-button-border] "
+  : "";
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
@@ -63,7 +68,7 @@ export function ChatUI() {
   }, [activeRepo, progressBars]);
 
   // const [repoSelectorDisabled] = useState(false);
-  const [userInput, setUserInput] = useState("");
+  const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [showAddNewButton, setShowAddNewButton] = useState(false);
   const [chipEditMode, setChipEditMode] = useState(false);
@@ -428,7 +433,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mx-2 mt-3.5">
+      <div className="absolute bottom-0 left-0 right-0 mb-0 mx-2 mt-3.5">
         <div className="">
           {showAutocomplete && (
             <div className="w-full">
@@ -442,7 +447,7 @@ export function ChatUI() {
 
           {messages.length === 0 && !showAutocomplete && (
             <div className="px-4">
-              <p className="mb-2 mt-4 text-center text-xs text-gray-500">
+              <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                 DeputyDev is powered by AI. It can make mistakes. Please double
                 check all output.
               </p>
@@ -460,8 +465,8 @@ export function ChatUI() {
           )}
 
           {/* The textarea remains enabled even when a response is pending */}
-          <div className="relative w-full">
-            <div className="mb-1 flex flex-wrap items-center gap-1 rounded border border-[--vscode-commandCenter-inactiveBorder] bg-[--deputydev-input-background] p-2">
+          <div className="relative w-full ">
+            <div className={`mb-1 flex flex-wrap focus-within:outline focus-within:outline-[1px]  focus-within:outline-[--vscode-list-focusOutline] items-center gap-1 rounded bg-[--deputydev-input-background] p-2 ${borderClass}`}>
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -483,7 +488,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto no-scrollbar bg-transparent p-0 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""

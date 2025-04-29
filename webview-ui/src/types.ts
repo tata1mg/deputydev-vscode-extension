@@ -90,7 +90,8 @@ export type ChatMessage =
   | ChatThinkingMessage
   | ChatCodeBlockMessage
   | ChatErrorMessage
-  | ChatCompleteMessage;
+  | ChatCompleteMessage
+  | ChatTerminalNoShell
 
 export type ChatMetaData = {
   type: "RESPONSE_METADATA"
@@ -119,6 +120,16 @@ export interface ChatAssistantMessage {
   actor: "ASSISTANT";
 }
 
+
+
+export interface TerminalPanelProps {
+  tool_id : string;
+  terminal_command: string;
+  terminal_output?: string;
+  status?: "pending" | "completed" | "error" | "aborted";
+  show_approval_options?: boolean;
+}
+
 export interface ChatToolUseMessage {
   type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
   content: {
@@ -127,8 +138,9 @@ export interface ChatToolUseMessage {
     input_params_json: { prompt: string } | string;
     tool_input_json?: { prompt: string };
     result_json: string;
-    status: "pending" | "completed" | "error";
+    status: "pending" | "completed" | "error" | "aborted";
     write_mode?: boolean;
+    terminal_approval_required?: boolean;
   };
 }
 
@@ -171,6 +183,11 @@ export interface ChatCompleteMessage {
   content: {
     elapsedTime: number;
   }
+}
+
+export interface ChatTerminalNoShell {
+  type: "TERMINAL_NO_SHELL_INTEGRATION";
+  actor: "ASSISTANT";
 }
 
 export interface ChatSessionHistory {

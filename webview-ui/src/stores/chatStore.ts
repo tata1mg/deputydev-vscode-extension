@@ -9,7 +9,7 @@ import {
   showErrorMessage,
 } from "@/commandApi";
 
-import { persistStorage } from "./lib";
+import { persistGlobalStorage, persistStorage } from "./lib";
 import pick from "lodash/pick";
 import {
   AutocompleteOption,
@@ -24,6 +24,7 @@ import {
   ChatErrorMessage,
   ChatCompleteMessage,
   ProgressBarData,
+  ChatTerminalNoShell,
   ChatMetaData,
 } from "@/types";
 
@@ -79,6 +80,7 @@ export const useChatStore = create(
       {
         history: [] as ChatMessage[],
         current: undefined as ChatAssistantMessage | undefined,
+        userInput: "",
         currentChatRequest: undefined as any,
         isLoading: false,
         showSessionsBox: true,
@@ -124,77 +126,86 @@ export const useChatStore = create(
             chunkCallback: (data: { name: string; data: any }) => void,
             retryChat?: boolean,
             retry_payload?: any,
+            create_new_workspace_payload?: any,
           ) {
+
             logToOutput("info", `sendChatMessage: ${message}`);
-            const { history, lastToolUseResponse } = get();
-
-            // Create the user message
-            const userMessage: ChatUserMessage = {
-              type: "TEXT_BLOCK",
-              content: { text: message },
-              referenceList: editorReferences,
-              actor: "USER",
-            };
-
-            if (!retryChat) {
-              set({
-                history: [...history, userMessage],
-                current: {
-                  type: "TEXT_BLOCK",
-                  content: { text: "" },
-                  actor: "ASSISTANT",
-                },
-              });
-            }
-
-            // Remove any error messages from history
-            set((state) => ({
-              history: state.history.filter((msg) => msg.type !== "ERROR"),
-            }));
-
-            set({
-              isLoading: true,
-              showSkeleton: true,
-            });
-
-            // Build the payload
-            const payload: any = {
-              query: message,
-              urls: userMessage.referenceList.filter((item) => item.url),
-              is_tool_response: false,
-              relevant_chunks: [] as string[],
-              write_mode: useChatSettingStore.getState().chatType === "write",
-              referenceList: userMessage.referenceList.filter(
-                (item) => !item.url,
-              ),
-              is_inline:
-                useChatSettingStore.getState().chatSource === "inline-chat",
-            };
-
-            // If a tool response was stored, add it to the payload
-            if (lastToolUseResponse) {
-              payload.is_tool_response = true;
-              payload.tool_use_response = {
-                tool_name: lastToolUseResponse.tool_name,
-                tool_use_id: lastToolUseResponse.tool_use_id,
-                response: {
-                  user_response: message,
-                },
-              };
-              // Clear it so it doesn't affect subsequent messages.
-              set({ lastToolUseResponse: undefined });
-            }
-
             let stream;
-            if (retryChat) {
-              logToOutput(
-                "info",
-                `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`,
-              );
-              stream = apiChat(retry_payload);
-            } else {
-              stream = apiChat(payload);
+            if (create_new_workspace_payload) {
+              stream = apiChat(create_new_workspace_payload);
             }
+            else {
+              const { history, lastToolUseResponse } = get();
+
+              // Create the user message
+              const userMessage: ChatUserMessage = {
+                type: "TEXT_BLOCK",
+                content: { text: message },
+                referenceList: editorReferences,
+                actor: "USER",
+              };
+
+              if (!retryChat) {
+                set({
+                  history: [...history, userMessage],
+                  current: {
+                    type: "TEXT_BLOCK",
+                    content: { text: "" },
+                    actor: "ASSISTANT",
+                  },
+                });
+              }
+
+              // Remove any error messages from history
+              set((state) => ({
+                history: state.history.filter((msg) => msg.type !== "ERROR"),
+              }));
+
+              set({
+                isLoading: true,
+                showSkeleton: true,
+              });
+
+              // Build the payload
+              const payload: any = {
+                query: message,
+                urls: userMessage.referenceList.filter((item) => item.url),
+                is_tool_response: false,
+                relevant_chunks: [] as string[],
+                write_mode: useChatSettingStore.getState().chatType === "write",
+                referenceList: userMessage.referenceList.filter(
+                  (item) => !item.url,
+                ),
+                is_inline:
+                  useChatSettingStore.getState().chatSource === "inline-chat",
+              };
+
+              // If a tool response was stored, add it to the payload
+              if (lastToolUseResponse) {
+                payload.is_tool_response = true;
+                payload.tool_use_response = {
+                  tool_name: lastToolUseResponse.tool_name,
+                  tool_use_id: lastToolUseResponse.tool_use_id,
+                  response: {
+                    user_response: message,
+                  },
+                };
+                // Clear it so it doesn't affect subsequent messages.
+                set({ lastToolUseResponse: undefined });
+              }
+
+              if (retryChat) {
+                logToOutput(
+                  "info",
+                  `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`,
+                );
+                stream = apiChat(retry_payload);
+              } else {
+                stream = apiChat(payload);
+              }
+            }
+
+
 
             // console.log("stream received in FE : ", stream);
 
@@ -204,10 +215,10 @@ export const useChatStore = create(
                   case "RESPONSE_METADATA": {
                     set((state) => ({
                       history: [...state.history,
-                        {
-                          type: "RESPONSE_METADATA",
-                          content: event.data,
-                        } as ChatMetaData,
+                      {
+                        type: "RESPONSE_METADATA",
+                        content: event.data,
+                      } as ChatMetaData,
                       ],
                     }));
 
@@ -426,7 +437,7 @@ export const useChatStore = create(
                         {
                           type: "QUERY_COMPLETE",
                           actor: "ASSISTANT",
-                          content: {elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0)}
+                          content: { elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0) }
                         } as ChatCompleteMessage,
                       ],
                     }));
@@ -437,6 +448,23 @@ export const useChatStore = create(
                     );
 
                     chunkCallback({ name: "QUERY_COMPLETE", data: event.data });
+                    break;
+                  }
+
+                  case "TERMINAL_NO_SHELL_INTEGRATION": {
+                    useChatStore.setState({ showSkeleton: false });
+                    set((state) => ({
+                      history: [
+                        ...state.history,
+                        {
+                          type: "TERMINAL_NO_SHELL_INTEGRATION",
+                          actor: "ASSISTANT",
+                        } as ChatTerminalNoShell,
+                      ],
+                    }));
+
+
+                    chunkCallback({ name: "TERMINAL_NO_SHELL_INTEGRATION", data: event.data });
                     break;
                   }
 
@@ -511,105 +539,137 @@ export const useChatStore = create(
                       delta: string;
                       tool_use_id: string;
                     };
-                    if (tool_name === "ask_user_input") {
-                      // Accumulate JSON and try to extract prompt.
-                      set((state) => ({
-                        current: state.current
-                          ? {
-                            ...state.current,
-                            content: {
-                              text: (state.current.content.text + delta)
-                                .replace(/^\{"prompt":\s*"/, "") // Remove `{"prompt": "`
-                                .replace(/"}$/, ""), // Remove trailing `"}`
-                            },
-                          }
-                          : state.current,
-                      }));
-                    } else {
-                      set((state) => {
-                        const newHistory = state.history.map((msg) => {
-                          if (msg.type === "TOOL_USE_REQUEST") {
-                            const toolMsg = msg as ChatToolUseMessage;
-                            if (toolMsg.content.tool_use_id === tool_use_id) {
-                              return {
-                                ...toolMsg,
-                                content: {
-                                  ...toolMsg.content,
-                                  input_params_json:
-                                    toolMsg.content.input_params_json + delta, // ✅ Correctly updating inside content
-                                },
-                              };
+                    switch (tool_name) {
+                      case "ask_user_input":
+                        set((state) => ({
+                          current: state.current
+                            ? {
+                              ...state.current,
+                              content: {
+                                text: (state.current.content.text + delta)
+                                  .replace(/^\{"prompt":\s*"/, "") // Remove `{"prompt": "`
+                                  .replace(/"}$/, ""), // Remove trailing `"}`
+                              },
                             }
-                          }
-                          return msg;
+                            : state.current,
+                        }));
+                        break;
+
+                      default:
+                        set((state) => {
+                          const newHistory = state.history.map((msg) => {
+                            if (msg.type === "TOOL_USE_REQUEST") {
+                              const toolMsg = msg as ChatToolUseMessage;
+                              if (toolMsg.content.tool_use_id === tool_use_id) {
+                                return {
+                                  ...toolMsg,
+                                  content: {
+                                    ...toolMsg.content,
+                                    input_params_json:
+                                      toolMsg.content.input_params_json + delta,
+                                  },
+                                };
+                              }
+                            }
+                            return msg;
+                          });
+                          return { history: newHistory };
                         });
-                        return { history: newHistory };
-                      });
+                        break;
                     }
+
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
+
                   case "TOOL_USE_REQUEST_END": {
                     const { tool_name, tool_use_id } = event.data as {
                       tool_name: string;
                       tool_use_id: string;
                     };
-                    if (tool_name === "ask_user_input") {
-                      // Finalize the assistant message.
-                      set((state) => {
-                        if (!state.current) return state;
-                        let finalText = state.current.content?.text;
-                        // try {
-                        //   if (
-                        //     finalText.trim().startsWith("{") &&
-                        //     finalText.trim().endsWith("}")
-                        //   ) {
-                        //     const parsedJson = JSON.parse(finalText);
-                        //     if (parsedJson.prompt) {
-                        //       finalText = parsedJson.prompt;
-                        //     }
-                        //   }
-                        // } catch (e) {
-                        //   // Use the text as is if parsing fails.
-                        // }
-                        return {
-                          history: [
-                            ...state.history,
-                            { ...state.current, text: finalText },
-                          ],
-                          current: undefined,
-                          lastToolUseResponse: { tool_use_id, tool_name },
-                        };
-                      });
-                    } else {
-                      set((state) => {
-                        const newHistory = state.history.map((msg) => {
-                          if (msg.type === "TOOL_USE_REQUEST") {
-                            const toolMsg = msg as ChatToolUseMessage;
-                            if (toolMsg.content.tool_use_id === tool_use_id) {
-                              return {
-                                ...toolMsg,
-                                content: {
-                                  ...toolMsg.content,
-                                  status: "pending" as "pending", // ✅ Explicitly setting the correct type
-                                },
-                              };
-                            }
-                          }
-                          return msg;
+
+                    switch (tool_name) {
+                      case "ask_user_input":
+                        // Finalize the assistant message.
+                        set((state) => {
+                          if (!state.current) return state;
+                          let finalText = state.current.content?.text;
+                          return {
+                            history: [
+                              ...state.history,
+                              { ...state.current, text: finalText },
+                            ],
+                            current: undefined,
+                            lastToolUseResponse: { tool_use_id, tool_name },
+                          };
                         });
-                        return { history: newHistory };
-                      });
+                        break;
+
+                      default:
+                        set((state) => {
+                          const newHistory = state.history.map((msg) => {
+                            if (msg.type === "TOOL_USE_REQUEST") {
+                              const toolMsg = msg as ChatToolUseMessage;
+                              if (toolMsg.content.tool_use_id === tool_use_id) {
+                                return {
+                                  ...toolMsg,
+                                  content: {
+                                    ...toolMsg.content,
+                                    status: "pending" as "pending",
+                                  },
+                                };
+                              }
+                            }
+                            return msg;
+                          });
+                          return { history: newHistory };
+                        });
+                        break;
                     }
+
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
+
+                  case "TERMINAL_APPROVAL": {
+                    const terminalApprovalData = event.data as {
+                      tool_name: string;
+                      tool_use_id: string;
+                      terminal_approval_required: boolean;
+                    };
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === "TOOL_USE_REQUEST") {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (
+                            toolMsg.content.tool_use_id ===
+                            terminalApprovalData.tool_use_id
+                          ) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                terminal_approval_required:
+                                  terminalApprovalData.terminal_approval_required,
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                    chunkCallback({ name: event.name, data: event.data });
+                    break;
+                  }
+
+
                   case "TOOL_USE_RESULT": {
                     const toolResultData = event.data as {
                       tool_name: string;
                       tool_use_id: string;
                       result_json: string;
-                      status: "completed" | "error";
+                      status: "completed" | "error" | "aborted";
                     };
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
@@ -705,6 +765,18 @@ export const useChatStore = create(
               if (state.current) {
                 newHistory.push(state.current);
               }
+              const lastMsg = newHistory[newHistory.length - 1];
+              if (lastMsg?.type === "TOOL_USE_REQUEST") {
+                const toolMsg = lastMsg as ChatToolUseMessage;
+                newHistory[newHistory.length - 1] = {
+                  ...toolMsg,
+                  content: {
+                    ...toolMsg.content,
+                    status: "aborted" as "aborted",
+                    terminal_approval_required: toolMsg.content.tool_name === "execute_command" ? false : toolMsg.content.terminal_approval_required
+                  },
+                };
+              }
 
               return {
                 history: newHistory,
@@ -749,7 +821,7 @@ export const useChatSettingStore = create(
     ),
     {
       name: "chat-type-storage",
-      storage: persistStorage,
+      storage: persistGlobalStorage,
       partialize: (state) => pick(state, ["chatType", "chatSource"]),
     },
   ),

@@ -6,7 +6,7 @@ import { useAuthStore } from './authStore';
 import { persistStorage } from './lib'; // Ensure this utility is properly implemented
 
 interface ExtensionState {
-  isStarted: boolean;
+  // isStarted: boolean;
   viewType: ViewType;
   clientVersion: string;
   setClientVersion: (clientVersion: string) => void;
@@ -17,7 +17,7 @@ interface ExtensionState {
 export const useExtensionStore = create<ExtensionState>()(
   persist(
     (set, get) => ({
-      isStarted: false,
+      // isStarted: false,
       viewType: 'loader',
       clientVersion: "",
       setClientVersion: (clientVersion: string) => set({clientVersion}),
@@ -25,7 +25,6 @@ export const useExtensionStore = create<ExtensionState>()(
       initializeViewType: () => {
         const { isAuthenticated } = useAuthStore.getState();
         const savedViewType = get().viewType;
-        // console.log('current view type', savedViewType);
         if (isAuthenticated) {
           set({ viewType: savedViewType });
         }
