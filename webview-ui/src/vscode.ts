@@ -377,7 +377,6 @@ addCommandEventListener("session-chats-history", ({ data }) => {
 });
 
 addCommandEventListener("enhanced-user-query", ({ data }: any) => {
-  console.log("***************got enhanced prompt***********", data)
   useChatStore.setState({enhancedUserQuery: data.enhancedUserQuery as string})
 })
 

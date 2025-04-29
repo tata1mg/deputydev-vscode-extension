@@ -637,7 +637,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async enhanceUserQuery(userQuery: string) {
     const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
-    console.log("***********enhancedUserQuery*****************", response.enhanced_query)
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: "enhanced-user-query",
