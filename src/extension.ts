@@ -36,6 +36,7 @@ import { FeedbackService } from "./services/feedback/feedbackService";
 import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
 import { TerminalManager } from "./terminal/TerminalManager";
 import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
+import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -97,6 +98,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
+  const userQueryEnhancerService = new UserQueryEnhancerService();  
   const terminalManager = new TerminalManager(context)
 
 

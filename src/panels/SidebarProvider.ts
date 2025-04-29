@@ -31,6 +31,7 @@ import { SESSION_TYPE } from "../constants";
 import osName from "os-name";
 import { getShell } from "../terminal/utils/shell";
 import { FeedbackService } from "../services/feedback/feedbackService";
+import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQueryEnhancerService";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -54,8 +55,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager,
     private feedbackService: FeedbackService,
+    private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
-  ) { }
+  ) {  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -176,6 +178,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // Feedback
         case "submit-feedback":
           promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
+          break;
+
+        // Enhance user query feature
+        case "enhance-user-query":
+          promise = this.enhanceUserQuery(data.userQuery);
           break;
 
         // Logging and Messages
@@ -322,6 +329,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         "X-Session-Type": SESSION_TYPE,
       };
       const payload = {
+        session_id: getSessionId(),
         query: user_query,
         old_terminal_command: old_command,
         os_name: osName(),
@@ -665,6 +673,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async deleteSecretState(data: { key: string }) {
     return this.context.secrets.delete(data.key);
+  }
+
+  async enhanceUserQuery(userQuery: string) {
+    try {
+      const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { enhancedUserQuery: response.enhanced_query },
+      })
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { error: error},
+      })
+    }
   }
 
   async getSessions(data: { limit: number; offset: number }) {
