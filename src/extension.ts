@@ -1,7 +1,6 @@
 // File: src/extension.ts
 
 import * as vscode from "vscode";
-import * as os from "os";
 import { DiffViewManager } from "./diff/DiffManager";
 import { InlineDiffViewManager } from "./diff/InlineDiffManager";
 import { DiffEditorViewManager } from "./diff/SideDiffManager";
@@ -33,12 +32,10 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
+import { FeedbackService } from "./services/feedback/feedbackService";
 import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
-// import { Terminal } from "./terminal/TerminalManager";
-// import { autoExecutePingCommand } from "./terminal/autoExecutePingCommand";
 import { TerminalManager } from "./terminal/TerminalManager";
 import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
-
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -99,6 +96,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const profileService = new ProfileUiService();
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
+  const feedBackService = new FeedbackService();
   const terminalManager = new TerminalManager(context)
 
 
@@ -154,6 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
     configManager,
     profileService,
     usageTrackingManager,
+    feedBackService,
     continueNewWorkspace
   );
   context.subscriptions.push(
@@ -168,6 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
   new ThemeManager(sidebarProvider, logger);
 
   const pinger = new BackgroundPinger(
+    context,
     sidebarProvider,
     serverManager,
     outputChannel,
@@ -417,12 +417,12 @@ export async function activate(context: vscode.ExtensionContext) {
   //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
   //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
   // }),
-  
+
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
       logger.showCurrentProcessLogs();
     })
   );
-  
+
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );

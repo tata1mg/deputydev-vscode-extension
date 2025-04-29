@@ -19,6 +19,7 @@ import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
 import { useThemeStore } from "./stores/useThemeStore";
+import { url } from "inspector";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -188,6 +189,27 @@ export function addCommandEventListener(
   events[command].push(listener);
 }
 
+const getLocaleTimeString = (dateString: string) => {
+  const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
+  const date = new Date(cleanedDateString);
+  const dateOptions: Intl.DateTimeFormatOptions = {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  };
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    minute: "numeric",
+    hour12: true,
+  };
+
+  const locale = navigator.language || "en-US";
+  const datePart = date.toLocaleDateString(locale, dateOptions);
+  const timePart = date.toLocaleTimeString(locale, timeOptions);
+
+  return `${datePart}, ${timePart.toUpperCase()}`;
+};
+
 export function removeCommandEventListener(
   command: string,
   listener: EventListener,
@@ -218,8 +240,8 @@ addCommandEventListener("set-view-type", ({ data }) => {
   if (data === "history" && currentViewType !== "history") {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
-    useSessionsStore.setState({loadingPinnedSessions: true});
-    useSessionsStore.setState({loadingUnpinnedSessions: true});
+    useSessionsStore.setState({ loadingPinnedSessions: true });
+    useSessionsStore.setState({ loadingUnpinnedSessions: true });
   }
   useExtensionStore.setState({ viewType: data as ViewType });
 });
@@ -233,41 +255,41 @@ addCommandEventListener("repo-selector-state", ({ data }) => {
 });
 
 addCommandEventListener("set-workspace-repos", ({ data }) => {
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(data)}`,
-  );
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(data)}`);
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(repos)}`,
-  );
-  logToOutput(
-    "info",
-    `set-workspace-repos :: ${JSON.stringify(activeRepo)}`,
-  );
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(repos)}`);
+  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
 addCommandEventListener("sessions-history", ({ data }: any) => {
-  useSessionsStore.setState({ noUnpinnedSessions: data.unpinnedSessions.length === 0 });
+  useSessionsStore.setState({
+    noUnpinnedSessions: data.unpinnedSessions.length === 0,
+  });
   // Check if data is not empty before setting it
   useSessionsStore.getState().setHasMore(data.hasMore);
-  if (data.unpinnedSessions && Array.isArray(data.unpinnedSessions) && data.unpinnedSessions.length > 0) {
-    useSessionsStore.setState({loadingUnpinnedSessions: false});
+  if (
+    data.unpinnedSessions &&
+    Array.isArray(data.unpinnedSessions) &&
+    data.unpinnedSessions.length > 0
+  ) {
+    useSessionsStore.setState({ loadingUnpinnedSessions: false });
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
-      .setSessions((prevSessions) => [...prevSessions, ...(data.unpinnedSessions as Session[])]);
+      .setSessions((prevSessions) => [
+        ...prevSessions,
+        ...(data.unpinnedSessions as Session[]),
+      ]);
   }
 });
 
 addCommandEventListener("pinned-sessions", ({ data }: any) => {
-  useSessionsStore.setState({ noPinnedSessions: data.length === 0});
+  useSessionsStore.setState({ noPinnedSessions: data.length === 0 });
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
-    useSessionsStore.setState({loadingPinnedSessions: false})
+    useSessionsStore.setState({ loadingPinnedSessions: false });
     // Append new sessions to the existing ones
     useSessionsStore.setState({
       pinnedSessions: data as Session[],
@@ -329,6 +351,25 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
     // );
     return;
   }
+});
+
+addCommandEventListener("get-saved-urls-response", ({ data }) => {
+  const AutoSearchResponse = (data as any[]).map((item) => {
+    return {
+      id: item.id,
+      url: item.url,
+      icon: "url",
+      label: item.name,
+      value: item.name,
+      description: `Indexed on ${getLocaleTimeString(item.last_indexed)}`,
+      chunks: item.chunks ? item.chunks : null,
+    };
+  });
+  logToOutput(
+    "info",
+    `AutoSearchResponse :: ${JSON.stringify((AutoSearchResponse))}`,
+  );
+  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {

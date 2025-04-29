@@ -1,9 +1,9 @@
-import { CircleUserRound, TriangleAlert } from "lucide-react";
+import { CircleUserRound, TriangleAlert, ThumbsUp, ThumbsDown } from "lucide-react";
 import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  SearchedCodebase,
+  ToolUseStatusMessage,
   ThinkingChip,
   FileEditedChip,
   RetryChip,
@@ -14,6 +14,8 @@ import ReferenceChip from "./referencechip";
 import { TerminalPanel } from "./chatElements/TerminalPanel";
 import { JSX, useRef } from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
+import { submitFeedback } from "@/commandApi";
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { CreateNewWorkspace } from "./chatElements/CreateNewWorkspace";
 
 export function ChatArea() {
@@ -22,9 +24,12 @@ export function ChatArea() {
     current,
     showSkeleton,
     showSessionsBox,
+    feedbackState
   } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
+  const queryIdMap = new Map();
+  let queryId: number;
 
   // console.log("messages in parser", messages);
 
@@ -45,6 +50,10 @@ export function ChatArea() {
 
       {messages.map((msg, index) => {
         switch (msg.type) {
+          case "RESPONSE_METADATA": {
+            queryId = msg.content.query_id;
+            break;
+          }
           case "TEXT_BLOCK":
             if (msg.actor === "USER") {
               if (msg.content.focus_items?.length) {
@@ -81,6 +90,7 @@ export function ChatArea() {
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
+                          url={reference.url}
                         />
                       ))}
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
@@ -178,7 +188,7 @@ export function ChatArea() {
 
               default:
                 contentComponent = (
-                  <SearchedCodebase status={msg.content.status} />
+                  <ToolUseStatusMessage status={msg.content.status} tool_name={msg.content.tool_name} />
                 );
                 break;
             }
@@ -199,13 +209,10 @@ export function ChatArea() {
 
           case "QUERY_COMPLETE": {
             if (!queryCompleteTimestampsRef.current.has(index)) {
-              const last = useChatStore.getState().lastMessageSentTime;
-              if (last) {
-                const lastDate = last instanceof Date ? last : new Date(last);
-                if (!isNaN(lastDate.getTime())) {
-                  const elapsed = new Date().getTime() - lastDate.getTime();
-                  queryCompleteTimestampsRef.current.set(index, elapsed);
-                }
+              const elapsed = msg.content.elapsedTime
+
+              if (elapsed !== null) {
+                queryCompleteTimestampsRef.current.set(index, elapsed);
               }
             }
 
@@ -223,17 +230,108 @@ export function ChatArea() {
               }
             }
 
+            queryIdMap.set(index, queryId);
+
             return (
               <div
                 key={index}
-                className="mt-1 flex items-center space-x-2 font-medium text-green-500"
+                className="mt-1 flex items-center justify-between font-medium"
               >
-                <span>✓</span>
-                {timeElapsed !== null ? (
-                  <span>{`Task Completed in ${timeElapsed}.`}</span>
-                ) : (
-                  <span>Task Completed</span>
-                )}
+                <div className="flex items-center space-x-2 text-green-500">
+                  <span>✓</span>
+                  {timeElapsed !== null ? (
+                    <span>{`Task Completed in ${timeElapsed}.`}</span>
+                  ) : (
+                    <span>Task Completed</span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-3">
+                  {/* Thumbs up */}
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger>
+                        <div className={`${feedbackState.get(index) === "UPVOTE" && "animate-thumbs-up"}`}>
+                          <ThumbsUp
+                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "UPVOTE"
+                              ? "text-green-500 fill-green-500"
+                              : "hover:text-green-500 hover:fill-green-500"
+                              }`}
+                            onClick={() => {
+                              const currentFeedback = feedbackState.get(index);
+                              if (currentFeedback === "UPVOTE") {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "UPVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                              } else {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "UPVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                                submitFeedback("UPVOTE", queryIdMap.get(index));
+                              }
+                            }}
+                          />
+                        </div>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          className="rounded-md px-2 py-1 text-xs shadow-md"
+                          style={{
+                            backgroundColor:
+                              "var(--vscode-editorHoverWidget-background)",
+                            color: "var(--vscode-editorHoverWidget-foreground)",
+                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                          }}
+                        >
+                          Like
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
+
+                  {/* Thumbs down */}
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger>
+                        <div className={`${feedbackState.get(index) === "DOWNVOTE" && "animate-thumbs-down"}`}>
+                          <ThumbsDown
+                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
+                              ? "text-red-500 fill-red-500"
+                              : "hover:text-red-500 hover:fill-red-500"
+                              }`}
+                            onClick={() => {
+                              const currentFeedback = feedbackState.get(index);
+                              if (currentFeedback === "DOWNVOTE") {
+                                const newMap = new Map(feedbackState);
+                                newMap.delete(index);
+                                useChatStore.setState({ feedbackState: newMap });
+                              } else {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "DOWNVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                                submitFeedback("DOWNVOTE", queryIdMap.get(index));
+                              }
+                            }}
+                          />
+                        </div>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          className="rounded-md px-2 py-1 text-xs shadow-md"
+                          style={{
+                            backgroundColor:
+                              "var(--vscode-editorHoverWidget-background)",
+                            color: "var(--vscode-editorHoverWidget-foreground)",
+                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                          }}
+                        >
+                          Dislike
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
+                </div>
               </div>
             );
           }

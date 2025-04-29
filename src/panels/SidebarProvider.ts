@@ -30,8 +30,10 @@ import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToke
 import { SESSION_TYPE } from "../constants";
 import osName from "os-name";
 import { getShell } from "../terminal/utils/shell";
+import { FeedbackService } from "../services/feedback/feedbackService";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
+  private isWebviewInitialized = false;
   private pendingMessages: any[] = [];
   private _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
@@ -51,6 +53,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager,
+    private feedbackService: FeedbackService,
     private continueWorkspace : ContinueNewWorkspace,
   ) {}
 
@@ -65,11 +68,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this._extensionUri],
     };
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-    // Flush any pending messages now that the view is initialized
-    while (this.pendingMessages.length > 0) {
-      const message = this.pendingMessages.shift();
-      this._view.webview.postMessage(message);
-    }
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message: any) => {
@@ -132,6 +130,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             sendMessage
           );
           break;
+        case "url-search":
+          promise = this.codeReferenceService.urlSearch(data, sendMessage);
+          break;
+        case "get-saved-urls":
+          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          break;
+        case "save-url":
+          promise = this.codeReferenceService.saveUrl(data, sendMessage);
+          break;
+        case "delete-saved-url":
+          promise = this.codeReferenceService.deleteSavedUrl(
+            data.id,
+            sendMessage
+          );
+          break;
+        case "update-saved-url":
+          promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
+          break;
         case "usage-tracking":
           promise = this.trackingManager.trackUsage(data);
           break;
@@ -155,6 +171,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "open-requested-browser-page":
           promise = this.openBrowserPage(data);
+          break;
+
+        // Feedback
+        case "submit-feedback":
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
           break;
 
         // Logging and Messages
@@ -267,6 +288,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "hit-retry-embedding":
           this.hitRetryEmbedding();
+          break;
+
+        case "webview-initialized":
+          this.isWebviewInitialized = true;
+          this.sendPendingMessages();
           break;
       }
 
@@ -453,6 +479,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       this.logger.error("Binary initialization failed");
       this.outputChannel.error("🚨 Binary initialization failed.");
+      throw new Error("Binary initialization failed");
     }
   }
 
@@ -531,7 +558,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       active_repo,
       getSessionId(),
       data.write_mode,
-      data.is_inline,
+      data.is_inline
     );
     return;
   }
@@ -652,14 +679,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore},
+        data: { unpinnedSessions, hasMore },
       });
     } catch (error) {
       const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: "sessions-history",
-        data: {unpinnedSessions, hasMore : false},
+        data: { unpinnedSessions, hasMore: false },
       });
     }
   }
@@ -716,6 +743,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // console.error("Error while deleting session:", error);
     }
   }
+  async sendPendingMessages() {
+    // Flush any pending messages now that the view is initialized
+    while (this.pendingMessages.length > 0) {
+      const message = this.pendingMessages.shift();
+      this._view?.webview.postMessage(message);
+    }
+  }
 
   async createNewWorkspace(tool_use_id: string ) {  
     createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
@@ -756,6 +790,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       });
     });
   }
+
 
   newChat() {
     this.sendMessageToSidebar({
@@ -839,9 +874,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Helper to send messages from extension to webview.
    */
   public sendMessageToSidebar(message: any) {
-    if (this._view) {
+    if (this._view && this.isWebviewInitialized) {
       this._view.webview.postMessage(message);
     } else {
+      // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
   }
