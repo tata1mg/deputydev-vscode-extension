@@ -41,7 +41,7 @@ export function setSessionId(value: number) {
 }
 
 
-export function sendProgress(progressBarData: {repo: string, progress: number, status: string }) {
+export function sendProgress(progressBarData: { repo: string, progress: number, status: string }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: "progress-bar",
@@ -63,7 +63,7 @@ export function sendNotVerified() {
 }
 
 
-export function sendForceUgradeData(data: {url: string, upgradeVersion: string}) {
+export function sendForceUgradeData(data: { url: string, upgradeVersion: string }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: "force-upgrade-data",
@@ -110,10 +110,9 @@ export function getActiveRepo(): string | undefined {
 }
 
 export async function clearWorkspaceStorage(isLogout: boolean = false) {
-  if (!extensionContext)
-   {
+  if (!extensionContext) {
     return;
-   }
+  }
   if (isLogout) {
     await extensionContext.workspaceState.update("authToken", false);
     await extensionContext.workspaceState.update("configData", undefined);
