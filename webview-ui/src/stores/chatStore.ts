@@ -426,6 +426,7 @@ export const useChatStore = create(
                         {
                           type: "QUERY_COMPLETE",
                           actor: "ASSISTANT",
+                          content: {elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0)}
                         } as ChatCompleteMessage,
                       ],
                     }));

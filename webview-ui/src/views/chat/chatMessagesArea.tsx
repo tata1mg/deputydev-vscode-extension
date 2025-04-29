@@ -165,10 +165,7 @@ export function ChatArea() {
           case "QUERY_COMPLETE": {
             // If no timestamp has been recorded for this message, record one now
             if (!queryCompleteTimestampsRef.current.has(index)) {
-              const last = useChatStore.getState().lastMessageSentTime;
-              const elapsed = last
-                ? new Date().getTime() - last.getTime()
-                : null;
+              const elapsed = msg.content.elapsedTime
 
               if (elapsed !== null) {
                 queryCompleteTimestampsRef.current.set(index, elapsed);
