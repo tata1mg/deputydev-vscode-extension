@@ -168,6 +168,9 @@ export interface ChatErrorMessage {
 export interface ChatCompleteMessage {
   type: "QUERY_COMPLETE";
   actor: "ASSISTANT";
+  content: {
+    elapsedTime: number;
+  }
 }
 
 export interface ChatSessionHistory {
