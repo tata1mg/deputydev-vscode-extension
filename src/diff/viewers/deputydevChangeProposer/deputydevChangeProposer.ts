@@ -18,14 +18,14 @@ export class DeputydevChangeProposer {
     this.outputChannel.info("Initializing DeputydevChangeProposer");
     this.outputChannel.info("Registering custom editor provider");
     this.vscodeContext.subscriptions.push(
-      vscode.workspace.registerFileSystemProvider('deputydev-custom', new ChangeProposerFsProvider(), { isReadonly: false })
+      vscode.workspace.registerFileSystemProvider('deputydev-custom', new ChangeProposerFsProvider(this.fileChangeStateManager, this.outputChannel), { isReadonly: false })
     );
 
 
     this.vscodeContext.subscriptions.push(
       vscode.window.registerCustomEditorProvider(
         ChangeProposerEditor.viewType,
-        new ChangeProposerEditor(this.vscodeContext),
+        new ChangeProposerEditor(this.vscodeContext, this.outputChannel),
         {
           webviewOptions: {
             retainContextWhenHidden: true
@@ -53,11 +53,6 @@ export class DeputydevChangeProposer {
         throw new Error(`File change state not found for ${filePath}`);
       }
 
-      // show the diff view
-      // let uri = vscode.Uri.file(data.path);
-      const displayableUdiff = fileChangeState.currentUdiff.replace(/\r?\n/g, "\n");
-      // this._onDidChange.fire({ type: "add", path: uri.fsPath });
-
       vscode.commands.executeCommand(
         "setContext",
         "deputydev.changeProposer.hasChanges",
@@ -66,7 +61,7 @@ export class DeputydevChangeProposer {
 
       const displayableUdiffUri = vscode.Uri.from({
         scheme: 'deputydev-custom',
-        query: Buffer.from(displayableUdiff).toString('base64'),
+        query: Buffer.from(repoPath).toString('base64'),
         path: `${filePath}.ddproposed`
       });
 
