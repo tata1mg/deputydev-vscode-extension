@@ -57,24 +57,6 @@ function isNotCompatible(): boolean {
     return true;
   }
 
-  // Check for Git version >= 2.36.0
-  try {
-    const gitOutput = execSync('git --version').toString().trim(); // e.g., git version 2.36.0
-    const gitVersion = gitOutput.split(' ')[2]; // "2.36.0"
-    const [major, minor] = gitVersion.split('.').map(Number);
-    if (major < 2 || (major === 2 && minor < 36)) {
-      vscode.window.showWarningMessage(
-        `DeputyDev requires Git version 2.36.0 or later. You have ${gitVersion}. Please update Git to continue.`
-      );
-      return true;
-    }
-  } catch (err) {
-    vscode.window.showWarningMessage(
-      "Git is not installed or not available in PATH. Please install Git (version 2.36.0 or later) to use this extension."
-    );
-    return true;
-  }
-
   return false;
 }
 
