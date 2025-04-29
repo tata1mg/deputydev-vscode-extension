@@ -376,6 +376,11 @@ addCommandEventListener("session-chats-history", ({ data }) => {
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
+addCommandEventListener("enhanced-user-query", ({ data }: any) => {
+  console.log("***************got enhanced prompt***********", data)
+  useChatStore.setState({enhancedUserQuery: data.enhancedUserQuery as string})
+})
+
 addCommandEventListener("inline-chat-data", ({ data }) => {
   const response = data as InlineChatReferenceData;
   const currentEditorReference = useChatStore.getState().currentEditorReference;
