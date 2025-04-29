@@ -26,7 +26,6 @@ export class UserQueryEnhancerService {
       };
       const response = await api.post(API_ENDPOINTS.GENERATE_ENHANCED_USER_QUERY, { user_query: userQuery }, { headers });
       refreshCurrentToken(response.headers);
-      console.log("*******************", response.data.data.session_id)
       if (response.data.data.session_id) {
         setSessionId(response.data.data.session_id);
       }
