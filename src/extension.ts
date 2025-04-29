@@ -367,7 +367,6 @@ export async function activate(context: vscode.ExtensionContext) {
 					return
 				}
 
-				
 				// Send to sidebar provider
 				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
 			} catch (error) {
@@ -380,10 +379,6 @@ export async function activate(context: vscode.ExtensionContext) {
 	)
 
   context.subscriptions.push(
-  //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
-  //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
-  // }),
-
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
       logger.showCurrentProcessLogs();
     })
