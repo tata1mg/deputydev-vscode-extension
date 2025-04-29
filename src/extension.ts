@@ -131,9 +131,9 @@ export async function activate(context: vscode.ExtensionContext) {
     profileService,
     usageTrackingManager,
     feedBackService,
+    userQueryEnhancerService,  // <-- ADD THIS
     continueNewWorkspace,
-    
-  );
+  );  
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "deputydev-sidebar",
