@@ -50,14 +50,18 @@ export async function createNewWorkspaceFn(
     /* deleteCount */ 0,
     { uri: folderUri }
   );
-
-  if (isMultiRootWorkspaceFlag) {
-    // ——— WE ARE ALREADY IN A WORKSPACE ———
-    // skip copying chat/session (no restart will happen),
-    await new Promise(r => setTimeout(r, 120));
-    updateCurrentWorkspaceDD();
-  }
-  
+ 
+if (isMultiRootWorkspaceFlag) {
+  const disposable = vscode.workspace.onDidChangeWorkspaceFolders((event) => {
+    for (const added of event.added) {
+      if (added.uri.toString() === folderUri.toString()) {
+        // console.log("Detected new folder added:", added.uri.fsPath);
+        updateCurrentWorkspaceDD();
+        disposable.dispose(); // stop tracking
+        break;
+      }
+    }
+  });
 }
-
+}
 

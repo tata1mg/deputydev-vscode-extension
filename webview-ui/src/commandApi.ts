@@ -221,7 +221,6 @@ export function rejectTerminalCommand() {
   return callCommand("reject-terminal-command", {});
 }
  export function createNewWorkspace(tool_use_id: string) {
-  console.log("createNewWorkspace sent from ui", tool_use_id);
   return callCommand("create-new-workspace", {tool_use_id});
 }
 export function editTerminalCommand(data: {user_query: string, old_command: string}) {

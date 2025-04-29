@@ -13,7 +13,7 @@ export const WS_TIMEOUT = 1800000;
 
 
 export const MAX_PORT_ATTEMPTS = 20;
-export const TERMINAL_TIMEOUT = 15_000;
+export const DEFAULT_TERMINAL_TIMEOUT = 15_000;
 
 export const BINARY_BG_PING_INTERVAL_MS = 5000;
 // local binary host
