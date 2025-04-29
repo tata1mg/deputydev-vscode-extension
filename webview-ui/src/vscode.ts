@@ -489,11 +489,8 @@ addCommandEventListener("last-chat-data", ({ data }) => {
       }
     },
   }
-  // console.log("continuationPayload", continuationPayload);
   const { sendChatMessage } = useChatStore.getState();
   sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
-  // console log new history
-  // console.log("new history", useChatStore.getState().history);
 });
 
 
@@ -513,7 +510,6 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
     }
     return msg;
   });
-  // console.log("timestamp", new Date().toISOString());
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
 
