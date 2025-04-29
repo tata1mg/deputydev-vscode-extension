@@ -13,7 +13,7 @@ function getNonce(): string {
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
 
-  constructor(private readonly context: vscode.ExtensionContext) { }
+  constructor(private readonly context: vscode.ExtensionContext, private readonly outputChannel: vscode.LogOutputChannel) { }
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -41,6 +41,9 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
       enableScripts: true
     };
 
+    this.outputChannel.info(`Opening custom editor for: ${document.uri.toString()}`);
+    this.outputChannel.info(`Document content: ${document.content}`);
+
     const updateWebview = () => {
       webviewPanel.webview.html = this.getHtmlForWebview(document.content);
     };
@@ -64,86 +67,151 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   }
 
   private getHtmlForWebview(text: string): string {
-    const escaped = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/`/g, '\\`'); // Escape backticks
-
     const nonce = getNonce();
-
+  
     return `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <style>
-      html, body, #container {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-      }
-      .button-container {
-        position: absolute;
-        z-index: 1000;
-        display: flex;
-        gap: 10px;
-        top: 60px; /* Position on 3rd line, adjust based on line height */
-      }
-      .accept-button, .reject-button {
-        padding: 5px 10px;
-        border: none;
-        background-color: #007acc;
-        color: white;
-        font-size: 12px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .accept-button:hover, .reject-button:hover {
-        background-color: #005a9e;
-      }
-    </style>
-    <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-  </head>
-  <body>
-    <div id="container"></div>
-    <div class="button-container">
-      <button class="accept-button">Accept</button>
-      <button class="reject-button">Reject</button>
-    </div>
-    <script nonce="${nonce}">
-      const vscode = acquireVsCodeApi();
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        html, body, #container {
+          height: 100%;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+        }
+        .button-container {
+          position: absolute;
+          z-index: 1000;
+          display: flex;
+          gap: 10px;
+          top: 60px;
+        }
+        .accept-button, .reject-button {
+          padding: 5px 10px;
+          border: none;
+          background-color: #007acc;
+          color: white;
+          font-size: 12px;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        .accept-button:hover, .reject-button:hover {
+          background-color: #005a9e;
+        }
+        .green-line {
+          background-color: rgba(35, 134, 54, 0.2); /* VSCode diff green */
+        }
+        .red-line {
+          background-color: rgba(179, 29, 40, 0.2); /* VSCode diff red */
+        }
+      </style>
+      <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    </head>
+    <body>
+      <div id="container"></div>
+      <script nonce="${nonce}">
+        const vscode = acquireVsCodeApi();
   
-      require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-      require(['vs/editor/editor.main'], function () {
-        const editor = monaco.editor.create(document.getElementById('container'), {
-          value: \`${escaped}\`,
-          language: 'plaintext',
-          theme: 'vs-dark',
-          automaticLayout: true
-        });
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+        require(['vs/editor/editor.main'], function () {
+          const editor = monaco.editor.create(document.getElementById('container'), {
+            value: \`${text}\`,
+            language: 'plaintext',
+            theme: 'vs-dark',
+            automaticLayout: true
+          });
   
-        editor.onDidChangeModelContent(() => {
-          vscode.postMessage({
-            type: 'edit',
-            text: editor.getValue()
+          // Add decorations and buttons for lines starting with + and -
+          const addLineDecorations = () => {
+            const model = editor.getModel();
+            const decorations = [];
+            
+            // Clear any previously added buttons
+            const existingButtons = document.querySelectorAll('.button-container');
+            existingButtons.forEach(button => button.remove());
+  
+            // Iterate over each line
+            for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+              const lineText = model.getLineContent(lineNumber);
+              const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+              let buttonContainer = null;
+              
+              if (lineText.startsWith('+')) {
+                decorations.push({
+                  range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
+                  options: {
+                    isWholeLine: true,
+                    className: 'green-line'
+                  }
+                });
+  
+                // Create and position buttons at the start of the diff line
+                buttonContainer = document.createElement('div');
+                buttonContainer.classList.add('button-container');
+                buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
+                const acceptButton = document.createElement('button');
+                acceptButton.classList.add('accept-button');
+                acceptButton.innerText = 'Accept';
+                buttonContainer.appendChild(acceptButton);
+                const rejectButton = document.createElement('button');
+                rejectButton.classList.add('reject-button');
+                rejectButton.innerText = 'Reject';
+                buttonContainer.appendChild(rejectButton);
+                document.body.appendChild(buttonContainer);
+  
+              } else if (lineText.startsWith('-')) {
+                decorations.push({
+                  range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
+                  options: {
+                    isWholeLine: true,
+                    className: 'red-line'
+                  }
+                });
+  
+                // Create and position buttons at the start of the diff line
+                buttonContainer = document.createElement('div');
+                buttonContainer.classList.add('button-container');
+                buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
+                const acceptButton = document.createElement('button');
+                acceptButton.classList.add('accept-button');
+                acceptButton.innerText = 'Accept';
+                buttonContainer.appendChild(acceptButton);
+                const rejectButton = document.createElement('button');
+                rejectButton.classList.add('reject-button');
+                rejectButton.innerText = 'Reject';
+                buttonContainer.appendChild(rejectButton);
+                document.body.appendChild(buttonContainer);
+              }
+            }
+            
+            editor.deltaDecorations([], decorations);
+          };
+  
+          // Apply the line decorations and button placement
+          addLineDecorations();
+  
+          editor.onDidChangeModelContent(() => {
+            vscode.postMessage({
+              type: 'edit',
+              text: editor.getValue()
+            });
+          });
+  
+          // Handling button clicks
+          document.addEventListener('click', (event) => {
+            if (event.target && event.target.classList.contains('accept-button')) {
+              vscode.postMessage({ type: 'accept' });
+            } else if (event.target && event.target.classList.contains('reject-button')) {
+              vscode.postMessage({ type: 'reject' });
+            }
           });
         });
-  
-        // Handling button clicks
-        document.querySelector('.accept-button').addEventListener('click', () => {
-          vscode.postMessage({ type: 'accept' });
-        });
-  
-        document.querySelector('.reject-button').addEventListener('click', () => {
-          vscode.postMessage({ type: 'reject' });
-        });
-      });
-    </script>
-  </body>
-  </html>`;
+      </script>
+    </body>
+    </html>`;
   }
-
+  
 
   // --- Required interface methods (with minimal implementations) ---
   private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<ChangeProposerDocument>>();
