@@ -11,7 +11,7 @@ import { ReferenceManager } from "../references/ReferenceManager";
 import {
   deleteSessionId,
   getActiveRepo,
-  getSessionId,
+getSessionId,
   setSessionId,
   sendProgress,
   clearWorkspaceStorage,
@@ -54,8 +54,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private profileService: ProfileUiService,
     private trackingManager: UsageTrackingManager,
     private feedbackService: FeedbackService,
-    private continueWorkspace : ContinueNewWorkspace,
-  ) {}
+    private continueWorkspace: ContinueNewWorkspace,
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -231,7 +231,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "sign-out":
           promise = this.signOut();
           break;
-        
+
         // past sessions
         case "get-sessions":
           promise = this.getSessions(data);
@@ -255,11 +255,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);
           break;
-        case "create-new-workspace": 
+        case "create-new-workspace":
           promise = this.createNewWorkspace(data.tool_use_id);
           break;
         case "accept-terminal-command":
-          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id , command: data.command});
+          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id, command: data.command });
           break;
         case "edit-terminal-command":
           promise = this.editTerminalCommand(data);
@@ -313,19 +313,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  async editTerminalCommand(data: {user_query: string, old_command: string}) {
+  async editTerminalCommand(data: { user_query: string, old_command: string }) {
     try {
-      const {user_query, old_command} = data;
+      const { user_query, old_command } = data;
       const authToken = await this.authService.loadAuthToken();
       const headers = {
         Authorization: `Bearer ${authToken}`,
         "X-Session-Type": SESSION_TYPE,
       };
       const payload = {
-        query:  user_query,
-        old_terminal_command : old_command,
-        os_name : osName(),
-        shell : getShell()
+        query: user_query,
+        old_terminal_command: old_command,
+        os_name: osName(),
+        shell: getShell()
       };
       const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
         headers,
@@ -337,7 +337,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.logger.error("Error while fetching past chats:", error);
       this.outputChannel.error("Error while fetching past chats:", error);
     }
-  
+
   }
   // For browser pages
   async openBrowserPage(data: { url: string }) {
@@ -751,7 +751,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async createNewWorkspace(tool_use_id: string ) {  
+  async createNewWorkspace(tool_use_id: string) {
     createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
   }
 
@@ -826,7 +826,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       id: uuidv4(),
       command: "terminal-output-to-chat",
       data: {
-        terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\`` 
+        terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\``
       },
     });
   }

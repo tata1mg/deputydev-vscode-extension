@@ -92,13 +92,13 @@ export class InlineChatEditManager {
           ): vscode.ProviderResult<vscode.CodeAction[]> => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) return [];
-          
+
             const selection = editor.selection;
             if (selection.isEmpty) return [];
-          
+
             const selectedText = document.getText(selection);
             const codeActions: vscode.CodeAction[] = [];
-          
+
             const actionChat = new vscode.CodeAction(
               "Chat using DeputyDev ⌘ L",
               vscode.CodeActionKind.QuickFix
@@ -108,11 +108,11 @@ export class InlineChatEditManager {
               title: "Chat",
             };
             codeActions.push(actionChat);
-          
+
             const isNonWhitespace = /\S/.test(selectedText);
             const isFile = document.uri.scheme === "file";
             const readOnly = isFile && isReadOnly(document.uri.fsPath);
-          
+
             if (isNonWhitespace && (!isFile || !readOnly)) {
               const actionEdit = new vscode.CodeAction(
                 "Modify using DeputyDev ⌘ I",
@@ -124,10 +124,10 @@ export class InlineChatEditManager {
               };
               codeActions.push(actionEdit);
             }
-          
+
             return codeActions;
           }
-                 
+
         }
       )
     );

@@ -506,7 +506,7 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
     return msg;
   });
   // console.log("timestamp", new Date().toISOString());
-  useChatStore.setState({ history: updatedHistory as ChatMessage[]});
+  useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
 
 
@@ -553,9 +553,9 @@ addCommandEventListener("update-workspace-dd", () => {
           `,
         }
       },
-  }
-  const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+    }
+    const { sendChatMessage } = useChatStore.getState();
+    sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
   } else {
     logToOutput("error", `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`);
   }
@@ -563,7 +563,7 @@ addCommandEventListener("update-workspace-dd", () => {
 
 
 addCommandEventListener("terminal-output-to-chat", ({ data }) => {
-  const terminalOutput = data as {terminalOutput: string}
+  const terminalOutput = data as { terminalOutput: string }
   const currentUserInput = useChatStore.getState().userInput;
   useChatStore.setState({
     userInput: currentUserInput + terminalOutput.terminalOutput,

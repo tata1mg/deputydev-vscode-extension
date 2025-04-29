@@ -40,7 +40,7 @@ export class ContinueNewWorkspace {
       //   },
       //   CONTINUE
       // );
-  
+
       // if (choice !== CONTINUE) {
       //   // user hit Esc or closed the dialog
       //   this.outputChannel.info("User cancelled workspace restoration.");
@@ -48,14 +48,14 @@ export class ContinueNewWorkspace {
       //   await this.context.globalState.update("chat-storage-copy", undefined);
       //   return;
       // }
-  
+
       // user did click “Continue Setup”:
       this.outputChannel.info(`Session ID: ${sessionId}`);
-  
+
       await this.context.workspaceState.update("sessionId", sessionId);
       await this.context.globalState.update("sessionId-copy", undefined);
       await this.context.globalState.update("chat-storage-copy", undefined);
-  
+
       this.restoredSessionId = sessionId;
       this.restoredChatData = lastChatData;
       const isAuthenticated = !!(await this.context.workspaceState.get("isAuthenticated"));

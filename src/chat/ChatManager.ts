@@ -50,12 +50,12 @@ export class ChatManager {
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string, command: string }>();
   public onTerminalApprove = this._onTerminalApprove.event;
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager,   
+    private diffViewManager: DiffViewManager,
     private terminalManager: TerminalManager,
   ) {
     this.logger = SingletonLogger.getInstance();
@@ -98,9 +98,9 @@ export class ChatManager {
         if (element.chunks !== null) {
           chunkDetails = chunkDetails.concat(element.chunks);
         }
-  
+
         this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
-  
+
         // Call the external function to fetch relevant chunks.
         const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
           auth_token: await this.authService.loadAuthToken(),
@@ -212,9 +212,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-          abortController: AbortController;
-          asyncIterator: AsyncIterableIterator<any>;
-        }
+        abortController: AbortController;
+        asyncIterator: AsyncIterableIterator<any>;
+      }
       | undefined;
 
     try {
@@ -746,7 +746,7 @@ export class ChatManager {
     if (!command) {
       throw new Error("Command is empty.");
     }
-    const TERMINAL_TIMEOUT =  is_long_running ? DEFAULT_TERMINAL_TIMEOUT + 40_000 : 15_000;
+    const TERMINAL_TIMEOUT = is_long_running ? DEFAULT_TERMINAL_TIMEOUT + 40_000 : 15_000;
     let finalCommand = command;
     let edited_command: string | undefined;
     const parsedContent = JSON.parse(toolRequest.accumulatedContent);
@@ -797,15 +797,15 @@ export class ChatManager {
       // Buffer every line
       let output = "";
       if (edited_command && edited_command.trim() !== command.trim()) {
-          this.outputChannel.info(`Running edited command: ${edited_command}`);
-          output += `
+        this.outputChannel.info(`Running edited command: ${edited_command}`);
+        output += `
             ===========
             User edited the command:
             original command: ${command}
             edited command: ${edited_command}
             ===========
           `
-          command = edited_command;
+        command = edited_command;
       }
       process.on("line", (line) => {
         this.outputChannel.info(`Terminal output: ${line}`);
@@ -1002,10 +1002,10 @@ export class ChatManager {
             `Running public_url_content_reader with params: ${JSON.stringify(parsedContent)}`
           );
           rawResult = await this._runPublicUrlContentReader(parsedContent);
-          break;        
+          break;
         case "execute_command":
           this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runExecuteCommand(parsedContent.command, parsedContent.requires_approval, !!parsedContent.is_long_running , chunkCallback, toolRequest, messageId || "");
+          rawResult = await this._runExecuteCommand(parsedContent.command, parsedContent.requires_approval, !!parsedContent.is_long_running, chunkCallback, toolRequest, messageId || "");
           break;
         default:
           this.outputChannel.warn(

@@ -35,8 +35,8 @@ export function CreateNewWorkspace({
         className="mt-2 flex w-full items-center gap-2 rounded border border-gray-500/40 px-2 py-2 text-sm"
         title={
           completed
-            ? "Workspace created successfully"
-            : "Workspace creation cancelled"
+            ? "Directory created successfully"
+            : "Directory creation cancelled"
         }
       >
         <div className="flex min-w-[16px] items-center justify-center">
@@ -44,8 +44,8 @@ export function CreateNewWorkspace({
         </div>
         <span className="text-sm">
           {completed
-            ? "Workspace created successfully"
-            : "Workspace creation cancelled"}
+            ? "Directory created successfully"
+            : "Directory creation cancelled"}
         </span>
       </div>
     );
