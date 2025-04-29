@@ -238,3 +238,7 @@ export function webviewInitialized() {
 export function submitFeedback(feedback: string, queryId: number) {
   return callCommand("submit-feedback", {feedback, queryId})
 }
+
+export function enhanceUserQuery(userQuery: string) {
+  return callCommand("enhance-user-query", {userQuery})
+}

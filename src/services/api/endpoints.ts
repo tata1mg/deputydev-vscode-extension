@@ -33,4 +33,5 @@ export const API_ENDPOINTS = {
   SEARCH_URL: "/v1/search_url",
   PUBLIC_URL_CONTENT_READER: "/v1/read_urls",
   SUBMIT_FEEDBACK: "/end_user/v1/feedbacks/submit",
+  GENERATE_ENHANCED_USER_QUERY: "/end_user/v2/code-gen/generate-enhanced-user-query"
 };
