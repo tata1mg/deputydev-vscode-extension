@@ -191,7 +191,6 @@ export function ChatUI() {
     }
 
     if (e.key === "Backspace") {
-      console.log(userInput)
       const textarea = e.currentTarget;
       const isEntireTextSelected =
         textarea.selectionStart === 0 &&
@@ -481,13 +480,13 @@ export function ChatUI() {
                 value={userInput}
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
-                // disabled={repoSelectorEmbedding}
-                // {...(repoSelectorEmbedding &&
-                //   activeRepo && {
-                //     "data-tooltip-id": "repo-tooltip",
-                //     "data-tooltip-content":
-                //       "Please wait, DeputyDev is initializing.",
-                //   })}
+                disabled={repoSelectorEmbedding}
+                {...(repoSelectorEmbedding &&
+                  activeRepo && {
+                    "data-tooltip-id": "repo-tooltip",
+                    "data-tooltip-content":
+                      "Please wait, DeputyDev is initializing.",
+                  })}
                 autoFocus
               />
             </div>
