@@ -131,7 +131,7 @@ export async function activate(context: vscode.ExtensionContext) {
     profileService,
     usageTrackingManager,
     feedBackService,
-    userQueryEnhancerService,  // <-- ADD THIS
+    userQueryEnhancerService,
     continueNewWorkspace,
   );  
   context.subscriptions.push(
@@ -367,20 +367,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					return
 				}
 
-				// [Optional] Any additional logic to process multi-line content can remain here
-				// For example:
-				/*
-				const lines = terminalContents.split("\n")
-				const lastLine = lines.pop()?.trim()
-				if (lastLine) {
-					let i = lines.length - 1
-					while (i >= 0 && !lines[i].trim().startsWith(lastLine)) {
-						i--
-					}
-					terminalContents = lines.slice(Math.max(i, 0)).join("\n")
-				}
-				*/
-
+				
 				// Send to sidebar provider
 				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
 			} catch (error) {
