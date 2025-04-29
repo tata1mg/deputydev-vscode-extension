@@ -25,6 +25,7 @@ import {
   ChatCompleteMessage,
   ProgressBarData,
   ChatTerminalNoShell,
+  ChatMetaData,
 } from "@/types";
 
 // =============================================================================
@@ -60,6 +61,13 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
     description: "A short piece of reusable class code",
     chunks: [],
   },
+  {
+    icon: "url",
+    label: "URL",
+    value: "url: ",
+    description: "A web address or link to a resource",
+    chunks: [],
+  },
 ];
 
 /*===========================================================================
@@ -88,6 +96,7 @@ export const useChatStore = create(
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
+        feedbackState: new Map(),
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -103,6 +112,7 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
+              feedbackState: new Map(),
             });
           },
 
@@ -155,10 +165,13 @@ export const useChatStore = create(
               // Build the payload
               const payload: any = {
                 query: message,
+                urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,
                 relevant_chunks: [] as string[],
                 write_mode: useChatSettingStore.getState().chatType === "write",
-                referenceList: userMessage.referenceList,
+                referenceList: userMessage.referenceList.filter(
+                  (item) => !item.url,
+                ),
                 is_inline:
                   useChatSettingStore.getState().chatSource === "inline-chat",
               };
@@ -195,6 +208,22 @@ export const useChatStore = create(
             try {
               for await (const event of stream) {
                 switch (event.name) {
+                  case "RESPONSE_METADATA": {
+                    set((state) => ({
+                      history: [...state.history,
+                        {
+                          type: "RESPONSE_METADATA",
+                          content: event.data,
+                        } as ChatMetaData,
+                      ],
+                    }));
+
+                    logToOutput(
+                      "info",
+                      `query complete ${JSON.stringify(event.data)}`,
+                    );
+                    break;
+                  }
                   case "TEXT_START": {
                     // Initialize a new current message with the desired structure
                     set((state) => ({
@@ -404,6 +433,7 @@ export const useChatStore = create(
                         {
                           type: "QUERY_COMPLETE",
                           actor: "ASSISTANT",
+                          content: {elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0)}
                         } as ChatCompleteMessage,
                       ],
                     }));

@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EnterIcon } from "../../components/enterIcon";
 import {
-initialAutocompleteOptions,
+  initialAutocompleteOptions,
   useChatSettingStore,
   useChatStore,
 } from "../../stores/chatStore";
@@ -12,16 +12,26 @@ import { Tooltip } from "react-tooltip";
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import RepoSelector from "./chatElements/RepoSelector";
 import { ChatArea } from "./chatMessagesArea";
-import { editTerminalCommand, keywordSearch, keywordTypeSearch, logToOutput } from "@/commandApi";
+import {
+  editTerminalCommand, 
+  keywordSearch,
+  keywordTypeSearch,
+  logToOutput,
+  getSavedUrls,
+  urlSearch,
+} from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from "@/types";
+import {
+  AutocompleteOption,
+  ChatReferenceItem,
+  ChatUserMessage,
+} from "@/types";
 import { isEqual as lodashIsEqual } from "lodash";
 import "../../styles/markdown-body.css";
 import { AutocompleteMenu } from "./autocomplete";
 import ProgressBar from "./chatElements/progressBar";
 import ReferenceChip from "./referencechip";
-
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -35,7 +45,7 @@ export function ChatUI() {
     showSessionsBox,
     ChatAutocompleteOptions,
     progressBars,
-    selectedOptionIndex
+    selectedOptionIndex,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -58,12 +68,12 @@ export function ChatUI() {
   // const [repoSelectorDisabled] = useState(false);
   const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [showAddNewButton, setShowAddNewButton] = useState(false);
   const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
-
 
   useEffect(() => {
     const handleCopy = () => {
@@ -121,7 +131,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
+      await sendChatMessage(message, editorReferences, () => {});
     } finally {
     }
   };
@@ -150,9 +160,10 @@ export function ChatUI() {
       // Prevent default behavior for up/down arrows when autocomplete is active
       if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
-        const newIndex = e.key === "ArrowUp"
-          ? (selectedOptionIndex - 1 + options.length) % options.length
-          : (selectedOptionIndex + 1) % options.length;
+        const newIndex =
+          e.key === "ArrowUp"
+            ? (selectedOptionIndex - 1 + options.length) % options.length
+            : (selectedOptionIndex + 1) % options.length;
         useChatStore.setState({ selectedOptionIndex: newIndex });
         return;
       }
@@ -172,7 +183,12 @@ export function ChatUI() {
     }
 
     // Handle regular enter key when not in autocomplete mode
-    if (!repoSelectorEmbedding && e.key === "Enter" && !e.shiftKey && !showAutocomplete) {
+    if (
+      !repoSelectorEmbedding &&
+      e.key === "Enter" &&
+      !e.shiftKey &&
+      !showAutocomplete
+    ) {
       e.preventDefault();
       if (!isLoading) {
         handleSend();
@@ -191,14 +207,14 @@ export function ChatUI() {
         setShowAutocomplete(false);
       }
 
-      if (userInput.endsWith("@") && !isEntireTextSelected) {
+      else if (userInput.endsWith("@") && !isEntireTextSelected) {
         e.preventDefault();
         setShowAutocomplete(false);
         setChipEditMode(false);
         setUserInput(userInput.slice(0, -1));
       }
 
-      if (userInput === "" && !isEntireTextSelected) {
+      else if (userInput === "" && !isEntireTextSelected) {
         backspaceCountRef.current += 1;
         if (backspaceCountRef.current === 2) {
           const allChips = [...useChatStore.getState().currentEditorReference];
@@ -215,6 +231,7 @@ export function ChatUI() {
         }
         setTimeout(() => (backspaceCountRef.current = 0), 300);
       }
+
     }
   };
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -231,9 +248,14 @@ export function ChatUI() {
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
         });
+      } else if (valueArr[0].toLowerCase() === "url") {
+        setShowAutocomplete(true);
+        valueArr[1] && urlSearch({
+          keyword: valueArr[1].trim(),
+        });
       } else {
         setShowAutocomplete(true);
-        if (value !== "") {
+        if (value !== "" && !value.startsWith("url:")) {
           keywordSearch({ keyword: value });
         }
       }
@@ -242,6 +264,7 @@ export function ChatUI() {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
+      setShowAddNewButton(false);
       setShowAutocomplete(true);
       setChipEditMode(true);
     }
@@ -261,7 +284,12 @@ export function ChatUI() {
       useChatStore.getState().ChatAutocompleteOptions;
     if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
       setUserInput(userInput.split("@")[0] + `@${option.value}`);
-      setShowAutocomplete(false);
+      if (option.icon === "url") {
+        getSavedUrls();
+        setShowAddNewButton(true);
+      } else {
+        setShowAutocomplete(false);
+      }
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
@@ -273,6 +301,7 @@ export function ChatUI() {
           path: option.description,
           chunks: option.chunks,
           value: option.value,
+          url: option.url,
         };
         useChatStore.setState({
           currentEditorReference: [...allChips, newChatRefrenceItem],
@@ -397,38 +426,21 @@ export function ChatUI() {
           {showAutocomplete && (
             <div className="w-full">
               <AutocompleteMenu
+                showAddNewButton={showAddNewButton}
                 options={ChatAutocompleteOptions}
                 onSelect={handleAutoCompleteSelect}
               />
             </div>
           )}
-          {/* <div className="flex flex-wrap gap-1">
-            {useChatStore.getState().currentEditorReference?.map((chip) => (
-              <ReferenceChip
-                chipIndex={chip.index}
-                initialText={chip.keyword}
-                onDelete={() => {
-                  handleChipDelete(chip.index);
-                }}
-                autoEdit={
-                  !chip.noEdit &&
-                  chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
-                }
-                setShowAutoComplete={setShowAutocomplete}
-                chunks={chip.chunks}
-              />
-            ))}
-          </div> */}
 
-          {messages.length === 0 && !showAutocomplete &&
+          {messages.length === 0 && !showAutocomplete && (
             <div className="px-4">
               <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                 DeputyDev is powered by AI. It can make mistakes. Please double
                 check all output.
               </p>
             </div>
-          }
+          )}
 
           {activeRepo ? (
             <div className="mb-[2px] w-full">
@@ -454,10 +466,11 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
+                      useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
+                  url={chip.url}
                 />
               ))}
               <textarea
@@ -475,10 +488,10 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                  "data-tooltip-id": "repo-tooltip",
-                  "data-tooltip-content":
-                    "Please wait, DeputyDev is initializing.",
-                })}
+                    "data-tooltip-id": "repo-tooltip",
+                    "data-tooltip-content":
+                      "Please wait, DeputyDev is initializing.",
+                  })}
                 autoFocus
               />
             </div>

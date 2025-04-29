@@ -9,7 +9,12 @@ export type ViewType =
   | "error"
   | "force-upgrade";
 export type ProgressStatus = "Completed" | "Failed" | "In Progress";
-export type ThemeKind =  'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
+export type ThemeKind =
+  | "dark"
+  | "light"
+  | "high-contrast"
+  | "high-contrast-light"
+  | "unknown";
 export type UserData = {
   email: string;
   userName: string;
@@ -30,6 +35,8 @@ export type ProfileUiDiv = {
 };
 
 export type AutocompleteOption = {
+  id?: string;
+  url?: string;
   icon: string;
   label: string;
   value: string;
@@ -66,6 +73,7 @@ export type ChatReferenceItem = {
   chunks: Chunk[];
   value?: string;
   noEdit?: boolean;
+  url?: string;
 };
 
 export type ChatType = "ask" | "write";
@@ -76,6 +84,7 @@ export type ChatChunkMessage = {
 };
 
 export type ChatMessage =
+  | ChatMetaData
   | ChatUserMessage
   | ChatAssistantMessage
   | ChatToolUseMessage
@@ -84,6 +93,14 @@ export type ChatMessage =
   | ChatErrorMessage
   | ChatCompleteMessage
   | ChatTerminalNoShell
+
+export type ChatMetaData = {
+  type: "RESPONSE_METADATA"
+  content: {
+    session_id: number
+    query_id: number
+  }
+}
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
@@ -164,6 +181,9 @@ export interface ChatErrorMessage {
 export interface ChatCompleteMessage {
   type: "QUERY_COMPLETE";
   actor: "ASSISTANT";
+  content: {
+    elapsedTime: number;
+  }
 }
 
 export interface ChatTerminalNoShell {
@@ -233,3 +253,9 @@ export type UsageTrackingRequest = {
   event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };
+
+export interface SaveUrlRequest {
+  id?: string;
+  name: string;
+  url: string;
+}
