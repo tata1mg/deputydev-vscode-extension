@@ -31,23 +31,6 @@ export class ContinueNewWorkspace {
       if (lastFolder) {
         await this.context.workspaceState.update("activeRepo", lastFolder.uri.fsPath);
       }
-      // // only one button ⇒ no extra “Cancel” button
-      // const choice = await vscode.window.showInformationMessage(
-      //   "Continue Workspace Setup?",
-      //   {
-      //     modal: true,
-      //     detail: "DeputyDev will resume setting up the workspace by creating the necessary files."
-      //   },
-      //   CONTINUE
-      // );
-
-      // if (choice !== CONTINUE) {
-      //   // user hit Esc or closed the dialog
-      //   this.outputChannel.info("User cancelled workspace restoration.");
-      //   await this.context.globalState.update("sessionId-copy", undefined);
-      //   await this.context.globalState.update("chat-storage-copy", undefined);
-      //   return;
-      // }
 
       // user did click “Continue Setup”:
       this.outputChannel.info(`Session ID: ${sessionId}`);
