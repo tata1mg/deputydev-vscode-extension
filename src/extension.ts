@@ -32,6 +32,7 @@ import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
 import { FeedbackService } from "./services/feedback/feedbackService";
+import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
 export async function activate(context: vscode.ExtensionContext) {
   // context reset from past session
   const isNotCompatibleCheck = isNotCompatible();
@@ -68,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
-
+  const userQueryEnhancerService = new UserQueryEnhancerService();
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace
@@ -118,7 +119,8 @@ export async function activate(context: vscode.ExtensionContext) {
     configManager,
     profileService,
     usageTrackingManager,
-    feedBackService
+    feedBackService,
+    userQueryEnhancerService
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(

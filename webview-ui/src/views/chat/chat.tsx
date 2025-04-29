@@ -1,7 +1,6 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check } from "lucide-react";
+import { Check, Sparkles, CornerDownLeft, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EnterIcon } from "../../components/enterIcon";
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
@@ -18,6 +17,7 @@ import {
   logToOutput,
   getSavedUrls,
   urlSearch,
+  enhanceUserQuery,
 } from "@/commandApi";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -44,6 +44,8 @@ export function ChatUI() {
     ChatAutocompleteOptions,
     progressBars,
     selectedOptionIndex,
+    enhancingUserQuery,
+    enhancedUserQuery
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -106,6 +108,9 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
+    if (enhancingUserQuery) {
+      return
+    }
     useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
@@ -126,10 +131,17 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } finally {
     }
   };
+
+  useEffect(() => {
+    if (enhancedUserQuery && enhancingUserQuery) {
+      setUserInput(enhancedUserQuery);
+      useChatStore.setState({ enhancingUserQuery: false })
+    }
+  }, [enhancedUserQuery])
 
   useEffect(() => {
     if (
@@ -461,7 +473,7 @@ export function ChatUI() {
                   autoEdit={
                     !chip.noEdit &&
                     chip.index ===
-                      useChatStore.getState().currentEditorReference.length - 1
+                    useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
@@ -471,7 +483,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""
@@ -480,18 +492,36 @@ export function ChatUI() {
                 value={userInput}
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
-                disabled={repoSelectorEmbedding}
+                disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                    "data-tooltip-id": "repo-tooltip",
-                    "data-tooltip-content":
-                      "Please wait, DeputyDev is initializing.",
-                  })}
+                  "data-tooltip-id": "repo-tooltip",
+                  "data-tooltip-content":
+                    "Please wait, DeputyDev is initializing.",
+                })}
                 autoFocus
               />
             </div>
 
-            <div className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2">
+            <div className="absolute right-3 bottom-2 flex items-center gap-4">
+
+              {enhancingUserQuery ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <button className="flex items-center justify-center disabled:cursor-not-allowed"
+                  onClick={() => {
+                    enhanceUserQuery(userInput)
+                    useChatStore.setState({ enhancingUserQuery: true })
+                  }}
+                  data-tooltip-id="sparkles-tooltip"
+                  data-tooltip-content={`${userInput ? "Enhance your prompt" : "Please write your prompt first."}`}
+                  data-tooltip-place="top-start"
+                  disabled={!userInput}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              )}
+
               {isLoading ? (
                 <button
                   className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
@@ -506,11 +536,12 @@ export function ChatUI() {
                     }
                   }}
                 >
-                  <EnterIcon className="h-5 w-5" />
+                  <CornerDownLeft className="h-4 w-4" />
                 </button>
               )}
             </div>
             <Tooltip id="repo-tooltip" />
+            <Tooltip id="sparkles-tooltip" />
           </div>
         </div>
 
