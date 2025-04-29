@@ -237,9 +237,6 @@ export function ChatUI() {
         }
         setTimeout(() => (backspaceCountRef.current = 0), 300);
       }
-      else {
-        setUserInput(userInput.slice(0, -1));
-      }
 
     }
   };
@@ -259,7 +256,7 @@ export function ChatUI() {
         });
       } else if (valueArr[0].toLowerCase() === "url") {
         setShowAutocomplete(true);
-        urlSearch({
+        valueArr[1] && urlSearch({
           keyword: valueArr[1].trim(),
         });
       } else {
