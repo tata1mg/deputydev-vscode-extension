@@ -108,6 +108,9 @@ export function ChatUI() {
   };
 
   const handleSend = async () => {
+    if (enhancingUserQuery) {
+      return
+    }
     useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
@@ -137,8 +140,6 @@ export function ChatUI() {
     if (enhancedUserQuery && enhancingUserQuery) {
       setUserInput(enhancedUserQuery);
       useChatStore.setState({enhancingUserQuery: false})
-    } else {
-      setUserInput("");
     }
   },[enhancedUserQuery])
 
