@@ -1,7 +1,6 @@
 export type ViewType =
   | "chat"
   | "setting"
-  | "setting2"
   | "loader"
   | "history"
   | "auth"

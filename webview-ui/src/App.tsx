@@ -79,9 +79,6 @@ function App() {
     case 'history':
       view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <History /> : <Auth />)
       break;
-    case 'setting2':
-      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
-      break;
     case 'error':
       view = showForceUpgrade ? <ForceUpgradeView /> : <Error /> 
       break;

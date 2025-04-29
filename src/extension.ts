@@ -45,36 +45,12 @@ export async function activate(context: vscode.ExtensionContext) {
   setExtensionContext(context);
   
   await clearWorkspaceStorage();
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
 
-  // const activeRepo = "/Users/vaibhav.meena/Desktop/extention after pratham auth/deputydev-vscode-extension";
-  // if (activeRepo) {
-  //   outputChannel.info(`now running terminal manager: ,  ${activeRepo}`);
-  //   const terminalInfo = await terminalManager.getOrCreateTerminal(activeRepo);
-  //   terminalInfo.terminal.show();
-  //   const process = terminalManager.runCommand(terminalInfo, "yarn build:all");
 
-  //   process.on('line', (line) => {
-  //     outputChannel.info(`Terminal output: ${line}`);
-  //   });
-  //   const output = terminalManager.getUnretrievedOutput(terminalInfo.id);
-  //   outputChannel.info(`Terminal command executed id: ${terminalInfo.id}`);
-  //   outputChannel.info(`Terminal command executed command: ${terminalInfo.lastCommand}`);
-  //   // add 5 seconds delay
-  //   // await new Promise(resolve => setTimeout(resolve, 5000));
-  //   // await proces
-  //   const command_output = terminalManager.getUnretrievedOutput(terminalInfo.id);
-  //   outputChannel.info(`Terminal command output get unreteived output: ${command_output}`);
-
-    
-    
-  //   // await process;
-  //   outputChannel.info(`Terminal command executed: ${terminalInfo.lastCommand}`);
-  //   return
-  // }
 
   // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
@@ -155,7 +131,8 @@ export async function activate(context: vscode.ExtensionContext) {
     profileService,
     usageTrackingManager,
     feedBackService,
-    continueNewWorkspace
+    continueNewWorkspace,
+    
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
