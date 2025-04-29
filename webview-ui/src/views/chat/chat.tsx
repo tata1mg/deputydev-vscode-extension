@@ -1,5 +1,5 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft } from "lucide-react";
+import { Check, Sparkles, CornerDownLeft, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   initialAutocompleteOptions,
@@ -139,9 +139,9 @@ export function ChatUI() {
   useEffect(() => {
     if (enhancedUserQuery && enhancingUserQuery) {
       setUserInput(enhancedUserQuery);
-      useChatStore.setState({enhancingUserQuery: false})
+      useChatStore.setState({ enhancingUserQuery: false })
     }
-  },[enhancedUserQuery])
+  }, [enhancedUserQuery])
 
   useEffect(() => {
     if (
@@ -483,7 +483,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pr-6 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
                     ? ""
@@ -505,18 +505,22 @@ export function ChatUI() {
 
             <div className="absolute right-3 bottom-2 flex items-center gap-4">
 
-              <button className="flex items-center justify-center disabled:cursor-not-allowed"
-                onClick={() => {
-                  enhanceUserQuery(userInput)
-                  useChatStore.setState({enhancingUserQuery: true})
-                }}
-                data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content= {`${userInput ? "Enhance your prompt" : "Please write your prompt first."}`}
-                data-tooltip-place="top-start"
-                disabled={!userInput}
-              >
-                <Sparkles className="h-4 w-4" />
-              </button>
+              {enhancingUserQuery ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <button className="flex items-center justify-center disabled:cursor-not-allowed"
+                  onClick={() => {
+                    enhanceUserQuery(userInput)
+                    useChatStore.setState({ enhancingUserQuery: true })
+                  }}
+                  data-tooltip-id="sparkles-tooltip"
+                  data-tooltip-content={`${userInput ? "Enhance your prompt" : "Please write your prompt first."}`}
+                  data-tooltip-place="top-start"
+                  disabled={!userInput}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </button>
+              )}
 
               {isLoading ? (
                 <button
