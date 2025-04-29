@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = "VSCODE_EXT";
-export const CLIENT_VERSION = "2.5.1";
+export const CLIENT_VERSION = "2.6.0";
 export const DD_HOST = "https://api.deputydev.ai";
 // export const DD_HOST = "http://localhost:8084";
 
@@ -9,6 +9,7 @@ export const WS_TIMEOUT = 1800000;
 
 
 export const MAX_PORT_ATTEMPTS = 20;
+export const DEFAULT_TERMINAL_TIMEOUT = 15_000;
 
 export const BINARY_BG_PING_INTERVAL_MS = 1000;
 // local binary host

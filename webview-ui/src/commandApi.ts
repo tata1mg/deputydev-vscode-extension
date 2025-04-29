@@ -231,6 +231,22 @@ export function sendRetryEmbedding() {
   return callCommand("hit-retry-embedding", {});
 }
 
+
+
+// terminal
+export function acceptTerminalCommand(tool_use_id: string , command: string) {
+  return callCommand("accept-terminal-command", {tool_use_id, command});
+}
+export function rejectTerminalCommand() {
+  return callCommand("reject-terminal-command", {});
+}
+ export function createNewWorkspace(tool_use_id: string) {
+  return callCommand("create-new-workspace", {tool_use_id});
+}
+export function editTerminalCommand(data: {user_query: string, old_command: string}) {
+  return callCommand("edit-terminal-command", data);
+}
+
 export function webviewInitialized() {
   return callCommand("webview-initialized", {});
 }

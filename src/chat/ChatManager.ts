@@ -33,6 +33,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { UsageTrackingRequest } from "../types";
+import osName from "os-name"
+import { getShell } from "../terminal/utils/shell";
+import { TerminalManager } from "../terminal/TerminalManager";
+import { DEFAULT_TERMINAL_TIMEOUT } from "../config";
+
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -42,13 +47,16 @@ export class ChatManager {
   private authService = new AuthService();
   private currentAbortController: AbortController | null = null;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string, command: string }>();
+  public onTerminalApprove = this._onTerminalApprove.event;
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager
+    private diffViewManager: DiffViewManager,
+    private terminalManager: TerminalManager,
   ) {
     this.logger = SingletonLogger.getInstance();
   }
@@ -90,9 +98,9 @@ export class ChatManager {
         if (element.chunks !== null) {
           chunkDetails = chunkDetails.concat(element.chunks);
         }
-  
+
         this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
-  
+
         // Call the external function to fetch relevant chunks.
         const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
           auth_token: await this.authService.loadAuthToken(),
@@ -204,9 +212,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-          abortController: AbortController;
-          asyncIterator: AsyncIterableIterator<any>;
-        }
+        abortController: AbortController;
+        asyncIterator: AsyncIterableIterator<any>;
+      }
       | undefined;
 
     try {
@@ -242,6 +250,8 @@ export class ChatManager {
       if (deputyDevRules) {
         payload.deputy_dev_rules = deputyDevRules;
       }
+      payload.os_name = osName();
+      payload.shell = getShell();
 
       this.outputChannel.info("Payload prepared for QuerySolverService.");
       // console.log(payload)
@@ -417,6 +427,10 @@ export class ChatManager {
     } catch (error: any) {
       this.outputChannel.error(`Error during apiChat: ${error.message}`, error);
       this.onError(error);
+      if (this.currentAbortController?.signal.aborted) {
+        this.outputChannel.info("apiChat was cancelled.");
+        return;
+      }
       // Send error details back to the UI for potential retry
       chunkCallback({
         name: "error",
@@ -461,9 +475,9 @@ export class ChatManager {
 
     if (!result || Object.keys(result).length === 0) {
       this.outputChannel.info(`no file update after search and replace`);
-      vscode.window.showErrorMessage(
-        "No file updated after search and replace."
-      );
+      // vscode.window.showErrorMessage(
+      //   "No file updated after search and replace."
+      // );
       return null;
     }
     this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
@@ -717,6 +731,163 @@ export class ChatManager {
     }
   }
 
+
+
+
+
+  async _runExecuteCommand(
+    command: string,
+    requires_approval: boolean,
+    is_long_running: boolean,
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest,
+    messageId?: string,
+  ): Promise<string> {
+    if (!command) {
+      throw new Error("Command is empty.");
+    }
+    const TERMINAL_TIMEOUT = is_long_running ? DEFAULT_TERMINAL_TIMEOUT + 40_000 : 15_000;
+    let finalCommand = command;
+    let edited_command: string | undefined;
+    const parsedContent = JSON.parse(toolRequest.accumulatedContent);
+    const isInDenyList = true;
+
+    this.outputChannel.info(`Running execute command: ${command}`);
+    this.outputChannel.info(`Approval required for command: ${requires_approval}`);
+
+    if (requires_approval || isInDenyList) {
+      // Step 1: Request approval
+      chunkCallback({
+        name: "TERMINAL_APPROVAL",
+        data: {
+          tool_name: toolRequest.tool_name,
+          tool_use_id: toolRequest.tool_use_id,
+          terminal_approval_required: true,
+        },
+      });
+
+
+      // 2) wait for the matching approval event
+      await new Promise<void>(resolve => {
+        const disposable = this.onTerminalApprove(({ toolUseId, command }) => {
+          if (toolUseId === toolRequest.tool_use_id) {
+            edited_command = command;
+            finalCommand = command;
+            disposable.dispose();
+            resolve();
+          }
+        });
+      });
+    }
+    // console.log(`Command ${command} approved or not needed.`);
+
+    // Step 2: Actually execute the command (if approved or not needed)
+    try {
+      const activeRepo = getActiveRepo();
+      if (!activeRepo) {
+        throw new Error(`Command failed: Active repository is not defined.`);
+      }
+
+      this.outputChannel.info(`now running terminal manager: ${activeRepo}`);
+      const terminalInfo = await this.terminalManager.getOrCreateTerminal(activeRepo);
+      terminalInfo.terminal.show();
+
+      const process = this.terminalManager.runCommand(terminalInfo, finalCommand);
+
+      // Buffer every line
+      let output = "";
+      if (edited_command && edited_command.trim() !== command.trim()) {
+        this.outputChannel.info(`Running edited command: ${edited_command}`);
+        output += `
+            ===========
+            User edited the command:
+            original command: ${command}
+            edited command: ${edited_command}
+            ===========
+          `
+        command = edited_command;
+      }
+      process.on("line", (line) => {
+        this.outputChannel.info(`Terminal output: ${line}`);
+        output += line + "\n";
+      });
+
+      // Race between:
+      //  • natural completion
+      //  • shell-integration fallback
+      //  • error
+      //  • 15s timeout
+      const result = await new Promise<string>((resolve, reject) => {
+        let settled = false;
+
+        // 1) Timeout after 15s
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          // Don't kill the underlying process—let it keep running in the terminal.
+          resolve(
+            output +
+            `
+              ===========
+              Process is still running after 15s; returning partial output.
+              ===========
+              `
+          );
+        }, TERMINAL_TIMEOUT);
+
+        // 2) Shell-integration unavailable
+        process.once("no_shell_integration", () => {
+          if (settled) return;
+          chunkCallback({
+            name: "TERMINAL_NO_SHELL_INTEGRATION",
+            data: {},
+          });
+
+          settled = true;
+          clearTimeout(timer);
+          resolve(
+            `
+              ===========
+              Command sent, but shell-integration isn't available;
+              ===========
+            `
+          );
+        });
+
+        // 3) Low-level error
+        process.once("error", (err) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          reject(err);
+        });
+
+        // 4) Natural completion
+        process.once("completed", () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          // grab any trailing output
+          output += this.terminalManager.getUnretrievedOutput(terminalInfo.id);
+          resolve(output);
+        });
+      });
+      this.outputChannel.info(`Terminal command finished: ${result}`);
+      this.outputChannel.info(`Terminal command finished (wrapper resolved).`);
+      return result;
+
+    } catch (err: any) {
+      this.logger.error(`Command execution failed: ${err.message}`);
+      throw new Error(`Command failed: ${err.message}`);
+    }
+  }
+
+
+
+
+
+
+
   async handleModifiedFiles(
     modifiedFiles: Record<string, string>,
     active_repo: string,
@@ -748,19 +919,19 @@ export class ChatManager {
    * @param chunkCallback Callback to send results back to the UI.
    */
 
-  private async _runTool(
-    toolRequest: ToolRequest,
-    messageId: string | undefined,
-    chunkCallback: ChunkCallback
-  ): Promise<void> {
-    this.outputChannel.info(
-      `Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`
-    );
-
+  private async _runTool(toolRequest: ToolRequest, messageId: string | undefined, chunkCallback: ChunkCallback): Promise<void> {
+    this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
+    if (this.currentAbortController?.signal.aborted) {
+      this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
+      return;
+    }
     let rawResult: any;
     let status: "completed" | "error" = "error"; // Default to error
     let resultForUI: any; // This will hold what's sent in TOOL_USE_RESULT
-
+    if (toolRequest.tool_name == "create_new_workspace") {
+      this.outputChannel.info(`Running create_new_workspace tool`);
+      return;
+    }
     try {
       const active_repo = getActiveRepo();
       if (!active_repo) {
@@ -832,6 +1003,10 @@ export class ChatManager {
           );
           rawResult = await this._runPublicUrlContentReader(parsedContent);
           break;
+        case "execute_command":
+          this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this._runExecuteCommand(parsedContent.command, parsedContent.requires_approval, !!parsedContent.is_long_running, chunkCallback, toolRequest, messageId || "");
+          break;
         default:
           this.outputChannel.warn(
             `Unknown tool requested: ${toolRequest.tool_name}`
@@ -856,6 +1031,11 @@ export class ChatManager {
           return; // Exit _runTool early for unknown tools
       }
 
+      if (this.currentAbortController?.signal.aborted) {
+        this.outputChannel.warn(`_runTool aborted after executing tool: ${toolRequest.tool_name}`);
+        return;
+      }
+
       // Check if the tool function executed successfully and returned a valid result
       // (null/undefined might indicate an internal tool error not caught)
       status = "completed";
@@ -878,6 +1058,8 @@ export class ChatManager {
           tool_use_id: toolRequest.tool_use_id,
           response: structuredResponse, // Use the structured response for the backend
         },
+        os_name: osName(),
+        shell: getShell()
         // TODO: Consider if previous_query_ids need to be passed down through tool calls
       };
 
@@ -900,6 +1082,10 @@ export class ChatManager {
       );
       await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
+      if (this.currentAbortController?.signal.aborted) {
+        this.outputChannel.warn(`_runTool aborted during execution: ${toolRequest.tool_name}`);
+        return;
+      }
       this.logger.error(
         `Error running tool ${toolRequest.tool_name}: ${error.message}`
       );
@@ -936,7 +1122,10 @@ export class ChatManager {
             error_message: error.message,
           },
         },
-      };
+        os_name: osName(),
+        shell: getShell()
+
+      }
       await this.apiChat(toolUseRetryPayload, chunkCallback);
     }
   }
@@ -952,6 +1141,8 @@ export class ChatManager {
         return { batch_chunks_search: rawResult };
       case "file_path_searcher":
         return { file_path_search: rawResult };
+      case "execute_command":
+        return { execute_command_result: rawResult };
       default:
         // For unknown or simple tools, return the result directly (though handled earlier now)
         return rawResult;
