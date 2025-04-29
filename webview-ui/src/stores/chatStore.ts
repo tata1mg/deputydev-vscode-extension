@@ -211,10 +211,10 @@ export const useChatStore = create(
                   case "RESPONSE_METADATA": {
                     set((state) => ({
                       history: [...state.history,
-                        {
-                          type: "RESPONSE_METADATA",
-                          content: event.data,
-                        } as ChatMetaData,
+                      {
+                        type: "RESPONSE_METADATA",
+                        content: event.data,
+                      } as ChatMetaData,
                       ],
                     }));
 
@@ -433,7 +433,7 @@ export const useChatStore = create(
                         {
                           type: "QUERY_COMPLETE",
                           actor: "ASSISTANT",
-                          content: {elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0)}
+                          content: { elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0) }
                         } as ChatCompleteMessage,
                       ],
                     }));
@@ -577,7 +577,7 @@ export const useChatStore = create(
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
-                  
+
                   case "TOOL_USE_REQUEST_END": {
                     const { tool_name, tool_use_id } = event.data as {
                       tool_name: string;
@@ -761,18 +761,18 @@ export const useChatStore = create(
               if (state.current) {
                 newHistory.push(state.current);
               }
-                const lastMsg = newHistory[newHistory.length - 1];
-                if (lastMsg?.type === "TOOL_USE_REQUEST") {
+              const lastMsg = newHistory[newHistory.length - 1];
+              if (lastMsg?.type === "TOOL_USE_REQUEST") {
                 const toolMsg = lastMsg as ChatToolUseMessage;
                 newHistory[newHistory.length - 1] = {
                   ...toolMsg,
                   content: {
-                  ...toolMsg.content,
-                  status: "aborted" as "aborted",
-                  terminal_approval_required: toolMsg.content.tool_name === "execute_command" ? false : toolMsg.content.terminal_approval_required
+                    ...toolMsg.content,
+                    status: "aborted" as "aborted",
+                    terminal_approval_required: toolMsg.content.tool_name === "execute_command" ? false : toolMsg.content.terminal_approval_required
                   },
                 };
-                }
+              }
 
               return {
                 history: newHistory,
