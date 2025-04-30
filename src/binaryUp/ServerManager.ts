@@ -349,7 +349,7 @@ private async decryptAndExtract(encPath: string, extractTo: string): Promise<voi
             this.outputChannel.appendLine(`🚀 Starting server: ${serviceExecutable} ${port}`);
             
             const spawnOptions: SpawnOptions = {
-                stdio: ['ignore', 'pipe', 'pipe','inherit'],
+                stdio: ['ignore', 'pipe', 'pipe'], // Use 'pipe' for stdout and stderr to capture output
                 detached: false,                   // Important: this keeps child tied to parent
                 shell: false                       // Don't launch via shell
               };
