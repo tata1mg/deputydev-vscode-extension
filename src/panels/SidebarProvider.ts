@@ -32,6 +32,7 @@ import osName from "os-name";
 import { getShell } from "../terminal/utils/shell";
 import { FeedbackService } from "../services/feedback/feedbackService";
 import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQueryEnhancerService";
+import { ApiErrorHandler } from "../services/api/apiErrorHandler";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -40,6 +41,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
+  private apiErrorHandler = new ApiErrorHandler();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -342,8 +344,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       refreshCurrentToken(response.headers);
       return response.data.data.terminal_command;
     } catch (error) {
-      this.logger.error("Error while fetching past chats:", error);
-      this.outputChannel.error("Error while fetching past chats:", error);
+      this.logger.error("Error updating terminal command:");
+      this.apiErrorHandler.handleApiError(error);
     }
 
   }
