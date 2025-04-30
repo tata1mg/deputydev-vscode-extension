@@ -7,9 +7,9 @@ function isNotCompatible(): boolean {
 
   if (platform === 'win32') {
     vscode.window.showWarningMessage(
-      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!"
+      "Windows support is in beta. Some features may not work as expected. Please report any issues with logs."
     );
-    return true;
+    return false; // Allow Windows users to use the extension in beta mode
   }
 
   if (platform === 'darwin') {
