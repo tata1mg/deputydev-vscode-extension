@@ -1,4 +1,9 @@
-import { CircleUserRound, TriangleAlert, ThumbsUp, ThumbsDown } from "lucide-react";
+import {
+  CircleUserRound,
+  TriangleAlert,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
@@ -17,6 +22,7 @@ import { useThemeStore } from "@/stores/useThemeStore";
 import { submitFeedback } from "@/commandApi";
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { CreateNewWorkspace } from "./chatElements/CreateNewWorkspace";
+import { ChatMessage } from "@/types";
 
 export function ChatArea() {
   const {
@@ -24,17 +30,14 @@ export function ChatArea() {
     current,
     showSkeleton,
     showSessionsBox,
-    feedbackState
   } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
   const queryIdMap = new Map();
   let queryId: number;
 
-
   return (
     <>
-
       {messages.map((msg, index) => {
         switch (msg.type) {
           case "RESPONSE_METADATA": {
@@ -72,8 +75,8 @@ export function ChatArea() {
                           key={chipIndex}
                           chipIndex={chipIndex}
                           initialText={reference.keyword}
-                          onDelete={() => { }}
-                          setShowAutoComplete={() => { }}
+                          onDelete={() => {}}
+                          setShowAutoComplete={() => {}}
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
@@ -168,14 +171,17 @@ export function ChatArea() {
                 contentComponent = (
                   <CreateNewWorkspace
                     tool_id={msg.content.tool_use_id}
-                    status={(msg.content.status) || "pending"}
+                    status={msg.content.status || "pending"}
                   />
                 );
                 break;
 
               default:
                 contentComponent = (
-                  <ToolUseStatusMessage status={msg.content.status} tool_name={msg.content.tool_name} />
+                  <ToolUseStatusMessage
+                    status={msg.content.status}
+                    tool_name={msg.content.tool_name}
+                  />
                 );
                 break;
             }
@@ -196,7 +202,7 @@ export function ChatArea() {
 
           case "QUERY_COMPLETE": {
             if (!queryCompleteTimestampsRef.current.has(index)) {
-              const elapsed = msg.content.elapsedTime
+              const elapsed = msg.content.elapsedTime;
 
               if (elapsed !== null) {
                 queryCompleteTimestampsRef.current.set(index, elapsed);
@@ -218,7 +224,7 @@ export function ChatArea() {
             }
 
             queryIdMap.set(index, queryId);
-
+            const feedback = msg.content.feedbackState;
             return (
               <div
                 key={index}
@@ -237,22 +243,41 @@ export function ChatArea() {
                   <Tooltip.Provider>
                     <Tooltip.Root>
                       <Tooltip.Trigger>
-                        <div className={`${feedbackState.get(index) === "UPVOTE" && "animate-thumbs-up"}`}>
+                        <div
+                          className={`${feedback === "UPVOTE" && "animate-thumbs-up"}`}
+                        >
                           <ThumbsUp
-                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "UPVOTE"
-                              ? "text-green-500 fill-green-500"
-                              : "hover:text-green-500 hover:fill-green-500"
-                              }`}
+                            className={`h-4 w-4 cursor-pointer ${
+                              feedback === "UPVOTE"
+                                ? "fill-green-500 text-green-500"
+                                : "hover:fill-green-500 hover:text-green-500"
+                            }`}
                             onClick={() => {
-                              const currentFeedback = feedbackState.get(index);
-                              if (currentFeedback === "UPVOTE") {
-                                const newMap = new Map(feedbackState);
-                                newMap.set(index, "UPVOTE");
-                                useChatStore.setState({ feedbackState: newMap });
-                              } else {
-                                const newMap = new Map(feedbackState);
-                                newMap.set(index, "UPVOTE");
-                                useChatStore.setState({ feedbackState: newMap });
+                              if (feedback !== "UPVOTE") {
+                                const updatedMessages = useChatStore
+                                  .getState()
+                                  .history.map((m, i) => {
+                                    if (i !== index) return m;
+                                    if (
+                                      m.type === "QUERY_COMPLETE" ||
+                                      (m.type === "TEXT_BLOCK" &&
+                                        m.actor === "ASSISTANT")
+                                    ) {
+                                      return {
+                                        ...m,
+                                        content: {
+                                          ...m.content,
+                                          feedbackState: "UPVOTE",
+                                        },
+                                      };
+                                    }
+
+                                    return m;
+                                  });
+
+                                useChatStore.setState({
+                                  history: updatedMessages as ChatMessage[],
+                                });
                                 submitFeedback("UPVOTE", queryIdMap.get(index));
                               }
                             }}
@@ -267,7 +292,8 @@ export function ChatArea() {
                             backgroundColor:
                               "var(--vscode-editorHoverWidget-background)",
                             color: "var(--vscode-editorHoverWidget-foreground)",
-                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                            border:
+                              "1px solid var(--vscode-editorHoverWidget-border)",
                           }}
                         >
                           Like
@@ -280,23 +306,45 @@ export function ChatArea() {
                   <Tooltip.Provider>
                     <Tooltip.Root>
                       <Tooltip.Trigger>
-                        <div className={`${feedbackState.get(index) === "DOWNVOTE" && "animate-thumbs-down"}`}>
+                        <div
+                          className={`${feedback === "DOWNVOTE" && "animate-thumbs-down"}`}
+                        >
                           <ThumbsDown
-                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
-                              ? "text-red-500 fill-red-500"
-                              : "hover:text-red-500 hover:fill-red-500"
-                              }`}
+                            className={`h-4 w-4 cursor-pointer ${
+                              feedback === "DOWNVOTE"
+                                ? "fill-red-500 text-red-500"
+                                : "hover:fill-red-500 hover:text-red-500"
+                            }`}
                             onClick={() => {
-                              const currentFeedback = feedbackState.get(index);
-                              if (currentFeedback === "DOWNVOTE") {
-                                const newMap = new Map(feedbackState);
-                                newMap.delete(index);
-                                useChatStore.setState({ feedbackState: newMap });
-                              } else {
-                                const newMap = new Map(feedbackState);
-                                newMap.set(index, "DOWNVOTE");
-                                useChatStore.setState({ feedbackState: newMap });
-                                submitFeedback("DOWNVOTE", queryIdMap.get(index));
+                              if (feedback !== "DOWNVOTE") {
+                                const updatedMessages = useChatStore
+                                  .getState()
+                                  .history.map((m, i) => {
+                                    if (i !== index) return m;
+                                    if (
+                                      m.type === "QUERY_COMPLETE" ||
+                                      (m.type === "TEXT_BLOCK" &&
+                                        m.actor === "ASSISTANT")
+                                    ) {
+                                      return {
+                                        ...m,
+                                        content: {
+                                          ...m.content,
+                                          feedbackState: "DOWNVOTE",
+                                        },
+                                      };
+                                    }
+                                    return m;
+                                  });
+
+                                useChatStore.setState({
+                                  history: updatedMessages as ChatMessage[],
+                                });
+
+                                submitFeedback(
+                                  "DOWNVOTE",
+                                  queryIdMap.get(index),
+                                );
                               }
                             }}
                           />
@@ -310,7 +358,8 @@ export function ChatArea() {
                             backgroundColor:
                               "var(--vscode-editorHoverWidget-background)",
                             color: "var(--vscode-editorHoverWidget-foreground)",
-                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                            border:
+                              "1px solid var(--vscode-editorHoverWidget-border)",
                           }}
                         >
                           Dislike
@@ -324,20 +373,35 @@ export function ChatArea() {
           }
           case "TERMINAL_NO_SHELL_INTEGRATION":
             return (
-              <div key={index} className={`mt-2 flex flex-col items-start gap-1.5 rounded-md  ${["light", "high-contrast-light"].includes(themeKind) ? "bg-yellow-200/80" : "bg-yellow-800/40"} px-3 py-2`}>
-                <div className={`flex items-center   ${["light", "high-contrast-light"].includes(themeKind) ? "text-gray-900" : "text-yellow-500"} gap-2`}>
+              <div
+                key={index}
+                className={`mt-2 flex flex-col items-start gap-1.5 rounded-md ${["light", "high-contrast-light"].includes(themeKind) ? "bg-yellow-200/80" : "bg-yellow-800/40"} px-3 py-2`}
+              >
+                <div
+                  className={`flex items-center ${["light", "high-contrast-light"].includes(themeKind) ? "text-gray-900" : "text-yellow-500"} gap-2`}
+                >
                   <TriangleAlert className="h-4 w-4" />
-                  <p className="text-sm font-medium">Shell Integration Unavailable</p>
+                  <p className="text-sm font-medium">
+                    Shell Integration Unavailable
+                  </p>
                 </div>
                 <div className="text-xs">
-                  DeputyDev won't be able to view the command's output. Please update VSCode (<kbd>CMD/CTRL + Shift + P</kbd> → "Update") and make sure you're using a supported shell: zsh, bash, or PowerShell (<kbd>CMD/CTRL + Shift + P</kbd> → "Terminal: Select Default Profile").{" "}
-                  <a href="https://code.visualstudio.com/docs/terminal/shell-integration" target="_blank" rel="noopener noreferrer" className="underline">
+                  DeputyDev won't be able to view the command's output. Please
+                  update VSCode (<kbd>CMD/CTRL + Shift + P</kbd> → "Update") and
+                  make sure you're using a supported shell: zsh, bash, or
+                  PowerShell (<kbd>CMD/CTRL + Shift + P</kbd> → "Terminal:
+                  Select Default Profile").{" "}
+                  <a
+                    href="https://code.visualstudio.com/docs/terminal/shell-integration"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
                     Still having trouble?
                   </a>
                 </div>
               </div>
             );
-
 
           case "ERROR":
             return (
