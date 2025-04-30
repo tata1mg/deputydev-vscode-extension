@@ -182,6 +182,7 @@ export interface ChatCompleteMessage {
   actor: "ASSISTANT";
   content: {
     elapsedTime: number;
+    feedbackState : string;
   }
 }
 
