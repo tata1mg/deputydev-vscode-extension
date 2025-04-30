@@ -1,9 +1,9 @@
-import { CircleUserRound, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CircleUserRound, TriangleAlert, ThumbsUp, ThumbsDown } from "lucide-react";
 import Markdown from "react-markdown";
 import { useChatStore } from "../../stores/chatStore";
 import "../../styles/markdown-body.css";
 import {
-  SearchedCodebase,
+  ToolUseStatusMessage,
   ThinkingChip,
   FileEditedChip,
   RetryChip,
@@ -11,9 +11,12 @@ import {
 import { CodeActionPanel } from "./chatElements/codeActionPanel";
 import { Shimmer } from "./chatElements/shimmerEffect";
 import ReferenceChip from "./referencechip";
-import { useRef } from "react";
+import { TerminalPanel } from "./chatElements/TerminalPanel";
+import { JSX, useRef } from "react";
 import { useThemeStore } from "@/stores/useThemeStore";
 import { submitFeedback } from "@/commandApi";
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { CreateNewWorkspace } from "./chatElements/CreateNewWorkspace";
 
 export function ChatArea() {
   const {
@@ -28,10 +31,10 @@ export function ChatArea() {
   const queryIdMap = new Map();
   let queryId: number;
 
-  // console.log("messages in parser", messages);
 
   return (
     <>
+
       {messages.map((msg, index) => {
         switch (msg.type) {
           case "RESPONSE_METADATA": {
@@ -74,6 +77,7 @@ export function ChatArea() {
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
+                          url={reference.url}
                         />
                       ))}
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
@@ -142,11 +146,41 @@ export function ChatArea() {
           }
 
           case "TOOL_USE_REQUEST":
-            return (
-              <div key={index}>
-                <SearchedCodebase status={msg.content.status} />
-              </div>
-            );
+            let contentComponent: JSX.Element;
+
+            switch (msg.content.tool_name) {
+              case "execute_command":
+                contentComponent = (
+                  <TerminalPanel
+                    tool_id={msg.content.tool_use_id}
+                    terminal_command={
+                      (msg.content.input_params_json as string) || ""
+                    }
+                    status={msg.content.status}
+                    show_approval_options={
+                      msg.content.terminal_approval_required
+                    }
+                  />
+                );
+                break;
+
+              case "create_new_workspace":
+                contentComponent = (
+                  <CreateNewWorkspace
+                    tool_id={msg.content.tool_use_id}
+                    status={(msg.content.status) || "pending"}
+                  />
+                );
+                break;
+
+              default:
+                contentComponent = (
+                  <ToolUseStatusMessage status={msg.content.status} tool_name={msg.content.tool_name} />
+                );
+                break;
+            }
+
+            return <div key={index}>{contentComponent}</div>;
 
           case "TOOL_USE_REQUEST_BLOCK":
             return (
@@ -161,12 +195,8 @@ export function ChatArea() {
             );
 
           case "QUERY_COMPLETE": {
-            // If no timestamp has been recorded for this message, record one now
             if (!queryCompleteTimestampsRef.current.has(index)) {
-              const last = useChatStore.getState().lastMessageSentTime;
-              const elapsed = last
-                ? new Date().getTime() - last.getTime()
-                : null;
+              const elapsed = msg.content.elapsedTime
 
               if (elapsed !== null) {
                 queryCompleteTimestampsRef.current.set(index, elapsed);
@@ -192,9 +222,9 @@ export function ChatArea() {
             return (
               <div
                 key={index}
-                className="mt-1 flex items-center justify-between font-medium text-green-500"
+                className="mt-1 flex items-center justify-between font-medium"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 text-green-500">
                   <span>✓</span>
                   {timeElapsed !== null ? (
                     <span>{`Task Completed in ${timeElapsed}.`}</span>
@@ -203,48 +233,111 @@ export function ChatArea() {
                   )}
                 </div>
                 <div className="flex items-center space-x-3">
-                  <ThumbsUp
-                    className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "UPVOTE"
-                      ? "text-green-500 fill-green-500"
-                      : "hover:text-green-500 hover:fill-green-500"
-                      }`}
-                    onClick={() => {
-                      const currentFeedback = feedbackState.get(index);
-                      if (currentFeedback === "UPVOTE") {
-                        const newMap = new Map(feedbackState);
-                        newMap.set(index, "UPVOTE");
-                        useChatStore.setState({ feedbackState: newMap });
-                      } else {
-                        const newMap = new Map(feedbackState);
-                        newMap.set(index, "UPVOTE");
-                        useChatStore.setState({ feedbackState: newMap });
-                        submitFeedback("UPVOTE", queryIdMap.get(index));
-                      }
-                    }}
-                  />
-                  <ThumbsDown
-                    className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
-                      ? "text-red-500 fill-red-500"
-                      : "hover:text-red-500 hover:fill-red-500"
-                      }`}
-                    onClick={() => {
-                      const currentFeedback = feedbackState.get(index);
-                      if (currentFeedback === "DOWNVOTE") {
-                        const newMap = new Map(feedbackState);
-                        newMap.delete(index);
-                        useChatStore.setState({ feedbackState: newMap });
-                      } else {
-                        const newMap = new Map(feedbackState);
-                        newMap.set(index, "DOWNVOTE");
-                        useChatStore.setState({ feedbackState: newMap });
-                        submitFeedback("DOWNVOTE", queryIdMap.get(index));
-                      }
-                    }}
-                  />
+                  {/* Thumbs up */}
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger>
+                        <div className={`${feedbackState.get(index) === "UPVOTE" && "animate-thumbs-up"}`}>
+                          <ThumbsUp
+                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "UPVOTE"
+                              ? "text-green-500 fill-green-500"
+                              : "hover:text-green-500 hover:fill-green-500"
+                              }`}
+                            onClick={() => {
+                              const currentFeedback = feedbackState.get(index);
+                              if (currentFeedback === "UPVOTE") {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "UPVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                              } else {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "UPVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                                submitFeedback("UPVOTE", queryIdMap.get(index));
+                              }
+                            }}
+                          />
+                        </div>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          className="rounded-md px-2 py-1 text-xs shadow-md"
+                          style={{
+                            backgroundColor:
+                              "var(--vscode-editorHoverWidget-background)",
+                            color: "var(--vscode-editorHoverWidget-foreground)",
+                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                          }}
+                        >
+                          Like
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
+
+                  {/* Thumbs down */}
+                  <Tooltip.Provider>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger>
+                        <div className={`${feedbackState.get(index) === "DOWNVOTE" && "animate-thumbs-down"}`}>
+                          <ThumbsDown
+                            className={`cursor-pointer h-4 w-4 ${feedbackState.get(index) === "DOWNVOTE"
+                              ? "text-red-500 fill-red-500"
+                              : "hover:text-red-500 hover:fill-red-500"
+                              }`}
+                            onClick={() => {
+                              const currentFeedback = feedbackState.get(index);
+                              if (currentFeedback === "DOWNVOTE") {
+                                const newMap = new Map(feedbackState);
+                                newMap.delete(index);
+                                useChatStore.setState({ feedbackState: newMap });
+                              } else {
+                                const newMap = new Map(feedbackState);
+                                newMap.set(index, "DOWNVOTE");
+                                useChatStore.setState({ feedbackState: newMap });
+                                submitFeedback("DOWNVOTE", queryIdMap.get(index));
+                              }
+                            }}
+                          />
+                        </div>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          side="top"
+                          className="rounded-md px-2 py-1 text-xs shadow-md"
+                          style={{
+                            backgroundColor:
+                              "var(--vscode-editorHoverWidget-background)",
+                            color: "var(--vscode-editorHoverWidget-foreground)",
+                            border: "1px solid var(--vscode-editorHoverWidget-border)",
+                          }}
+                        >
+                          Dislike
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
                 </div>
               </div>
             );
           }
+          case "TERMINAL_NO_SHELL_INTEGRATION":
+            return (
+              <div key={index} className={`mt-2 flex flex-col items-start gap-1.5 rounded-md  ${["light", "high-contrast-light"].includes(themeKind) ? "bg-yellow-200/80" : "bg-yellow-800/40"} px-3 py-2`}>
+                <div className={`flex items-center   ${["light", "high-contrast-light"].includes(themeKind) ? "text-gray-900" : "text-yellow-500"} gap-2`}>
+                  <TriangleAlert className="h-4 w-4" />
+                  <p className="text-sm font-medium">Shell Integration Unavailable</p>
+                </div>
+                <div className="text-xs">
+                  DeputyDev won't be able to view the command's output. Please update VSCode (<kbd>CMD/CTRL + Shift + P</kbd> → "Update") and make sure you're using a supported shell: zsh, bash, or PowerShell (<kbd>CMD/CTRL + Shift + P</kbd> → "Terminal: Select Default Profile").{" "}
+                  <a href="https://code.visualstudio.com/docs/terminal/shell-integration" target="_blank" rel="noopener noreferrer" className="underline">
+                    Still having trouble?
+                  </a>
+                </div>
+              </div>
+            );
+
 
           case "ERROR":
             return (

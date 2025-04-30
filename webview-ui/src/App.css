@@ -29,11 +29,58 @@
   }
 }
 
+@keyframes thumbsUpBurst {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    border-radius: 50%;
+    transform: translate(0, 0);
+  }
+  70% {
+    box-shadow: 0 0 0 25px rgba(34, 197, 94, 0);
+    border-radius: 50%;
+    transform: translate(0, -5px); /* Shift up a bit */
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    border-radius: 50%;
+    transform: translate(0, 0);
+  }
+}
+
+.animate-thumbs-up {
+  animation: thumbsUpBurst 1s ease-out;
+}
+
+@keyframes thumbsDownBurst {
+  0% {
+    box-shadow: 0 0 0 0 rgba(247, 2, 2, 0.858);
+    border-radius: 50%;
+    transform: translate(0, 0);
+  }
+  70% {
+    box-shadow: 0 0 0 25px rgba(34, 197, 94, 0);
+    border-radius: 50%;
+    transform: translate(0, 5px); /* Shift up a bit */
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    border-radius: 50%;
+    transform: translate(0, 0);
+  }
+}
+
+.animate-thumbs-down {
+  animation: thumbsDownBurst 1s ease-out;
+}
 
 @layer utilities {
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
-      display: none;
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
@@ -136,6 +183,8 @@ body {
   background-color: var(--deputydev-chat-background);
   height: 100%;
   width: 100%;
+  border-left: solid 1px var(--vscode-sideBar-border);
+  border-right: solid 1px var(--vscode-sideBar-border);
 }
 
 /******************** Panel Layout Styles ********************/
@@ -182,6 +231,19 @@ body {
   --deputydev-sidebar-title-color: var(--vscode-sideBarTitle-foreground);
   --deputydev-icon-color: var(--vscode-icon-foreground);
   --deputydev-disabled-color: var(--vscode-disabledForeground);
+
+  /* button */
+  --deputydev-button-background: var(--vscode-button-background);
+  --deputydev-button-foreground: var(--vscode-button-foreground);
+  --deputydev-button-hover-background: var(--vscode-button-hoverBackground);
+  --deputydev-button-border: var(--vscode-button-border);
+
+
+  --deputydev-button-secondaryForeground: var(--vscode-button-secondaryForeground);
+  --deputydev-button-secondaryBackground: var(--vscode-button-secondaryBackground);
+  --deputydev-button-secondaryHoverBackground: var(--vscode-button-secondaryHoverBackground);
+
+
   /* --border: 0 0% 89.8%; */
   /* --radius: 0.5rem */
 }

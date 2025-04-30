@@ -1,5 +1,8 @@
+// file: webview-ui/src/stores/sessionsStore.ts
 import { Session } from "@/types";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { persistStorage } from "./lib";
 
 export const useSessionsStore = create<{
   sessions: Session[];
@@ -22,32 +25,42 @@ export const useSessionsStore = create<{
   clearSessions: () => void;
   clearPinnedSessions: () => void;
   clearCurrentSessionsPage: () => void;
-}>()((set) => ({
-  sessions: [] as Session[],
-  pinnedSessions: [] as Session[],
-  sessionsPerPage: 20,
-  currentSessionsPage: 1,
-  hasMore: true,
-  noUnpinnedSessions: false,
-  noPinnedSessions: false,
-  loadingPinnedSessions: true,
-  loadingUnpinnedSessions: true,
-  setCurrentSessionsPage: (updater) =>
-    set((state) => ({
-      currentSessionsPage: updater(state.currentSessionsPage),
-    })),
-  setSessions: (sessions) =>
-    set((state) => ({
-      sessions: Array.isArray(sessions) ? sessions : sessions(state.sessions),
-    })),
-  setPinnedSessions: (sessions) =>
-    set((state) => ({
-      pinnedSessions: Array.isArray(sessions)
-        ? sessions
-        : sessions(state.pinnedSessions),
-    })),
-  setHasMore: (value: boolean) => set({hasMore: value}),
-  clearSessions: () => set({ sessions: [] }),
-  clearPinnedSessions: () => set({ pinnedSessions: [] }),
-  clearCurrentSessionsPage: () => set({ currentSessionsPage: 1 }),
-}));
+}>()(
+  persist(
+    (set) => ({
+      sessions: [] as Session[],
+      pinnedSessions: [] as Session[],
+      sessionsPerPage: 20,
+      currentSessionsPage: 1,
+      hasMore: true,
+      noUnpinnedSessions: false,
+      noPinnedSessions: false,
+      loadingPinnedSessions: true,
+      loadingUnpinnedSessions: true,
+      setCurrentSessionsPage: (updater) =>
+        set((state) => ({
+          currentSessionsPage: updater(state.currentSessionsPage),
+        })),
+      setSessions: (sessions) =>
+        set((state) => ({
+          sessions: Array.isArray(sessions)
+            ? sessions
+            : sessions(state.sessions),
+        })),
+      setPinnedSessions: (sessions) =>
+        set((state) => ({
+          pinnedSessions: Array.isArray(sessions)
+            ? sessions
+            : sessions(state.pinnedSessions),
+        })),
+      setHasMore: (value: boolean) => set({ hasMore: value }),
+      clearSessions: () => set({ sessions: [] }),
+      clearPinnedSessions: () => set({ pinnedSessions: [] }),
+      clearCurrentSessionsPage: () => set({ currentSessionsPage: 1 }),
+    }),
+    {
+      name: "sessions-storage",
+      storage: persistStorage,
+    }
+  )
+);
