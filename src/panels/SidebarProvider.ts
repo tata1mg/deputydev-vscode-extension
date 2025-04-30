@@ -327,9 +327,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const headers = {
         Authorization: `Bearer ${authToken}`,
         "X-Session-Type": SESSION_TYPE,
+        "X-Session-Id": getSessionId(),
       };
       const payload = {
-        session_id: getSessionId(),
         query: user_query,
         old_terminal_command: old_command,
         os_name: osName(),
