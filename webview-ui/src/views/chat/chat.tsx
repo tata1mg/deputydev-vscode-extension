@@ -1,5 +1,5 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2 } from "lucide-react";
+import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   initialAutocompleteOptions,
@@ -145,6 +145,7 @@ export function ChatUI() {
     if (enhancedUserQuery && enhancingUserQuery) {
       setUserInput(enhancedUserQuery);
       useChatStore.setState({ enhancingUserQuery: false })
+      setTimeout(autoResize, 0);
     }
   }, [enhancedUserQuery])
 
@@ -508,12 +509,14 @@ export function ChatUI() {
               />
             </div>
 
-            <div className="absolute right-3 bottom-2 flex items-center gap-4">
+            <div className="absolute right-2.5 bottom-2 flex items-center gap-2">
 
               {enhancingUserQuery ? (
+                <div className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded">
                 <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
               ) : (
-                <button className="flex items-center justify-center disabled:cursor-not-allowed"
+                <button className="flex items-center justify-center disabled:cursor-not-allowed p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"
                   onClick={() => {
                     enhanceUserQuery(userInput)
                     useChatStore.setState({ enhancingUserQuery: true })
@@ -529,12 +532,14 @@ export function ChatUI() {
 
               {isLoading ? (
                 <button
-                  className="flex h-3.5 w-3.5 items-center justify-center rounded bg-red-500"
+                  className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"  
                   onClick={cancelChat}
-                />
+                >
+                  <CircleStop className="h-4 w-4 text-red-500" />
+                </button>
               ) : (
                 <button
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"
                   onClick={() => {
                     if (!isLoading) {
                       handleSend();
