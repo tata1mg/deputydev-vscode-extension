@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "2.4.0",
+  "version": "2.6.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -119,7 +119,12 @@
         "command": "deputydev.ViewLogs",
         "title": "View Logs",
         "category": "DeputyDev"
-      }
+      },
+      {
+				"command": "deputydev.addTerminalOutputToChat",
+				"title": "Add to DeputyDev",
+				"category": "DeputyDev"
+			}
     ],
     "menus": {
       "comments/commentThread/context": [
@@ -179,7 +184,13 @@
           "when": "deputydev.hasChanges",
           "group": "navigation@3"
         }
-      ]
+      ],
+      "terminal/context": [
+				{
+					"command": "deputydev.addTerminalOutputToChat",
+					"group": "navigation"
+				}
+			]
     },
     "viewsContainers": {
       "activitybar": [
@@ -261,6 +272,8 @@
     "lodash": "^4.17.21",
     "markdown-it": "^14.1.0",
     "nanoid": "5.1.5",
+    "os-name": "^6.0.0",
+    "p-wait-for": "^5.0.2",
     "path": "^0.12.7",
     "sse.js": "^2.6.0",
     "tar": "^7.4.3",
