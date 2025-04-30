@@ -78,14 +78,15 @@ export class ChatManager {
     let finalResult: Array<any> = [];
     this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
     try {
-      data.referenceList?.forEach(async (element) => {
+      // wait for all the async operations to finish
+      await Promise.all((data.referenceList ?? []).map(async (element) => {
         let chunkDetails: Array<Chunk> = [];
         if (element.chunks !== null) {
           chunkDetails = chunkDetails.concat(element.chunks);
         }
-  
+      
         this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
-  
+      
         // Call the external function to fetch relevant chunks.
         const result = chunkDetails.length ? await this.focusChunksService.getFocusChunks({
           auth_token: await this.authService.loadAuthToken(),
@@ -95,6 +96,9 @@ export class ChatManager {
           search_item_type: element.type,
           search_item_path: element.path,
         }) : [];
+      
+        this.outputChannel.info(`Result from getFocusChunks: ${JSON.stringify(result)}`);
+      
         let finalChunkInfos: Array<any> = [];
         if (result.length) {
           result.forEach((chunkInfoWithHash: any) => {
@@ -102,13 +106,16 @@ export class ChatManager {
             finalChunkInfos.push(chunkInfo);
           });
         }
+
         finalResult.push({
           "type": element.type,
           "value": element.value,
           "chunks": finalChunkInfos || null,
           "path": element.path
         });
-      });
+      }));
+
+      this.outputChannel.info(`Final result: ${JSON.stringify(finalResult)}`);
       return finalResult;
     } catch (error) {
       this.outputChannel.error(`Error fetching focus chunks: ${error}`);
