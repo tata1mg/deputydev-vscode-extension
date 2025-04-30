@@ -34,6 +34,7 @@ import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQuer
 import { getOSName } from "../utilities/osName";
 
 
+import { ApiErrorHandler } from "../services/api/apiErrorHandler";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -42,6 +43,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
+  private apiErrorHandler = new ApiErrorHandler();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -329,9 +331,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const headers = {
         Authorization: `Bearer ${authToken}`,
         "X-Session-Type": SESSION_TYPE,
+        "X-Session-Id": getSessionId(),
       };
       const payload = {
-        session_id: getSessionId(),
         query: user_query,
         old_terminal_command: old_command,
         os_name: await getOSName(),
@@ -344,8 +346,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       refreshCurrentToken(response.headers);
       return response.data.data.terminal_command;
     } catch (error) {
-      this.logger.error("Error while fetching past chats:", error);
-      this.outputChannel.error("Error while fetching past chats:", error);
+      this.logger.error("Error updating terminal command:");
+      this.apiErrorHandler.handleApiError(error);
     }
 
   }
