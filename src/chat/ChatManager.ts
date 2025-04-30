@@ -130,7 +130,6 @@ export class ChatManager {
         });
       }));
 
-      this.outputChannel.info(`Final result: ${JSON.stringify(finalResult)}`);
       return finalResult;
     } catch (error) {
       this.outputChannel.error(`Error fetching focus chunks: ${error}`);
