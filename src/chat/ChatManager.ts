@@ -111,9 +111,7 @@ export class ChatManager {
           search_item_type: element.type,
           search_item_path: element.path,
         }) : [];
-      
-        this.outputChannel.info(`Result from getFocusChunks: ${JSON.stringify(result)}`);
-      
+            
         let finalChunkInfos: Array<any> = [];
         if (result.length) {
           result.forEach((chunkInfoWithHash: any) => {
