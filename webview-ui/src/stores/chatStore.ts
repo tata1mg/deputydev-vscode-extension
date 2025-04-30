@@ -96,7 +96,6 @@ export const useChatStore = create(
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
-        feedbackState: new Map(),
         enhancingUserQuery: false,
         enhancedUserQuery: "",
       },
@@ -114,7 +113,6 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
-              feedbackState: new Map(),
               enhancedUserQuery: "",
               enhancingUserQuery: false
             });
@@ -437,7 +435,10 @@ export const useChatStore = create(
                         {
                           type: "QUERY_COMPLETE",
                           actor: "ASSISTANT",
-                          content: { elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0) }
+                          content: { elapsedTime: new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0) ,
+                            feedbackState: ""
+                          }
+                          
                         } as ChatCompleteMessage,
                       ],
                     }));
