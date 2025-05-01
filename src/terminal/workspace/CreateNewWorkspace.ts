@@ -11,14 +11,14 @@ function isMultiRootWorkspace(): boolean {
 export async function createNewWorkspaceFn(
   tool_use_id: string,
   context: vscode.ExtensionContext,
-  outputChannel: vscode.LogOutputChannel
+  outputChannel: vscode.LogOutputChannel,
 ) {
   const selectedFolder = await vscode.window.showOpenDialog({
     canSelectFiles: false,
     canSelectFolders: true,
     canSelectMany: false,
-    openLabel: "Select an empty workspace folder",
-    title: "Open Folder as New Workspace"
+    openLabel: 'Select an empty workspace folder',
+    title: 'Open Folder as New Workspace',
   });
 
   if (!selectedFolder?.[0]) {
@@ -26,8 +26,8 @@ export async function createNewWorkspaceFn(
   }
   const folderUri = selectedFolder[0];
 
-  updateWorkspaceToolStatus({ tool_use_id, status: "completed" });
-  await new Promise(r => setTimeout(r, 100));
+  updateWorkspaceToolStatus({ tool_use_id, status: 'completed' });
+  await new Promise((r) => setTimeout(r, 100));
   const isMultiRootWorkspaceFlag = isMultiRootWorkspace();
   if (isMultiRootWorkspaceFlag) {
     // ——— WE ARE ALREADY IN A WORKSPACE ———
@@ -44,11 +44,9 @@ export async function createNewWorkspaceFn(
 
   // finally actually add the folder into the workspace
   vscode.workspace.updateWorkspaceFolders(
-    vscode.workspace.workspaceFolders
-      ? vscode.workspace.workspaceFolders.length
-      : 0,
+    vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders.length : 0,
     /* deleteCount */ 0,
-    { uri: folderUri }
+    { uri: folderUri },
   );
 
   if (isMultiRootWorkspaceFlag) {
@@ -63,4 +61,3 @@ export async function createNewWorkspaceFn(
     });
   }
 }
-

@@ -1,15 +1,13 @@
-
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 function createOutputChannel(name: string, ENABLE_OUTPUT_CHANNEL: boolean = false): vscode.LogOutputChannel {
-  
   if (ENABLE_OUTPUT_CHANNEL) {
     return vscode.window.createOutputChannel(name, { log: true });
   } else {
     const noopEvent: vscode.Event<vscode.LogLevel> = (
       _listener: (e: vscode.LogLevel) => any,
       _thisArgs?: any,
-      _disposables?: vscode.Disposable[]
+      _disposables?: vscode.Disposable[],
     ): vscode.Disposable => {
       return { dispose: () => {} };
     };
@@ -35,7 +33,5 @@ function createOutputChannel(name: string, ENABLE_OUTPUT_CHANNEL: boolean = fals
     return noop as unknown as vscode.LogOutputChannel;
   }
 }
-
-
 
 export { createOutputChannel };
