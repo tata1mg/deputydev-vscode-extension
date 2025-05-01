@@ -6,7 +6,10 @@
     "start": "vite",
     "watch": "tsc && vite build --watch",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx --no-use-flat-config",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix --no-use-flat-config",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -73,6 +76,11 @@
     "sass-embedded": "^1.86.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "@typescript-eslint/eslint-plugin": "^5.59.11",
+    "@typescript-eslint/parser": "^5.59.11",
+    "eslint": "^8.42.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1"
   }
 }
