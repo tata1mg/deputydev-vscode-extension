@@ -30,7 +30,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { UsageTrackingRequest } from "../types";
-import { DiffManager } from "../diff/diffManager";
+import { DiffManager } from "../diff/diffApplicationAndDisplayManager";
 import osName from "os-name"
 import { getShell } from "../terminal/utils/shell";
 import { TerminalManager } from "../terminal/TerminalManager";
