@@ -10,6 +10,7 @@ import {
   setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
+  getActiveRepo,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
 import { HistoryService } from "./services/history/HistoryService";
@@ -30,17 +31,23 @@ import { DiffManager } from "./diff/diffManager";
 
 
 
+import { FeedbackService } from "./services/feedback/feedbackService";
+import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
+import { TerminalManager } from "./terminal/TerminalManager";
+import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
+import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
 export async function activate(context: vscode.ExtensionContext) {
-  // context reset from past session
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
     return;
   }
   setExtensionContext(context);
+  
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = true;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
+
 
 
 
@@ -65,6 +72,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const profileService = new ProfileUiService();
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
+  const feedBackService = new FeedbackService();
+  const userQueryEnhancerService = new UserQueryEnhancerService();  
+  const terminalManager = new TerminalManager(context)
 
 
   // 4. Diff View Manager Initialization
@@ -75,7 +85,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const diffManager = new DiffManager(context, '', outputChannel, authService);
   await diffManager.init();
-  const chatService = new ChatManager(context, outputChannel, diffManager);
+  const chatService = new ChatManager(context, outputChannel, diffManager, terminalManager);
+
+  const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
+  await continueNewWorkspace.init();
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
@@ -90,8 +103,11 @@ export async function activate(context: vscode.ExtensionContext) {
     referenceService,
     configManager,
     profileService,
-    usageTrackingManager
-  );
+    usageTrackingManager,
+    feedBackService,
+    userQueryEnhancerService,
+    continueNewWorkspace,
+  );  
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "deputydev-sidebar",
@@ -177,7 +193,6 @@ export async function activate(context: vscode.ExtensionContext) {
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
   inlineChatEditManager.inlineChatEditQuickFixes();
-
   //  6) Register "closeApp" command
   context.subscriptions.push(
     vscode.commands.registerCommand("deputydev.closeApp", () => {
@@ -226,11 +241,44 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  context.subscriptions.push(
-    //   vscode.commands.registerCommand("deputydev.OpenFAQ", () => {
-    //     vscode.env.openExternal(vscode.Uri.parse("https://your-faq-url.com"));
-    // }),
 
+	context.subscriptions.push(
+		vscode.commands.registerCommand("deputydev.addTerminalOutputToChat", async () => {
+			const terminal = vscode.window.activeTerminal
+			if (!terminal) {
+				return
+			}
+
+			// Save current clipboard content
+			const tempCopyBuffer = await vscode.env.clipboard.readText()
+
+			try {
+				// Copy the *existing* terminal selection (without selecting all)
+				await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+
+				// Get copied content
+				let terminalContents = (await vscode.env.clipboard.readText()).trim()
+
+				// Restore original clipboard content
+				await vscode.env.clipboard.writeText(tempCopyBuffer)
+
+				if (!terminalContents) {
+					// No terminal content was copied (either nothing selected or some error)
+					return
+				}
+
+				// Send to sidebar provider
+				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
+			} catch (error) {
+				// Ensure clipboard is restored even if an error occurs
+				await vscode.env.clipboard.writeText(tempCopyBuffer)
+        logger.error("Failed to get terminal contents", error)
+				vscode.window.showErrorMessage("Failed to get terminal contents")
+			}
+		}),
+	)
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
       logger.showCurrentProcessLogs();
     })

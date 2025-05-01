@@ -10,10 +10,12 @@ import { ReferenceManager } from "../references/ReferenceManager";
 import {
   deleteSessionId,
   getActiveRepo,
+  getSessionId,
   setSessionId,
   sendProgress,
+  clearWorkspaceStorage,
 } from "../utilities/contextManager";
-import { binaryApi } from "../services/api/axios";
+import { api, binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
 import { ConfigManager } from "../utilities/ConfigManager";
@@ -22,6 +24,15 @@ import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
 import { DiffManager } from "../diff/diffManager";
+import { createNewWorkspaceFn } from "../terminal/workspace/CreateNewWorkspace";
+import { ContinueNewWorkspace } from "../terminal/workspace/ContinueNewWorkspace";
+import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToken";
+import { SESSION_TYPE } from "../constants";
+import osName from "os-name";
+import { getShell } from "../terminal/utils/shell";
+import { FeedbackService } from "../services/feedback/feedbackService";
+import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQueryEnhancerService";
+import { ApiErrorHandler } from "../services/api/apiErrorHandler";
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -30,6 +41,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
+  private apiErrorHandler = new ApiErrorHandler();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -43,8 +55,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private codeReferenceService: ReferenceManager,
     private configManager: ConfigManager,
     private profileService: ProfileUiService,
-    private trackingManager: UsageTrackingManager
-  ) { }
+    private trackingManager: UsageTrackingManager,
+    private feedbackService: FeedbackService,
+    private userQueryEnhancerService: UserQueryEnhancerService,
+    private continueWorkspace: ContinueNewWorkspace,
+  ) {  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -119,6 +134,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             sendMessage
           );
           break;
+        case "url-search":
+          promise = this.codeReferenceService.urlSearch(data, sendMessage);
+          break;
+        case "get-saved-urls":
+          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          break;
+        case "save-url":
+          promise = this.codeReferenceService.saveUrl(data, sendMessage);
+          break;
+        case "delete-saved-url":
+          promise = this.codeReferenceService.deleteSavedUrl(
+            data.id,
+            sendMessage
+          );
+          break;
+        case "update-saved-url":
+          promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
+          break;
         case "usage-tracking":
           promise = this.trackingManager.trackUsage(data);
           break;
@@ -142,6 +175,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case "open-requested-browser-page":
           promise = this.openBrowserPage(data);
+          break;
+
+        // Feedback
+        case "submit-feedback":
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
+          break;
+
+        // Enhance user query feature
+        case "enhance-user-query":
+          promise = this.enhanceUserQuery(data.userQuery);
           break;
 
         // Logging and Messages
@@ -190,13 +233,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "delete-secret-state":
           promise = this.deleteSecretState(data);
           break;
+
         case "initiate-login":
           promise = this.initiateLogin(data);
           break;
-
         case "sign-out":
           promise = this.signOut();
           break;
+
+        // past sessions
         case "get-sessions":
           promise = this.getSessions(data);
           break;
@@ -216,14 +261,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.historyService.pinOrUnpinSession(data);
           break;
 
-        // Extention's focus state
-        case "webview-focus-state":
-          if (data.focused) {
-            this._onWebviewFocused.fire();
-          }
-          break;
         case "workspace-repo-change":
           promise = this.setWorkspaceRepo(data);
+          break;
+        case "create-new-workspace":
+          promise = this.createNewWorkspace(data.tool_use_id);
+          break;
+        case "accept-terminal-command":
+          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id, command: data.command });
+          break;
+        case "edit-terminal-command":
+          promise = this.editTerminalCommand(data);
           break;
 
         // diff
@@ -275,6 +323,34 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     });
   }
+
+  async editTerminalCommand(data: { user_query: string, old_command: string }) {
+    try {
+      const { user_query, old_command } = data;
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+        "X-Session-Type": SESSION_TYPE,
+        "X-Session-Id": getSessionId(),
+      };
+      const payload = {
+        query: user_query,
+        old_terminal_command: old_command,
+        os_name: osName(),
+        shell: getShell()
+      };
+      const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
+        headers,
+      });
+      this.outputChannel.info("Terminal command edit response:", response.data.data.terminal_command);
+      refreshCurrentToken(response.headers);
+      return response.data.data.terminal_command;
+    } catch (error) {
+      this.logger.error("Error updating terminal command:");
+      this.apiErrorHandler.handleApiError(error);
+    }
+
+  }
   // For browser pages
   async openBrowserPage(data: { url: string }) {
     await vscode.env.openExternal(vscode.Uri.parse(data.url));
@@ -308,6 +384,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.info("Signed out successfully");
       this.context.workspaceState.update("isAuthenticated", false);
       this.setViewType("auth");
+      clearWorkspaceStorage(true);
     }
   }
 
@@ -393,6 +470,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
 
       if (response.data.status === "Completed" && activeRepo) {
+        this.continueWorkspace.triggerAuthChange(true);
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(
           `📁 Creating embedding for repo: ${activeRepo}`
@@ -403,9 +481,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           `📡 Sending WebSocket update: ${JSON.stringify(params)}`
         );
 
-        this.outputChannel.info(
-          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
-        );
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
@@ -563,6 +638,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return this.context.secrets.delete(data.key);
   }
 
+  async enhanceUserQuery(userQuery: string) {
+    try {
+      const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { enhancedUserQuery: response.enhanced_query },
+      })
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: "enhanced-user-query",
+        data: { error: error},
+      })
+    }
+  }
+
   async getSessions(data: { limit: number; offset: number }) {
     try {
       const response = await this.historyService.getPastSessions(
@@ -647,6 +739,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  async createNewWorkspace(tool_use_id: string) {
+    createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
+  }
+
   setViewType(
     viewType:
       | "chat"
@@ -683,6 +779,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+
   newChat() {
     this.sendMessageToSidebar({
       id: uuidv4(),
@@ -707,6 +804,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         basePath,
         path: path.relative(basePath, uri.fsPath),
         fsPath: uri.fsPath,
+      },
+    });
+  }
+
+  async addSelectedTerminalOutputToChat(output: string) {
+    await vscode.commands.executeCommand("deputydev-sidebar.focus");
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: "terminal-output-to-chat",
+      data: {
+        terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\``
       },
     });
   }
