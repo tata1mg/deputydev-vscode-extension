@@ -13,7 +13,7 @@ import { binaryApi } from "../services/api/axios";
 import { API_ENDPOINTS } from "../services/api/endpoints";
 import { SearchTerm } from "../types";
 import { AuthService } from "../services/auth/AuthService";
-import { DiffManager } from "../diff/diffManager";
+import { DiffManager } from "../diff/diffApplicationAndDisplayManager";
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
