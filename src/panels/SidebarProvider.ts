@@ -23,7 +23,7 @@ import { CLIENT_VERSION, DD_HOST } from "../config";
 import { ProfileUiService } from "../services/profileUi/profileUiService";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { Logger } from "../utilities/Logger";
-import { DiffManager } from "../diff/diffApplicationAndDisplayManager";
+import { DiffManager } from "../diff/diffManager";
 import { createNewWorkspaceFn } from "../terminal/workspace/CreateNewWorkspace";
 import { ContinueNewWorkspace } from "../terminal/workspace/ContinueNewWorkspace";
 import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToken";

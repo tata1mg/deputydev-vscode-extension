@@ -27,7 +27,7 @@ import { createOutputChannel } from "./utilities/outputChannelFlag";
 import { Logger } from "./utilities/Logger";
 import { ThemeManager } from "./utilities/vscodeThemeManager";
 import { isNotCompatible } from "./utilities/checkOsVersion";
-import { DiffManager } from "./diff/diffApplicationAndDisplayManager";
+import { DiffManager } from "./diff/diffManager";
 
 
 
