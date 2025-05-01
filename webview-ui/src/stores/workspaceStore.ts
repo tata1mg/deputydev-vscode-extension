@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { persistStorage } from './lib';
-import { setWorkspaceState} from '@/commandApi'
+import { setWorkspaceState } from '@/commandApi'
 import { WorkspaceStore } from '@/types';
 
 export const useWorkspaceStore = create<WorkspaceStore>()(

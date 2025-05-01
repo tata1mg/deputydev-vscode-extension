@@ -88,7 +88,6 @@ const SortableItem: React.FC<SortableItemProps> = ({
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [showDeleteConfirm]);
-
   const getLocaleTimeString = (dateString: string) => {
     const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
     const date = new Date(cleanedDateString);

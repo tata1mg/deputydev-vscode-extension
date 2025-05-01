@@ -30,6 +30,7 @@ type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   value?: string;
+  url?: string;
 };
 
 export interface ChatPayload {
@@ -49,6 +50,8 @@ export interface ChatPayload {
   focus_items?: Array<any>;
   deputy_dev_rules?: string;
   is_inline?: boolean;
+  os_name: string;
+  shell : string;
 }
 
 export interface SearchTerm {
@@ -66,4 +69,10 @@ export interface ToolRequest {
 export interface CurrentDiffRequest {
   filepath: string;
   raw_diff: string;
+}
+
+export interface SaveUrlRequest {
+  id?: string;
+  name: string;
+  url: string;
 }

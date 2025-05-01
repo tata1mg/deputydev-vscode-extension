@@ -69,9 +69,9 @@ function App() {
     case 'profile':
       view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Profile /> : <Auth />)
       break;
-    case 'setting':
-      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
-      break;
+    // case 'setting':
+    //   view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
+    //   break;
     case 'loader':
       view =  <Loader />;
       break;
@@ -79,7 +79,7 @@ function App() {
       view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <History /> : <Auth />)
       break;
     case 'error':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <Error />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Error /> 
       break;
     default:
       view = null;
