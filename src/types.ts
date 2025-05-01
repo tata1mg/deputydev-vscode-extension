@@ -7,7 +7,7 @@ export interface UsageTrackingProperties {
 }
 
 export type UsageTrackingRequest = {
-  anonymous_id?: String;
+  anonymous_id?: string;
   event: "accepted" | "generated" | "copied" | "applied";
   properties: UsageTrackingProperties;
 };

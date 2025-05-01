@@ -10,7 +10,6 @@ import {
   setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
-  getActiveRepo,
 } from "./utilities/contextManager";
 import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
 import { HistoryService } from "./services/history/HistoryService";
@@ -19,8 +18,6 @@ import { AuthService } from "./services/auth/AuthService";
 import { UsageTrackingManager } from "./usageTracking/UsageTrackingManager";
 import { ServerManager } from "./binaryUp/ServerManager";
 import { getBinaryHost } from "./config";
-import { binaryApi } from "./services/api/axios";
-import { API_ENDPOINTS } from "./services/api/endpoints";
 import { ProfileUiService } from "./services/profileUi/profileUiService";
 import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
 import { createOutputChannel } from "./utilities/outputChannelFlag";
@@ -34,7 +31,6 @@ import { DiffManager } from "./diff/diffManager";
 import { FeedbackService } from "./services/feedback/feedbackService";
 import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
 import { TerminalManager } from "./terminal/TerminalManager";
-import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
 import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
