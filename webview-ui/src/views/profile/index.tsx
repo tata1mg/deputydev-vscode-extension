@@ -5,21 +5,21 @@ import {
   getProfileUiData,
   showUserLogs,
   fetchClientVersion,
-} from "@/commandApi";
-import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
-import useExtensionStore from "@/stores/useExtensionStore";
-import { useAuthStore } from "@/stores/authStore";
-import { useUserProfileStore } from "@/stores/useUserProfileStore";
+} from '@/commandApi';
+import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import useExtensionStore from '@/stores/useExtensionStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useUserProfileStore } from '@/stores/useUserProfileStore';
 
 export default function Profile() {
   const extensionState = useExtensionStore();
-  
+
   const { userData, profileUiData } = useUserProfileStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchUserData = async () => {
-    const userData = await getGlobalState({ key: "userData" });
+    const userData = await getGlobalState({ key: 'userData' });
     useUserProfileStore.setState({ userData: userData });
   };
 
@@ -38,7 +38,7 @@ export default function Profile() {
   };
 
   const handleSignOut = () => {
-    useAuthStore.setState({isAuthenticated: false})
+    useAuthStore.setState({ isAuthenticated: false });
     signOut();
   };
 
@@ -47,12 +47,12 @@ export default function Profile() {
   };
 
   const handleBack = () => {
-    extensionState.setViewType("chat");
+    extensionState.setViewType('chat');
   };
 
   const opensetting = () => {
-    extensionState.setViewType("setting");
-  }
+    extensionState.setViewType('setting');
+  };
 
   return (
     <div className="flex h-screen flex-col justify-between">
@@ -81,7 +81,7 @@ export default function Profile() {
               </button>
               <div>
                 {profileUiData.map((item, index) => {
-                  if (item.type === "Expand") {
+                  if (item.type === 'Expand') {
                     return (
                       <div key={index}>
                         <button
@@ -89,11 +89,7 @@ export default function Profile() {
                           onClick={handleUsageClick}
                         >
                           <div className="flex gap-2">
-                            <img
-                              src={item.icon}
-                              alt={item.label}
-                              className="h-6 w-6"
-                            />
+                            <img src={item.icon} alt={item.label} className="h-6 w-6" />
                             <span>{item.label}</span>
                           </div>
                           {dropdownOpen ? <ChevronDown /> : <ChevronRight />}
@@ -102,13 +98,13 @@ export default function Profile() {
                           <div
                             className="rounded-bl rounded-br bg-gray-500/20 p-2"
                             dangerouslySetInnerHTML={{
-                              __html: item.data || "",
+                              __html: item.data || '',
                             }}
                           />
                         )}
                       </div>
                     );
-                  } else if (item.type === "Hyperlink") {
+                  } else if (item.type === 'Hyperlink') {
                     return (
                       <button
                         key={index}
@@ -116,11 +112,7 @@ export default function Profile() {
                         onClick={() => item.url && openBrowserPage(item.url)}
                       >
                         <div className="flex gap-2">
-                          <img
-                            src={item.icon}
-                            alt={item.label}
-                            className="h-6 w-6"
-                          />
+                          <img src={item.icon} alt={item.label} className="h-6 w-6" />
                           <span>{item.label}</span>
                         </div>
                         <ChevronRight />
@@ -143,7 +135,7 @@ export default function Profile() {
                   <span>Settings</span>
                 </div>
               </button> */}
-             
+
               <button
                 className={`mt-2 flex w-full transform justify-between rounded-tl rounded-tr border border-gray-500/10 bg-gray-500/20 p-2 text-sm opacity-70 transition-transform hover:scale-105 hover:cursor-pointer hover:opacity-100`}
                 onClick={handleSignOut}

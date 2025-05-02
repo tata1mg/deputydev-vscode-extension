@@ -21,34 +21,29 @@ export class DiffEditorViewManager {
   ) {
     // diff content provider
     const diffProvider = new DiffContentProvider();
-    const providerRegistration =
-      vscode.workspace.registerTextDocumentContentProvider(
-        DiffEditorViewManager.DiffContentProviderId,
-        diffProvider,
-      );
+    const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(
+      DiffEditorViewManager.DiffContentProviderId,
+      diffProvider,
+    );
 
     this.context.subscriptions.push(
       providerRegistration,
-      vscode.commands.registerCommand(
-        'deputydev.ConfirmModify',
-        async (uri: vscode.Uri, group: unknown) => {
-          outputChannel.info(`ConfirmModify: ${uri.path}`);
+      vscode.commands.registerCommand('deputydev.ConfirmModify', async (uri: vscode.Uri, _group: unknown) => {
+        outputChannel.info(`ConfirmModify: ${uri.path}`);
 
-          const modifiedContent = Buffer.from(uri.query, 'base64');
-          const fileUri = vscode.Uri.file(uri.path);
+        const modifiedContent = Buffer.from(uri.query, 'base64');
+        const fileUri = vscode.Uri.file(uri.path);
 
-          try {
-            await vscode.workspace.fs.writeFile(fileUri, modifiedContent);
-          } catch (error) {
-            vscode.window.showErrorMessage(`Error writing file: ${error}`);
-            outputChannel.error(`Error writing file: ${error}`);
-          }
+        try {
+          await vscode.workspace.fs.writeFile(fileUri, modifiedContent);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Error writing file: ${error}`);
+          outputChannel.error(`Error writing file: ${error}`);
+        }
 
           this.fileChangeSet.delete(uri.toString());
 
-          await vscode.commands.executeCommand(
-            'workbench.action.closeActiveEditor',
-          );
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
           this.outputChannel.info(
             `path: ${uri.path} modified content is written`,
@@ -200,10 +195,7 @@ export class DiffEditorViewManager {
 
   async acceptAllFile(): Promise<void> {
     for (const [uri, content] of this.fileChangeSet.entries()) {
-      await vscode.workspace.fs.writeFile(
-        vscode.Uri.parse(uri),
-        Buffer.from(content),
-      );
+      await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), Buffer.from(content));
     }
     await this.closeAllDiffEditor();
   }

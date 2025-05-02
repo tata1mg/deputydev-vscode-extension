@@ -3,12 +3,12 @@ export interface UsageTrackingProperties {
   lines: number;
   file_path: string;
   timestamp?: string;
-  source?: "inline-modify" | "inline-chat" | "chat" | "act" | "inline-chat-act";
+  source?: 'inline-modify' | 'inline-chat' | 'chat' | 'act' | 'inline-chat-act';
 }
 
 export type UsageTrackingRequest = {
   anonymous_id?: string;
-  event: "accepted" | "generated" | "copied" | "applied";
+  event: 'accepted' | 'generated' | 'copied' | 'applied';
   properties: UsageTrackingProperties;
 };
 
@@ -25,7 +25,7 @@ export type Chunk = {
 
 type ChatReferenceItem = {
   index: number;
-  type: "file" | "directory" | "function" | "keyword" | string;
+  type: 'file' | 'directory' | 'function' | 'keyword' | string;
   keyword: string;
   path: string;
   chunks: Chunk[];
@@ -51,7 +51,7 @@ export interface ChatPayload {
   deputy_dev_rules?: string;
   is_inline?: boolean;
   os_name: string;
-  shell : string;
+  shell: string;
 }
 
 export interface SearchTerm {

@@ -1,1 +1,1 @@
-export const SESSION_TYPE = "VSCODE_EXT_SESSION";
+export const SESSION_TYPE = 'VSCODE_EXT_SESSION';

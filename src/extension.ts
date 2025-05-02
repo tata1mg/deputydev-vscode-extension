@@ -38,22 +38,19 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
   setExtensionContext(context);
-  
+
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = true;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
-
-
-
   // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
   if (!(await configManager.getAllConfigEssentials())) {
-    logger.error("Failed to fetch essential configuration. Aborting activation.");
-    outputChannel.error("Failed to fetch essential configuration. Aborting activation.");
-    vscode.window.showErrorMessage("DeputyDev failed to initialize: Could not load essential configuration.");
+    logger.error('Failed to fetch essential configuration. Aborting activation.');
+    outputChannel.error('Failed to fetch essential configuration. Aborting activation.');
+    vscode.window.showErrorMessage('DeputyDev failed to initialize: Could not load essential configuration.');
     return;
   }
 
@@ -69,14 +66,11 @@ export async function activate(context: vscode.ExtensionContext) {
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
-  const userQueryEnhancerService = new UserQueryEnhancerService();  
-  const terminalManager = new TerminalManager(context)
-
+  const userQueryEnhancerService = new UserQueryEnhancerService();
+  const terminalManager = new TerminalManager(context);
 
   // 4. Diff View Manager Initialization
-  const inlineDiffEnable = vscode.workspace
-    .getConfiguration("deputydev")
-    .get("inlineDiff.enable");
+  const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
 
 
   const diffManager = new DiffManager(context, '', outputChannel, authService);
@@ -103,34 +97,24 @@ export async function activate(context: vscode.ExtensionContext) {
     feedBackService,
     userQueryEnhancerService,
     continueNewWorkspace,
-  );  
+  );
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      "deputydev-sidebar",
-      sidebarProvider,
-      { webviewOptions: { retainContextWhenHidden: true } }
-    )
+    vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
   );
 
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
 
-  const pinger = new BackgroundPinger(
-    context,
-    sidebarProvider,
-    serverManager,
-    outputChannel,
-    logger,
-    configManager
-  );
+  const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
 
   (async () => {
     // sidebarProvider.setViewType("loader");
     await serverManager.ensureBinaryExists();
     await serverManager.startServer();
-    outputChannel.info("this binary host now is " + getBinaryHost());
+    outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
-
 
     authenticationManager
       .validateCurrentSession()
@@ -139,40 +123,27 @@ export async function activate(context: vscode.ExtensionContext) {
         if (status) {
           configManager.fetchAndStoreConfig();
           sidebarProvider.initiateBinary();
-          logger.info("User is authenticated.");
-          outputChannel.info("User is authenticated.");
-          sidebarProvider.sendMessageToSidebar("AUTHENTICATED");
-          vscode.commands.executeCommand(
-            "setContext",
-            "deputydev.isAuthenticated",
-            true
-          );
-          sidebarProvider.setViewType("chat");
+          logger.info('User is authenticated.');
+          outputChannel.info('User is authenticated.');
+          sidebarProvider.sendMessageToSidebar('AUTHENTICATED');
+          vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
+          sidebarProvider.setViewType('chat');
         } else {
-          logger.info("User is not authenticated.");
-          outputChannel.info("User is not authenticated.");
-          sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-          sidebarProvider.setViewType("auth");
-          vscode.commands.executeCommand(
-            "setContext",
-            "deputydev.isAuthenticated",
-            false
-          );
+          logger.info('User is not authenticated.');
+          outputChannel.info('User is not authenticated.');
+          sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED');
+          sidebarProvider.setViewType('auth');
+          vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
         }
       })
       .catch((error) => {
         logger.error(`Authentication failed, Please try again`);
         outputChannel.error(`Authentication failed: ${error}`);
-        sidebarProvider.sendMessageToSidebar("NOT_AUTHENTICATED");
-        sidebarProvider.setViewType("auth");
-        vscode.commands.executeCommand(
-          "setContext",
-          "deputydev.isAuthenticated",
-          false
-        );
+        sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED');
+        sidebarProvider.setViewType('auth');
+        vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
       });
   })();
-
 
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
@@ -191,100 +162,88 @@ export async function activate(context: vscode.ExtensionContext) {
   inlineChatEditManager.inlineChatEditQuickFixes();
   //  6) Register "closeApp" command
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.closeApp", () => {
-      vscode.commands.executeCommand("workbench.action.closeWindow");
-    })
+    vscode.commands.registerCommand('deputydev.closeApp', () => {
+      vscode.commands.executeCommand('workbench.action.closeWindow');
+    }),
   );
 
-  const workspaceManager = new WorkspaceManager(
-    context,
-    sidebarProvider,
-    outputChannel,
-    configManager
-  );
+  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
 
-  new WebviewFocusListener(
-    context,
-    sidebarProvider,
-    workspaceManager,
-    outputChannel
-  );
+  new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
 
   // add button click
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.AddButtonClick", () => {
-      chatService.stopChat(), outputChannel.info("Add button clicked!");
+    vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
+      chatService.stopChat();
+      outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
-    })
+    }),
   );
 
   // profile button click
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.UserProfile", () => {
-      outputChannel.info("Profile button clicked!");
-      sidebarProvider.setViewType("profile");
-    })
+    vscode.commands.registerCommand('deputydev.UserProfile', () => {
+      outputChannel.info('Profile button clicked!');
+      sidebarProvider.setViewType('profile');
+    }),
   );
 
   // history button click
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.HistoryButtonClick", () => {
-      outputChannel.info("Setting button clicked!");
-      sidebarProvider.setViewType("history");
-    })
+    vscode.commands.registerCommand('deputydev.HistoryButtonClick', () => {
+      outputChannel.info('Setting button clicked!');
+      sidebarProvider.setViewType('history');
+    }),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.addTerminalOutputToChat', async () => {
+      const terminal = vscode.window.activeTerminal;
+      if (!terminal) {
+        return;
+      }
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand("deputydev.addTerminalOutputToChat", async () => {
-			const terminal = vscode.window.activeTerminal
-			if (!terminal) {
-				return
-			}
+      // Save current clipboard content
+      const tempCopyBuffer = await vscode.env.clipboard.readText();
 
-			// Save current clipboard content
-			const tempCopyBuffer = await vscode.env.clipboard.readText()
+      try {
+        // Copy the *existing* terminal selection (without selecting all)
+        await vscode.commands.executeCommand('workbench.action.terminal.copySelection');
 
-			try {
-				// Copy the *existing* terminal selection (without selecting all)
-				await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+        // Get copied content
+        const terminalContents = (await vscode.env.clipboard.readText()).trim();
 
-				// Get copied content
-				let terminalContents = (await vscode.env.clipboard.readText()).trim()
+        // Restore original clipboard content
+        await vscode.env.clipboard.writeText(tempCopyBuffer);
 
-				// Restore original clipboard content
-				await vscode.env.clipboard.writeText(tempCopyBuffer)
+        if (!terminalContents) {
+          // No terminal content was copied (either nothing selected or some error)
+          return;
+        }
 
-				if (!terminalContents) {
-					// No terminal content was copied (either nothing selected or some error)
-					return
-				}
-
-				// Send to sidebar provider
-				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
-			} catch (error) {
-				// Ensure clipboard is restored even if an error occurs
-				await vscode.env.clipboard.writeText(tempCopyBuffer)
-        logger.error("Failed to get terminal contents", error)
-				vscode.window.showErrorMessage("Failed to get terminal contents")
-			}
-		}),
-	)
+        // Send to sidebar provider
+        sidebarProvider.addSelectedTerminalOutputToChat(terminalContents);
+      } catch (error) {
+        // Ensure clipboard is restored even if an error occurs
+        await vscode.env.clipboard.writeText(tempCopyBuffer);
+        logger.error('Failed to get terminal contents', error);
+        vscode.window.showErrorMessage('Failed to get terminal contents');
+      }
+    }),
+  );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("deputydev.ViewLogs", () => {
+    vscode.commands.registerCommand('deputydev.ViewLogs', () => {
       logger.showCurrentProcessLogs();
-    })
+    }),
   );
 
   outputChannel.info(
-    `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
+    `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get('workspace-storage'))}`,
   );
-
-
 }
 
 export async function deactivate() {
