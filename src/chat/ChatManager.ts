@@ -1,41 +1,26 @@
-import * as vscode from "vscode";
-import { SidebarProvider } from "../panels/SidebarProvider";
-import { binaryApi } from "../services/api/axios";
-import { API_ENDPOINTS } from "../services/api/endpoints";
-import { QuerySolverService } from "../services/chat/ChatService";
-import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
-import {
-  getActiveRepo,
-  getSessionId,
-  setSessionId,
-} from "../utilities/contextManager";
-import { HistoryService } from "../services/history/HistoryService";
-import { FocusChunksService } from "../services/focusChunks/focusChunksService";
-import { AuthService } from "../services/auth/AuthService";
-import {
-  registerApiChatTask,
-  unregisterApiChatTask,
-} from "./ChatCancellationManager";
-import { SESSION_TYPE } from "../constants";
-import {
-  ChatPayload,
-  ChunkCallback,
-  Chunk,
-  ToolRequest,
-  CurrentDiffRequest,
-  SearchTerm,
-} from "../types";
-import { SingletonLogger } from "../utilities/Singleton-logger";
-import * as fs from "fs";
-import * as path from "path";
-import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
-import { UsageTrackingRequest } from "../types";
-import osName from "os-name"
-import { getShell } from "../terminal/utils/shell";
-import { TerminalManager } from "../terminal/TerminalManager";
-import { DEFAULT_TERMINAL_TIMEOUT } from "../config";
-import { DiffManager } from "../diff/diffManager";
-
+import * as vscode from 'vscode';
+import { SidebarProvider } from '../panels/SidebarProvider';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { QuerySolverService } from '../services/chat/ChatService';
+import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
+import { HistoryService } from '../services/history/HistoryService';
+import { FocusChunksService } from '../services/focusChunks/focusChunksService';
+import { AuthService } from '../services/auth/AuthService';
+import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
+import { SESSION_TYPE } from '../constants';
+import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm } from '../types';
+import { SingletonLogger } from '../utilities/Singleton-logger';
+import * as fs from 'fs';
+import * as path from 'path';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { UsageTrackingRequest } from '../types';
+import osName from 'os-name';
+import { getShell } from '../terminal/utils/shell';
+import { TerminalManager } from '../terminal/TerminalManager';
+import { DEFAULT_TERMINAL_TIMEOUT } from '../config';
+import { DiffManager } from '../diff/diffManager';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -358,14 +343,14 @@ export class ChatManager {
                     incrementalUdiff: currentDiffRequest.raw_diff,
                   },
                   active_repo,
-                  true
+                  true,
                 );
                 this.sidebarProvider?.sendMessageToSidebar({
                   id: messageId,
-                  command: "chunk",
+                  command: 'chunk',
                   data: {
-                    name: "APPLY_DIFF_RESULT",
-                    data: isDiffApplied ? "completed": "error",
+                    name: 'APPLY_DIFF_RESULT',
+                    data: isDiffApplied ? 'completed' : 'error',
                   },
                 });
               }
@@ -763,7 +748,6 @@ export class ChatManager {
       throw new Error(`Command failed: ${err.message}`);
     }
   }
-
 
   /**
    * Routes a tool request to the appropriate handler based on the tool name.

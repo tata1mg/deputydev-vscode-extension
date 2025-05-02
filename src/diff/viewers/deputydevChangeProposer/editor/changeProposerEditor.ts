@@ -13,12 +13,15 @@ function getNonce(): string {
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
 
-  constructor(private readonly context: vscode.ExtensionContext, private readonly outputChannel: vscode.LogOutputChannel) { }
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly outputChannel: vscode.LogOutputChannel,
+  ) {}
 
   async openCustomDocument(
     uri: vscode.Uri,
     _openContext: vscode.CustomDocumentOpenContext,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<ChangeProposerDocument> {
     console.log('Opening custom document:', uri.toString());
     const document = new ChangeProposerDocument(uri);
@@ -30,15 +33,14 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   async resolveCustomEditor(
     document: ChangeProposerDocument,
     webviewPanel: vscode.WebviewPanel,
-    _token: vscode.CancellationToken
+    _token: vscode.CancellationToken,
   ): Promise<void> {
-
     console.log('Resolving custom editor for document:', document.uri.toString());
 
     webviewPanel.title = 'DeputyDev Change Proposer';
     webviewPanel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'dd_logo_light.png');
     webviewPanel.webview.options = {
-      enableScripts: true
+      enableScripts: true,
     };
 
     this.outputChannel.info(`Opening custom editor for: ${document.uri.toString()}`);
@@ -50,13 +52,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
     updateWebview();
 
-    webviewPanel.webview.onDidReceiveMessage(message => {
+    webviewPanel.webview.onDidReceiveMessage((message) => {
       if (message.type === 'edit') {
         document.content = message.text;
         this._onDidChangeCustomDocument.fire({
           document,
-          undo: () => { },
-          redo: () => { }
+          undo: () => {},
+          redo: () => {},
         });
       }
     });
@@ -68,7 +70,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
   private getHtmlForWebview(text: string): string {
     const nonce = getNonce();
-  
+
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -211,20 +213,18 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     </body>
     </html>`;
   }
-  
 
   // --- Required interface methods (with minimal implementations) ---
-  private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<ChangeProposerDocument>>();
+  private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<
+    vscode.CustomDocumentEditEvent<ChangeProposerDocument>
+  >();
   readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
   saveCustomDocument(): Thenable<void> {
     return Promise.resolve(); // no-op for in-memory
   }
 
-  saveCustomDocumentAs(
-    document: ChangeProposerDocument,
-    destination: vscode.Uri
-  ): Thenable<void> {
+  saveCustomDocumentAs(document: ChangeProposerDocument, destination: vscode.Uri): Thenable<void> {
     return vscode.workspace.fs.writeFile(destination, Buffer.from(document.content, 'utf-8'));
   }
 
@@ -235,7 +235,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   backupCustomDocument(): Thenable<vscode.CustomDocumentBackup> {
     return Promise.resolve({
       id: 'backup',
-      delete: () => { }
+      delete: () => {},
     });
   }
 }

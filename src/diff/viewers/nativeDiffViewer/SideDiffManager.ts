@@ -41,26 +41,17 @@ export class DiffEditorViewManager {
           outputChannel.error(`Error writing file: ${error}`);
         }
 
-          this.fileChangeSet.delete(uri.toString());
+        this.fileChangeSet.delete(uri.toString());
 
         await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
-          this.outputChannel.info(
-            `path: ${uri.path} modified content is written`,
-          );
-          vscode.window.showInformationMessage(
-            `path: ${uri.path} modified content is written`,
-          );
-        },
-      ),
+        this.outputChannel.info(`path: ${uri.path} modified content is written`);
+        vscode.window.showInformationMessage(`path: ${uri.path} modified content is written`);
+      }),
 
       vscode.workspace.onDidCloseTextDocument((document) => {
-        if (
-          document.uri.scheme === DiffEditorViewManager.DiffContentProviderId
-        ) {
-          this.outputChannel.info(
-            `Diff document closed for: ${document.uri.path}`,
-          );
+        if (document.uri.scheme === DiffEditorViewManager.DiffContentProviderId) {
+          this.outputChannel.info(`Diff document closed for: ${document.uri.path}`);
           this.fileChangeSet.delete(document.uri.toString());
         }
       }),
@@ -81,18 +72,12 @@ export class DiffEditorViewManager {
       let originalContentBase64 = Buffer.from('').toString('base64');
       if (!isNewFile) {
         const originalContent = await fsPromise.readFile(data.path);
-        originalContentBase64 = Buffer.from(originalContent).toString(
-          'base64',
-        );
+        originalContentBase64 = Buffer.from(originalContent).toString('base64');
       }
-      const originalUri = vscode.Uri.parse(
-        `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
-      ).with({
+      const originalUri = vscode.Uri.parse(`${DiffEditorViewManager.DiffContentProviderId}:${data.path}`).with({
         query: originalContentBase64,
       });
-      const modifiedUri = vscode.Uri.parse(
-        `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
-      ).with({
+      const modifiedUri = vscode.Uri.parse(`${DiffEditorViewManager.DiffContentProviderId}:${data.path}`).with({
         query: Buffer.from(data.content).toString('base64'),
       });
 
@@ -116,16 +101,12 @@ export class DiffEditorViewManager {
           const diffTabs = group.tabs.filter(
             (tab) =>
               tab.input instanceof vscode.TabInputTextDiff &&
-              tab.input.modified.scheme ===
-              DiffEditorViewManager.DiffContentProviderId,
+              tab.input.modified.scheme === DiffEditorViewManager.DiffContentProviderId,
           );
-
 
           // get the diff editor from the tab
           const diffEditor = diffTabs.find(
-            (tab) =>
-              tab.input instanceof vscode.TabInputTextDiff &&
-              tab.input.modified.path === data.path,
+            (tab) => tab.input instanceof vscode.TabInputTextDiff && tab.input.modified.path === data.path,
           );
 
           // get the content of the diff editor
@@ -133,19 +114,11 @@ export class DiffEditorViewManager {
             const diffEditorUri = diffEditor.input as vscode.TabInputTextDiff;
             const modifiedUri = diffEditorUri.modified;
             const originalUri = diffEditorUri.original;
-            this.outputChannel.info(
-              `Diff editor opened for: ${modifiedUri.path} (original: ${originalUri.path})`,
-            );
-            this.outputChannel.info(
-              `Diff editor content: ${modifiedUri.query}`,
-            );
-            this.outputChannel.info(
-              `Diff editor original content: ${originalUri.query}`,
-            );
+            this.outputChannel.info(`Diff editor opened for: ${modifiedUri.path} (original: ${originalUri.path})`);
+            this.outputChannel.info(`Diff editor content: ${modifiedUri.query}`);
+            this.outputChannel.info(`Diff editor original content: ${originalUri.query}`);
           }
         }
-
-
 
         const editors = vscode.window.visibleTextEditors;
         for (const editor of editors) {
@@ -179,8 +152,7 @@ export class DiffEditorViewManager {
       const diffTabs = group.tabs.filter(
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
-          tab.input.modified.scheme ===
-          DiffEditorViewManager.DiffContentProviderId,
+          tab.input.modified.scheme === DiffEditorViewManager.DiffContentProviderId,
       );
 
       // Close the matching tabs
@@ -214,8 +186,7 @@ export class DiffEditorViewManager {
       const diffTabs = group.tabs.filter(
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
-          tab.input.modified.scheme ===
-          DiffEditorViewManager.DiffContentProviderId &&
+          tab.input.modified.scheme === DiffEditorViewManager.DiffContentProviderId &&
           tab.input.modified.path === path,
       );
 

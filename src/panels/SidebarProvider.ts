@@ -1,12 +1,12 @@
-import * as path from "path";
-import { v4 as uuidv4 } from "uuid";
-import * as vscode from "vscode";
-import { AuthenticationManager } from "../auth/AuthenticationManager";
-import { ChatManager } from "../chat/ChatManager";
-import { getUri } from "../utilities/getUri";
-import { HistoryService } from "../services/history/HistoryService";
-import { AuthService } from "../services/auth/AuthService";
-import { ReferenceManager } from "../references/ReferenceManager";
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as vscode from 'vscode';
+import { AuthenticationManager } from '../auth/AuthenticationManager';
+import { ChatManager } from '../chat/ChatManager';
+import { getUri } from '../utilities/getUri';
+import { HistoryService } from '../services/history/HistoryService';
+import { AuthService } from '../services/auth/AuthService';
+import { ReferenceManager } from '../references/ReferenceManager';
 import {
   deleteSessionId,
   getActiveRepo,
@@ -14,25 +14,25 @@ import {
   setSessionId,
   sendProgress,
   clearWorkspaceStorage,
-} from "../utilities/contextManager";
-import { api, binaryApi } from "../services/api/axios";
-import { API_ENDPOINTS } from "../services/api/endpoints";
-import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
-import { ConfigManager } from "../utilities/ConfigManager";
-import { CLIENT_VERSION, DD_HOST } from "../config";
-import { ProfileUiService } from "../services/profileUi/profileUiService";
-import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
-import { Logger } from "../utilities/Logger";
-import { DiffManager } from "../diff/diffManager";
-import { createNewWorkspaceFn } from "../terminal/workspace/CreateNewWorkspace";
-import { ContinueNewWorkspace } from "../terminal/workspace/ContinueNewWorkspace";
-import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToken";
-import { SESSION_TYPE } from "../constants";
-import osName from "os-name";
-import { getShell } from "../terminal/utils/shell";
-import { FeedbackService } from "../services/feedback/feedbackService";
-import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQueryEnhancerService";
-import { ApiErrorHandler } from "../services/api/apiErrorHandler";
+} from '../utilities/contextManager';
+import { api, binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { updateVectorStoreWithResponse } from '../clients/common/websocketHandlers';
+import { ConfigManager } from '../utilities/ConfigManager';
+import { CLIENT_VERSION, DD_HOST } from '../config';
+import { ProfileUiService } from '../services/profileUi/profileUiService';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { Logger } from '../utilities/Logger';
+import { DiffManager } from '../diff/diffManager';
+import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
+import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { SESSION_TYPE } from '../constants';
+import osName from 'os-name';
+import { getShell } from '../terminal/utils/shell';
+import { FeedbackService } from '../services/feedback/feedbackService';
+import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -151,10 +151,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         // File Operations
-        case "accept-file":
+        case 'accept-file':
           promise = this.diffManager.acceptFile(data.path);
           break;
-        case "reject-file":
+        case 'reject-file':
           promise = this.diffManager.rejectFile(data.path);
           break;
         case 'get-opened-files':
@@ -269,26 +269,33 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         // diff
-        case "write-file": {
+        case 'write-file': {
           const activeRepo = getActiveRepo();
           if (!activeRepo) {
-            this.outputChannel.error("No active repo found");
+            this.outputChannel.error('No active repo found');
             return;
           }
-          promise = this.diffManager.applyDiff({ path: data.filePath, incrementalUdiff: data.raw_diff }, activeRepo, true);
+          promise = this.diffManager.applyDiff(
+            { path: data.filePath, incrementalUdiff: data.raw_diff },
+            activeRepo,
+            true,
+          );
           break;
         }
-        case "open-file":
+        case 'open-file':
           this.openFile(data.path);
           break;
 
-        case "check-diff-applicable": {
+        case 'check-diff-applicable': {
           const activeRepo = getActiveRepo();
           if (!activeRepo) {
-            this.outputChannel.error("No active repo found");
+            this.outputChannel.error('No active repo found');
             return;
           }
-          promise = await this.diffManager.checkIsDiffApplicable({ path: data.filePath, incrementalUdiff: data.raw_diff }, activeRepo);
+          promise = await this.diffManager.checkIsDiffApplicable(
+            { path: data.filePath, incrementalUdiff: data.raw_diff },
+            activeRepo,
+          );
           break;
         }
         case 'hit-retry-embedding':
@@ -494,7 +501,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await vscode.window.showTextDocument(document);
     }
   }
-
 
   private async getOpenedFiles() {
     const basePathSet = new Set<string>();

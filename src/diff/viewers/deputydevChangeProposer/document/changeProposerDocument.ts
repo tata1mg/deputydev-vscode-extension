@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 export class ChangeProposerDocument implements vscode.CustomDocument {
   public content: string = '';
 
-  constructor(public readonly uri: vscode.Uri) { }
+  constructor(public readonly uri: vscode.Uri) {}
 
   async init(): Promise<void> {
     const content = await vscode.workspace.fs.readFile(this.uri);
