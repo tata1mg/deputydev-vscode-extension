@@ -15,7 +15,7 @@ const compat = new FlatCompat({
     allConfig: js.configs.all
 });
 
-export default defineConfig([globalIgnores(["webview-ui/**/*"]), {
+export default defineConfig([globalIgnores(["webviews/**/*"]), {
     extends: compat.extends("eslint:recommended", "plugin:@typescript-eslint/recommended", "prettier"),
 
     plugins: {

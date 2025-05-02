@@ -1,4 +1,3 @@
-// file: webview-ui/src/views/chat/chatElements/chatTypeToggle.tsx
 import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 

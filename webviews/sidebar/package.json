@@ -55,7 +55,7 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-import": "5.0.0-beta.1",
     "vscode": "^1.1.37",
-    "webview-ui": "link:webview-ui",
+    "webview-ui": "link:webviews/sidebar",
     "yup": "^1.6.1",
     "zustand": "^5.0.3"
   },

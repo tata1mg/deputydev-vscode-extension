@@ -1,4 +1,3 @@
-// file: webview-ui/src/stores/sessionsStore.ts
 import { Session } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';

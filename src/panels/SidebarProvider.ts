@@ -769,9 +769,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    */
   private _getHtmlForWebview(webview: vscode.Webview): string {
     // The CSS file from the React build output
-    const stylesUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.css']);
+    const stylesUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.css']);
     // The JS file from the React build output
-    const scriptUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.js']);
+    const scriptUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.js']);
 
     return /*html*/ `
       <!DOCTYPE html>

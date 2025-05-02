@@ -1,4 +1,3 @@
-// file: webview-ui/src/stores/chatStore.ts
 import { create } from 'zustand';
 import { combine, persist } from 'zustand/middleware';
 

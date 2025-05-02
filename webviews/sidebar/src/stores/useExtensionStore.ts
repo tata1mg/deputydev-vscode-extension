@@ -1,4 +1,3 @@
-// file: webview-ui/src/stores/extensionStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ViewType } from '@/types';
