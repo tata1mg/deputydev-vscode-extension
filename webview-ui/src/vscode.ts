@@ -471,7 +471,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
-  const { tool_use_id, _status } = data as { tool_use_id: string; status: string };
+  const { tool_use_id, status } = data as { tool_use_id: string; status: string };
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
