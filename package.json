@@ -241,7 +241,7 @@
     }
   },
   "scripts": {
-    "build:all": "yarn vscode:prepublish && yarn build:ui",
+    "build:all": "yarn build:ui && yarn vscode:prepublish",
     "install:all": "yarn install && yarn --cwd ./webview-ui install",
     "start:ui": "yarn --cwd ./webview-ui run start",
     "build:ui": "yarn --cwd ./webview-ui run build",
