@@ -1,54 +1,46 @@
 import { createJSONStorage, StateStorage } from 'zustand/middleware';
-import {
-  deleteGlobalState,
-  deleteSecretState,
-  deleteWorkspaceState,
-  getGlobalState,
-  getSecretState,
-  getWorkspaceState,
-  setGlobalState,
-  setSecretState,
-  setWorkspaceState,
-} from '@/commandApi';
+// import {
 
-const vscodeStorage: StateStorage = {
-  getItem: (key: string) => {
-    return getWorkspaceState({ key });
-  },
-  setItem: (key: string, value: string) => {
-    return setWorkspaceState({ key, value });
-  },
-  removeItem: (key: string) => {
-    return deleteWorkspaceState({ key });
-  },
-};
+// } from '@/commandApi';
 
-export const persistStorage = createJSONStorage(() => vscodeStorage);
+// const vscodeStorage: StateStorage = {
+//   getItem: (key: string) => {
+//     return getWorkspaceState({ key });
+//   },
+//   setItem: (key: string, value: string) => {
+//     return setWorkspaceState({ key, value });
+//   },
+//   removeItem: (key: string) => {
+//     return deleteWorkspaceState({ key });
+//   },
+// };
 
-const globalStorage: StateStorage = {
-  getItem: (key: string) => {
-    return getGlobalState({ key });
-  },
-  setItem: (key: string, value: string) => {
-    return setGlobalState({ key, value });
-  },
-  removeItem: (key: string) => {
-    return deleteGlobalState({ key });
-  },
-};
+// export const persistStorage = createJSONStorage(() => vscodeStorage);
 
-export const persistGlobalStorage = createJSONStorage(() => globalStorage);
+// const globalStorage: StateStorage = {
+//   getItem: (key: string) => {
+//     return getGlobalState({ key });
+//   },
+//   setItem: (key: string, value: string) => {
+//     return setGlobalState({ key, value });
+//   },
+//   removeItem: (key: string) => {
+//     return deleteGlobalState({ key });
+//   },
+// };
 
-const secretStorage: StateStorage = {
-  getItem: (key: string) => {
-    return getSecretState({ key });
-  },
-  setItem: (key: string, value: string) => {
-    return setSecretState({ key, value });
-  },
-  removeItem: (key: string) => {
-    return deleteSecretState({ key });
-  },
-};
+// export const persistGlobalStorage = createJSONStorage(() => globalStorage);
 
-export const persistSecretStorage = createJSONStorage(() => secretStorage);
+// const secretStorage: StateStorage = {
+//   getItem: (key: string) => {
+//     return getSecretState({ key });
+//   },
+//   setItem: (key: string, value: string) => {
+//     return setSecretState({ key, value });
+//   },
+//   removeItem: (key: string) => {
+//     return deleteSecretState({ key });
+//   },
+// };
+
+// export const persistSecretStorage = createJSONStorage(() => secretStorage);
