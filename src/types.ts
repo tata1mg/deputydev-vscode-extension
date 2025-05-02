@@ -51,7 +51,7 @@ export interface ChatPayload {
   deputy_dev_rules?: string;
   is_inline?: boolean;
   os_name: string;
-  shell : string;
+  shell: string;
 }
 
 export interface SearchTerm {
@@ -75,4 +75,15 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+}
+
+export interface Settings {
+  default_mode: "ask" | "write";
+  terminal_settings: {
+    enable_yolo_mode: boolean;
+    command_deny_list: string[];
+    terminal_output_limit: number;
+    shell_integration_timeout: number;
+    shell_command_timeout: number;
+  };
 }

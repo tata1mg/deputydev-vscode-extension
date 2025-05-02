@@ -176,6 +176,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "open-requested-browser-page":
           promise = this.openBrowserPage(data);
           break;
+        case "save-settings":
+          promise = this.configManager.saveSettings(data);
+          break;
+        
+        case "initialize-settings":
+          promise = this.configManager.initializeSettings(sendMessage);
+          break;
 
         // Feedback
         case "submit-feedback":

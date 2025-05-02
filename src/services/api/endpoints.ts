@@ -33,6 +33,10 @@ export const API_ENDPOINTS = {
   SEARCH_URL: "/v1/search_url",
   PUBLIC_URL_CONTENT_READER: "/v1/read_urls",
   SUBMIT_FEEDBACK: "/end_user/v1/feedbacks/submit",
-  GENERATE_ENHANCED_USER_QUERY: "/end_user/v2/code-gen/generate-enhanced-user-query",
+  GENERATE_ENHANCED_USER_QUERY:
+    "/end_user/v2/code-gen/generate-enhanced-user-query",
   TERMINAL_COMMAND_EDIT: "/end_user/v2/code-gen/terminal-command-edit",
+  SAVE_SETTINGS: "/end_user/v1/extension_settings/update_extension_settings",
+  FETCH_SETTINGS:
+    "/end_user/v1/extension_settings/get_extension_settings",
 };

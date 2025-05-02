@@ -13,13 +13,19 @@ import {
   ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
+  Settings,
 } from "@/types";
-import { logToOutput, getSessions, sendWorkspaceRepoChange } from "./commandApi";
+import {
+  logToOutput,
+  getSessions,
+  sendWorkspaceRepoChange,
+} from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
 import { useUserProfileStore } from "./stores/useUserProfileStore";
 import { useThemeStore } from "./stores/useThemeStore";
 import { url } from "inspector";
+import { useSettingsStore } from "./stores/settingsStore";
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -329,6 +335,19 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
+addCommandEventListener("initialize-settings-response", ({ data }) => {
+  const settings = data as Settings;
+  useSettingsStore.setState({
+    terminalOutputLimit: settings.terminal_settings.terminal_output_limit,
+    shellIntegrationTimeout:
+      settings.terminal_settings.shell_integration_timeout,
+    shellCommandTimeout: settings.terminal_settings.shell_command_timeout,
+    isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
+    commandsToDeny: settings.terminal_settings.command_deny_list,
+    chatType: settings.default_mode,
+  });
+});
+
 addCommandEventListener("keyword-type-search-response", ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
@@ -367,7 +386,7 @@ addCommandEventListener("get-saved-urls-response", ({ data }) => {
   });
   logToOutput(
     "info",
-    `AutoSearchResponse :: ${JSON.stringify((AutoSearchResponse))}`,
+    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
   );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
@@ -379,11 +398,13 @@ addCommandEventListener("session-chats-history", ({ data }) => {
 
 addCommandEventListener("enhanced-user-query", ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
-    useChatStore.setState({ enhancedUserQuery: data.enhancedUserQuery as string });
+    useChatStore.setState({
+      enhancedUserQuery: data.enhancedUserQuery as string,
+    });
   } else {
-    useChatStore.setState({enhancingUserQuery: false});
+    useChatStore.setState({ enhancingUserQuery: false });
   }
-})
+});
 
 addCommandEventListener("inline-chat-data", ({ data }) => {
   const response = data as InlineChatReferenceData;
@@ -457,10 +478,16 @@ addCommandEventListener("send-client-version", ({ data }) => {
 addCommandEventListener("last-chat-data", ({ data }) => {
   const lastChatData = data as string;
   const lastChatDataParsed = JSON.parse(lastChatData).state;
-  useChatStore.setState({ history: lastChatDataParsed.history as ChatMessage[] });
+  useChatStore.setState({
+    history: lastChatDataParsed.history as ChatMessage[],
+  });
   useChatStore.setState({ isLoading: true });
-  useChatStore.setState({ showSessionsBox: lastChatDataParsed.showSessionsBox });
-  useChatStore.setState({ showAllSessions: lastChatDataParsed.showAllSessions });
+  useChatStore.setState({
+    showSessionsBox: lastChatDataParsed.showSessionsBox,
+  });
+  useChatStore.setState({
+    showAllSessions: lastChatDataParsed.showAllSessions,
+  });
   useChatStore.setState({ showSkeleton: true });
   const rawTime = lastChatDataParsed.lastMessageSentTime;
   const parsedTime = rawTime ? new Date(rawTime) : null;
@@ -468,7 +495,11 @@ addCommandEventListener("last-chat-data", ({ data }) => {
   useChatStore.setState({ lastMessageSentTime: parsedTime });
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()
-    .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace");
+    .find(
+      (msg) =>
+        msg.type === "TOOL_USE_REQUEST" &&
+        msg.content?.tool_name === "create_new_workspace",
+    );
   const continuationPayload = {
     write_mode: useChatSettingStore.getState().chatType === "write",
     is_tool_response: true,
@@ -476,7 +507,7 @@ addCommandEventListener("last-chat-data", ({ data }) => {
       tool_name: lastMessage.content.tool_name,
       tool_use_id: lastMessage.content.tool_use_id,
       response: {
-        "message": `
+        message: `
         - Workspace Created Successfully, and now we are inside new Workspace. 
         - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
         - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool. 
@@ -486,20 +517,32 @@ addCommandEventListener("last-chat-data", ({ data }) => {
         - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
         - Leverage other available tools as needed to complete scaffolding.
         `,
-      }
+      },
     },
-  }
+  };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+  sendChatMessage(
+    "create new workspace payload",
+    [],
+    () => {},
+    false,
+    {},
+    continuationPayload,
+  );
 });
 
-
 addCommandEventListener("update-workspace-tool-status", ({ data }) => {
-  const { tool_use_id, status } = data as { tool_use_id: string; status: string };
+  const { tool_use_id, status } = data as {
+    tool_use_id: string;
+    status: string;
+  };
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
-    if (msg.type === "TOOL_USE_REQUEST" && msg.content.tool_use_id === tool_use_id) {
+    if (
+      msg.type === "TOOL_USE_REQUEST" &&
+      msg.content.tool_use_id === tool_use_id
+    ) {
       return {
         ...msg,
         content: {
@@ -512,7 +555,6 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
   });
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
-
 
 addCommandEventListener("update-workspace-dd", () => {
   // Get list of current workspace repositories and update active repo to last or latest workspace
@@ -531,10 +573,17 @@ addCommandEventListener("update-workspace-dd", () => {
     const currentHistory = useChatStore.getState().history;
     const lastToolMessage = [...currentHistory]
       .reverse()
-      .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace") as ChatToolUseMessage;
+      .find(
+        (msg) =>
+          msg.type === "TOOL_USE_REQUEST" &&
+          msg.content?.tool_name === "create_new_workspace",
+      ) as ChatToolUseMessage;
 
     if (!lastToolMessage) {
-      logToOutput("error", "No TOOL_USE_REQUEST message found for creating a new workspace.");
+      logToOutput(
+        "error",
+        "No TOOL_USE_REQUEST message found for creating a new workspace.",
+      );
       return;
     }
 
@@ -545,7 +594,7 @@ addCommandEventListener("update-workspace-dd", () => {
         tool_name: lastToolMessage.content.tool_name,
         tool_use_id: lastToolMessage.content.tool_use_id,
         response: {
-          "message": `
+          message: `
           - Workspace Created Successfully, and now we are inside new Workspace. 
           - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
           - If additional setup steps or library installations are required (eg. setting up nextjs, react, python env, tailwind, etc), invoke the "execute_command".
@@ -555,19 +604,28 @@ addCommandEventListener("update-workspace-dd", () => {
           - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
           - Leverage other available tools as needed to complete scaffolding.
           `,
-        }
+        },
       },
-    }
+    };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+    sendChatMessage(
+      "create new workspace payload",
+      [],
+      () => {},
+      false,
+      {},
+      continuationPayload,
+    );
   } else {
-    logToOutput("error", `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`);
+    logToOutput(
+      "error",
+      `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`,
+    );
   }
 });
 
-
 addCommandEventListener("terminal-output-to-chat", ({ data }) => {
-  const terminalOutput = data as { terminalOutput: string }
+  const terminalOutput = data as { terminalOutput: string };
   const currentUserInput = useChatStore.getState().userInput;
   useChatStore.setState({
     userInput: currentUserInput + terminalOutput.terminalOutput,
