@@ -1,4 +1,4 @@
-import { UsageTrackingRequest, SaveUrlRequest } from "./types";
+import { UsageTrackingRequest, SaveUrlRequest, Settings } from "./types";
 import { callCommand } from "./vscode";
 
 // export function webviewReady() {
@@ -215,6 +215,10 @@ export function openBrowserPage(url: string) {
   return callCommand("open-requested-browser-page", { url });
 }
 
+export function saveSettings(data: Settings) {
+  return callCommand("save-settings", data);
+}
+
 export function signOut() {
   return callCommand("sign-out", {});
 }
@@ -231,19 +235,20 @@ export function sendRetryEmbedding() {
   return callCommand("hit-retry-embedding", {});
 }
 
-
-
 // terminal
-export function acceptTerminalCommand(tool_use_id: string , command: string) {
-  return callCommand("accept-terminal-command", {tool_use_id, command});
+export function acceptTerminalCommand(tool_use_id: string, command: string) {
+  return callCommand("accept-terminal-command", { tool_use_id, command });
 }
 export function rejectTerminalCommand() {
   return callCommand("reject-terminal-command", {});
 }
- export function createNewWorkspace(tool_use_id: string) {
-  return callCommand("create-new-workspace", {tool_use_id});
+export function createNewWorkspace(tool_use_id: string) {
+  return callCommand("create-new-workspace", { tool_use_id });
 }
-export function editTerminalCommand(data: {user_query: string, old_command: string}) {
+export function editTerminalCommand(data: {
+  user_query: string;
+  old_command: string;
+}) {
   return callCommand("edit-terminal-command", data);
 }
 
@@ -251,10 +256,14 @@ export function webviewInitialized() {
   return callCommand("webview-initialized", {});
 }
 
+export function initializeSettings() {
+  return callCommand("initialize-settings", {});
+}
+
 export function submitFeedback(feedback: string, queryId: number) {
-  return callCommand("submit-feedback", {feedback, queryId})
+  return callCommand("submit-feedback", { feedback, queryId });
 }
 
 export function enhanceUserQuery(userQuery: string) {
-  return callCommand("enhance-user-query", {userQuery})
+  return callCommand("enhance-user-query", { userQuery });
 }

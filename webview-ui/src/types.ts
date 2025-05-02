@@ -91,15 +91,15 @@ export type ChatMessage =
   | ChatCodeBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage
-  | ChatTerminalNoShell
+  | ChatTerminalNoShell;
 
 export type ChatMetaData = {
-  type: "RESPONSE_METADATA"
+  type: "RESPONSE_METADATA";
   content: {
-    session_id: number
-    query_id: number
-  }
-}
+    session_id: number;
+    query_id: number;
+  };
+};
 
 export type ChatUserMessage = {
   type: "TEXT_BLOCK";
@@ -120,10 +120,8 @@ export interface ChatAssistantMessage {
   actor: "ASSISTANT";
 }
 
-
-
 export interface TerminalPanelProps {
-  tool_id : string;
+  tool_id: string;
   terminal_command: string;
   terminal_output?: string;
   status?: "pending" | "completed" | "error" | "aborted";
@@ -182,8 +180,8 @@ export interface ChatCompleteMessage {
   actor: "ASSISTANT";
   content: {
     elapsedTime: number;
-    feedbackState : string;
-  }
+    feedbackState: string;
+  };
 }
 
 export interface ChatTerminalNoShell {
@@ -258,4 +256,15 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+}
+
+export interface Settings {
+  default_mode: "ask" | "write";
+  terminal_settings: {
+    enable_yolo_mode: boolean;
+    command_deny_list: string[];
+    terminal_output_limit: number;
+    shell_integration_timeout: number;
+    shell_command_timeout: number;
+  };
 }
