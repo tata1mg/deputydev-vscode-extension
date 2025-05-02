@@ -1,4 +1,3 @@
-// file: webview-ui/src/stores/workspaceStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { persistStorage } from './lib';
