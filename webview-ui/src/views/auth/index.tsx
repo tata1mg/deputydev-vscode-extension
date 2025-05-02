@@ -1,37 +1,41 @@
-import { initiateLogin } from "@/commandApi";
+import { initiateLogin } from '@/commandApi';
 import { LogIn } from 'lucide-react';
 
 export default function Auth() {
-    const handleLogin = () => {
-        initiateLogin();
-    }
+  const handleLogin = () => {
+    initiateLogin();
+  };
 
-    return (
-        <div className="flex h-screen flex-col">
-            <div className="flex-1 flex items-center justify-center">
-                <div className="max-w-[300px] w-full text-center px-6">
-                    <img
-                        src="https://onemg.gumlet.io/dd_logo_with_name_10_04.png"
-                        alt="DeputyDev Logo"
-                        className="h-10 w-auto mb-[25px] mx-auto"
-                    />
-                    <span className="text-lg text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient mb-[40px] block">
-                        Your AI sidekick that amplifies your impact—turning coding hours into minutes
-                    </span>
-                    <button
-                        onClick={handleLogin}
-                        className="border border-b border-black rounded-lg text-xl text-center max-w-[130px] w-full mx-auto transition-transform transform hover:scale-105 p-2 shadow-xl hover:shadow-xxl active:scale-95 bg-[var(--vscode-list-inactiveSelectionBackground)]"
-                    >
-                        <div className="text-md flex items-center justify-center space-x-4">
-                            <LogIn />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-green-500 animate-gradient">Sign in</span>
-                        </div>
-                    </button>
-                </div>
+  return (
+    <div className="flex h-screen flex-col">
+      <div className="flex flex-1 items-center justify-center">
+        <div className="w-full max-w-[300px] px-6 text-center">
+          <img
+            src="https://onemg.gumlet.io/dd_logo_with_name_10_04.png"
+            alt="DeputyDev Logo"
+            className="mx-auto mb-[25px] h-10 w-auto"
+          />
+          <span className="animate-gradient mb-[40px] block bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-lg text-transparent">
+            Your AI sidekick that amplifies your impact—turning coding hours into minutes
+          </span>
+          <button
+            onClick={handleLogin}
+            className="hover:shadow-xxl mx-auto w-full max-w-[130px] transform rounded-lg border border-b border-black bg-[var(--vscode-list-inactiveSelectionBackground)] p-2 text-center text-xl shadow-xl transition-transform hover:scale-105 active:scale-95"
+          >
+            <div className="text-md flex items-center justify-center space-x-4">
+              <LogIn />
+              <span className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text text-transparent">
+                Sign in
+              </span>
             </div>
-            <div className="fixed bottom-0 left-0 right-0 p-4">
-                <p className="text-xs text-gray-500 text-center">DeputyDev is powered by AI. It can make mistakes. Please double check all output.</p>
-            </div>
+          </button>
         </div>
-    );
+      </div>
+      <div className="fixed bottom-0 left-0 right-0 p-4">
+        <p className="text-center text-xs text-gray-500">
+          DeputyDev is powered by AI. It can make mistakes. Please double check all output.
+        </p>
+      </div>
+    </div>
+  );
 }

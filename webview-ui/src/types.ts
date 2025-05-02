@@ -1,19 +1,14 @@
 export type ViewType =
-  | "chat"
-  | "setting"
-  | "loader"
-  | "history"
-  | "auth"
-  | "profile"
-  | "error"
-  | "force-upgrade";
-export type ProgressStatus = "Completed" | "Failed" | "In Progress";
-export type ThemeKind =
-  | "dark"
-  | "light"
-  | "high-contrast"
-  | "high-contrast-light"
-  | "unknown";
+  | 'chat'
+  | 'setting'
+  | 'loader'
+  | 'history'
+  | 'auth'
+  | 'profile'
+  | 'error'
+  | 'force-upgrade';
+export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress';
+export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {
   email: string;
   userName: string;
@@ -66,7 +61,7 @@ export type Chunk = {
 
 export type ChatReferenceItem = {
   index: number;
-  type: "file" | "directory" | "function" | "keyword" | string;
+  type: 'file' | 'directory' | 'function' | 'keyword' | string;
   keyword: string;
   path: string;
   chunks: Chunk[];
@@ -75,7 +70,7 @@ export type ChatReferenceItem = {
   url?: string;
 };
 
-export type ChatType = "ask" | "write";
+export type ChatType = 'ask' | 'write';
 
 export type ChatChunkMessage = {
   chunk: string;
@@ -91,68 +86,66 @@ export type ChatMessage =
   | ChatCodeBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage
-  | ChatTerminalNoShell
+  | ChatTerminalNoShell;
 
 export type ChatMetaData = {
-  type: "RESPONSE_METADATA"
+  type: 'RESPONSE_METADATA';
   content: {
-    session_id: number
-    query_id: number
-  }
-}
+    session_id: number;
+    query_id: number;
+  };
+};
 
 export type ChatUserMessage = {
-  type: "TEXT_BLOCK";
+  type: 'TEXT_BLOCK';
   content: {
     text: string;
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
-  actor: "USER";
+  actor: 'USER';
 };
 
 export interface ChatAssistantMessage {
-  type: "TEXT_BLOCK";
+  type: 'TEXT_BLOCK';
   content: {
     text: string;
   };
   usage?: string;
-  actor: "ASSISTANT";
+  actor: 'ASSISTANT';
 }
 
-
-
 export interface TerminalPanelProps {
-  tool_id : string;
+  tool_id: string;
   terminal_command: string;
   terminal_output?: string;
-  status?: "pending" | "completed" | "error" | "aborted";
+  status?: 'pending' | 'completed' | 'error' | 'aborted';
   show_approval_options?: boolean;
 }
 
 export interface ChatToolUseMessage {
-  type: "TOOL_USE_REQUEST" | "TOOL_USE_REQUEST_BLOCK";
+  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK';
   content: {
     tool_name: string;
     tool_use_id: string;
     input_params_json: { prompt: string } | string;
     tool_input_json?: { prompt: string };
     result_json: string;
-    status: "pending" | "completed" | "error" | "aborted";
+    status: 'pending' | 'completed' | 'error' | 'aborted';
     write_mode?: boolean;
     terminal_approval_required?: boolean;
   };
 }
 
 export interface ChatThinkingMessage {
-  type: "THINKING";
+  type: 'THINKING';
   text: string;
   completed: boolean;
-  actor?: "ASSISTANT";
+  actor?: 'ASSISTANT';
 }
 
 export interface ChatCodeBlockMessage {
-  type: "CODE_BLOCK" | "CODE_BLOCK_STREAMING";
+  type: 'CODE_BLOCK' | 'CODE_BLOCK_STREAMING';
   content: {
     language: string;
     file_path?: string;
@@ -164,31 +157,31 @@ export interface ChatCodeBlockMessage {
     is_live_chat?: boolean;
   };
   completed: boolean;
-  actor: "ASSISTANT";
+  actor: 'ASSISTANT';
   write_mode: boolean;
-  status: "pending" | "completed" | "error";
+  status: 'pending' | 'completed' | 'error';
 }
 
 export interface ChatErrorMessage {
-  type: "ERROR";
+  type: 'ERROR';
   retry: boolean;
   payload_to_retry: unknown;
   error_msg: string;
-  actor: "ASSISTANT";
+  actor: 'ASSISTANT';
 }
 
 export interface ChatCompleteMessage {
-  type: "QUERY_COMPLETE";
-  actor: "ASSISTANT";
+  type: 'QUERY_COMPLETE';
+  actor: 'ASSISTANT';
   content: {
     elapsedTime: number;
-    feedbackState : string;
-  }
+    feedbackState: string;
+  };
 }
 
 export interface ChatTerminalNoShell {
-  type: "TERMINAL_NO_SHELL_INTEGRATION";
-  actor: "ASSISTANT";
+  type: 'TERMINAL_NO_SHELL_INTEGRATION';
+  actor: 'ASSISTANT';
 }
 
 export interface ChatSessionHistory {
@@ -233,10 +226,7 @@ export type WorkspaceRepo = {
 export interface WorkspaceStore {
   workspaceRepos: WorkspaceRepo[];
   activeRepo: string | null;
-  setWorkspaceRepos: (
-    repos: WorkspaceRepo[],
-    activeRepo: string | null,
-  ) => void;
+  setWorkspaceRepos: (repos: WorkspaceRepo[], activeRepo: string | null) => void;
   setActiveRepo: (repoPath: string) => void;
 }
 
@@ -245,12 +235,12 @@ export interface UsageTrackingProperties {
   lines: number;
   file_path: string;
   timestamp?: string;
-  source?: "inline-modify" | "inline-chat" | "chat" | "act" | "inline-chat-act";
+  source?: 'inline-modify' | 'inline-chat' | 'chat' | 'act' | 'inline-chat-act';
 }
 
 export type UsageTrackingRequest = {
-  anonymous_id?: String;
-  event: "accepted" | "generated" | "copied" | "applied";
+  anonymous_id?: string;
+  event: 'accepted' | 'generated' | 'copied' | 'applied';
   properties: UsageTrackingProperties;
 };
 

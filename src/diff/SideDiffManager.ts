@@ -23,55 +23,41 @@ export class DiffEditorViewManager extends DiffViewManager {
     super();
     // diff content provider
     const diffProvider = new DiffContentProvider();
-    const providerRegistration =
-      vscode.workspace.registerTextDocumentContentProvider(
-        DiffEditorViewManager.DiffContentProviderId,
-        diffProvider,
-      );
+    const providerRegistration = vscode.workspace.registerTextDocumentContentProvider(
+      DiffEditorViewManager.DiffContentProviderId,
+      diffProvider,
+    );
 
     this.disposables.push(
       providerRegistration,
-      vscode.commands.registerCommand(
-        'deputydev.ConfirmModify',
-        async (uri: vscode.Uri, group: unknown) => {
-          outputChannel.info(`ConfirmModify: ${uri.path}`);
+      vscode.commands.registerCommand('deputydev.ConfirmModify', async (uri: vscode.Uri, _group: unknown) => {
+        outputChannel.info(`ConfirmModify: ${uri.path}`);
 
-          const modifiedContent = Buffer.from(uri.query, 'base64');
-          const fileUri = vscode.Uri.file(uri.path);
+        const modifiedContent = Buffer.from(uri.query, 'base64');
+        const fileUri = vscode.Uri.file(uri.path);
 
-          try {
-            await vscode.workspace.fs.writeFile(fileUri, modifiedContent);
-          } catch (error) {
-            vscode.window.showErrorMessage(`Error writing file: ${error}`);
-            outputChannel.error(`Error writing file: ${error}`);
-          }
+        try {
+          await vscode.workspace.fs.writeFile(fileUri, modifiedContent);
+        } catch (error) {
+          vscode.window.showErrorMessage(`Error writing file: ${error}`);
+          outputChannel.error(`Error writing file: ${error}`);
+        }
 
-          this.fileChangeSet.delete(uri.toString());
-          this._onDidChange.fire({
-            type: 'accept',
-            path: fileUri.fsPath,
-          });
+        this.fileChangeSet.delete(uri.toString());
+        this._onDidChange.fire({
+          type: 'accept',
+          path: fileUri.fsPath,
+        });
 
-          await vscode.commands.executeCommand(
-            'workbench.action.closeActiveEditor',
-          );
+        await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
 
-          this.outputChannel.debug(
-            `path: ${uri.path} modified content is written`,
-          );
-          vscode.window.showInformationMessage(
-            `path: ${uri.path} modified content is written`,
-          );
-        },
-      ),
+        this.outputChannel.debug(`path: ${uri.path} modified content is written`);
+        vscode.window.showInformationMessage(`path: ${uri.path} modified content is written`);
+      }),
 
       vscode.workspace.onDidCloseTextDocument((document) => {
-        if (
-          document.uri.scheme === DiffEditorViewManager.DiffContentProviderId
-        ) {
-          this.outputChannel.debug(
-            `Diff document closed for: ${document.uri.path}`,
-          );
+        if (document.uri.scheme === DiffEditorViewManager.DiffContentProviderId) {
+          this.outputChannel.debug(`Diff document closed for: ${document.uri.path}`);
           this.fileChangeSet.delete(document.uri.toString());
           this._onDidChange.fire({
             type: 'reject',
@@ -81,7 +67,7 @@ export class DiffEditorViewManager extends DiffViewManager {
       }),
     );
   }
-  
+
   async openDiffView(data: { path: string; content: string }): Promise<void> {
     this.outputChannel.info(`command write file: ${data.path}`);
 
@@ -94,15 +80,11 @@ export class DiffEditorViewManager extends DiffViewManager {
 
     try {
       const originalUri = isNewFile
-        ? vscode.Uri.parse(
-            `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
-          ).with({
+        ? vscode.Uri.parse(`${DiffEditorViewManager.DiffContentProviderId}:${data.path}`).with({
             query: Buffer.from('').toString('base64'),
           })
         : vscode.Uri.file(data.path);
-      const modifiedUri = vscode.Uri.parse(
-        `${DiffEditorViewManager.DiffContentProviderId}:${data.path}`,
-      ).with({
+      const modifiedUri = vscode.Uri.parse(`${DiffEditorViewManager.DiffContentProviderId}:${data.path}`).with({
         query: Buffer.from(data.content).toString('base64'),
       });
 
@@ -140,8 +122,7 @@ export class DiffEditorViewManager extends DiffViewManager {
       const diffTabs = group.tabs.filter(
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
-          tab.input.modified.scheme ===
-            DiffEditorViewManager.DiffContentProviderId,
+          tab.input.modified.scheme === DiffEditorViewManager.DiffContentProviderId,
       );
 
       // Close the matching tabs
@@ -156,10 +137,7 @@ export class DiffEditorViewManager extends DiffViewManager {
 
   async acceptAllFile(): Promise<void> {
     for (const [uri, content] of this.fileChangeSet.entries()) {
-      await vscode.workspace.fs.writeFile(
-        vscode.Uri.parse(uri),
-        Buffer.from(content),
-      );
+      await vscode.workspace.fs.writeFile(vscode.Uri.parse(uri), Buffer.from(content));
     }
     await this.closeAllDiffEditor();
   }
@@ -178,8 +156,7 @@ export class DiffEditorViewManager extends DiffViewManager {
       const diffTabs = group.tabs.filter(
         (tab) =>
           tab.input instanceof vscode.TabInputTextDiff &&
-          tab.input.modified.scheme ===
-            DiffEditorViewManager.DiffContentProviderId &&
+          tab.input.modified.scheme === DiffEditorViewManager.DiffContentProviderId &&
           tab.input.modified.path === path,
       );
 

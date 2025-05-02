@@ -4,7 +4,7 @@ import { persistStorage } from './lib';
 import { ThemeKind } from '@/types';
 
 interface ThemeStore {
-  themeKind: ThemeKind
+  themeKind: ThemeKind;
   setThemeKind: (kind: ThemeStore['themeKind']) => void;
 }
 

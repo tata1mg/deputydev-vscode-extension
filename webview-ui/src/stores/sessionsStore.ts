@@ -1,8 +1,8 @@
 // file: webview-ui/src/stores/sessionsStore.ts
-import { Session } from "@/types";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { persistStorage } from "./lib";
+import { Session } from '@/types';
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from './lib';
 
 export const useSessionsStore = create<{
   sessions: Session[];
@@ -15,12 +15,8 @@ export const useSessionsStore = create<{
   loadingPinnedSessions: boolean;
   loadingUnpinnedSessions: boolean;
   setCurrentSessionsPage: (updater: (prev: number) => number) => void;
-  setSessions: (
-    sessions: Session[] | ((prevSessions: Session[]) => Session[]),
-  ) => void;
-  setPinnedSessions: (
-    sessions: Session[] | ((prevSessions: Session[]) => Session[]),
-  ) => void; // Setter
+  setSessions: (sessions: Session[] | ((prevSessions: Session[]) => Session[])) => void;
+  setPinnedSessions: (sessions: Session[] | ((prevSessions: Session[]) => Session[])) => void; // Setter
   setHasMore: (value: boolean) => void;
   clearSessions: () => void;
   clearPinnedSessions: () => void;
@@ -43,15 +39,11 @@ export const useSessionsStore = create<{
         })),
       setSessions: (sessions) =>
         set((state) => ({
-          sessions: Array.isArray(sessions)
-            ? sessions
-            : sessions(state.sessions),
+          sessions: Array.isArray(sessions) ? sessions : sessions(state.sessions),
         })),
       setPinnedSessions: (sessions) =>
         set((state) => ({
-          pinnedSessions: Array.isArray(sessions)
-            ? sessions
-            : sessions(state.pinnedSessions),
+          pinnedSessions: Array.isArray(sessions) ? sessions : sessions(state.pinnedSessions),
         })),
       setHasMore: (value: boolean) => set({ hasMore: value }),
       clearSessions: () => set({ sessions: [] }),
@@ -59,7 +51,7 @@ export const useSessionsStore = create<{
       clearCurrentSessionsPage: () => set({ currentSessionsPage: 1 }),
     }),
     {
-      name: "sessions-storage",
+      name: 'sessions-storage',
       storage: persistStorage,
     }
   )
