@@ -69,13 +69,25 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     });
   }
 
-    private getHtmlForWebview(webview: vscode.Webview): string {
-      // The CSS file from the React build output
-      const stylesUri = getUri(webview, this.context.extensionUri, ['webviews', 'changeProposer', 'build', 'assets', 'index.css']);
-      // The JS file from the React build output
-      const scriptUri = getUri(webview, this.context.extensionUri, ['webviews', 'changeProposer', 'build', 'assets', 'index.js']);
-  
-      return /*html*/ `
+  private getHtmlForWebview(webview: vscode.Webview): string {
+    // The CSS file from the React build output
+    const stylesUri = getUri(webview, this.context.extensionUri, [
+      'webviews',
+      'changeProposer',
+      'build',
+      'assets',
+      'index.css',
+    ]);
+    // The JS file from the React build output
+    const scriptUri = getUri(webview, this.context.extensionUri, [
+      'webviews',
+      'changeProposer',
+      'build',
+      'assets',
+      'index.js',
+    ]);
+
+    return /*html*/ `
         <!DOCTYPE html>
         <html lang="en">
           <head>
@@ -92,7 +104,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           </body>
         </html>
       `;
-    }
+  }
 
   // private getHtmlForWebview(text: string): string {
   //   const nonce = getNonce();
@@ -140,7 +152,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //     <div id="container"></div>
   //     <script nonce="${nonce}">
   //       const vscode = acquireVsCodeApi();
-  
+
   //       require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
   //       require(['vs/editor/editor.main'], function () {
   //         const editor = monaco.editor.create(document.getElementById('container'), {
@@ -149,22 +161,22 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //           theme: 'vs-dark',
   //           automaticLayout: true
   //         });
-  
+
   //         // Add decorations and buttons for lines starting with + and -
   //         const addLineDecorations = () => {
   //           const model = editor.getModel();
   //           const decorations = [];
-            
+
   //           // Clear any previously added buttons
   //           const existingButtons = document.querySelectorAll('.button-container');
   //           existingButtons.forEach(button => button.remove());
-  
+
   //           // Iterate over each line
   //           for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
   //             const lineText = model.getLineContent(lineNumber);
   //             const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
   //             let buttonContainer = null;
-              
+
   //             if (lineText.startsWith('+')) {
   //               decorations.push({
   //                 range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
@@ -173,7 +185,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //                   className: 'green-line'
   //                 }
   //               });
-  
+
   //               // Create and position buttons at the start of the diff line
   //               buttonContainer = document.createElement('div');
   //               buttonContainer.classList.add('button-container');
@@ -187,7 +199,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //               rejectButton.innerText = 'Reject';
   //               buttonContainer.appendChild(rejectButton);
   //               document.body.appendChild(buttonContainer);
-  
+
   //             } else if (lineText.startsWith('-')) {
   //               decorations.push({
   //                 range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
@@ -196,7 +208,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //                   className: 'red-line'
   //                 }
   //               });
-  
+
   //               // Create and position buttons at the start of the diff line
   //               buttonContainer = document.createElement('div');
   //               buttonContainer.classList.add('button-container');
@@ -212,20 +224,20 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   //               document.body.appendChild(buttonContainer);
   //             }
   //           }
-            
+
   //           editor.deltaDecorations([], decorations);
   //         };
-  
+
   //         // Apply the line decorations and button placement
   //         addLineDecorations();
-  
+
   //         editor.onDidChangeModelContent(() => {
   //           vscode.postMessage({
   //             type: 'edit',
   //             text: editor.getValue()
   //           });
   //         });
-  
+
   //         // Handling button clicks
   //         document.addEventListener('click', (event) => {
   //           if (event.target && event.target.classList.contains('accept-button')) {
