@@ -133,9 +133,9 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
 }
 
 export function RetryChip({
-  _error_msg,
+  error_msg,
   retry,
-  _payload_to_retry,
+  payload_to_retry,
 }: {
   error_msg: string;
   retry: boolean;
