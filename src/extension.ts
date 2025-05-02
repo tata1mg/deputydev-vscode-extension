@@ -1,37 +1,35 @@
-import * as vscode from "vscode";
-import { SidebarProvider } from "./panels/SidebarProvider";
-import { WorkspaceManager } from "./code_syncing/WorkspaceManager";
-import { AuthenticationManager } from "./auth/AuthenticationManager";
-import { ChatManager } from "./chat/ChatManager";
-import { ReferenceManager } from "./references/ReferenceManager";
-import { ConfigManager } from "./utilities/ConfigManager";
+import * as vscode from 'vscode';
+import { SidebarProvider } from './panels/SidebarProvider';
+import { WorkspaceManager } from './code_syncing/WorkspaceManager';
+import { AuthenticationManager } from './auth/AuthenticationManager';
+import { ChatManager } from './chat/ChatManager';
+import { ReferenceManager } from './references/ReferenceManager';
+import { ConfigManager } from './utilities/ConfigManager';
 import {
   setExtensionContext,
   setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
-} from "./utilities/contextManager";
-import { WebviewFocusListener } from "./code_syncing/WebviewFocusListener";
-import { HistoryService } from "./services/history/HistoryService";
-import { InlineChatEditManager } from "./inlineChatEdit/inlineChatEdit";
-import { AuthService } from "./services/auth/AuthService";
-import { UsageTrackingManager } from "./usageTracking/UsageTrackingManager";
-import { ServerManager } from "./binaryUp/ServerManager";
-import { getBinaryHost } from "./config";
-import { ProfileUiService } from "./services/profileUi/profileUiService";
-import { BackgroundPinger } from "./binaryUp/BackgroundPinger";
-import { createOutputChannel } from "./utilities/outputChannelFlag";
-import { Logger } from "./utilities/Logger";
-import { ThemeManager } from "./utilities/vscodeThemeManager";
-import { isNotCompatible } from "./utilities/checkOsVersion";
-import { DiffManager } from "./diff/diffManager";
+} from './utilities/contextManager';
+import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
+import { HistoryService } from './services/history/HistoryService';
+import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
+import { AuthService } from './services/auth/AuthService';
+import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
+import { ServerManager } from './binaryUp/ServerManager';
+import { getBinaryHost } from './config';
+import { ProfileUiService } from './services/profileUi/profileUiService';
+import { BackgroundPinger } from './binaryUp/BackgroundPinger';
+import { createOutputChannel } from './utilities/outputChannelFlag';
+import { Logger } from './utilities/Logger';
+import { ThemeManager } from './utilities/vscodeThemeManager';
+import { isNotCompatible } from './utilities/checkOsVersion';
+import { DiffManager } from './diff/diffManager';
 
-
-
-import { FeedbackService } from "./services/feedback/feedbackService";
-import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace";
-import { TerminalManager } from "./terminal/TerminalManager";
-import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
+import { FeedbackService } from './services/feedback/feedbackService';
+import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
+import { TerminalManager } from './terminal/TerminalManager';
+import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -41,7 +39,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = true;
-  const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
+  const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
   // 2. Configuration Management
@@ -71,7 +69,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
-
 
   const diffManager = new DiffManager(context, '', outputChannel, authService);
   await diffManager.init();
@@ -155,7 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
     logger,
     chatService,
     sidebarProvider,
-    diffManager
+    diffManager,
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
@@ -172,7 +169,6 @@ export async function activate(context: vscode.ExtensionContext) {
   new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
-
 
   // add button click
   context.subscriptions.push(

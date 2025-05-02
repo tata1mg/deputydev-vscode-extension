@@ -1,19 +1,19 @@
-import * as vscode from "vscode";
-import { v4 as uuidv4 } from "uuid";
-import { ChatManager } from "../chat/ChatManager";
-import { InlineEditService } from "../services/inlineEdit/inlineEditService";
-import { getActiveRepo } from "../utilities/contextManager";
-import * as path from "node:path";
-import * as fs from "fs";
-import { SidebarProvider } from "../panels/SidebarProvider";
-import { Logger } from "../utilities/Logger";
-import { fetchRelevantChunks } from "../clients/common/websocketHandlers";
-import { SESSION_TYPE } from "../constants";
-import { binaryApi } from "../services/api/axios";
-import { API_ENDPOINTS } from "../services/api/endpoints";
-import { SearchTerm } from "../types";
-import { AuthService } from "../services/auth/AuthService";
-import { DiffManager } from "../diff/diffManager";
+import * as vscode from 'vscode';
+import { v4 as uuidv4 } from 'uuid';
+import { ChatManager } from '../chat/ChatManager';
+import { InlineEditService } from '../services/inlineEdit/inlineEditService';
+import { getActiveRepo } from '../utilities/contextManager';
+import * as path from 'node:path';
+import * as fs from 'fs';
+import { SidebarProvider } from '../panels/SidebarProvider';
+import { Logger } from '../utilities/Logger';
+import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { SESSION_TYPE } from '../constants';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { SearchTerm } from '../types';
+import { AuthService } from '../services/auth/AuthService';
+import { DiffManager } from '../diff/diffManager';
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
@@ -58,7 +58,6 @@ export class InlineChatEditManager {
   private active_repo: string | undefined;
   private relative_file_path: string | undefined;
   private authService = new AuthService();
-
 
   constructor(
     context: vscode.ExtensionContext,
@@ -351,7 +350,7 @@ export class InlineChatEditManager {
           this.outputChannel.error('Modified file path, raw diff, or active repo is not set.');
           return;
         }
-        this.diffManager.applyDiff({path: modified_file_path, incrementalUdiff: raw_diff}, this.active_repo, true);
+        this.diffManager.applyDiff({ path: modified_file_path, incrementalUdiff: raw_diff }, this.active_repo, true);
       }
     }
     if (inlineEditResponse.tool_use_request) {

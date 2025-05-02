@@ -1,6 +1,6 @@
-import * as vscode from "vscode";
-import { createTwoFilesPatch } from "diff";
-import path = require("path");
+import * as vscode from 'vscode';
+import { createTwoFilesPatch } from 'diff';
+import * as path from 'path';
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -8,16 +8,15 @@ type FileChangeState = {
   originalContent: string; // The original content based on the current udiff
   modifiedContent: string; // The modified content based on the current udiff
   currentUdiff: string; // The current udiff content
-}
+};
 
 export class FileChangeStateManager {
   // This map keeps track of the state of each file being edited.
   private readonly fileChangeStateMap: Map<string, FileChangeState>;
 
-
   constructor(
     private readonly context: vscode.ExtensionContext,
-    private readonly outputChannel: vscode.LogOutputChannel
+    private readonly outputChannel: vscode.LogOutputChannel,
   ) {
     this.fileChangeStateMap = new Map<string, FileChangeState>();
   }
@@ -35,7 +34,7 @@ export class FileChangeStateManager {
     this.outputChannel.debug(`Parsing udiff: ${udiff}`);
 
     // firslly, handle CLRF and LF
-    const lineEol = udiff.includes("\r\n") ? "\r\n" : "\n";
+    const lineEol = udiff.includes('\r\n') ? '\r\n' : '\n';
     const udiffWithEol = udiff.replace(/\r?\n/g, lineEol);
 
     // Split the udiff into lines
@@ -43,17 +42,17 @@ export class FileChangeStateManager {
     // The lines that start with "-" indicate lines that were removed, and lines that start with "+" indicate lines that were added.
     // The rest of the lines are context lines.
     const lines = udiffWithEol.split(lineEol);
-    let originalContent = "";
-    let modifiedContent = "";
+    let originalContent = '';
+    let modifiedContent = '';
 
     for (const line of lines) {
-      if (line.startsWith("@@") || line.startsWith("---") || line.startsWith("+++")) {
+      if (line.startsWith('@@') || line.startsWith('---') || line.startsWith('+++')) {
         // Skip the header line, or file path lines
         continue;
       }
-      if (line.startsWith("-")) {
+      if (line.startsWith('-')) {
         originalContent += line.substring(1) + lineEol;
-      } else if (line.startsWith("+")) {
+      } else if (line.startsWith('+')) {
         modifiedContent += line.substring(1) + lineEol;
       } else {
         // Context lines are added to both original and modified content
@@ -63,13 +62,13 @@ export class FileChangeStateManager {
     }
     return {
       originalContent: originalContent,
-      modifiedContent: modifiedContent
+      modifiedContent: modifiedContent,
     };
   };
 
   private readonly getUdiffDisplayFileFromUdiffPatch = (udiffPatch: string, originalContent: string): string => {
     // first, get the line endings
-    const lineEol = originalContent.includes("\r\n") ? "\r\n" : "\n";
+    const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
     const udiffWithEol = udiffPatch.replace(/\r?\n/g, lineEol);
 
     // now, split the original content into lines and udiff into lines
@@ -77,8 +76,7 @@ export class FileChangeStateManager {
     const udiffLines = udiffWithEol.split(lineEol);
 
     // initialize a variable for final content lines
-    let finalContentLines: string[] = [];
-
+    const finalContentLines: string[] = [];
 
     // now, iterate over the udiff, and get @@ blocks, get the original file line number and store original file lines upto the line number.
     // then add the new lines from the udiff
@@ -86,14 +84,15 @@ export class FileChangeStateManager {
     let currentLineInOriginalFile: number = 0;
     for (let patchLineNum = 0; patchLineNum < udiffLines.length; patchLineNum++) {
       const currentUdiffLineContent = udiffLines[patchLineNum];
-      if (currentUdiffLineContent.startsWith("@@")) {
+      if (currentUdiffLineContent.startsWith('@@')) {
         // get the line number in old file
-        const lineNumber = parseInt(currentUdiffLineContent.split(" ")[1].split(",")[0].substring(1));
-        const skipLinesCountInOriginalFile = parseInt(currentUdiffLineContent.split(" ")[1].split(",")[1]);
+        const lineNumber = parseInt(currentUdiffLineContent.split(' ')[1].split(',')[0].substring(1));
+        const skipLinesCountInOriginalFile = parseInt(currentUdiffLineContent.split(' ')[1].split(',')[1]);
 
         // iterate through lines in original file and keep adding until the lineNumber is reached.
         // add the lines with a ' ' prefix to the final content
-        for (let i = currentLineInOriginalFile; i < lineNumber - 1; i++) { // -1 to account for 0 based index
+        for (let i = currentLineInOriginalFile; i < lineNumber - 1; i++) {
+          // -1 to account for 0 based index
           finalContentLines.push(` ${originalLines[i]}`);
         }
 
@@ -102,24 +101,26 @@ export class FileChangeStateManager {
 
         // add udiff content until next @@ or end of file
         let currentLineInUdiff = patchLineNum + 1;
-        while (currentLineInUdiff < udiffLines.length - 1 && !udiffLines[currentLineInUdiff].startsWith("@@")) { // -1 to account for the end of file
+        while (currentLineInUdiff < udiffLines.length - 1 && !udiffLines[currentLineInUdiff].startsWith('@@')) {
+          // -1 to account for the end of file
           finalContentLines.push(udiffLines[currentLineInUdiff]);
           currentLineInUdiff++;
         }
 
         // skip patchLineNum to currentLineInUdiff
         patchLineNum = currentLineInUdiff - 1; // -1 to account for the loop increment
-      } 
+      }
     }
 
     // add the remaining lines in original file
-    for (let i = currentLineInOriginalFile; i < originalLines.length; i++) { // -1 to account for previous increment in the loop
+    for (let i = currentLineInOriginalFile; i < originalLines.length; i++) {
+      // -1 to account for previous increment in the loop
       finalContentLines.push(` ${originalLines[i]}`);
     }
 
     // return the final content with line endings
-    return finalContentLines.join(lineEol)
-  }
+    return finalContentLines.join(lineEol);
+  };
 
   // This method updates the fileChangeStateMap with the original and modified content from the udiff.
   // It checks if the fileChangeStateMap already has the URI. If not, it sets the initial file content and udiff in the fileChangeStateMap.
@@ -146,17 +147,14 @@ export class FileChangeStateManager {
     const udiff = this.getUdiffDisplayFileFromUdiffPatch(udiffPatch, contentToViewDiffOn);
 
     // get original and modified content from the udiff
-    const parsedUdiffContent =
-      this.getOriginalAndModifiedContentFromUdiff(udiff);
+    const parsedUdiffContent = this.getOriginalAndModifiedContentFromUdiff(udiff);
 
     // Check if the fileChangeStateMap has the URI
     // if not, set the fileChangeState in fileChangeStateMap
     if (!this.fileChangeStateMap.has(uri)) {
       // if initialFileContent is not provided, throw an error
       if (!initialFileContent) {
-        throw new Error(
-          `Initial file content is required for the first time setting the udiff for ${uri}`
-        );
+        throw new Error(`Initial file content is required for the first time setting the udiff for ${uri}`);
       }
       // Set the initial file content and udiff in the fileChangeStateMap
       this.fileChangeStateMap.set(uri, {
@@ -180,7 +178,7 @@ export class FileChangeStateManager {
       originalContent: parsedUdiffContent.originalContent,
       modifiedContent: parsedUdiffContent.modifiedContent,
     };
-  }
+  };
 
   private readonly getDiskFileContent = async (uri: string): Promise<string> => {
     const fileUri = vscode.Uri.file(uri);
@@ -207,7 +205,7 @@ export class FileChangeStateManager {
       return fileContent;
     }
     return fileChangeState.modifiedContent;
-  }
+  };
 
   // This method retrieves the current original content of the file based on the URI.
   public getOriginalContentToShowDiffOn = async (
@@ -223,10 +221,10 @@ export class FileChangeStateManager {
       return fileContent;
     }
     return fileChangeState.originalContent;
-  }
+  };
 
   public getFileChangeState = (filePath: string, repoPath: string): FileChangeState | undefined => {
     const uri = path.join(repoPath, filePath);
     return this.fileChangeStateMap.get(uri);
-  }
+  };
 }
