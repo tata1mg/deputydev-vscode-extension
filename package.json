@@ -241,7 +241,13 @@
     "pretest": "yarn run compile && yarn run lint",
     "lint": "eslint src --ext ts,tsx",
     "lint:fix": "eslint src --ext ts,tsx --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "lint:ui": "yarn --cwd ./webview-ui run lint",
+    "lint:fix:ui": "yarn --cwd ./webview-ui run lint:fix",
+    "format:ui": "yarn --cwd ./webview-ui run format",
+    "lint:all": "yarn lint && yarn lint:ui",
+    "lint:fix:all": "yarn lint:fix && yarn lint:fix:ui",
+    "format:all": "yarn format && yarn format:ui"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",

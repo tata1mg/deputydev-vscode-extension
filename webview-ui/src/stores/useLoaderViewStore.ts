@@ -11,8 +11,8 @@ type LoaderViewStore = {
 export const useLoaderViewStore = create<LoaderViewStore>()(
   persist(
     (set) => ({
-        loaderViewState: false,
-        setLoaderViewState: (state) => set({ loaderViewState: state }),
+      loaderViewState: false,
+      setLoaderViewState: (state) => set({ loaderViewState: state }),
     }),
     {
       name: 'loader-view-state-storage',
