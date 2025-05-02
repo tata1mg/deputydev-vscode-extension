@@ -247,7 +247,8 @@
     "format:ui": "yarn --cwd ./webview-ui run format",
     "lint:all": "yarn lint && yarn lint:ui",
     "lint:fix:all": "yarn lint:fix && yarn lint:fix:ui",
-    "format:all": "yarn format && yarn format:ui"
+    "format:all": "yarn format && yarn format:ui",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",
@@ -267,6 +268,7 @@
     "eslint-plugin-prettier": "^5.2.6",
     "event-source-polyfill": "^1.0.31",
     "glob": "^11.0.1",
+    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
     "vscode-test": "^1.6.1"
