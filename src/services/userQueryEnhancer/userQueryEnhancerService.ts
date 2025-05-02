@@ -1,10 +1,10 @@
-import { api } from "../api/axios";
-import { API_ENDPOINTS } from "../api/endpoints";
-import { AuthService } from "../auth/AuthService";
-import { refreshCurrentToken } from "../refreshToken/refreshCurrentToken";
-import { ApiErrorHandler } from "../api/apiErrorHandler";
-import { SESSION_TYPE } from "../../constants";
-import { getSessionId, setSessionId } from "../../utilities/contextManager";
+import { api } from '../api/axios';
+import { API_ENDPOINTS } from '../api/endpoints';
+import { AuthService } from '../auth/AuthService';
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
+import { ApiErrorHandler } from '../api/apiErrorHandler';
+import { SESSION_TYPE } from '../../constants';
+import { getSessionId, setSessionId } from '../../utilities/contextManager';
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();
@@ -20,11 +20,15 @@ export class UserQueryEnhancerService {
       const authToken = await fetchAuthToken();
       const sessionId = getSessionId();
       const headers = {
-        "X-Session-ID": sessionId,
+        'X-Session-ID': sessionId,
         Authorization: `Bearer ${authToken}`,
-        "X-Session-Type": SESSION_TYPE,
+        'X-Session-Type': SESSION_TYPE,
       };
-      const response = await api.post(API_ENDPOINTS.GENERATE_ENHANCED_USER_QUERY, { user_query: userQuery }, { headers });
+      const response = await api.post(
+        API_ENDPOINTS.GENERATE_ENHANCED_USER_QUERY,
+        { user_query: userQuery },
+        { headers },
+      );
       refreshCurrentToken(response.headers);
       if (response.data.data.session_id) {
         setSessionId(response.data.data.session_id);

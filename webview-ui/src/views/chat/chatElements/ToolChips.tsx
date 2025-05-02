@@ -1,24 +1,16 @@
-import React, { useEffect, useState } from "react";
-import {
-  FileText,
-  CheckCircle,
-  Loader2,
-  XCircle,
-  Search,
-  RotateCw,
-} from "lucide-react";
-import { Tooltip } from "react-tooltip";
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, Loader2, XCircle, RotateCw } from 'lucide-react';
+import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import { openFile } from "@/commandApi";
-import { reduce } from "lodash";
-import { useChatStore } from "@/stores/chatStore";
-import { SnippetReference } from "./CodeBlockStyle";
+import { openFile } from '@/commandApi';
+import { useChatStore } from '@/stores/chatStore';
+import { SnippetReference } from './CodeBlockStyle';
 
 /**
  *
  * Represents the status of chips
  */
-export type Status = "idle" | "pending" | "completed" | "error" | "aborted";
+export type Status = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
 
 /**
  * Props common to both analyzed code and searched codebase.
@@ -42,52 +34,18 @@ interface ThinkingChipProps {
  */
 export const StatusIcon: React.FC<{ status: Status }> = ({ status }) => {
   switch (status) {
-    case "pending":
+    case 'pending':
       return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
-    case "completed":
+    case 'completed':
       return <CheckCircle className="h-4 w-4 text-green-400" />;
-    case "error":
+    case 'error':
       return <XCircle className="h-4 w-4 text-red-400" />;
-    case "aborted":
-      return <XCircle className="h-4 w-4 " />;
+    case 'aborted':
+      return <XCircle className="h-4 w-4" />;
     default:
       return null;
   }
 };
-
-/**
- * Component for Analyzed Code Item.
- */
-
-// export function AnalyzedCodeItem({ fileName, status, onClick, autoFetchChunks = false }: CommonProps) {
-//   const [chunks, setChunks] = useState<string[]>([]);
-//   const [errorMessage, setErrorMessage] = useState('');
-
-//   useEffect(() => {
-//     if (autoFetchChunks && status === 'pending' && fileName) {
-//       fetch('/api/find-chunks', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ fileName }),
-//       })
-//         .then((res) => res.json())
-//         .then((data) => setChunks(data.chunks || []))
-//         .catch((err) => setErrorMessage(err.message));
-//     }
-//   }, [status, autoFetchChunks, fileName]);
-
-//   return (
-//     <div
-//       className="inline-flex items-center w-full gap-2 px-2 py-2 text-sm text-white border rounded cursor-pointer border-neutral-600"
-//       onClick={onClick}
-//       title="Analyzed Code Item"
-//     >
-//       <StatusIcon status={status} />
-//       <span>{fileName ? `Analyzed: ${fileName}` : 'Analyzed Code Item'}</span>
-//       {errorMessage && <span className="ml-2 text-xs text-red-400">Error</span>}
-//     </div>
-//   );
-// }
 
 /**
  * Component for Searched Codebase.
@@ -105,25 +63,24 @@ export function ToolUseStatusMessage({
 }) {
   let displayText;
   switch (tool_name) {
-    case "public_url_content_reader":
-      displayText = "Analyzed URL";
-      if (status === "pending") {
-        displayText = "Analysing URL...";
-      } else if (status === "error") {
-        displayText = "Error Analysing URL";
+    case 'public_url_content_reader':
+      displayText = 'Analyzed URL';
+      if (status === 'pending') {
+        displayText = 'Analysing URL...';
+      } else if (status === 'error') {
+        displayText = 'Error Analysing URL';
       }
-      break
-    default:
-      displayText = "Searched codebase";
-      if (status === "pending") {
-        displayText = "Searching codebase...";
-      } else if (status === "error") {
-        displayText = "Error searching codebase";
-      }
-      else if (status === "aborted") {
-        displayText = "Search aborted";
       break;
-  }
+    default:
+      displayText = 'Searched codebase';
+      if (status === 'pending') {
+        displayText = 'Searching codebase...';
+      } else if (status === 'error') {
+        displayText = 'Error searching codebase';
+      } else if (status === 'aborted') {
+        displayText = 'Search aborted';
+        break;
+      }
   }
 
   return (
@@ -135,9 +92,7 @@ export function ToolUseStatusMessage({
         <StatusIcon status={status} />
         <span className="">{displayText}</span>
       </div>
-      <div className="text-gray-300">
-        {fileCount !== undefined ? `${fileCount} results` : ""}
-      </div>
+      <div className="text-gray-300">{fileCount !== undefined ? `${fileCount} results` : ''}</div>
     </div>
   );
 }
@@ -147,12 +102,12 @@ export function ToolUseStatusMessage({
  */
 
 export function ThinkingChip({ completed }: ThinkingChipProps) {
-  const [dots, setDots] = useState(".");
+  const [dots, setDots] = useState('.');
 
   useEffect(() => {
     if (completed) return;
     const interval = setInterval(() => {
-      setDots((prev) => (prev.length < 3 ? prev + "." : "."));
+      setDots((prev) => (prev.length < 3 ? prev + '.' : '.'));
     }, 500);
     return () => clearInterval(interval);
   }, [completed]);
@@ -160,7 +115,7 @@ export function ThinkingChip({ completed }: ThinkingChipProps) {
   return (
     <div
       className="mt-2 flex w-full items-center gap-2 rounded border-[1px] border-gray-500/40 px-2 py-2 text-sm"
-      title={completed ? "Thinking Complete" : "Thinking..."}
+      title={completed ? 'Thinking Complete' : 'Thinking...'}
     >
       {!completed ? (
         <>
@@ -204,7 +159,7 @@ export function RetryChip({
     const lastMsg = messages[messages.length - 1];
     // console.log("Last message:", JSON.stringify(lastMsg));
 
-    if (lastMsg.type === "ERROR") {
+    if (lastMsg.type === 'ERROR') {
       // The error message should have the payload to retry stored in 'payload_to_retry'
       const errorData = lastMsg; // Assuming type ChatErrorMessage
       // console.log(
@@ -214,7 +169,7 @@ export function RetryChip({
       const payload = errorData.payload_to_retry;
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
-      sendChatMessage("retry", [], () => {}, true, payload);
+      sendChatMessage('retry', [], () => {}, true, payload);
     } else {
       // console.log("No error found to retry.");
     }
@@ -246,7 +201,7 @@ export function RetryChip({
  * Displays file name and and lines changed
  */
 // import { useState } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 export function FileEditedChip({
   filepath,
@@ -265,37 +220,34 @@ export function FileEditedChip({
   status: Status;
   past_session?: boolean | false;
 }) {
-  const filename = filepath ? filepath.split("/").pop() : "";
+  const filename = filepath ? filepath.split('/').pop() : '';
   const combined = { language, filepath, content };
   const [showSnippet, setShowSnippet] = useState(false);
 
   let statusText;
-  let statusColor = "";
-  if (status === "pending") {
-    statusText = "Editing";
-  } else if (status === "completed") {
-    statusText = "Edited";
-  } else if (status === "idle") {
-    statusText = "Edited";
+  let statusColor = '';
+  if (status === 'pending') {
+    statusText = 'Editing';
+  } else if (status === 'completed') {
+    statusText = 'Edited';
+  } else if (status === 'idle') {
+    statusText = 'Edited';
   } else {
-    statusText = "Error editing";
-    statusColor = "text-red-400";
+    statusText = 'Error editing';
+    statusColor = 'text-red-400';
   }
 
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       {/* Top row: filename area on the left, lines added/removed on the right */}
-      <div
-        className="flex w-full items-center justify-between gap-2"
-        title="File Edited"
-      >
+      <div className="flex w-full items-center justify-between gap-2" title="File Edited">
         {/* Left side: expand only as needed */}
         <div className="flex items-center gap-2">
           {past_session && (
             <button
               className="text-xs text-gray-300 transition hover:text-white"
               onClick={() => setShowSnippet((prev) => !prev)}
-              title={showSnippet ? "Hide code" : "Show code"}
+              title={showSnippet ? 'Hide code' : 'Show code'}
             >
               {showSnippet ? (
                 <ChevronDown className="h-4 w-4" />
@@ -322,7 +274,7 @@ export function FileEditedChip({
         </div>
 
         {/* Right side: lines added/removed */}
-        {status !== "error" && (
+        {status !== 'error' && (
           <div className="flex items-center gap-2 text-xs">
             {added_lines != null && added_lines > 0 && (
               <span className="text-green-400">+{added_lines}</span>
