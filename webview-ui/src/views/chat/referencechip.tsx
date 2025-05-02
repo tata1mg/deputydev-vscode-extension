@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { X, Pencil } from "lucide-react";
+import { useState, useEffect, useRef } from 'react';
+import { X, Pencil } from 'lucide-react';
 import {
   keywordSearch,
   keywordTypeSearch,
@@ -7,9 +7,9 @@ import {
   openFile,
   urlSearch,
   openBrowserPage,
-} from "@/commandApi";
-import { useChatStore, initialAutocompleteOptions } from "@/stores/chatStore";
-import { Chunk } from "@/types";
+} from '@/commandApi';
+import { useChatStore, initialAutocompleteOptions } from '@/stores/chatStore';
+import { Chunk } from '@/types';
 
 type ReferenceChipProps = {
   chipIndex: number;
@@ -53,7 +53,7 @@ export default function ReferenceChip({
   };
 
   useEffect(() => {
-    if (text.split(": ")[1] === "") {
+    if (text.split(': ')[1] === '') {
       setIsEditing(true);
     }
   }, [text]);
@@ -87,7 +87,7 @@ export default function ReferenceChip({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setText(value);
-    if (value === "") {
+    if (value === '') {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -99,18 +99,14 @@ export default function ReferenceChip({
     }
 
     timeoutRef.current = setTimeout(() => {
-      const valueArr = value.split(": ");
-      if (
-        ["file", "directory", "function", "class"].includes(
-          valueArr[0].toLowerCase(),
-        )
-      ) {
+      const valueArr = value.split(': ');
+      if (['file', 'directory', 'function', 'class'].includes(valueArr[0].toLowerCase())) {
         setShowAutoComplete(true);
         keywordTypeSearch({
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
         });
-      } else if (valueArr[0].toLowerCase() === "url") {
+      } else if (valueArr[0].toLowerCase() === 'url') {
         setShowAutoComplete(true);
         urlSearch({
           keyword: valueArr[1].trim(),
@@ -123,7 +119,7 @@ export default function ReferenceChip({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && text === "") {
+    if (e.key === 'Backspace' && text === '') {
       e.preventDefault();
       onDelete();
     }
@@ -136,7 +132,11 @@ export default function ReferenceChip({
 
   const handleDisplayClick = () => {
     if (displayOnly) {
-      url ? openBrowserPage(url) : openFile(path ? path : "");
+      if (url) {
+        openBrowserPage(url);
+      } else {
+        openFile(path ? path : '');
+      }
     }
   };
 
@@ -145,10 +145,10 @@ export default function ReferenceChip({
       onClick={handleDisplayClick}
       className={`inline-flex items-center ${
         displayOnly
-          ? "cursor-pointer space-x-1.5 px-1.5 py-0 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-          : "cursor-pointer space-x-1.5 px-2 py-0.5 text-xs hover:bg-[var(--vscode-editor-hoverHighlightBackground)]" // Changed to smaller padding and text size
+          ? 'cursor-pointer space-x-1.5 px-1.5 py-0 text-xs hover:bg-[var(--vscode-list-hoverBackground)]'
+          : 'cursor-pointer space-x-1.5 px-2 py-0.5 text-xs hover:bg-[var(--vscode-editor-hoverHighlightBackground)]' // Changed to smaller padding and text size
       } rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] font-normal text-[var(--vscode-editor-foreground)] transition-colors ${
-        !displayOnly && "mb-0.5 mr-0.5" // Reduced margins
+        !displayOnly && 'mb-0.5 mr-0.5' // Reduced margins
       } shadow-sm`}
     >
       {isEditing && !displayOnly ? (
@@ -163,7 +163,7 @@ export default function ReferenceChip({
         />
       ) : (
         <span onClick={handleEdit} className="group flex items-center gap-1">
-          {chunks?.length ? `@${text}:${getChunkDetail(chunks)}` : "@" + text}
+          {chunks?.length ? `@${text}:${getChunkDetail(chunks)}` : '@' + text}
           {!displayOnly && (
             <Pencil
               size={12}

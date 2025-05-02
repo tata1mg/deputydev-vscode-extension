@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect } from 'react';
-import { sendWebviewFocusState, webviewInitialized } from "@/commandApi";
+import { sendWebviewFocusState, webviewInitialized } from '@/commandApi';
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -28,19 +28,19 @@ function App() {
     function handleMessage(event: MessageEvent) {
       const response = event.data || {};
 
-      if (response === "force-upgrade-needed") {
-        extensionState.setViewType("force-upgrade");
+      if (response === 'force-upgrade-needed') {
+        extensionState.setViewType('force-upgrade');
         setShowForceUpgrade(true);
       }
 
-      if (response === "AUTHENTICATED") {
+      if (response === 'AUTHENTICATED') {
         setIsAuthenticated(true);
-        extensionState.setViewType("chat")
+        extensionState.setViewType('chat');
       }
 
-      if (response === "NOT_VERIFIED") {
+      if (response === 'NOT_VERIFIED') {
         setIsAuthenticated(false);
-        extensionState.setViewType("auth")
+        extensionState.setViewType('auth');
       }
     }
 
@@ -48,45 +48,48 @@ function App() {
       sendWebviewFocusState(true);
     }
 
-
     window.addEventListener('message', handleMessage); // Listen for messages
     // window.addEventListener('focus', handleFocus);
 
-
     return () => window.removeEventListener('message', handleMessage);
-  }, [])
+  }, []);
 
   switch (extensionState.viewType) {
     case 'force-upgrade':
-      view = <ForceUpgradeView />
+      view = <ForceUpgradeView />;
       break;
     case 'auth':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <Auth />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Auth />;
       break;
     case 'chat':
-      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Chat /> : <Auth />)
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Chat /> : <Auth />;
       break;
     case 'profile':
-      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Profile /> : <Auth />)
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Profile /> : <Auth />;
       break;
     // case 'setting':
     //   view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
     //   break;
     case 'loader':
-      view =  <Loader />;
+      view = <Loader />;
       break;
     case 'history':
-      view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <History /> : <Auth />)
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <History /> : <Auth />;
       break;
     case 'error':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <Error /> 
+      view = showForceUpgrade ? <ForceUpgradeView /> : <Error />;
       break;
     default:
       view = null;
   }
   // use background color tailwind white
 
-  return <> <div className=' '>  {view}</div></>;
+  return (
+    <>
+      {' '}
+      <div className=" "> {view}</div>
+    </>
+  );
 }
 
 export default App;

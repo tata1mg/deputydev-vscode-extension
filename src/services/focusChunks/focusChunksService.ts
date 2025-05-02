@@ -1,7 +1,7 @@
-import { binaryApi } from "../api/axios";
-import { API_ENDPOINTS } from "../api/endpoints";
-import { ApiErrorHandler } from "../api/apiErrorHandler";
-import { SingletonLogger } from "../../utilities/Singleton-logger";
+import { binaryApi } from '../api/axios';
+import { API_ENDPOINTS } from '../api/endpoints';
+import { ApiErrorHandler } from '../api/apiErrorHandler';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
 
 export class FocusChunksService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -13,13 +13,10 @@ export class FocusChunksService {
     // console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
     try {
-      response = await binaryApi().post(
-        API_ENDPOINTS.FOCUS_CHUNKS,
-        payload
-      );
+      response = await binaryApi().post(API_ENDPOINTS.FOCUS_CHUNKS, payload);
       return response.data;
     } catch (error) {
-      this.logger.error("Error fetching focus chunks");
+      this.logger.error('Error fetching focus chunks');
       this.apiErrorHandler.handleApiError(error);
     }
   }

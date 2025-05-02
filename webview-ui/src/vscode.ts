@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { v4 as uuidv4 } from "uuid";
-import { useExtensionStore } from "./stores/useExtensionStore";
-import { useChatSettingStore, useChatStore } from "./stores/chatStore";
-import { useWorkspaceStore } from "./stores/workspaceStore";
-import { useRepoSelectorStore } from "./stores/repoSelectorStore";
+import { v4 as uuidv4 } from 'uuid';
+import { useExtensionStore } from './stores/useExtensionStore';
+import { useChatSettingStore, useChatStore } from './stores/chatStore';
+import { useWorkspaceStore } from './stores/workspaceStore';
+import { useRepoSelectorStore } from './stores/repoSelectorStore';
 import {
   ChatMessage,
   Session,
@@ -13,13 +13,12 @@ import {
   ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
-} from "@/types";
-import { logToOutput, getSessions, sendWorkspaceRepoChange } from "./commandApi";
-import { useSessionsStore } from "./stores/sessionsStore";
-import { useLoaderViewStore } from "./stores/useLoaderViewStore";
-import { useUserProfileStore } from "./stores/useUserProfileStore";
-import { useThemeStore } from "./stores/useThemeStore";
-import { url } from "inspector";
+} from '@/types';
+import { logToOutput, sendWorkspaceRepoChange } from './commandApi';
+import { useSessionsStore } from './stores/sessionsStore';
+import { useLoaderViewStore } from './stores/useLoaderViewStore';
+import { useUserProfileStore } from './stores/useUserProfileStore';
+import { useThemeStore } from './stores/useThemeStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -51,11 +50,7 @@ interface SetWorkspaceReposData {
   activeRepo: string | null;
 }
 
-type EventListener = (data: {
-  id: string;
-  command: string;
-  data: unknown;
-}) => void;
+type EventListener = (data: { id: string; command: string; data: unknown }) => void;
 
 const vscode = acquireVsCodeApi();
 
@@ -63,16 +58,16 @@ const resolvers: Record<string, Resolver> = {};
 
 const events: Record<string, EventListener[]> = {};
 
-window.addEventListener("message", (event) => {
+window.addEventListener('message', (event) => {
   const { id, command, data } = event.data;
-  if (command === "result") {
+  if (command === 'result') {
     const resolver = resolvers[id];
     resolver.resolve(data);
     delete resolvers[id];
     return;
   }
 
-  if (command === "chunk") {
+  if (command === 'chunk') {
     const resolver = resolvers[id];
     resolver.chunk?.(data);
     return;
@@ -89,23 +84,23 @@ export function callCommand(command: string, data: unknown): Promise<any>;
 export function callCommand(
   command: string,
   data: unknown,
-  options: { stream: false },
+  options: { stream: false }
 ): Promise<any>;
 
 export function callCommand<T = any>(
   command: string,
   data: unknown,
-  options: { stream: true },
+  options: { stream: true }
 ): AsyncIterableIterator<T>;
 
 export function callCommand(
   command: string,
   data: unknown,
-  options?: { stream: boolean },
+  options?: { stream: boolean }
 ): Promise<any> | AsyncIterableIterator<any> {
   const id = uuidv4();
 
-  if (command === "get-workspace-state" || command === "get-global-state") {
+  if (command === 'get-workspace-state' || command === 'get-global-state') {
     // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
 
     return new Promise((resolve, reject) => {
@@ -179,10 +174,7 @@ export function callCommand(
   return gen;
 }
 
-export function addCommandEventListener(
-  command: string,
-  listener: EventListener,
-) {
+export function addCommandEventListener(command: string, listener: EventListener) {
   if (!events[command]) {
     events[command] = [];
   }
@@ -190,54 +182,51 @@ export function addCommandEventListener(
 }
 
 const getLocaleTimeString = (dateString: string) => {
-  const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
+  const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
   const date = new Date(cleanedDateString);
   const dateOptions: Intl.DateTimeFormatOptions = {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   };
   const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: "numeric",
-    minute: "numeric",
+    hour: 'numeric',
+    minute: 'numeric',
     hour12: true,
   };
 
-  const locale = navigator.language || "en-US";
+  const locale = navigator.language || 'en-US';
   const datePart = date.toLocaleDateString(locale, dateOptions);
   const timePart = date.toLocaleTimeString(locale, timeOptions);
 
   return `${datePart}, ${timePart.toUpperCase()}`;
 };
 
-export function removeCommandEventListener(
-  command: string,
-  listener: EventListener,
-) {
+export function removeCommandEventListener(command: string, listener: EventListener) {
   if (events[command]) {
     events[command] = events[command].filter((l) => l !== listener);
   }
 }
 
-addCommandEventListener("new-chat", async () => {
+addCommandEventListener('new-chat', async () => {
   useChatSettingStore.setState({
-    chatSource: "new-chat",
+    chatSource: 'new-chat',
   });
 
   const currentViewType = useExtensionStore.getState().viewType;
 
-  if (currentViewType !== "chat") {
-    useExtensionStore.setState({ viewType: "chat" });
+  if (currentViewType !== 'chat') {
+    useExtensionStore.setState({ viewType: 'chat' });
   } else {
     useChatStore.getState().clearChat();
-    callCommand("delete-session-id", null);
+    callCommand('delete-session-id', null);
   }
 });
 
-addCommandEventListener("set-view-type", ({ data }) => {
+addCommandEventListener('set-view-type', ({ data }) => {
   const currentViewType = useExtensionStore.getState().viewType;
 
-  if (data === "history" && currentViewType !== "history") {
+  if (data === 'history' && currentViewType !== 'history') {
     useSessionsStore.getState().clearCurrentSessionsPage();
     useSessionsStore.getState().clearSessions();
     useSessionsStore.setState({ loadingPinnedSessions: true });
@@ -246,24 +235,24 @@ addCommandEventListener("set-view-type", ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
-addCommandEventListener("repo-selector-state", ({ data }) => {
+addCommandEventListener('repo-selector-state', ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-addCommandEventListener("repo-selector-state", ({ data }) => {
+addCommandEventListener('repo-selector-state', ({ data }) => {
   useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
 });
 
-addCommandEventListener("set-workspace-repos", ({ data }) => {
-  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(data)}`);
+addCommandEventListener('set-workspace-repos', ({ data }) => {
+  logToOutput('info', `set-workspace-repos :: ${JSON.stringify(data)}`);
   const { repos, activeRepo } = data as SetWorkspaceReposData;
 
-  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(repos)}`);
-  logToOutput("info", `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
+  logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
+  logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
 });
 
-addCommandEventListener("sessions-history", ({ data }: any) => {
+addCommandEventListener('sessions-history', ({ data }: any) => {
   useSessionsStore.setState({
     noUnpinnedSessions: data.unpinnedSessions.length === 0,
   });
@@ -278,14 +267,11 @@ addCommandEventListener("sessions-history", ({ data }: any) => {
     // Append new sessions to the existing ones
     useSessionsStore
       .getState()
-      .setSessions((prevSessions) => [
-        ...prevSessions,
-        ...(data.unpinnedSessions as Session[]),
-      ]);
+      .setSessions((prevSessions) => [...prevSessions, ...(data.unpinnedSessions as Session[])]);
   }
 });
 
-addCommandEventListener("pinned-sessions", ({ data }: any) => {
+addCommandEventListener('pinned-sessions', ({ data }: any) => {
   useSessionsStore.setState({ noPinnedSessions: data.length === 0 });
   // Check if data is not empty before setting it
   if (data && Array.isArray(data) && data.length > 0) {
@@ -297,7 +283,7 @@ addCommandEventListener("pinned-sessions", ({ data }: any) => {
   }
 });
 
-addCommandEventListener("keyword-search-response", ({ data }) => {
+addCommandEventListener('keyword-search-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
       icon: item.type,
@@ -307,17 +293,14 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput(
-    "info",
-    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
-  );
+  logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     return;
   }
 });
 
-addCommandEventListener("keyword-type-search-response", ({ data }) => {
+addCommandEventListener('keyword-type-search-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
       icon: item.type,
@@ -327,55 +310,49 @@ addCommandEventListener("keyword-type-search-response", ({ data }) => {
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput(
-    "info",
-    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
-  );
+  logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     return;
   }
 });
 
-addCommandEventListener("get-saved-urls-response", ({ data }) => {
+addCommandEventListener('get-saved-urls-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
       id: item.id,
       url: item.url,
-      icon: "url",
+      icon: 'url',
       label: item.name,
       value: item.name,
       description: `Indexed on ${getLocaleTimeString(item.last_indexed)}`,
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput(
-    "info",
-    `AutoSearchResponse :: ${JSON.stringify((AutoSearchResponse))}`,
-  );
+  logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
-addCommandEventListener("session-chats-history", ({ data }) => {
-  useExtensionStore.setState({ viewType: "chat" });
+addCommandEventListener('session-chats-history', ({ data }) => {
+  useExtensionStore.setState({ viewType: 'chat' });
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
-addCommandEventListener("enhanced-user-query", ({ data }: any) => {
+addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
     useChatStore.setState({ enhancedUserQuery: data.enhancedUserQuery as string });
   } else {
-    useChatStore.setState({enhancingUserQuery: false});
+    useChatStore.setState({ enhancingUserQuery: false });
   }
-})
+});
 
-addCommandEventListener("inline-chat-data", ({ data }) => {
+addCommandEventListener('inline-chat-data', ({ data }) => {
   const response = data as InlineChatReferenceData;
   const currentEditorReference = useChatStore.getState().currentEditorReference;
   const lengthOfCurrentEditorReference = currentEditorReference.length;
   const chatReferenceItem: ChatReferenceItem = {
     index: lengthOfCurrentEditorReference,
-    type: "code_snippet",
+    type: 'code_snippet',
     keyword: response.keyword,
     path: response.path,
     chunks: [response.chunk],
@@ -384,18 +361,16 @@ addCommandEventListener("inline-chat-data", ({ data }) => {
   useChatStore.setState({
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
-  useChatSettingStore.setState({ chatSource: "inline-chat" });
+  useChatSettingStore.setState({ chatSource: 'inline-chat' });
   // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
-addCommandEventListener("progress-bar", ({ data }) => {
+addCommandEventListener('progress-bar', ({ data }) => {
   const progressBarData = data as ProgressBarData;
   const incomingProgressBarRepo = progressBarData.repo;
   const currentProgressBars = useChatStore.getState().progressBars;
   // Check if the repo is present in the currentProgressBars array
-  const isRepoPresent = currentProgressBars.some(
-    (bar) => bar.repo === incomingProgressBarRepo,
-  );
+  const isRepoPresent = currentProgressBars.some((bar) => bar.repo === incomingProgressBarRepo);
   if (!isRepoPresent) {
     // If the repo is not present, add it to the array
     useChatStore.setState({
@@ -407,38 +382,38 @@ addCommandEventListener("progress-bar", ({ data }) => {
       progressBars: currentProgressBars.map((bar) =>
         bar.repo === incomingProgressBarRepo
           ? { ...progressBarData } // Replace the existing bar with progressBarData
-          : bar,
+          : bar
       ),
     });
   }
 });
 
-addCommandEventListener("profile-ui-data", ({ data }) => {
+addCommandEventListener('profile-ui-data', ({ data }) => {
   useUserProfileStore.setState({ profileUiData: data as ProfileUiDiv[] });
 });
 
-addCommandEventListener("force-upgrade-data", ({ data }) => {
+addCommandEventListener('force-upgrade-data', ({ data }) => {
   useChatStore.setState({
     forceUpgradeData: data as { url: string; upgradeVersion: string },
   });
-  useExtensionStore.setState({ viewType: "force-upgrade" });
+  useExtensionStore.setState({ viewType: 'force-upgrade' });
 });
 
-addCommandEventListener("loader-message", ({ data }) => {
+addCommandEventListener('loader-message', ({ data }) => {
   const loaderMessage = data as boolean;
   useLoaderViewStore.setState({ loaderViewState: loaderMessage });
 });
 
-addCommandEventListener("theme-change", ({ data }) => {
+addCommandEventListener('theme-change', ({ data }) => {
   const theme = data as ThemeKind;
   useThemeStore.setState({ themeKind: theme });
 });
 
-addCommandEventListener("send-client-version", ({ data }) => {
+addCommandEventListener('send-client-version', ({ data }) => {
   useExtensionStore.setState({ clientVersion: data as string });
 });
 
-addCommandEventListener("last-chat-data", ({ data }) => {
+addCommandEventListener('last-chat-data', ({ data }) => {
   const lastChatData = data as string;
   const lastChatDataParsed = JSON.parse(lastChatData).state;
   useChatStore.setState({ history: lastChatDataParsed.history as ChatMessage[] });
@@ -452,15 +427,17 @@ addCommandEventListener("last-chat-data", ({ data }) => {
   useChatStore.setState({ lastMessageSentTime: parsedTime });
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()
-    .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace");
+    .find(
+      (msg) => msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
+    );
   const continuationPayload = {
-    write_mode: useChatSettingStore.getState().chatType === "write",
+    write_mode: useChatSettingStore.getState().chatType === 'write',
     is_tool_response: true,
     tool_use_response: {
       tool_name: lastMessage.content.tool_name,
       tool_use_id: lastMessage.content.tool_use_id,
       response: {
-        "message": `
+        message: `
         - Workspace Created Successfully, and now we are inside new Workspace. 
         - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
         - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool. 
@@ -470,25 +447,24 @@ addCommandEventListener("last-chat-data", ({ data }) => {
         - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
         - Leverage other available tools as needed to complete scaffolding.
         `,
-      }
+      },
     },
-  }
+  };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+  sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
 });
 
-
-addCommandEventListener("update-workspace-tool-status", ({ data }) => {
+addCommandEventListener('update-workspace-tool-status', ({ data }) => {
   const { tool_use_id, status } = data as { tool_use_id: string; status: string };
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
-    if (msg.type === "TOOL_USE_REQUEST" && msg.content.tool_use_id === tool_use_id) {
+    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
       return {
         ...msg,
         content: {
           ...msg.content,
-          status: "completed",
+          status: 'completed',
         },
       };
     }
@@ -497,8 +473,7 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
 
-
-addCommandEventListener("update-workspace-dd", () => {
+addCommandEventListener('update-workspace-dd', () => {
   // Get list of current workspace repositories and update active repo to last or latest workspace
   const workspaceRepos = useWorkspaceStore.getState().workspaceRepos;
   if (workspaceRepos.length > 0) {
@@ -507,7 +482,7 @@ addCommandEventListener("update-workspace-dd", () => {
     if (repoPath) {
       useWorkspaceStore.setState({ activeRepo: repoPath });
     } else {
-      logToOutput("error", "repoPath is null or undefined.");
+      logToOutput('error', 'repoPath is null or undefined.');
     }
     sendWorkspaceRepoChange({ repoPath });
     useChatStore.setState({ isLoading: true });
@@ -515,21 +490,24 @@ addCommandEventListener("update-workspace-dd", () => {
     const currentHistory = useChatStore.getState().history;
     const lastToolMessage = [...currentHistory]
       .reverse()
-      .find((msg) => msg.type === "TOOL_USE_REQUEST" && msg.content?.tool_name === "create_new_workspace") as ChatToolUseMessage;
+      .find(
+        (msg) =>
+          msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
+      ) as ChatToolUseMessage;
 
     if (!lastToolMessage) {
-      logToOutput("error", "No TOOL_USE_REQUEST message found for creating a new workspace.");
+      logToOutput('error', 'No TOOL_USE_REQUEST message found for creating a new workspace.');
       return;
     }
 
     const continuationPayload = {
-      write_mode: useChatSettingStore.getState().chatType === "write",
+      write_mode: useChatSettingStore.getState().chatType === 'write',
       is_tool_response: true,
       tool_use_response: {
         tool_name: lastToolMessage.content.tool_name,
         tool_use_id: lastToolMessage.content.tool_use_id,
         response: {
-          "message": `
+          message: `
           - Workspace Created Successfully, and now we are inside new Workspace. 
           - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
           - If additional setup steps or library installations are required (eg. setting up nextjs, react, python env, tailwind, etc), invoke the "execute_command".
@@ -539,19 +517,21 @@ addCommandEventListener("update-workspace-dd", () => {
           - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
           - Leverage other available tools as needed to complete scaffolding.
           `,
-        }
+        },
       },
-    }
+    };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage("create new workspace payload", [], () => { }, false, {}, continuationPayload)
+    sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
   } else {
-    logToOutput("error", `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`);
+    logToOutput(
+      'error',
+      `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`
+    );
   }
 });
 
-
-addCommandEventListener("terminal-output-to-chat", ({ data }) => {
-  const terminalOutput = data as { terminalOutput: string }
+addCommandEventListener('terminal-output-to-chat', ({ data }) => {
+  const terminalOutput = data as { terminalOutput: string };
   const currentUserInput = useChatStore.getState().userInput;
   useChatStore.setState({
     userInput: currentUserInput + terminalOutput.terminalOutput,
