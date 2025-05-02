@@ -30,11 +30,11 @@ import * as fs from "fs";
 import * as path from "path";
 import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
 import { UsageTrackingRequest } from "../types";
-import { DiffManager } from "../diff/diffManager";
 import osName from "os-name"
 import { getShell } from "../terminal/utils/shell";
 import { TerminalManager } from "../terminal/TerminalManager";
 import { DEFAULT_TERMINAL_TIMEOUT } from "../config";
+import { DiffManager } from "../diff/diffManager";
 
 
 export class ChatManager {
