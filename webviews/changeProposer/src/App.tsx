@@ -1,9 +1,20 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import * as monacoEditor from 'monaco-editor';
 
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
+  const [content, setContent] = useState<string>('Loading...');
+
+  // Simulate fetching content to pre-render
+  useEffect(() => {
+    const loadContent = async () => {
+      // Simulate API fetch or file read
+      const fetchedContent = `// Preloaded line 1\n// Preloaded line 2\nfunction hello() {\n  console.log("Hello, Monaco!");\n}`;
+      setContent(fetchedContent);
+    };
+    loadContent();
+  }, []);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -38,8 +49,8 @@ const App: React.FC = () => {
     <div style={{ height: '100vh' }}>
       <Editor
         height="100%"
-        defaultLanguage="javascript"
-        defaultValue={`// line 1\n// line 2\n// line 3`}
+        language="javascript"
+        value={content}
         theme="vs-dark"
         options={{ glyphMargin: true }}
         onMount={handleEditorDidMount}
