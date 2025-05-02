@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
 import { ChangeProposerDocument } from '../document/changeProposerDocument';
+import { getUri } from '../../../../utilities/getUri';
 
-function getNonce(): string {
-  let text = '';
-  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-}
+// function getNonce(): string {
+//   let text = '';
+//   const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+//   for (let i = 0; i < 32; i++) {
+//     text += possible.charAt(Math.floor(Math.random() * possible.length));
+//   }
+//   return text;
+// }
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
@@ -47,7 +48,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     this.outputChannel.info(`Document content: ${document.content}`);
 
     const updateWebview = () => {
-      webviewPanel.webview.html = this.getHtmlForWebview(document.content);
+      webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
     };
 
     updateWebview();
@@ -68,151 +69,176 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     });
   }
 
-  private getHtmlForWebview(text: string): string {
-    const nonce = getNonce();
+    private getHtmlForWebview(webview: vscode.Webview): string {
+      // The CSS file from the React build output
+      const stylesUri = getUri(webview, this.context.extensionUri, ['webviews', 'changeProposer', 'build', 'assets', 'index.css']);
+      // The JS file from the React build output
+      const scriptUri = getUri(webview, this.context.extensionUri, ['webviews', 'changeProposer', 'build', 'assets', 'index.js']);
+  
+      return /*html*/ `
+        <!DOCTYPE html>
+        <html lang="en">
+          <head>
+            <meta charset="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <link rel="stylesheet" type="text/css" href="${stylesUri}">
+            <title>AI Code Assist</title>
+          </head>
+          <body>
+            <div id="root"></div>
+            <script>
+            </script>
+            <script type="module" src="${scriptUri}"></script>
+          </body>
+        </html>
+      `;
+    }
 
-    return `<!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        html, body, #container {
-          height: 100%;
-          margin: 0;
-          padding: 0;
-          overflow: hidden;
-        }
-        .button-container {
-          position: absolute;
-          z-index: 1000;
-          display: flex;
-          gap: 10px;
-          top: 60px;
-        }
-        .accept-button, .reject-button {
-          padding: 5px 10px;
-          border: none;
-          background-color: #007acc;
-          color: white;
-          font-size: 12px;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        .accept-button:hover, .reject-button:hover {
-          background-color: #005a9e;
-        }
-        .green-line {
-          background-color: rgba(35, 134, 54, 0.2); /* VSCode diff green */
-        }
-        .red-line {
-          background-color: rgba(179, 29, 40, 0.2); /* VSCode diff red */
-        }
-      </style>
-      <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-    </head>
-    <body>
-      <div id="container"></div>
-      <script nonce="${nonce}">
-        const vscode = acquireVsCodeApi();
+  // private getHtmlForWebview(text: string): string {
+  //   const nonce = getNonce();
+
+  //   return `<!DOCTYPE html>
+  //   <html lang="en">
+  //   <head>
+  //     <meta charset="UTF-8">
+  //     <style>
+  //       html, body, #container {
+  //         height: 100%;
+  //         margin: 0;
+  //         padding: 0;
+  //         overflow: hidden;
+  //       }
+  //       .button-container {
+  //         position: absolute;
+  //         z-index: 1000;
+  //         display: flex;
+  //         gap: 10px;
+  //         top: 60px;
+  //       }
+  //       .accept-button, .reject-button {
+  //         padding: 5px 10px;
+  //         border: none;
+  //         background-color: #007acc;
+  //         color: white;
+  //         font-size: 12px;
+  //         border-radius: 4px;
+  //         cursor: pointer;
+  //       }
+  //       .accept-button:hover, .reject-button:hover {
+  //         background-color: #005a9e;
+  //       }
+  //       .green-line {
+  //         background-color: rgba(35, 134, 54, 0.2); /* VSCode diff green */
+  //       }
+  //       .red-line {
+  //         background-color: rgba(179, 29, 40, 0.2); /* VSCode diff red */
+  //       }
+  //     </style>
+  //     <script nonce="${nonce}" src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+  //   </head>
+  //   <body>
+  //     <div id="container"></div>
+  //     <script nonce="${nonce}">
+  //       const vscode = acquireVsCodeApi();
   
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
-        require(['vs/editor/editor.main'], function () {
-          const editor = monaco.editor.create(document.getElementById('container'), {
-            value: \`${text}\`,
-            language: 'plaintext',
-            theme: 'vs-dark',
-            automaticLayout: true
-          });
+  //       require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } });
+  //       require(['vs/editor/editor.main'], function () {
+  //         const editor = monaco.editor.create(document.getElementById('container'), {
+  //           value: \`${text}\`,
+  //           language: 'plaintext',
+  //           theme: 'vs-dark',
+  //           automaticLayout: true
+  //         });
   
-          // Add decorations and buttons for lines starting with + and -
-          const addLineDecorations = () => {
-            const model = editor.getModel();
-            const decorations = [];
+  //         // Add decorations and buttons for lines starting with + and -
+  //         const addLineDecorations = () => {
+  //           const model = editor.getModel();
+  //           const decorations = [];
             
-            // Clear any previously added buttons
-            const existingButtons = document.querySelectorAll('.button-container');
-            existingButtons.forEach(button => button.remove());
+  //           // Clear any previously added buttons
+  //           const existingButtons = document.querySelectorAll('.button-container');
+  //           existingButtons.forEach(button => button.remove());
   
-            // Iterate over each line
-            for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
-              const lineText = model.getLineContent(lineNumber);
-              const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
-              let buttonContainer = null;
+  //           // Iterate over each line
+  //           for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
+  //             const lineText = model.getLineContent(lineNumber);
+  //             const lineHeight = editor.getOption(monaco.editor.EditorOption.lineHeight);
+  //             let buttonContainer = null;
               
-              if (lineText.startsWith('+')) {
-                decorations.push({
-                  range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
-                  options: {
-                    isWholeLine: true,
-                    className: 'green-line'
-                  }
-                });
+  //             if (lineText.startsWith('+')) {
+  //               decorations.push({
+  //                 range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
+  //                 options: {
+  //                   isWholeLine: true,
+  //                   className: 'green-line'
+  //                 }
+  //               });
   
-                // Create and position buttons at the start of the diff line
-                buttonContainer = document.createElement('div');
-                buttonContainer.classList.add('button-container');
-                buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
-                const acceptButton = document.createElement('button');
-                acceptButton.classList.add('accept-button');
-                acceptButton.innerText = 'Accept';
-                buttonContainer.appendChild(acceptButton);
-                const rejectButton = document.createElement('button');
-                rejectButton.classList.add('reject-button');
-                rejectButton.innerText = 'Reject';
-                buttonContainer.appendChild(rejectButton);
-                document.body.appendChild(buttonContainer);
+  //               // Create and position buttons at the start of the diff line
+  //               buttonContainer = document.createElement('div');
+  //               buttonContainer.classList.add('button-container');
+  //               buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
+  //               const acceptButton = document.createElement('button');
+  //               acceptButton.classList.add('accept-button');
+  //               acceptButton.innerText = 'Accept';
+  //               buttonContainer.appendChild(acceptButton);
+  //               const rejectButton = document.createElement('button');
+  //               rejectButton.classList.add('reject-button');
+  //               rejectButton.innerText = 'Reject';
+  //               buttonContainer.appendChild(rejectButton);
+  //               document.body.appendChild(buttonContainer);
   
-              } else if (lineText.startsWith('-')) {
-                decorations.push({
-                  range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
-                  options: {
-                    isWholeLine: true,
-                    className: 'red-line'
-                  }
-                });
+  //             } else if (lineText.startsWith('-')) {
+  //               decorations.push({
+  //                 range: new monaco.Range(lineNumber, 1, lineNumber, lineText.length + 1),
+  //                 options: {
+  //                   isWholeLine: true,
+  //                   className: 'red-line'
+  //                 }
+  //               });
   
-                // Create and position buttons at the start of the diff line
-                buttonContainer = document.createElement('div');
-                buttonContainer.classList.add('button-container');
-                buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
-                const acceptButton = document.createElement('button');
-                acceptButton.classList.add('accept-button');
-                acceptButton.innerText = 'Accept';
-                buttonContainer.appendChild(acceptButton);
-                const rejectButton = document.createElement('button');
-                rejectButton.classList.add('reject-button');
-                rejectButton.innerText = 'Reject';
-                buttonContainer.appendChild(rejectButton);
-                document.body.appendChild(buttonContainer);
-              }
-            }
+  //               // Create and position buttons at the start of the diff line
+  //               buttonContainer = document.createElement('div');
+  //               buttonContainer.classList.add('button-container');
+  //               buttonContainer.style.top = \`\${lineNumber * lineHeight}px\`;
+  //               const acceptButton = document.createElement('button');
+  //               acceptButton.classList.add('accept-button');
+  //               acceptButton.innerText = 'Accept';
+  //               buttonContainer.appendChild(acceptButton);
+  //               const rejectButton = document.createElement('button');
+  //               rejectButton.classList.add('reject-button');
+  //               rejectButton.innerText = 'Reject';
+  //               buttonContainer.appendChild(rejectButton);
+  //               document.body.appendChild(buttonContainer);
+  //             }
+  //           }
             
-            editor.deltaDecorations([], decorations);
-          };
+  //           editor.deltaDecorations([], decorations);
+  //         };
   
-          // Apply the line decorations and button placement
-          addLineDecorations();
+  //         // Apply the line decorations and button placement
+  //         addLineDecorations();
   
-          editor.onDidChangeModelContent(() => {
-            vscode.postMessage({
-              type: 'edit',
-              text: editor.getValue()
-            });
-          });
+  //         editor.onDidChangeModelContent(() => {
+  //           vscode.postMessage({
+  //             type: 'edit',
+  //             text: editor.getValue()
+  //           });
+  //         });
   
-          // Handling button clicks
-          document.addEventListener('click', (event) => {
-            if (event.target && event.target.classList.contains('accept-button')) {
-              vscode.postMessage({ type: 'accept' });
-            } else if (event.target && event.target.classList.contains('reject-button')) {
-              vscode.postMessage({ type: 'reject' });
-            }
-          });
-        });
-      </script>
-    </body>
-    </html>`;
-  }
+  //         // Handling button clicks
+  //         document.addEventListener('click', (event) => {
+  //           if (event.target && event.target.classList.contains('accept-button')) {
+  //             vscode.postMessage({ type: 'accept' });
+  //           } else if (event.target && event.target.classList.contains('reject-button')) {
+  //             vscode.postMessage({ type: 'reject' });
+  //           }
+  //         });
+  //       });
+  //     </script>
+  //   </body>
+  //   </html>`;
+  // }
 
   // --- Required interface methods (with minimal implementations) ---
   private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<
