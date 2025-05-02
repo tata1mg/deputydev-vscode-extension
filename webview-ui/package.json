@@ -7,8 +7,8 @@
     "watch": "tsc && vite build --watch",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .ts,.tsx --no-use-flat-config",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix --no-use-flat-config",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
   },
   "dependencies": {
@@ -60,6 +60,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.2.8",
     "@types/diff": "^7.0.2",
     "@types/lodash": "^4.17.16",
     "@types/node": "^22.13.14",
@@ -68,19 +69,21 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/sse": "^0.0.0",
     "@types/vscode-webview": "^1.57.5",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "postcss": "^8.5.3",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",
     "sass-embedded": "^1.86.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.8.2",
-    "vite": "^6.2.3",
-    "@typescript-eslint/eslint-plugin": "^5.59.11",
-    "@typescript-eslint/parser": "^5.59.11",
-    "eslint": "^8.42.0",
-    "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-prettier": "^4.2.1"
+    "vite": "^6.2.3"
   }
 }
