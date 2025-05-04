@@ -75,6 +75,7 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+  isSettings?: boolean;
 }
 
 export interface Settings {

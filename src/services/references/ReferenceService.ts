@@ -34,7 +34,7 @@ export class ReferenceService {
     }
   }
 
-  public async getSavedUrls(): Promise<any> {
+  public async getSavedUrls(isSettings?: boolean): Promise<any> {
     let response;
     try {
       const authToken = await this.fetchAuthToken();
@@ -42,10 +42,12 @@ export class ReferenceService {
         Authorization: `Bearer ${authToken}`,
       };
       response = await binaryApi().get(API_ENDPOINTS.GET_SAVED_URLS, {
-        params: {
-          limit: 4,
-          offset: 0,
-        },
+        params: isSettings
+          ? {}
+          : {
+              limit: 4,
+              offset: 0,
+            },
         headers,
       });
       return response.data;
@@ -128,7 +130,10 @@ export class ReferenceService {
       this.apiErrorHandler.handleApiError(error);
     }
   }
-  public async urlSearch(payload: { keyword: string }): Promise<any> {
+  public async urlSearch(payload: {
+    keyword: string;
+    isSettings?: boolean;
+  }): Promise<any> {
     try {
       const authToken = await this.fetchAuthToken();
       const headers = {
@@ -136,7 +141,7 @@ export class ReferenceService {
       };
 
       const searchResponse = await binaryApi().get(
-        `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}&limit=5`,
+        `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}${payload.isSettings ? "" : "&limit=5"}`,
         { headers }
       );
       return searchResponse.data;
