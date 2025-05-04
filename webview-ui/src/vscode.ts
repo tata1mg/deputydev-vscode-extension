@@ -14,6 +14,7 @@ import {
   ThemeKind,
   ChatToolUseMessage,
   Settings,
+  URLListItem,
 } from "@/types";
 import {
   logToOutput,
@@ -389,6 +390,10 @@ addCommandEventListener("get-saved-urls-response", ({ data }) => {
     `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
   );
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+});
+
+addCommandEventListener("get-saved-urls-response-settings", ({ data }) => {
+  useSettingsStore.setState({ urls: data as URLListItem[] });
 });
 
 addCommandEventListener("session-chats-history", ({ data }) => {

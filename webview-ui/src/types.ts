@@ -256,6 +256,7 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+  isSettings?: boolean;
 }
 
 export interface Settings {
@@ -267,4 +268,11 @@ export interface Settings {
     shell_integration_timeout: number;
     shell_command_timeout: number;
   };
+}
+
+export interface URLListItem {
+  id: string;
+  name: string;
+  url: string;
+  last_indexed: string;
 }

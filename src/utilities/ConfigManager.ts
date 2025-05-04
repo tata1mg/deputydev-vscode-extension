@@ -168,7 +168,6 @@ export class ConfigManager {
       await api.post(API_ENDPOINTS.SAVE_SETTINGS, payload, {
         headers,
       });
-      console.log("Save Settings Payload", payload);
     } catch (error) {
       this.logger.error(`Error saving settings`);
     }

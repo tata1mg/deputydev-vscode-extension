@@ -43,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
   setExtensionContext(context);
-  
+
   await clearWorkspaceStorage();
   const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
@@ -74,9 +74,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
-  const userQueryEnhancerService = new UserQueryEnhancerService();  
-  const terminalManager = new TerminalManager(context)
-
+  const userQueryEnhancerService = new UserQueryEnhancerService();
+  const terminalManager = new TerminalManager(context);
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace
@@ -102,7 +101,12 @@ export async function activate(context: vscode.ExtensionContext) {
     diffViewManager = diffEditorDiffManager;
   }
 
-  const chatService = new ChatManager(context, outputChannel, diffViewManager, terminalManager);
+  const chatService = new ChatManager(
+    context,
+    outputChannel,
+    diffViewManager,
+    terminalManager
+  );
 
   // //  * 3) Register Custom TextDocumentContentProvider
   // const diffContentProvider = new DiffContentProvider();
@@ -111,7 +115,6 @@ export async function activate(context: vscode.ExtensionContext) {
   //   diffContentProvider
   // );
   // context.subscriptions.push(providerReg);
-
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
@@ -132,8 +135,8 @@ export async function activate(context: vscode.ExtensionContext) {
     usageTrackingManager,
     feedBackService,
     userQueryEnhancerService,
-    continueNewWorkspace,
-  );  
+    continueNewWorkspace
+  );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "deputydev-sidebar",
@@ -203,7 +206,6 @@ export async function activate(context: vscode.ExtensionContext) {
       });
   })();
 
-
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
   // authenticationManager.setSidebarProvider(sidebarProvider);
@@ -240,9 +242,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
-
-
-
 
   // 7) Register commands for Accept/Reject etc
   //
@@ -336,47 +335,58 @@ export async function activate(context: vscode.ExtensionContext) {
   // history button click
   context.subscriptions.push(
     vscode.commands.registerCommand("deputydev.HistoryButtonClick", () => {
-      outputChannel.info("Setting button clicked!");
+      outputChannel.info("History button clicked!");
       sidebarProvider.setViewType("history");
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("deputydev.SettingsButtonClick", () => {
+      outputChannel.info("Settings button clicked!");
+      sidebarProvider.setViewType("setting");
+    })
+  );
 
-	context.subscriptions.push(
-		vscode.commands.registerCommand("deputydev.addTerminalOutputToChat", async () => {
-			const terminal = vscode.window.activeTerminal
-			if (!terminal) {
-				return
-			}
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "deputydev.addTerminalOutputToChat",
+      async () => {
+        const terminal = vscode.window.activeTerminal;
+        if (!terminal) {
+          return;
+        }
 
-			// Save current clipboard content
-			const tempCopyBuffer = await vscode.env.clipboard.readText()
+        // Save current clipboard content
+        const tempCopyBuffer = await vscode.env.clipboard.readText();
 
-			try {
-				// Copy the *existing* terminal selection (without selecting all)
-				await vscode.commands.executeCommand("workbench.action.terminal.copySelection")
+        try {
+          // Copy the *existing* terminal selection (without selecting all)
+          await vscode.commands.executeCommand(
+            "workbench.action.terminal.copySelection"
+          );
 
-				// Get copied content
-				let terminalContents = (await vscode.env.clipboard.readText()).trim()
+          // Get copied content
+          let terminalContents = (await vscode.env.clipboard.readText()).trim();
 
-				// Restore original clipboard content
-				await vscode.env.clipboard.writeText(tempCopyBuffer)
+          // Restore original clipboard content
+          await vscode.env.clipboard.writeText(tempCopyBuffer);
 
-				if (!terminalContents) {
-					// No terminal content was copied (either nothing selected or some error)
-					return
-				}
+          if (!terminalContents) {
+            // No terminal content was copied (either nothing selected or some error)
+            return;
+          }
 
-				// Send to sidebar provider
-				sidebarProvider.addSelectedTerminalOutputToChat(terminalContents)
-			} catch (error) {
-				// Ensure clipboard is restored even if an error occurs
-				await vscode.env.clipboard.writeText(tempCopyBuffer)
-        logger.error("Failed to get terminal contents", error)
-				vscode.window.showErrorMessage("Failed to get terminal contents")
-			}
-		}),
-	)
+          // Send to sidebar provider
+          sidebarProvider.addSelectedTerminalOutputToChat(terminalContents);
+        } catch (error) {
+          // Ensure clipboard is restored even if an error occurs
+          await vscode.env.clipboard.writeText(tempCopyBuffer);
+          logger.error("Failed to get terminal contents", error);
+          vscode.window.showErrorMessage("Failed to get terminal contents");
+        }
+      }
+    )
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("deputydev.ViewLogs", () => {
@@ -387,8 +397,6 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel.info(
     `these are the repos stored in the workspace ${JSON.stringify(context.workspaceState.get("workspace-storage"))}`
   );
-
-
 }
 
 export async function deactivate() {

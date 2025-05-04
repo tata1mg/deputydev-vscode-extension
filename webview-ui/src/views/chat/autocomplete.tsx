@@ -23,7 +23,6 @@ import {
   openBrowserPage,
 } from "@/commandApi";
 import { BarLoader } from "react-spinners";
-import { set } from "lodash";
 
 interface AutocompleteMenuProps {
   showAddNewButton?: boolean;
