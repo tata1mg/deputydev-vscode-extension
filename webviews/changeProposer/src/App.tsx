@@ -19,6 +19,12 @@ const App: React.FC = () => {
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    decorateEditor(editor, monaco);
+  };
+  
+
+  const decorateEditor = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
+    editorRef.current = editor;
     const model = editor.getModel();
     if (!model) return;
 
@@ -50,7 +56,27 @@ const App: React.FC = () => {
         return btn;
       };
     
-      const acceptBtn = createButton('Accept', ACCEPT_ICON, () => alert(`✅ Accepted change at line ${line}`));
+      const acceptBtn = createButton('Accept', ACCEPT_ICON, () => {
+
+        const handleAcceptChange = async (line: number) => {
+          if (!editorRef.current) return;
+          try {
+            const newContent = await callCommand('accept-change', { line });
+            if (typeof newContent === 'string') {
+              editorRef.current.setValue(newContent);
+            }
+          } catch (err) {
+            console.error('Failed to accept change:', err);
+          }
+        };
+        handleAcceptChange(line);
+        // Re-decorate the editor after accepting
+        if (!editorRef.current) return;
+        decorateEditor(editorRef.current, monaco);
+        // disable the button after accepting
+        acceptBtn.disabled = true;
+        console.log(`✅ Accepted change at line ${line}`);
+      });
       const rejectBtn = createButton('Reject', REJECT_ICON, () => alert(`❌ Rejected change at line ${line}`));
     
       domNode.appendChild(acceptBtn);
@@ -140,7 +166,7 @@ const App: React.FC = () => {
     <div style={{ height: '100vh' }}>
       <Editor
         height="100%"
-        language="plaintext"
+        language="python"
         value={content}
         theme="vs-dark"
         options={{ glyphMargin: true }}
