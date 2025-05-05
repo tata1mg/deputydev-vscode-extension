@@ -32,11 +32,13 @@
       {
         "command": "deputydev.editThisCode",
         "key": "cmd+i",
+        "win": "ctrl+i",
         "when": "editorHasSelection"
       },
       {
         "command": "deputydev.chatWithDeputy",
         "key": "cmd+l",
+        "win": "ctrl+l",
         "when": "editorHasSelection"
       }
     ],
