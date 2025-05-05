@@ -425,7 +425,9 @@ const Setting = () => {
   }, [urls]);
 
   useEffect(() => {
-    searchInput.length && urlSearch({ keyword: searchInput, isSettings: true });
+    searchInput.length
+      ? urlSearch({ keyword: searchInput, isSettings: true })
+      : getSavedUrls({ isSettings: true });
   }, [searchInput]);
 
   const handleSave = (customName?: string, customUrl?: string) => {
