@@ -1,62 +1,71 @@
-import { useWorkspaceStore } from '../../../stores/workspaceStore';
-import { sendWorkspaceRepoChange } from '@/commandApi';
-import { useChatStore } from '../../../stores/chatStore';
 import * as Tooltip from '@radix-ui/react-tooltip'; // Import Radix Tooltip components
+import { useChatStore } from '../../../stores/chatStore';
+import { useState, useRef } from 'react';
+import { Box } from 'lucide-react';
 
-const RepoSelector = () => {
-  const { workspaceRepos, activeRepo, setActiveRepo } = useWorkspaceStore();
+const ModelSelector = () => {
   const { history: messages, isLoading } = useChatStore();
+  const [activeModel, setActiveModel] = useState("");
+  const selectRef = useRef<HTMLSelectElement>(null);
 
-  // Determine if the selector should be disabled
-  const disableRepoSelector = isLoading || messages.length > 0;
+  const disableModelSelector = isLoading;
 
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedRepoPath = event.target.value;
-    const selectedRepo = workspaceRepos.find((repo) => repo.repoPath === selectedRepoPath);
+    const selectedModel = event.target.value;
 
-    if (selectedRepo) {
-      setActiveRepo(selectedRepoPath);
-      sendWorkspaceRepoChange({ repoPath: selectedRepoPath }); // Notify VS Code about the change
+    if (selectedModel) {
+      setActiveModel(selectedModel)
     }
   };
 
   // Common class names for the wrapper div
-  const wrapperBaseClasses = `relative inline-flex w-fit items-center gap-1 px-1 py-0.5 rounded-full text-sm border border-[--vscode-commandCenter-inactiveBorder]`;
+  const wrapperBaseClasses = `relative inline-flex w-fit items-center gap-1 px-1 py-0.5 rounded-full text-xs border border-[--vscode-commandCenter-inactiveBorder]`;
   // Conditional classes based on the disabled state
-  const wrapperConditionalClasses = disableRepoSelector
+  const wrapperConditionalClasses = disableModelSelector
     ? 'opacity-50 p-0 cursor-not-allowed' // Disabled styles
     : 'hover:bg-[var(--deputydev-input-background)]'; // Enabled hover style
 
+  const models = [
+    { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
+    { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' }
+  ];
+
   const selectElement = (
-    <select
-      className="w-full cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none"
-      value={activeRepo || ''}
-      onChange={handleChange}
-      disabled={disableRepoSelector}
-      // Add pointer-events: none specifically to the select when disabled
-      // to ensure the wrapper div receives hover events for the tooltip trigger.
-      style={disableRepoSelector ? { pointerEvents: 'none' } : {}}
-    >
-      {workspaceRepos.length === 0 ? (
-        <option value="" disabled>
-          No repositories available
-        </option>
-      ) : (
-        workspaceRepos.map((repo) => (
-          <option key={repo.repoPath} value={repo.repoPath}>
-            {repo.repoName}
+    <div className="relative w-full">
+      <select
+        ref={selectRef}
+        className="w-full cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none appearance-none pr-7"
+        value={activeModel}
+        onChange={handleChange}
+        disabled={disableModelSelector}
+        style={{ pointerEvents: 'none' }}
+      >
+        {models.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.name}
           </option>
-        ))
-      )}
-    </select>
+        ))}
+      </select>
+      <button
+        className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (selectRef.current) {
+            const event = new MouseEvent('mousedown', { bubbles: true });
+            selectRef.current.dispatchEvent(event);
+          }
+        }}
+      >
+        <Box className='h-4 w-4'/>
+      </button>
+    </div>
   );
 
   // If the selector is disabled, wrap it with the Radix Tooltip
-  if (disableRepoSelector) {
+  if (disableModelSelector) {
     return (
       <Tooltip.Provider delayDuration={200}>
         {' '}
-        {/* Optional: Add a small delay */}
         <Tooltip.Root>
           <Tooltip.Trigger asChild>
             {/* The trigger is the wrapper div */}
@@ -75,7 +84,7 @@ const RepoSelector = () => {
                 border: '1px solid var(--vscode-editorHoverWidget-border)',
               }}
             >
-              Create new chat to select new repo.
+              Create new chat to select new model.
               <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
             </Tooltip.Content>
           </Tooltip.Portal>
@@ -90,4 +99,4 @@ const RepoSelector = () => {
   );
 };
 
-export default RepoSelector;
+export default ModelSelector;
