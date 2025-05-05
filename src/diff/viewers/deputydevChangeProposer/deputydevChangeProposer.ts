@@ -24,7 +24,7 @@ export class DeputydevChangeProposer {
     this.vscodeContext.subscriptions.push(
       vscode.window.registerCustomEditorProvider(
         ChangeProposerEditor.viewType,
-        new ChangeProposerEditor(this.vscodeContext, this.outputChannel),
+        new ChangeProposerEditor(this.vscodeContext, this.outputChannel, this.fileChangeStateManager),
         {
           webviewOptions: {
             retainContextWhenHidden: true,

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ChangeProposerDocument } from '../document/changeProposerDocument';
 import { getUri } from '../../../../utilities/getUri';
+import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChangeStateManager';
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
@@ -8,6 +9,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly fileChangeStateManager: FileChangeStateManager,
   ) {}
 
   async openCustomDocument(
@@ -44,7 +46,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
     updateWebview();
 
-    webviewPanel.webview.onDidReceiveMessage((message) => {
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'get-initial-content': {
           const initialContent = document.content;
@@ -53,6 +55,24 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             command: 'result',
             data: initialContent,
           });
+          break;
+        }
+        case 'accept-change': {
+          const line = message.data.line;
+          this.outputChannel.info(`Accepting change at line ${line}`);
+          const newContent = await this.fileChangeStateManager.acceptChangeAtLine(document.filePath, document.repoPath, line);
+          this.outputChannel.info(`New content after accepting change: ${newContent}`);
+          if (newContent) {
+            document.content = newContent;
+            // this._onDidChangeCustomDocument.fire({
+            //   document,
+            // });
+            webviewPanel.webview.postMessage({
+              id: message.id,
+              command: 'result',
+              data: newContent,
+            });
+          }
           break;
         }
         default: {
