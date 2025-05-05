@@ -1,4 +1,4 @@
-import { useSessionsStore } from "@/stores/sessionsStore";
+import { useSessionsStore } from '@/stores/sessionsStore';
 import {
   deleteSession,
   getSessionChats,
@@ -6,9 +6,9 @@ import {
   getPinnedSessions,
   reorderPinnedSessions,
   pinUnpinSession,
-} from "@/commandApi";
-import { use, useEffect, useState } from "react";
-import { Trash2, GripVertical, Pin, PinOff, ArrowDown } from "lucide-react";
+} from '@/commandApi';
+import { useEffect, useState } from 'react';
+import { Trash2, GripVertical, Pin, PinOff, ArrowDown } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -16,16 +16,12 @@ import {
   useSensors,
   PointerSensor,
   DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import * as Tooltip from "@radix-ui/react-tooltip";
-import { Session } from "@/types";
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { Session } from '@/types';
 
 type SortableItemProps = {
   session: {
@@ -36,10 +32,7 @@ type SortableItemProps = {
   };
   handleGetSessionChats: (sessionId: number) => void;
   handleDeleteSession: (sessionId: number) => void;
-  handlePinUnpinSession: (
-    session: Session,
-    pin_or_unpin: "PINNED" | "UNPINNED",
-  ) => void;
+  handlePinUnpinSession: (session: Session, pin_or_unpin: 'PINNED' | 'UNPINNED') => void;
   isPinned: boolean;
   disablePinning?: boolean;
   mountPopupOnBottom?: boolean;
@@ -54,14 +47,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
   handlePinUnpinSession,
   mountPopupOnBottom,
 }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: session.id,
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -70,8 +56,8 @@ const SortableItem: React.FC<SortableItemProps> = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    border: "1px solid var(--vscode-editor-border)",
-    backgroundColor: "var(--vscode-editor-background)",
+    border: '1px solid var(--vscode-editor-border)',
+    backgroundColor: 'var(--vscode-editor-background)',
   };
 
   useEffect(() => {
@@ -80,29 +66,29 @@ const SortableItem: React.FC<SortableItemProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (!e.target) return;
       const target = e.target as HTMLElement;
-      if (!target.closest(".delete-confirmation-popup")) {
+      if (!target.closest('.delete-confirmation-popup')) {
         setShowDeleteConfirm(false);
       }
     };
 
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
   }, [showDeleteConfirm]);
   const getLocaleTimeString = (dateString: string) => {
-    const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
+    const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
     const date = new Date(cleanedDateString);
     const dateOptions: Intl.DateTimeFormatOptions = {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
     };
     const timeOptions: Intl.DateTimeFormatOptions = {
-      hour: "numeric",
-      minute: "numeric",
+      hour: 'numeric',
+      minute: 'numeric',
       hour12: true,
     };
 
-    const locale = navigator.language || "en-US";
+    const locale = navigator.language || 'en-US';
     const datePart = date.toLocaleDateString(locale, dateOptions);
     const timePart = date.toLocaleTimeString(locale, timeOptions);
 
@@ -123,7 +109,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
         {isPinned ? (
           <div
             className="flex items-center self-stretch"
-            style={{ cursor: isDragging ? "grabbing" : "grab" }}
+            style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
             {...listeners}
           >
             <GripVertical size={16} />
@@ -135,13 +121,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div
                   className="text-[10px] font-medium uppercase tracking-wide"
-                  style={{ color: "var(--vscode-descriptionForeground)" }}
+                  style={{ color: 'var(--vscode-descriptionForeground)' }}
                 >
                   {getLocaleTimeString(session.updated_at)}
                 </div>
                 <div
                   className="overflow-hidden text-ellipsis whitespace-nowrap text-sm font-medium"
-                  style={{ color: "var(--vscode-editor-foreground)" }}
+                  style={{ color: 'var(--vscode-editor-foreground)' }}
                 >
                   {session.summary}
                 </div>
@@ -152,15 +138,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 side="top"
                 className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
                 style={{
-                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
-                  color: "var(--vscode-editorHoverWidget-foreground)",
-                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+                  color: 'var(--vscode-editorHoverWidget-foreground)',
+                  border: '1px solid var(--vscode-editorHoverWidget-border)',
                 }}
               >
                 {session.summary}
-                <Tooltip.Arrow
-                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
-                />
+                <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
               </Tooltip.Content>
             </Tooltip.Portal>
           </Tooltip.Root>
@@ -174,12 +158,12 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <PinOff
                 size={16}
                 style={{
-                  color: "var(--vscode-icon-foreground)",
-                  cursor: "pointer",
-                  transition: "opacity 0.2s",
+                  color: 'var(--vscode-icon-foreground)',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
                 }}
                 className="flex-shrink-0 hover:opacity-70"
-                onMouseDown={() => handlePinUnpinSession(session, "UNPINNED")}
+                onMouseDown={() => handlePinUnpinSession(session, 'UNPINNED')}
               />
             </Tooltip.Trigger>
             <Tooltip.Portal>
@@ -187,15 +171,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 side="top"
                 className="rounded-md px-2 py-1 text-xs shadow-md"
                 style={{
-                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
-                  color: "var(--vscode-editorHoverWidget-foreground)",
-                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+                  color: 'var(--vscode-editorHoverWidget-foreground)',
+                  border: '1px solid var(--vscode-editorHoverWidget-border)',
                 }}
               >
                 Unpin conversation
-                <Tooltip.Arrow
-                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
-                />
+                <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
               </Tooltip.Content>
             </Tooltip.Portal>
           </Tooltip.Root>
@@ -208,8 +190,8 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 <Pin
                   size={16}
                   style={{
-                    color: "var(--vscode-icon-foreground)",
-                    cursor: "not-allowed",
+                    color: 'var(--vscode-icon-foreground)',
+                    cursor: 'not-allowed',
                     opacity: 0.5,
                   }}
                   className="flex-shrink-0"
@@ -221,15 +203,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 side="top"
                 className="max-w-[300px] break-words rounded-md px-2 py-1 shadow-md"
                 style={{
-                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
-                  color: "var(--vscode-editorHoverWidget-foreground)",
-                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+                  color: 'var(--vscode-editorHoverWidget-foreground)',
+                  border: '1px solid var(--vscode-editorHoverWidget-border)',
                 }}
               >
                 Maximum 5 pinned conversations allowed
-                <Tooltip.Arrow
-                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
-                />
+                <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
               </Tooltip.Content>
             </Tooltip.Portal>
           </Tooltip.Root>
@@ -241,12 +221,12 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <Pin
                 size={16}
                 style={{
-                  color: "var(--vscode-icon-foreground)",
-                  cursor: "pointer",
-                  transition: "opacity 0.2s",
+                  color: 'var(--vscode-icon-foreground)',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
                 }}
                 className="flex-shrink-0 hover:opacity-70"
-                onMouseDown={() => handlePinUnpinSession(session, "PINNED")}
+                onMouseDown={() => handlePinUnpinSession(session, 'PINNED')}
               />
             </Tooltip.Trigger>
             <Tooltip.Portal>
@@ -254,15 +234,13 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 side="top"
                 className="rounded-md px-2 py-1 text-xs shadow-md"
                 style={{
-                  backgroundColor: "var(--vscode-editorHoverWidget-background)",
-                  color: "var(--vscode-editorHoverWidget-foreground)",
-                  border: "1px solid var(--vscode-editorHoverWidget-border)",
+                  backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+                  color: 'var(--vscode-editorHoverWidget-foreground)',
+                  border: '1px solid var(--vscode-editorHoverWidget-border)',
                 }}
               >
                 Pin conversation
-                <Tooltip.Arrow
-                  style={{ fill: "var(--vscode-editorHoverWidget-background)" }}
-                />
+                <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
               </Tooltip.Content>
             </Tooltip.Portal>
           </Tooltip.Root>
@@ -276,9 +254,9 @@ const SortableItem: React.FC<SortableItemProps> = ({
                 <Trash2
                   size={16}
                   style={{
-                    color: "var(--vscode-icon-foreground)",
-                    cursor: "pointer",
-                    transition: "opacity 0.2s",
+                    color: 'var(--vscode-icon-foreground)',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s',
                   }}
                   className="hover:opacity-70"
                   onMouseDown={(e) => {
@@ -293,16 +271,15 @@ const SortableItem: React.FC<SortableItemProps> = ({
                   side="top"
                   className="rounded-md px-2 py-1 text-xs shadow-md"
                   style={{
-                    backgroundColor:
-                      "var(--vscode-editorHoverWidget-background)",
-                    color: "var(--vscode-editorHoverWidget-foreground)",
-                    border: "1px solid var(--vscode-editorHoverWidget-border)",
+                    backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+                    color: 'var(--vscode-editorHoverWidget-foreground)',
+                    border: '1px solid var(--vscode-editorHoverWidget-border)',
                   }}
                 >
                   Delete conversation
                   <Tooltip.Arrow
                     style={{
-                      fill: "var(--vscode-editorHoverWidget-background)",
+                      fill: 'var(--vscode-editorHoverWidget-background)',
                     }}
                   />
                 </Tooltip.Content>
@@ -313,19 +290,19 @@ const SortableItem: React.FC<SortableItemProps> = ({
           <div
             className="fixed z-[9999] flex min-w-[180px] animate-[fadeInSlideDown_0.2s_ease-out] flex-col gap-2 rounded-sm border p-3 shadow-md"
             style={{
-              backgroundColor: "var(--vscode-editorHoverWidget-background)",
-              borderColor: "var(--vscode-editorHoverWidget-border)",
-              marginRight: "20px",
+              backgroundColor: 'var(--vscode-editorHoverWidget-background)',
+              borderColor: 'var(--vscode-editorHoverWidget-border)',
+              marginRight: '20px',
               top: mountPopupOnBottom
                 ? `calc(${triggerRect?.y || 0}px + 20px)`
                 : `calc(${triggerRect?.y || 0}px - 100px)`,
               left: `calc(${triggerRect?.x || 0}px - 220px)`,
-              maxWidth: "calc(100vw - 32px)",
+              maxWidth: 'calc(100vw - 32px)',
             }}
           >
             <span
               className="text-xs"
-              style={{ color: "var(--vscode-editorHoverWidget-foreground)" }}
+              style={{ color: 'var(--vscode-editorHoverWidget-foreground)' }}
             >
               Are you sure you want to delete this Conversation?
             </span>
@@ -333,10 +310,10 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <button
                 className="rounded-sm px-2 py-0.5 text-xs focus:outline focus:outline-offset-1"
                 style={{
-                  color: "var(--vscode-button-foreground)",
-                  backgroundColor: "var(--vscode-button-background)",
-                  border: "1px solid var(--vscode-button-border)",
-                  outlineColor: "var(--vscode-focusBorder)",
+                  color: 'var(--vscode-button-foreground)',
+                  backgroundColor: 'var(--vscode-button-background)',
+                  border: '1px solid var(--vscode-button-border)',
+                  outlineColor: 'var(--vscode-focusBorder)',
                 }}
                 onMouseDown={() => {
                   handleDeleteSession(session.id);
@@ -348,10 +325,10 @@ const SortableItem: React.FC<SortableItemProps> = ({
               <button
                 className="rounded-sm px-2 py-0.5 text-xs focus:outline focus:outline-offset-1"
                 style={{
-                  color: "var(--vscode-button-secondaryForeground)",
-                  backgroundColor: "var(--vscode-button-secondaryBackground)",
-                  border: "1px solid var(--vscode-button-secondaryBorder)",
-                  outlineColor: "var(--vscode-focusBorder)",
+                  color: 'var(--vscode-button-secondaryForeground)',
+                  backgroundColor: 'var(--vscode-button-secondaryBackground)',
+                  border: '1px solid var(--vscode-button-secondaryBorder)',
+                  outlineColor: 'var(--vscode-focusBorder)',
                 }}
                 onMouseDown={() => setShowDeleteConfirm(false)}
               >
@@ -375,12 +352,12 @@ export default function History() {
     loadingPinnedSessions,
     loadingUnpinnedSessions,
     noPinnedSessions,
-    noUnpinnedSessions
+    noUnpinnedSessions,
   } = useSessionsStore();
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [disableLoader, setDisableLoader] = useState(false);
   const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState(
-    "Loading your DeputyDev sessions history...",
+    'Loading your DeputyDev sessions history...'
   );
 
   const handleGetSessionChats = async (sessionId: number) => {
@@ -389,31 +366,26 @@ export default function History() {
 
   const handlePinUnpinSession = async (
     session: Session,
-    pin_or_unpin: "PINNED" | "UNPINNED",
-    rank?: number,
+    pin_or_unpin: 'PINNED' | 'UNPINNED',
+    rank?: number
   ) => {
-    if (pin_or_unpin === "PINNED") {
-      const pinnedSessionsCount =
-        useSessionsStore.getState().pinnedSessions.length;
+    if (pin_or_unpin === 'PINNED') {
+      const pinnedSessionsCount = useSessionsStore.getState().pinnedSessions.length;
       if (pinnedSessionsCount >= 5) {
-        alert(
-          "Maximum 5 pinned conversations allowed, please unpin one to pin another.",
-        );
+        alert('Maximum 5 pinned conversations allowed, please unpin one to pin another.');
         return;
       }
       const updatedPinnedSessions = [...pinnedSessions, session];
-      pinUnpinSession(session.id, "PINNED", pinnedSessionsCount);
+      pinUnpinSession(session.id, 'PINNED', pinnedSessionsCount);
       useSessionsStore.setState({ pinnedSessions: updatedPinnedSessions });
       useSessionsStore.setState({
-        sessions: useSessionsStore
-          .getState()
-          .sessions.filter((s) => s.id !== session.id),
+        sessions: useSessionsStore.getState().sessions.filter((s) => s.id !== session.id),
       });
     } else {
       const updatedPinnedSessions = pinnedSessions.filter(
-        (pinnedSession) => pinnedSession.id !== session.id,
+        (pinnedSession) => pinnedSession.id !== session.id
       );
-      pinUnpinSession(session.id, "UNPINNED");
+      pinUnpinSession(session.id, 'UNPINNED');
       useSessionsStore.setState({ pinnedSessions: updatedPinnedSessions });
       useSessionsStore.setState({
         sessions: [...useSessionsStore.getState().sessions, session],
@@ -423,9 +395,7 @@ export default function History() {
 
   const handleDeleteSession = async (sessionId: number) => {
     useSessionsStore.setState({
-      sessions: useSessionsStore
-        .getState()
-        .sessions.filter((session) => session.id !== sessionId),
+      sessions: useSessionsStore.getState().sessions.filter((session) => session.id !== sessionId),
     });
     useSessionsStore.setState({
       pinnedSessions: useSessionsStore
@@ -451,19 +421,14 @@ export default function History() {
     }
   }, []);
 
-
   const sensors = useSensors(useSensor(PointerSensor));
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = pinnedSessions.findIndex(
-      (session) => session.id === active.id,
-    );
-    const newIndex = pinnedSessions.findIndex(
-      (session) => session.id === over.id,
-    );
+    const oldIndex = pinnedSessions.findIndex((session) => session.id === active.id);
+    const newIndex = pinnedSessions.findIndex((session) => session.id === over.id);
 
     const reorderedSessions = arrayMove(pinnedSessions, oldIndex, newIndex);
     const updatedSessions = reorderedSessions.map((session, index) => ({
@@ -484,15 +449,15 @@ export default function History() {
     <div
       className="flex h-screen flex-col"
       style={{
-        padding: "1rem",
-        backgroundColor: "var(--vscode-sidebar-background-rgb)",
+        padding: '1rem',
+        backgroundColor: 'var(--vscode-sidebar-background-rgb)',
       }}
     >
-
       {noPinnedSessions && noUnpinnedSessions ? (
         <div className="mt-[250px] flex flex-col items-center justify-center">
           <div className="mt-[10px] text-center text-gray-500">
-            Your session history will appear here once you begin your AI development journey with DeputyDev
+            Your session history will appear here once you begin your AI development journey with
+            DeputyDev
           </div>
         </div>
       ) : (
@@ -510,13 +475,12 @@ export default function History() {
             </div>
           ) : (
             <div>
-
               {/* pinned sessions  */}
-              {pinnedSessions.length > 0 &&
+              {pinnedSessions.length > 0 && (
                 <div>
                   <h3
                     className="mb-2 text-lg font-semibold"
-                    style={{ color: "var(--vscode-editor-foreground)" }}
+                    style={{ color: 'var(--vscode-editor-foreground)' }}
                   >
                     Pinned Conversations
                   </h3>
@@ -547,14 +511,14 @@ export default function History() {
                     </div>
                   </DndContext>
                 </div>
-              }
+              )}
 
               {/* unpinned sessions */}
-              {sessions.length > 0 &&
+              {sessions.length > 0 && (
                 <div className="flex flex-1 flex-col">
                   <h3
                     className="mb-2 mt-6 text-lg font-semibold"
-                    style={{ color: "var(--vscode-editor-foreground)" }}
+                    style={{ color: 'var(--vscode-editor-foreground)' }}
                   >
                     Past Conversations
                   </h3>
@@ -571,9 +535,7 @@ export default function History() {
                             isPinned={false}
                             disablePinning={pinnedSessions.length >= 5}
                             handlePinUnpinSession={handlePinUnpinSession}
-                            mountPopupOnBottom={
-                              index === 0 && pinnedSessions.length === 0
-                            }
+                            mountPopupOnBottom={index === 0 && pinnedSessions.length === 0}
                           />
                         ))}
                         {useSessionsStore.getState().hasMore && (
@@ -588,7 +550,7 @@ export default function History() {
                     </div>
                   </div>
                 </div>
-              }
+              )}
             </div>
           )}
         </div>

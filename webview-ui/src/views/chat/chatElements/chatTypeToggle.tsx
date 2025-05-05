@@ -19,18 +19,18 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
       ? "border border-[--deputydev-button-border]"
       : "";
 
-  const activeBg = "bg-[--deputydev-button-background]";
-  const activeFg = "text-[--deputydev-button-foreground]";
-  const inactiveBg = "bg-[--deputydev-button-secondaryBackground]";
-  const inactiveFg = "text-[--deputydev-button-secondaryForeground]";
+  const activeBg = 'bg-[--deputydev-button-background]';
+  const activeFg = 'text-[--deputydev-button-foreground]';
+  const inactiveBg = 'bg-[--deputydev-button-secondaryBackground]';
+  const inactiveFg = 'text-[--deputydev-button-secondaryForeground]';
 
   // Define the heights
-  const activeHeightClass = "h-5"; // The taller height (e.g., 1.25rem)
-  const inactiveHeightClass = "h-4"; // The shorter height (e.g., 1rem)
+  const activeHeightClass = 'h-5'; // The taller height (e.g., 1.25rem)
+  const inactiveHeightClass = 'h-4'; // The shorter height (e.g., 1rem)
   // Calculate vertical offset for centering the inactive background
   // If h-5 is 1.25rem and h-4 is 1rem, difference is 0.25rem. Half is 0.125rem.
   // Tailwind's '0.5' unit is 0.125rem, so we use inset-y-0.5
-  const inactiveVerticalInset = "inset-y-0.5"; // top: 0.125rem, bottom: 0.125rem
+  const inactiveVerticalInset = 'inset-y-0.5'; // top: 0.125rem, bottom: 0.125rem
 
   return (
     // Container: Sets overall size (activeHeightClass), shape, and positioning context. No background.
@@ -55,11 +55,11 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === "ask" ? activeFg : inactiveFg} `}
         onClick={() => {
           if (!isLoading) {
-            setChatType("ask");
+            setChatType('ask');
           }
         }}
-        disabled={isLoading || chatType === "ask"}
-        aria-pressed={chatType === "ask"}
+        disabled={isLoading || chatType === 'ask'}
+        aria-pressed={chatType === 'ask'}
       >
         Chat
       </button>
@@ -70,11 +70,11 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === "write" ? activeFg : inactiveFg} `}
         onClick={() => {
           if (!isLoading) {
-            setChatType("write");
+            setChatType('write');
           }
         }}
-        disabled={isLoading || chatType === "write"}
-        aria-pressed={chatType === "write"}
+        disabled={isLoading || chatType === 'write'}
+        aria-pressed={chatType === 'write'}
       >
         Act
       </button>

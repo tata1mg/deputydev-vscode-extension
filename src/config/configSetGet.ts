@@ -1,6 +1,5 @@
-let MainConfig: object | {} = {};
-let EssentialConfig: object | {} = {};
-
+let MainConfig: Record<string, unknown> = {};
+let EssentialConfig: Record<string, unknown> = {};
 
 export function setMainConfig(config: any) {
   MainConfig = config;
@@ -9,7 +8,6 @@ export function setMainConfig(config: any) {
 export function setEssentialConfig(config: any) {
   EssentialConfig = config;
 }
-
 
 export function getMainConfig(): any {
   return MainConfig;

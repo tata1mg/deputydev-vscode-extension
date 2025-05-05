@@ -31,7 +31,7 @@ export class Logger {
 
     if (!fs.existsSync(baseDir)) return;
 
-    fs.readdirSync(baseDir).forEach(folder => {
+    fs.readdirSync(baseDir).forEach((folder) => {
       const fullPath = path.join(baseDir, folder);
       if (!fs.statSync(fullPath).isDirectory()) return;
 
@@ -59,7 +59,7 @@ export class Logger {
 
   private formatArgs(level: string, args: any[]): string {
     const timestamp = new Date().toISOString();
-    const formattedArgs = args.map(arg => {
+    const formattedArgs = args.map((arg) => {
       if (typeof arg === 'string') return arg;
       try {
         return JSON.stringify(arg, null, 2);
