@@ -1,5 +1,5 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop } from 'lucide-react';
+import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop, Globe, Image, AtSign } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
@@ -27,6 +27,7 @@ import '../../styles/markdown-body.css';
 import { AutocompleteMenu } from './autocomplete';
 import ProgressBar from './chatElements/progressBar';
 import ReferenceChip from './referencechip';
+import ModelSelector from './chatElements/modelSelector';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -72,6 +73,14 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
+
+  // Add state for globe toggle
+  const [isGlobeEnabled, setIsGlobeEnabled] = useState(false);
+
+  const handleGlobeToggle = () => {
+    setIsGlobeEnabled(prev => !prev);
+    // You can add any additional logic here when the globe is toggled
+  };
 
   useEffect(() => {
     const handleCopy = () => {
@@ -130,7 +139,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } catch (error) {
       // Handle error if needed
       console.error('Error sending message:', error);
@@ -474,14 +483,61 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                    'data-tooltip-id': 'repo-tooltip',
-                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
-                  })}
+                  'data-tooltip-id': 'repo-tooltip',
+                  'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                })}
                 autoFocus
               />
             </div>
 
-            <div className="absolute bottom-2 right-2.5 flex items-center gap-2">
+            <div className="absolute bottom-2 right-2.5 flex items-center gap-1">
+              <button
+                className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content="Add context"
+                data-tooltip-place="top-start"
+                onClick={() => {
+                  const textarea = textareaRef.current;
+                  if (textarea) {
+                    // Set the value and move cursor
+                    textarea.value = '@';
+                    textarea.setSelectionRange(1, 1);
+                    textarea.focus();
+
+                    // Update store and trigger change handler
+                    useChatStore.setState({ userInput: "@" });
+                    handleTextAreaChange({
+                      target: {
+                        value: "@"
+                      }
+                    } as React.ChangeEvent<HTMLTextAreaElement>);
+                  }
+                }}
+              >
+                <AtSign className="h-4 w-4" />
+              </button>
+
+              <button
+                className={`flex items-center justify-center p-1 rounded ${isGlobeEnabled
+                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
+                  : 'hover:bg-slate-400 hover:bg-opacity-10'
+                  }`}
+                onClick={handleGlobeToggle}
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content={`${isGlobeEnabled ? 'Disable web search' : 'Enable web search'}`}
+                data-tooltip-place="top-start"
+              >
+                <Globe className="h-4 w-4" />
+              </button>
+
+              <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content="Upload image"
+                data-tooltip-place="top-start"
+              >
+                <Image className="h-4 w-4" />
+              </button>
+
               {enhancingUserQuery ? (
                 <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -530,7 +586,10 @@ export function ChatUI() {
         {/* Chat Type Toggle and RepoSelector */}
         <div className="flex items-center justify-between gap-2 text-xs">
           <RepoSelector />
-          <ChatTypeToggle />
+          <div className='flex items-center justify-between gap-2 text-xs'>
+            <ModelSelector />
+            <ChatTypeToggle />
+          </div>
         </div>
       </div>
     </div>
