@@ -302,7 +302,7 @@ export async function activate(context: vscode.ExtensionContext) {
         await vscode.commands.executeCommand('workbench.action.terminal.copySelection');
 
         // Get copied content
-        let terminalContents = (await vscode.env.clipboard.readText()).trim();
+        const terminalContents = (await vscode.env.clipboard.readText()).trim();
 
         // Restore original clipboard content
         await vscode.env.clipboard.writeText(tempCopyBuffer);

@@ -51,7 +51,7 @@ export class ReferenceManager {
     });
   }
 
-  async getSavedUrls(data: { isSettings?: boolean }, sendMessage: (message: Object) => void) {
+  async getSavedUrls(data: { isSettings?: boolean }, sendMessage: (message: object) => void) {
     const response = await this.referenceService.getSavedUrls(data.isSettings);
     this.outputChannel.info('getSavedUrls-response', response);
     sendMessage({
@@ -71,7 +71,7 @@ export class ReferenceManager {
     });
   }
 
-  async deleteSavedUrl(data: { id: string; isSettings?: boolean }, sendMessage: (message: Object) => void) {
+  async deleteSavedUrl(data: { id: string; isSettings?: boolean }, sendMessage: (message: object) => void) {
     const response = await this.referenceService.deleteSavedUrl(data);
     this.outputChannel.info('deleteSavedUrl-response', response);
     sendMessage({
@@ -83,7 +83,7 @@ export class ReferenceManager {
 
   async updateSavedUrl(
     payload: { id: string; name: string; isSettings?: boolean },
-    sendMessage: (message: Object) => void,
+    sendMessage: (message: object) => void,
   ) {
     const response = await this.referenceService.updateSavedUrl(payload);
     this.outputChannel.info('updateSavedUrl-response', response);
@@ -94,7 +94,7 @@ export class ReferenceManager {
     });
   }
 
-  async urlSearch(payload: { keyword: string; isSettings?: boolean }, sendMessage: (message: Object) => void) {
+  async urlSearch(payload: { keyword: string; isSettings?: boolean }, sendMessage: (message: object) => void) {
     const response = await this.referenceService.urlSearch(payload);
     this.outputChannel.info('urlSearch-response', response);
     sendMessage({

@@ -15,19 +15,14 @@ import {
   ChatToolUseMessage,
   Settings,
   URLListItem,
-} from "@/types";
-import {
-  logToOutput,
-  getSessions,
-  sendWorkspaceRepoChange,
-  getGlobalState,
-} from "./commandApi";
-import { useSessionsStore } from "./stores/sessionsStore";
-import { useLoaderViewStore } from "./stores/useLoaderViewStore";
-import { useUserProfileStore } from "./stores/useUserProfileStore";
-import { useThemeStore } from "./stores/useThemeStore";
-import { url } from "inspector";
-import { useSettingsStore } from "./stores/settingsStore";
+} from '@/types';
+import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
+import { useSessionsStore } from './stores/sessionsStore';
+import { useLoaderViewStore } from './stores/useLoaderViewStore';
+import { useUserProfileStore } from './stores/useUserProfileStore';
+import { useThemeStore } from './stores/useThemeStore';
+import { url } from 'inspector';
+import { useSettingsStore } from './stores/settingsStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -321,23 +316,23 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
-addCommandEventListener("initialize-settings-response", async ({ data }) => {
+addCommandEventListener('initialize-settings-response', async ({ data }) => {
   const settings = data as Settings;
   useSettingsStore.setState({
     isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
     commandsToDeny: settings.terminal_settings.command_deny_list,
     chatType: settings.default_mode,
-    terminalOutputLimit: await getGlobalState({ key: "terminal-output-limit" }),
+    terminalOutputLimit: await getGlobalState({ key: 'terminal-output-limit' }),
     shellIntegrationTimeout: await getGlobalState({
-      key: "terminal-shell-limit",
+      key: 'terminal-shell-limit',
     }),
     shellCommandTimeout: await getGlobalState({
-      key: "terminal-command-timeout",
+      key: 'terminal-command-timeout',
     }),
   });
 });
 
-addCommandEventListener("keyword-type-search-response", ({ data }) => {
+addCommandEventListener('keyword-type-search-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
       icon: item.type,
@@ -370,19 +365,16 @@ addCommandEventListener('get-saved-urls-response', ({ data }) => {
       chunks: item.chunks ? item.chunks : null,
     };
   });
-  logToOutput(
-    "info",
-    `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`,
-  );
+  logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
-addCommandEventListener("get-saved-urls-response-settings", ({ data }) => {
+addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
   useSettingsStore.setState({ urls: data as URLListItem[] });
 });
 
-addCommandEventListener("session-chats-history", ({ data }) => {
-  useExtensionStore.setState({ viewType: "chat" });
+addCommandEventListener('session-chats-history', ({ data }) => {
+  useExtensionStore.setState({ viewType: 'chat' });
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
@@ -484,9 +476,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()
     .find(
-      (msg) =>
-        msg.type === "TOOL_USE_REQUEST" &&
-        msg.content?.tool_name === "create_new_workspace",
+      (msg) => msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
     );
   const continuationPayload = {
     write_mode: useChatSettingStore.getState().chatType === 'write',
@@ -509,17 +499,10 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     },
   };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage(
-    "create new workspace payload",
-    [],
-    () => {},
-    false,
-    {},
-    continuationPayload,
-  );
+  sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
 });
 
-addCommandEventListener("update-workspace-tool-status", ({ data }) => {
+addCommandEventListener('update-workspace-tool-status', ({ data }) => {
   const { tool_use_id, status } = data as {
     tool_use_id: string;
     status: string;
@@ -527,10 +510,7 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
-    if (
-      msg.type === "TOOL_USE_REQUEST" &&
-      msg.content.tool_use_id === tool_use_id
-    ) {
+    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
       return {
         ...msg,
         content: {
@@ -544,7 +524,7 @@ addCommandEventListener("update-workspace-tool-status", ({ data }) => {
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
 
-addCommandEventListener("update-workspace-dd", () => {
+addCommandEventListener('update-workspace-dd', () => {
   // Get list of current workspace repositories and update active repo to last or latest workspace
   const workspaceRepos = useWorkspaceStore.getState().workspaceRepos;
   if (workspaceRepos.length > 0) {
@@ -563,15 +543,11 @@ addCommandEventListener("update-workspace-dd", () => {
       .reverse()
       .find(
         (msg) =>
-          msg.type === "TOOL_USE_REQUEST" &&
-          msg.content?.tool_name === "create_new_workspace",
+          msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
       ) as ChatToolUseMessage;
 
     if (!lastToolMessage) {
-      logToOutput(
-        "error",
-        "No TOOL_USE_REQUEST message found for creating a new workspace.",
-      );
+      logToOutput('error', 'No TOOL_USE_REQUEST message found for creating a new workspace.');
       return;
     }
 
@@ -596,23 +572,16 @@ addCommandEventListener("update-workspace-dd", () => {
       },
     };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage(
-      "create new workspace payload",
-      [],
-      () => {},
-      false,
-      {},
-      continuationPayload,
-    );
+    sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
   } else {
     logToOutput(
-      "error",
-      `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`,
+      'error',
+      `No workspace repositories available to update. Current workspaceRepos: ${JSON.stringify(workspaceRepos)}`
     );
   }
 });
 
-addCommandEventListener("terminal-output-to-chat", ({ data }) => {
+addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   const terminalOutput = data as { terminalOutput: string };
   const currentUserInput = useChatStore.getState().userInput;
   useChatStore.setState({
