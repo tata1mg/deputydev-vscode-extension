@@ -54,14 +54,29 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     updateWebview();
 
     webviewPanel.webview.onDidReceiveMessage((message) => {
-      if (message.type === 'edit') {
-        document.content = message.text;
-        this._onDidChangeCustomDocument.fire({
-          document,
-          undo: () => {},
-          redo: () => {},
-        });
+      switch (message.command) {
+        case 'get-initial-content': {
+          const initialContent = document.content;
+          webviewPanel.webview.postMessage({
+            id: message.id,
+            command: 'result',
+            data: initialContent,
+          });
+          break;
+        }
+        default : {
+          console.log('Unknown message received:', message);
+          break;
+        }
       }
+      // if (message.type === 'edit') {
+      //   document.content = message.text;
+      //   this._onDidChangeCustomDocument.fire({
+      //     document,
+      //     undo: () => {},
+      //     redo: () => {},
+      //   });
+      // }
     });
 
     webviewPanel.onDidDispose(() => {

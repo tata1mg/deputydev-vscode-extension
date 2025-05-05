@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
-// import { useChatStore } from './stores/chatStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -8,29 +6,6 @@ type Resolver = {
   chunk?: (data: unknown) => void;
 };
 
-interface InlineChatReferenceData {
-  keyword: string;
-  path: string;
-  chunk: {
-    start_line: number;
-    end_line: number;
-    chunk_hash: string;
-    file_hash: string;
-    file_path: string;
-    meta_info?: any;
-  };
-  value: string;
-}
-
-interface WorkspaceRepo {
-  repoPath: string;
-  repoName: string;
-}
-
-interface SetWorkspaceReposData {
-  repos: WorkspaceRepo[];
-  activeRepo: string | null;
-}
 
 type EventListener = (data: { id: string; command: string; data: unknown }) => void;
 
@@ -155,12 +130,3 @@ export function callCommand(
 
   return gen;
 }
-
-
-// addCommandEventListener('terminal-output-to-chat', ({ data }) => {
-//   const terminalOutput = data as { terminalOutput: string };
-//   const currentUserInput = useChatStore.getState().userInput;
-//   useChatStore.setState({
-//     userInput: currentUserInput + terminalOutput.terminalOutput,
-//   });
-// });
