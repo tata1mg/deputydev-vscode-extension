@@ -38,7 +38,7 @@ const ModelSelector = () => {
         value={activeModel}
         onChange={handleChange}
         disabled={disableModelSelector}
-        style={{ pointerEvents: 'none' }}
+        style={disableModelSelector ? {pointerEvents: 'none'} : {}}
       >
         {models.map((model) => (
           <option key={model.id} value={model.id}>
@@ -48,13 +48,6 @@ const ModelSelector = () => {
       </select>
       <button
         className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (selectRef.current) {
-            const event = new MouseEvent('mousedown', { bubbles: true });
-            selectRef.current.dispatchEvent(event);
-          }
-        }}
       >
         <Box className='h-4 w-4'/>
       </button>
