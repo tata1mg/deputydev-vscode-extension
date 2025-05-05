@@ -64,7 +64,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           });
           break;
         }
-        default : {
+        default: {
           console.log('Unknown message received:', message);
           break;
         }
