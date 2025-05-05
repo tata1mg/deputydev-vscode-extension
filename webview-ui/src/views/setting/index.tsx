@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from "react";
-import { ChatTypeToggle } from "../chat/chatElements/chatTypeToggle";
+import React, { useEffect, useState, useRef } from 'react';
+import { ChatTypeToggle } from '../chat/chatElements/chatTypeToggle';
 import {
   X,
   Link,
@@ -11,9 +11,9 @@ import {
   ArrowLeft,
   Plus,
   CornerDownLeft,
-} from "lucide-react";
-import { Settings, URLListItem, SaveUrlRequest } from "../../types";
-import { useSettingsStore } from "@/stores/settingsStore";
+} from 'lucide-react';
+import { Settings, URLListItem, SaveUrlRequest } from '../../types';
+import { useSettingsStore } from '@/stores/settingsStore';
 import {
   saveSettings,
   getSavedUrls,
@@ -25,25 +25,25 @@ import {
   createOrOpenFile,
   setGlobalState,
   getGlobalState,
-} from "@/commandApi";
-import { BarLoader } from "react-spinners";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
+} from '@/commandApi';
+import { BarLoader } from 'react-spinners';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 
 const getLocaleTimeString = (dateString: string) => {
-  const cleanedDateString = dateString.split(".")[0] + "Z"; // Force UTC
+  const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
   const date = new Date(cleanedDateString);
   const dateOptions: Intl.DateTimeFormatOptions = {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
   };
   const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: "numeric",
-    minute: "numeric",
+    hour: 'numeric',
+    minute: 'numeric',
     hour12: true,
   };
 
-  const locale = navigator.language || "en-US";
+  const locale = navigator.language || 'en-US';
   const datePart = date.toLocaleDateString(locale, dateOptions);
   const timePart = date.toLocaleTimeString(locale, timeOptions);
 
@@ -57,23 +57,18 @@ interface SettingsCardProps {
   bottom?: boolean;
 }
 
-const SettingsCard: React.FC<SettingsCardProps> = ({
-  title,
-  description,
-  children,
-  bottom,
-}) => {
+const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, children, bottom }) => {
   return (
     <div
       style={{
-        backgroundColor: "var(--vscode-editorWidget-background)",
-        border: "1px solid var(--vscode-editorWidget-border)",
+        backgroundColor: 'var(--vscode-editorWidget-background)',
+        border: '1px solid var(--vscode-editorWidget-border)',
       }}
       className="my-2 rounded-lg p-4 transition-colors hover:border-opacity-80"
     >
       <div className="mb-1 flex items-center justify-between">
         <h2
-          style={{ color: "var(--vscode-editor-foreground)" }}
+          style={{ color: 'var(--vscode-editor-foreground)' }}
           className="mb-1 text-[13px] font-semibold leading-6"
         >
           {title}
@@ -83,16 +78,14 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
       <div className="flex flex-col">
         {description && (
           <p
-            style={{ color: "var(--vscode-descriptionForeground)" }}
+            style={{ color: 'var(--vscode-descriptionForeground)' }}
             className="mb-1 text-[12px] leading-5"
           >
             {description}
           </p>
         )}
       </div>
-      <div className={`${bottom ? "mt-2" : ""} w-full`}>
-        {children && bottom && children}
-      </div>
+      <div className={`${bottom ? 'mt-2' : ''} w-full`}>{children && bottom && children}</div>
     </div>
   );
 };
@@ -147,10 +140,7 @@ interface YoloModeToggleProps {
   onToggle: (valur: boolean) => void;
 }
 
-const YoloModeToggle: React.FC<YoloModeToggleProps> = ({
-  isYoloModeOn,
-  onToggle,
-}) => {
+const YoloModeToggle: React.FC<YoloModeToggleProps> = ({ isYoloModeOn, onToggle }) => {
   const handleToggle = () => {
     onToggle(!isYoloModeOn);
   };
@@ -158,20 +148,15 @@ const YoloModeToggle: React.FC<YoloModeToggleProps> = ({
   return (
     <label className="flex cursor-pointer items-center gap-1">
       <div className="relative inline-block h-5 w-10">
-        <input
-          type="checkbox"
-          checked={isYoloModeOn}
-          onChange={handleToggle}
-          className="sr-only"
-        />
+        <input type="checkbox" checked={isYoloModeOn} onChange={handleToggle} className="sr-only" />
         <div
           className={`block h-full w-full rounded-full transition-colors ${
-            isYoloModeOn ? "bg-[--deputydev-button-background]" : "bg-gray-400"
+            isYoloModeOn ? 'bg-[--deputydev-button-background]' : 'bg-gray-400'
           }`}
         ></div>
         <div
           className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-            isYoloModeOn ? "translate-x-5" : "translate-x-0"
+            isYoloModeOn ? 'translate-x-5' : 'translate-x-0'
           }`}
         ></div>
       </div>
@@ -184,22 +169,19 @@ interface CommandDenyListProps {
   setCommands: (newCommands: string[]) => void;
 }
 
-const CommandDenyList: React.FC<CommandDenyListProps> = ({
-  commands,
-  setCommands,
-}) => {
-  const [currentCommand, setCurrentCommand] = useState<string>("");
+const CommandDenyList: React.FC<CommandDenyListProps> = ({ commands, setCommands }) => {
+  const [currentCommand, setCurrentCommand] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
   const handleAddCommand = () => {
     const trimmed = currentCommand.trim();
     if (!trimmed) return;
     if (commands.includes(trimmed)) {
-      setError("Command already exists in the deny list.");
+      setError('Command already exists in the deny list.');
       return;
     }
     setCommands([...commands, trimmed]);
-    setCurrentCommand("");
+    setCurrentCommand('');
   };
 
   const handleRemoveCommand = (command: string) => {
@@ -236,14 +218,11 @@ const CommandDenyList: React.FC<CommandDenyListProps> = ({
             type="text"
             value={currentCommand}
             onChange={handleChange}
-            onKeyDown={(e) => e.key === "Enter" && handleAddCommand()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddCommand()}
             placeholder="Enter command to deny"
             className="flex-1 bg-transparent text-sm text-[var(--vscode-input-foreground)] focus:outline-none"
           />
-          <CornerDownLeft
-            size={16}
-            className="ml-2 text-[var(--vscode-input-foreground)]"
-          />
+          <CornerDownLeft size={16} className="ml-2 text-[var(--vscode-input-foreground)]" />
         </div>
         <button
           onClick={handleAddCommand}
@@ -255,10 +234,7 @@ const CommandDenyList: React.FC<CommandDenyListProps> = ({
       </div>
 
       {error && (
-        <p
-          className="mt-2 text-xs"
-          style={{ color: "var(--vscode-errorForeground)" }}
-        >
+        <p className="mt-2 text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
           {error}
         </p>
       )}
@@ -274,13 +250,7 @@ interface SliderProps {
   onChange: (value: number) => void;
 }
 
-const Slider: React.FC<SliderProps> = ({
-  min,
-  max,
-  value,
-  postfix = "",
-  onChange,
-}) => {
+const Slider: React.FC<SliderProps> = ({ min, max, value, postfix = '', onChange }) => {
   const [internalValue, setInternalValue] = useState(value);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -320,7 +290,7 @@ const Slider: React.FC<SliderProps> = ({
 
 export function CustomLoader() {
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: '100%' }}>
       <BarLoader
         width="100%"
         color="var(--vscode-editor-foreground)" // dynamically picks up from VSCode theme
@@ -345,35 +315,25 @@ const Setting = () => {
     setCommandsToDeny,
     setChatType,
   } = useSettingsStore();
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null,
-  );
-  const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<
-    string | null
-  >(null);
+  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
+  const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<string | null>(null);
   const dropdownRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [selectedOption, setSelectedOption] = useState<URLListItem | null>(
-    null,
-  );
+  const [selectedOption, setSelectedOption] = useState<URLListItem | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [showAddNewForm, setShowAddNewForm] = useState(false);
-  const [name, setName] = useState("");
-  const [searchInput, setSeachInput] = useState("");
-  const [url, setUrl] = useState("");
-  const [id, setId] = useState("");
+  const [name, setName] = useState('');
+  const [searchInput, setSeachInput] = useState('');
+  const [url, setUrl] = useState('');
+  const [id, setId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [urlError, setUrlError] = useState("");
+  const [urlError, setUrlError] = useState('');
 
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
   } | null>(null);
 
-  const handleMoreClick = (
-    e: React.MouseEvent,
-    option: URLListItem,
-    index: number,
-  ) => {
+  const handleMoreClick = (e: React.MouseEvent, option: URLListItem, index: number) => {
     e.stopPropagation();
     setSelectedOption(option);
     const button = e.currentTarget;
@@ -382,7 +342,7 @@ const Setting = () => {
     const spaceBelow = window.innerHeight - buttonRect.bottom;
 
     let top = buttonRect.bottom;
-    let left = buttonRect.right - 150;
+    const left = buttonRect.right - 150;
 
     if (spaceBelow < dropdownHeight && buttonRect.top > dropdownHeight) {
       top = buttonRect.top - dropdownHeight;
@@ -394,18 +354,14 @@ const Setting = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRefs.current.every(
-          (ref) => !ref || !ref.contains(event.target as Node),
-        )
-      ) {
+      if (dropdownRefs.current.every((ref) => !ref || !ref.contains(event.target as Node))) {
         setOpenDropdownIndex(null);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [urls]);
   useEffect(() => {
@@ -418,15 +374,15 @@ const Setting = () => {
     };
     saveSettings(settings);
     setGlobalState({
-      key: "terminal-output-limit",
+      key: 'terminal-output-limit',
       value: terminalOutputLimit,
     });
     setGlobalState({
-      key: "terminal-shell-limit",
+      key: 'terminal-shell-limit',
       value: shellIntegrationTimeout,
     });
     setGlobalState({
-      key: "terminal-command-timeout",
+      key: 'terminal-command-timeout',
       value: shellCommandTimeout,
     });
   }, [
@@ -470,9 +426,9 @@ const Setting = () => {
       saveUrl(payload);
     }
 
-    setName("");
-    setUrl("");
-    setUrlError("");
+    setName('');
+    setUrl('');
+    setUrlError('');
     setShowAddNewForm(false);
     setEditMode(false);
   };
@@ -480,7 +436,7 @@ const Setting = () => {
   const handleAction = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
     switch (action) {
-      case "edit":
+      case 'edit':
         setEditMode(true);
         selectedOption && setName(selectedOption.name);
         selectedOption?.url && setUrl(selectedOption.url);
@@ -489,21 +445,21 @@ const Setting = () => {
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "reindex":
+      case 'reindex':
         setIsLoading(true);
         handleSave(selectedOption?.name, selectedOption?.url);
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "open":
+      case 'open':
         selectedOption?.url && openBrowserPage(selectedOption.url);
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "delete":
+      case 'delete':
         selectedOption?.id && setConfirmingDeleteIndex(selectedOption.id);
         break;
-      case "confirm-delete":
+      case 'confirm-delete':
         setIsLoading(true);
         selectedOption?.id && deleteSavedUrl(selectedOption.id, true);
         setConfirmingDeleteIndex(null);
@@ -527,21 +483,21 @@ const Setting = () => {
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUrl(value);
-    setUrlError(validateUrl(value) ? "" : "Please enter a valid URL");
+    setUrlError(validateUrl(value) ? '' : 'Please enter a valid URL');
   };
 
   return (
     <div
       className="flex h-screen flex-col"
       style={{
-        padding: "1rem",
-        backgroundColor: "var(--vscode-sidebar-background-rgb)",
+        padding: '1rem',
+        backgroundColor: 'var(--vscode-sidebar-background-rgb)',
       }}
     >
       <div>
         <h3
           className="mb-3 text-lg font-semibold"
-          style={{ color: "var(--vscode-editor-foreground)" }}
+          style={{ color: 'var(--vscode-editor-foreground)' }}
         >
           General Settings
         </h3>
@@ -556,7 +512,7 @@ const Setting = () => {
         <SettingsCard
           title="DeputyDev Configuration Rules"
           description={
-            "Set DeputyDev rules that will be used as a contract for DeputyDev to follow. Each repository to have its own rules."
+            'Set DeputyDev rules that will be used as a contract for DeputyDev to follow. Each repository to have its own rules.'
           }
         >
           <EditRulesButton />
@@ -565,35 +521,29 @@ const Setting = () => {
       <div>
         <h3
           className="mb-3 mt-2 text-lg font-semibold"
-          style={{ color: "var(--vscode-editor-foreground)" }}
+          style={{ color: 'var(--vscode-editor-foreground)' }}
         >
           Terminal Settings
         </h3>
         <SettingsCard
           title="Enable/Disable YOLO Mode"
           description={
-            "Allow DeputyDev to execute commands in the terminal without asking for confirmation."
+            'Allow DeputyDev to execute commands in the terminal without asking for confirmation.'
           }
         >
-          <YoloModeToggle
-            isYoloModeOn={isYoloModeOn}
-            onToggle={setIsYoloModeOn}
-          />
+          <YoloModeToggle isYoloModeOn={isYoloModeOn} onToggle={setIsYoloModeOn} />
         </SettingsCard>
         <SettingsCard
           title="Command Deny List"
-          description={"Commands which should never be executed automatically."}
+          description={'Commands which should never be executed automatically.'}
           bottom
         >
-          <CommandDenyList
-            commands={commandsToDeny}
-            setCommands={setCommandsToDeny}
-          />
+          <CommandDenyList commands={commandsToDeny} setCommands={setCommandsToDeny} />
         </SettingsCard>
         <SettingsCard
           title="Terminal Output Limit"
           description={
-            "Set the maximum lines DeputyDev includes in terminal output. Excess lines are truncated to save tokens and boost performance."
+            'Set the maximum lines DeputyDev includes in terminal output. Excess lines are truncated to save tokens and boost performance.'
           }
           bottom
         >
@@ -608,7 +558,7 @@ const Setting = () => {
         <SettingsCard
           title="Shell Integration Initialization Timeout"
           description={
-            "Set the max wait time (in seconds) for terminal shell setup. Increase for large projects or slower machines to avoid timeout errors."
+            'Set the max wait time (in seconds) for terminal shell setup. Increase for large projects or slower machines to avoid timeout errors.'
           }
           bottom
         >
@@ -623,7 +573,7 @@ const Setting = () => {
         <SettingsCard
           title="Shell Command Execution Timeout"
           description={
-            "Set the max wait time (in seconds) for shell command execution. Increase for large projects or slower machines to prevent timeout errors."
+            'Set the max wait time (in seconds) for shell command execution. Increase for large projects or slower machines to prevent timeout errors.'
           }
           bottom
         >
@@ -641,7 +591,7 @@ const Setting = () => {
           <div className="mb-3 mt-2 flex items-center justify-between gap-4">
             <h3
               className="text-lg font-semibold"
-              style={{ color: "var(--vscode-editor-foreground)" }}
+              style={{ color: 'var(--vscode-editor-foreground)' }}
             >
               URL Management
             </h3>
@@ -659,8 +609,8 @@ const Setting = () => {
         </div>
         <div
           style={{
-            backgroundColor: "var(--vscode-editorWidget-background)",
-            border: "1px solid var(--vscode-editorWidget-border)",
+            backgroundColor: 'var(--vscode-editorWidget-background)',
+            border: '1px solid var(--vscode-editorWidget-border)',
           }}
           className={`mb-4 h-[375px] rounded-lg p-2 transition-colors hover:border-opacity-80`}
         >
@@ -672,33 +622,29 @@ const Setting = () => {
               onChange={(e) => setSeachInput(e.target.value)}
               className="my-2 w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
               style={{
-                background: "var(--vscode-input-background)",
-                color: "var(--vscode-input-foreground)",
-                border: "1px solid var(--vscode-input-border)",
-                boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                transition: "all 0.2s ease", // Smooth transition
+                background: 'var(--vscode-input-background)',
+                color: 'var(--vscode-input-foreground)',
+                border: '1px solid var(--vscode-input-border)',
+                boxShadow: 'var(--vscode-widget-shadow) 0px 1px 4px',
+                transition: 'all 0.2s ease', // Smooth transition
               }}
               onFocus={(e) => {
-                e.target.style.border = "1px solid var(--vscode-focusBorder)";
-                e.target.style.boxShadow =
-                  "var(--vscode-widget-shadow) 0px 2px 6px";
+                e.target.style.border = '1px solid var(--vscode-focusBorder)';
+                e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 2px 6px';
               }}
               onBlur={(e) => {
-                e.target.style.border = "1px solid var(--vscode-input-border)";
-                e.target.style.boxShadow =
-                  "var(--vscode-widget-shadow) 0px 1px 4px";
+                e.target.style.border = '1px solid var(--vscode-input-border)';
+                e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 1px 4px';
               }}
               placeholder="Search URL"
             />
           )}
 
-          <div
-            className={`${urls.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto`}
-          >
+          <div className={`${urls.length > 0 ? 'max-h-[300px]' : 'h-auto'} overflow-y-auto`}>
             {showAddNewForm ? (
               <div
                 className="flex flex-col space-y-4 p-4"
-                style={{ fontFamily: "var(--vscode-font-family)" }}
+                style={{ fontFamily: 'var(--vscode-font-family)' }}
               >
                 <div className="flex items-center justify-between">
                   <button
@@ -717,7 +663,7 @@ const Setting = () => {
                   <div>
                     <label
                       className="mb-1 block text-sm font-medium"
-                      style={{ color: "var(--vscode-foreground)" }}
+                      style={{ color: 'var(--vscode-foreground)' }}
                     >
                       Name
                       <span className="ml-1 text-red-500">*</span>
@@ -729,23 +675,19 @@ const Setting = () => {
                         onChange={(e) => setName(e.target.value)}
                         className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
                         style={{
-                          background: "var(--vscode-input-background)",
-                          color: "var(--vscode-input-foreground)",
-                          border: "1px solid var(--vscode-input-border)",
-                          boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                          transition: "all 0.2s ease", // Smooth transition
+                          background: 'var(--vscode-input-background)',
+                          color: 'var(--vscode-input-foreground)',
+                          border: '1px solid var(--vscode-input-border)',
+                          boxShadow: 'var(--vscode-widget-shadow) 0px 1px 4px',
+                          transition: 'all 0.2s ease', // Smooth transition
                         }}
                         onFocus={(e) => {
-                          e.target.style.border =
-                            "1px solid var(--vscode-focusBorder)";
-                          e.target.style.boxShadow =
-                            "var(--vscode-widget-shadow) 0px 2px 6px";
+                          e.target.style.border = '1px solid var(--vscode-focusBorder)';
+                          e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 2px 6px';
                         }}
                         onBlur={(e) => {
-                          e.target.style.border =
-                            "1px solid var(--vscode-input-border)";
-                          e.target.style.boxShadow =
-                            "var(--vscode-widget-shadow) 0px 1px 4px";
+                          e.target.style.border = '1px solid var(--vscode-input-border)';
+                          e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 1px 4px';
                         }}
                         placeholder="Friendly URL Name"
                         maxLength={50}
@@ -753,7 +695,7 @@ const Setting = () => {
 
                       <div
                         className="absolute bottom-1.5 right-3 text-xs opacity-70"
-                        style={{ color: "var(--vscode-descriptionForeground)" }}
+                        style={{ color: 'var(--vscode-descriptionForeground)' }}
                       >
                         {name.length}/50
                       </div>
@@ -763,7 +705,7 @@ const Setting = () => {
                   <div>
                     <label
                       className="mb-1 block text-sm font-medium"
-                      style={{ color: "var(--vscode-foreground)" }}
+                      style={{ color: 'var(--vscode-foreground)' }}
                     >
                       URL
                       <span className="ml-1 text-red-500">*</span>
@@ -776,27 +718,25 @@ const Setting = () => {
                         className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
                         disabled={editMode}
                         style={{
-                          background: "var(--vscode-input-background)",
-                          color: "var(--vscode-input-foreground)",
+                          background: 'var(--vscode-input-background)',
+                          color: 'var(--vscode-input-foreground)',
                           border: urlError
-                            ? "1px solid var(--vscode-errorForeground)"
-                            : "1px solid var(--vscode-input-border)",
-                          boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                          transition: "all 0.2s ease", // Smooth transition
+                            ? '1px solid var(--vscode-errorForeground)'
+                            : '1px solid var(--vscode-input-border)',
+                          boxShadow: 'var(--vscode-widget-shadow) 0px 1px 4px',
+                          transition: 'all 0.2s ease', // Smooth transition
                         }}
                         onFocus={(e) => {
                           e.target.style.border = urlError
-                            ? "1px solid var(--vscode-errorForeground)"
-                            : "1px solid var(--vscode-focusBorder)";
-                          e.target.style.boxShadow =
-                            "var(--vscode-widget-shadow) 0px 2px 6px";
+                            ? '1px solid var(--vscode-errorForeground)'
+                            : '1px solid var(--vscode-focusBorder)';
+                          e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 2px 6px';
                         }}
                         onBlur={(e) => {
                           e.target.style.border = urlError
-                            ? "1px solid var(--vscode-errorForeground)"
-                            : "1px solid var(--vscode-input-border)";
-                          e.target.style.boxShadow =
-                            "var(--vscode-widget-shadow) 0px 1px 4px";
+                            ? '1px solid var(--vscode-errorForeground)'
+                            : '1px solid var(--vscode-input-border)';
+                          e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 1px 4px';
                         }}
                         placeholder="http://example.com"
                       />
@@ -805,7 +745,7 @@ const Setting = () => {
                         <div className="mt-1">
                           <p
                             className="text-[0.75rem] font-medium"
-                            style={{ color: "var(--vscode-errorForeground)" }}
+                            style={{ color: 'var(--vscode-errorForeground)' }}
                           >
                             {urlError}
                           </p>
@@ -819,8 +759,8 @@ const Setting = () => {
                   style={
                     urlError
                       ? {
-                          marginTop: "0px",
-                          paddingTop: "5px",
+                          marginTop: '0px',
+                          paddingTop: '5px',
                         }
                       : {}
                   }
@@ -829,15 +769,15 @@ const Setting = () => {
                   <button
                     className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
                     style={{
-                      color: "var(--vscode-button-secondaryForeground)",
-                      background: "var(--vscode-button-secondaryBackground)",
+                      color: 'var(--vscode-button-secondaryForeground)',
+                      background: 'var(--vscode-button-secondaryBackground)',
                     }}
                     onClick={() => {
                       setShowAddNewForm(false);
                       setEditMode(false);
-                      setName("");
-                      setUrl("");
-                      setUrlError("");
+                      setName('');
+                      setUrl('');
+                      setUrlError('');
                     }}
                   >
                     Discard
@@ -845,9 +785,9 @@ const Setting = () => {
                   <button
                     className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
                     style={{
-                      background: "var(--vscode-button-background)",
-                      color: "var(--vscode-button-foreground)",
-                      boxShadow: "var(--vscode-widget-shadow) 0px 2px 8px -2px",
+                      background: 'var(--vscode-button-background)',
+                      color: 'var(--vscode-button-foreground)',
+                      boxShadow: 'var(--vscode-widget-shadow) 0px 2px 8px -2px',
                     }}
                     onClick={() => {
                       handleSave();
@@ -861,9 +801,7 @@ const Setting = () => {
             ) : (
               <ul className="space-y-1 p-1">
                 {urls.length === 0 && (
-                  <li className="py-2 text-center text-xs opacity-70">
-                    No Saved URL
-                  </li>
+                  <li className="py-2 text-center text-xs opacity-70">No Saved URL</li>
                 )}
                 {urls.map((url, index) => (
                   <li
@@ -878,15 +816,11 @@ const Setting = () => {
                         <Link className="h-5 w-5 text-blue-400" />
                       </div>
                       <div className="min-w-0">
-                        <span
-                          className="block truncate text-sm font-medium"
-                          title={url.name}
-                        >
+                        <span className="block truncate text-sm font-medium" title={url.name}>
                           {url.name}
                         </span>
                         <p className="block truncate text-xs opacity-70">
-                          {"Indexed on " +
-                            getLocaleTimeString(url.last_indexed)}
+                          {'Indexed on ' + getLocaleTimeString(url.last_indexed)}
                         </p>
                       </div>
                     </div>
@@ -915,7 +849,7 @@ const Setting = () => {
                               <p
                                 className="text-sm"
                                 style={{
-                                  color: "var(--vscode-editor-foreground)",
+                                  color: 'var(--vscode-editor-foreground)',
                                 }}
                               >
                                 Are you sure you want to delete this URL?
@@ -928,37 +862,32 @@ const Setting = () => {
                                   }}
                                   className="rounded-md px-2 py-1 text-sm"
                                   style={{
-                                    color: "var(--vscode-button-foreground)",
-                                    backgroundColor:
-                                      "var(--vscode-button-secondaryBackground)",
+                                    color: 'var(--vscode-button-foreground)',
+                                    backgroundColor: 'var(--vscode-button-secondaryBackground)',
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor =
-                                      "var(--vscode-button-secondaryHoverBackground)";
+                                      'var(--vscode-button-secondaryHoverBackground)';
                                   }}
                                   onMouseLeave={(e) => {
                                     e.currentTarget.style.backgroundColor =
-                                      "var(--vscode-button-secondaryBackground)";
+                                      'var(--vscode-button-secondaryBackground)';
                                   }}
                                 >
                                   Cancel
                                 </button>
                                 <button
-                                  onClick={(e) =>
-                                    handleAction(e, "confirm-delete")
-                                  }
+                                  onClick={(e) => handleAction(e, 'confirm-delete')}
                                   className="rounded-md px-2 py-1 text-sm"
                                   style={{
-                                    color: "var(--vscode-button-foreground)",
-                                    backgroundColor: "#de8188",
+                                    color: 'var(--vscode-button-foreground)',
+                                    backgroundColor: '#de8188',
                                   }}
                                   onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                      "#ed939a";
+                                    e.currentTarget.style.backgroundColor = '#ed939a';
                                   }}
                                   onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor =
-                                      "#de8188";
+                                    e.currentTarget.style.backgroundColor = '#de8188';
                                   }}
                                 >
                                   Delete
@@ -968,25 +897,25 @@ const Setting = () => {
                           ) : (
                             <ul>
                               <li
-                                onClick={(e) => handleAction(e, "edit")}
+                                onClick={(e) => handleAction(e, 'edit')}
                                 className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                               >
                                 <Pencil size={16} /> Edit
                               </li>
                               <li
-                                onClick={(e) => handleAction(e, "reindex")}
+                                onClick={(e) => handleAction(e, 'reindex')}
                                 className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                               >
                                 <RefreshCw size={16} /> Re-Index
                               </li>
                               <li
-                                onClick={(e) => handleAction(e, "open")}
+                                onClick={(e) => handleAction(e, 'open')}
                                 className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                               >
                                 <ExternalLink size={16} /> Open Page
                               </li>
                               <li
-                                onClick={(e) => handleAction(e, "delete")}
+                                onClick={(e) => handleAction(e, 'delete')}
                                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700"
                               >
                                 <Trash2 size={16} /> Delete

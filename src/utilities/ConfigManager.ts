@@ -160,7 +160,7 @@ export class ConfigManager {
     }
   }
 
-  public async initializeSettings(sendMessage: (message: Object) => void) {
+  public async initializeSettings(sendMessage: (message: object) => void) {
     try {
       const authService = new AuthService();
       const auth_token = await authService.loadAuthToken();

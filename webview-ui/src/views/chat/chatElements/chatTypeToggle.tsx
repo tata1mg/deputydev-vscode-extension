@@ -1,10 +1,10 @@
 // file: webview-ui/src/views/chat/chatElements/chatTypeToggle.tsx
-import { useChatSettingStore, useChatStore } from "@/stores/chatStore";
-import { useThemeStore } from "@/stores/useThemeStore";
+import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
+import { useThemeStore } from '@/stores/useThemeStore';
 
 interface ChatTypeToggleProps {
-  chatType?: "ask" | "write";
-  setChatType?: (type: "ask" | "write") => void;
+  chatType?: 'ask' | 'write';
+  setChatType?: (type: 'ask' | 'write') => void;
 }
 
 function ChatTypeToggle(props: ChatTypeToggleProps) {
@@ -15,9 +15,9 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
   const setChatType = props.setChatType ?? store.setChatType;
 
   const borderClass =
-    themeKind === "high-contrast" || themeKind === "high-contrast-light"
-      ? "border border-[--deputydev-button-border]"
-      : "";
+    themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
+      ? 'border border-[--deputydev-button-border]'
+      : '';
 
   const activeBg = 'bg-[--deputydev-button-background]';
   const activeFg = 'text-[--deputydev-button-foreground]';
@@ -45,14 +45,14 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
 
       {/* Sliding Indicator: Taller height (h-full of container), active background */}
       <div
-        className={`absolute left-0 top-0 h-full w-1/2 ${activeBg} rounded-xl transition-transform duration-200 ease-in-out ${chatType === "ask" ? "translate-x-0" : "translate-x-full"} z-10 ${borderClass} `}
+        className={`absolute left-0 top-0 h-full w-1/2 ${activeBg} rounded-xl transition-transform duration-200 ease-in-out ${chatType === 'ask' ? 'translate-x-0' : 'translate-x-full'} z-10 ${borderClass} `}
         aria-hidden="true"
       />
 
       {/* Option 1: Chat (Ask) - On top */}
       <button
         type="button"
-        className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === "ask" ? activeFg : inactiveFg} `}
+        className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'ask' ? activeFg : inactiveFg} `}
         onClick={() => {
           if (!isLoading) {
             setChatType('ask');
@@ -67,7 +67,7 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
       {/* Option 2: Act (Write) - On top */}
       <button
         type="button"
-        className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === "write" ? activeFg : inactiveFg} `}
+        className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'write' ? activeFg : inactiveFg} `}
         onClick={() => {
           if (!isLoading) {
             setChatType('write');

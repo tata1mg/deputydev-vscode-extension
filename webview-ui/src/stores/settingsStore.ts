@@ -1,9 +1,9 @@
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { persistStorage } from "./lib";
-import { URLListItem } from "@/types";
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { persistStorage } from './lib';
+import { URLListItem } from '@/types';
 
-type ChatType = "ask" | "write";
+type ChatType = 'ask' | 'write';
 
 interface SettingsStore {
   terminalOutputLimit: number;
@@ -29,13 +29,12 @@ export const useSettingsStore = create<SettingsStore>()(
       shellIntegrationTimeout: 30,
       shellCommandTimeout: 30,
       isYoloModeOn: false,
-      commandsToDeny: ["rm -rf"],
-      chatType: "ask",
+      commandsToDeny: ['rm -rf'],
+      chatType: 'ask',
       urls: [] as URLListItem[],
 
       setTerminalOutputLimit: (value) => set({ terminalOutputLimit: value }),
-      setShellIntegrationTimeout: (value) =>
-        set({ shellIntegrationTimeout: value }),
+      setShellIntegrationTimeout: (value) => set({ shellIntegrationTimeout: value }),
       setShellCommandTimeout: (value) => set({ shellCommandTimeout: value }),
       setIsYoloModeOn: (value) => set({ isYoloModeOn: value }),
       setCommandsToDeny: (value) => set({ commandsToDeny: value }),
@@ -43,8 +42,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setUrls: (value: URLListItem[]) => set({ urls: value }),
     }),
     {
-      name: "settings-storage",
+      name: 'settings-storage',
       storage: persistStorage,
-    },
-  ),
+    }
+  )
 );
