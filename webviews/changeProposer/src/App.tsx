@@ -66,6 +66,49 @@ const App: React.FC = () => {
       };
     };
 
+    const createOverlayWidget = (): monacoEditor.editor.IOverlayWidget => {
+      const widgetId = 'top-right-actions';
+    
+      const domNode = document.createElement('div');
+      domNode.className = 'top-right-buttons';
+    
+      const createButton = (label: string, base64: string, onClick: () => void) => {
+        const btn = document.createElement('button');
+        btn.className = 'diff-action-button';
+        const img = document.createElement('img');
+        img.src = `data:image/svg+xml;base64,${base64}`;
+        img.width = 8;
+        img.height = 8;
+        img.alt = label;
+        const text = document.createElement('span');
+        text.textContent = ` ${label}`;
+        btn.appendChild(img);
+        btn.appendChild(text);
+        btn.onclick = onClick;
+        return btn;
+      };
+    
+      const acceptAll = createButton('Accept All', ACCEPT_ICON, () =>
+        alert('✅ Accepted all changes')
+      );
+      const rejectAll = createButton('Reject All', REJECT_ICON, () =>
+        alert('❌ Rejected all changes')
+      );
+    
+      domNode.appendChild(acceptAll);
+      domNode.appendChild(rejectAll);
+    
+      return {
+        getId: () => widgetId,
+        getDomNode: () => domNode,
+        getPosition: () => ({
+          preference: monaco.editor.OverlayWidgetPositionPreference.TOP_RIGHT_CORNER,
+        }),
+      };
+    };
+
+    editor.addOverlayWidget(createOverlayWidget());
+
     for (let i = 0; i < lines.length; i++) {
       const lineNum = i + 1;
       const line = lines[i];
@@ -104,54 +147,91 @@ const App: React.FC = () => {
         onMount={handleEditorDidMount}
       />
       <style>{`
-  .plus-line {
-    background-color: rgba(0, 255, 0, 0.15);
-  }
-  .minus-line {
-    background-color: rgba(255, 0, 0, 0.15);
-  }
-  .inline-buttons {
-    margin-left: 8px;
-    display: inline-flex; /* Keeps buttons side by side */
-    gap: 4px;
-    background: #1e1e1e;
-    padding: 2px 4px; /* Reduced padding for vertical space */
-    border: 1px solid #444;
-    border-radius: 4px;
-    align-items: center;
-    white-space: nowrap;
-  }
-  .diff-action-button {
-    display: inline-flex; /* Ensures buttons are inline */
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    background: transparent;
-    border: none;
-    color: #ddd;
-    font-size: 10px; /* Smaller font size for compactness */
-    cursor: pointer;
-    padding: 2px 6px; /* Further reduced padding */
-    border-radius: 4px;
-    transition: background 0.3s, color 0.3s, transform 0.1s ease;
-    min-width: 60px; /* Reduced min-width */
-    height: 18px; /* Reduced height */
-  }
+        .plus-line {
+          background-color: rgba(0, 255, 0, 0.15);
+        }
+        .minus-line {
+          background-color: rgba(255, 0, 0, 0.15);
+        }
+        .inline-buttons {
+          margin-left: 8px;
+          display: inline-flex; /* Keeps buttons side by side */
+          gap: 4px;
+          background: #1e1e1e;
+          padding: 2px 4px; /* Reduced padding for vertical space */
+          border: 1px solid #444;
+          border-radius: 4px;
+          align-items: center;
+          white-space: nowrap;
+        }
+        .diff-action-button {
+          display: inline-flex; /* Ensures buttons are inline */
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          background: transparent;
+          border: none;
+          color: #ddd;
+          font-size: 10px; /* Smaller font size for compactness */
+          cursor: pointer;
+          padding: 2px 6px; /* Further reduced padding */
+          border-radius: 4px;
+          transition: background 0.3s, color 0.3s, transform 0.1s ease;
+          min-width: 60px; /* Reduced min-width */
+          height: 18px; /* Reduced height */
+        }
 
-  .diff-action-button img {
-    vertical-align: middle;
-    width: 8px; /* Reduced icon size */
-    height: 8px;
-  }
+        .diff-action-button img {
+          vertical-align: middle;
+          width: 8px; /* Reduced icon size */
+          height: 8px;
+        }
 
-  .diff-action-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-  }
+        .diff-action-button:hover {
+          background: rgba(255, 255, 255, 0.2);
+          color: #fff;
+        }
 
-  .diff-action-button:active {
-    transform: scale(0.95); /* Slight shrink effect */
-  }
+        .diff-action-button:active {
+          transform: scale(0.95); /* Slight shrink effect */
+        }
+
+      .top-right-buttons {
+        display: flex;
+        gap: 6px;
+        background: #1e1e1e;
+        padding: 4px 6px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        align-items: center;
+        z-index: 100;
+      }
+
+      .top-right-buttons .diff-action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        background: transparent;
+        border: none;
+        color: #ddd;
+        font-size: 10px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: background 0.3s, color 0.3s, transform 0.1s ease;
+        min-width: 60px;
+        height: 18px;
+      }
+
+      .top-right-buttons .diff-action-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+
+      .top-right-buttons .diff-action-button:active {
+        transform: scale(0.95);
+      }
       `}</style>
     </div>
   );
