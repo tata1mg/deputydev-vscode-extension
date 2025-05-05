@@ -1,8 +1,7 @@
-import exp = require("constants");
-import * as vscode from "vscode";
-import { ReferenceService } from "../services/references/ReferenceService";
-import { v4 as uuidv4 } from "uuid";
-import { SaveUrlRequest } from "../types";
+import * as vscode from 'vscode';
+import { ReferenceService } from '../services/references/ReferenceService';
+import { v4 as uuidv4 } from 'uuid';
+import { SaveUrlRequest } from '../types';
 
 export class ReferenceManager {
   onStarted: () => void = () => {};
@@ -11,121 +10,96 @@ export class ReferenceManager {
 
   constructor(
     private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel
+    private outputChannel: vscode.LogOutputChannel,
   ) {}
 
   async start() {
-    this.outputChannel.info("Starting deputydev code reference service...");
+    this.outputChannel.info('Starting deputydev code reference service...');
   }
 
   restart() {
-    this.outputChannel.info("Restarting deputydev code reference service...");
+    this.outputChannel.info('Restarting deputydev code reference service...');
   }
 
   stop() {
-    this.outputChannel.info("Stopping deputydev code reference service...");
+    this.outputChannel.info('Stopping deputydev code reference service...');
   }
 
-  async keywordSearch(payload: Object, sendMessage: (message: Object) => void) {
-    const repo_path = this.context.workspaceState.get<string>("activeRepo");
+  async keywordSearch(payload: object, sendMessage: (message: object) => void) {
+    const repo_path = this.context.workspaceState.get<string>('activeRepo');
     payload = { ...payload, repo_path };
-    this.outputChannel.info("keywordSearch", payload);
+    this.outputChannel.info('keywordSearch', payload);
     const response = await this.referenceService.keywordSearch(payload);
-    this.outputChannel.info("keywordSearch-response", response);
+    this.outputChannel.info('keywordSearch-response', response);
     sendMessage({
       id: uuidv4(),
-      command: "keyword-search-response",
+      command: 'keyword-search-response',
       data: response.data,
     });
   }
 
-  async keywordTypeSearch(
-    payload: Object,
-    sendMessage: (message: Object) => void
-  ) {
-    const repo_path = this.context.workspaceState.get<string>("activeRepo");
+  async keywordTypeSearch(payload: object, sendMessage: (message: object) => void) {
+    const repo_path = this.context.workspaceState.get<string>('activeRepo');
     payload = { ...payload, repo_path };
-    this.outputChannel.info("keywordTypeSearch", payload);
+    this.outputChannel.info('keywordTypeSearch', payload);
     const response = await this.referenceService.keywordTypeSearch(payload);
-    this.outputChannel.info("keywordTypeSearch-response", response);
+    this.outputChannel.info('keywordTypeSearch-response', response);
     sendMessage({
       id: uuidv4(),
-      command: "keyword-type-search-response",
+      command: 'keyword-type-search-response',
       data: response.data,
     });
   }
 
-  async getSavedUrls(
-    data: { isSettings?: boolean },
-    sendMessage: (message: Object) => void
-  ) {
+  async getSavedUrls(data: { isSettings?: boolean }, sendMessage: (message: Object) => void) {
     const response = await this.referenceService.getSavedUrls(data.isSettings);
-    this.outputChannel.info("getSavedUrls-response", response);
+    this.outputChannel.info('getSavedUrls-response', response);
     sendMessage({
       id: uuidv4(),
-      command: data.isSettings
-        ? "get-saved-urls-response-settings"
-        : "get-saved-urls-response",
+      command: data.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async saveUrl(
-    payload: SaveUrlRequest,
-    sendMessage: (message: Object) => void
-  ) {
+  async saveUrl(payload: SaveUrlRequest, sendMessage: (message: object) => void) {
     const response = await this.referenceService.saveUrl(payload);
-    this.outputChannel.info("saveUrl-response", response);
+    this.outputChannel.info('saveUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: payload.isSettings
-        ? "get-saved-urls-response-settings"
-        : "get-saved-urls-response",
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async deleteSavedUrl(
-    data: { id: string; isSettings?: boolean },
-    sendMessage: (message: Object) => void
-  ) {
+  async deleteSavedUrl(data: { id: string; isSettings?: boolean }, sendMessage: (message: Object) => void) {
     const response = await this.referenceService.deleteSavedUrl(data);
-    this.outputChannel.info("deleteSavedUrl-response", response);
+    this.outputChannel.info('deleteSavedUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: data.isSettings
-        ? "get-saved-urls-response-settings"
-        : "get-saved-urls-response",
+      command: data.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
   async updateSavedUrl(
     payload: { id: string; name: string; isSettings?: boolean },
-    sendMessage: (message: Object) => void
+    sendMessage: (message: Object) => void,
   ) {
     const response = await this.referenceService.updateSavedUrl(payload);
-    this.outputChannel.info("updateSavedUrl-response", response);
+    this.outputChannel.info('updateSavedUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: payload.isSettings
-        ? "get-saved-urls-response-settings"
-        : "get-saved-urls-response",
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async urlSearch(
-    payload: { keyword: string; isSettings?: boolean },
-    sendMessage: (message: Object) => void
-  ) {
+  async urlSearch(payload: { keyword: string; isSettings?: boolean }, sendMessage: (message: Object) => void) {
     const response = await this.referenceService.urlSearch(payload);
-    this.outputChannel.info("urlSearch-response", response);
+    this.outputChannel.info('urlSearch-response', response);
     sendMessage({
       id: uuidv4(),
-      command: payload.isSettings
-        ? "get-saved-urls-response-settings"
-        : "get-saved-urls-response",
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }

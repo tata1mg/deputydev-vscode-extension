@@ -19,8 +19,8 @@ export const useExtensionStore = create<ExtensionState>()(
     (set, get) => ({
       // isStarted: false,
       viewType: 'loader',
-      clientVersion: "",
-      setClientVersion: (clientVersion: string) => set({clientVersion}),
+      clientVersion: '',
+      setClientVersion: (clientVersion: string) => set({ clientVersion }),
       setViewType: (viewType: ViewType) => set({ viewType }),
       initializeViewType: () => {
         const { isAuthenticated } = useAuthStore.getState();

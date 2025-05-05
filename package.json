@@ -126,10 +126,10 @@
         "category": "DeputyDev"
       },
       {
-				"command": "deputydev.addTerminalOutputToChat",
-				"title": "Add to DeputyDev",
-				"category": "DeputyDev"
-			}
+        "command": "deputydev.addTerminalOutputToChat",
+        "title": "Add to DeputyDev",
+        "category": "DeputyDev"
+      }
     ],
     "menus": {
       "comments/commentThread/context": [
@@ -196,11 +196,11 @@
         }
       ],
       "terminal/context": [
-				{
-					"command": "deputydev.addTerminalOutputToChat",
-					"group": "navigation"
-				}
-			]
+        {
+          "command": "deputydev.addTerminalOutputToChat",
+          "group": "navigation"
+        }
+      ]
     },
     "viewsContainers": {
       "activitybar": [
@@ -249,7 +249,16 @@
     "watch:all": "concurrently \"yarn watch:ui\" \"yarn watch:extension\"",
     "watch": "yarn watch:extension",
     "pretest": "yarn run compile && yarn run lint",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts,tsx",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "lint:ui": "yarn --cwd ./webview-ui run lint",
+    "lint:fix:ui": "yarn --cwd ./webview-ui run lint:fix",
+    "format:ui": "yarn --cwd ./webview-ui run format",
+    "lint:all": "yarn lint && yarn lint:ui",
+    "lint:fix:all": "yarn lint:fix && yarn lint:fix:ui",
+    "format:all": "yarn format && yarn format:ui",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",
@@ -265,8 +274,11 @@
     "concurrently": "^9.1.2",
     "esbuild": "^0.25.1",
     "eslint": "^9.23.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^5.2.6",
     "event-source-polyfill": "^1.0.31",
     "glob": "^11.0.1",
+    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "typescript": "^5.8.2",
     "vscode-test": "^1.6.1"

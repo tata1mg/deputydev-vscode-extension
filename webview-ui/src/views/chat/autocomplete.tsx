@@ -1,5 +1,5 @@
-import React, { FC, useRef, useEffect, useState } from "react";
-import { AutocompleteOption, SaveUrlRequest } from "@/types";
+import React, { FC, useRef, useEffect, useState } from 'react';
+import { AutocompleteOption, SaveUrlRequest } from '@/types';
 import {
   Folder,
   File,
@@ -13,16 +13,11 @@ import {
   ExternalLink,
   Trash2,
   MoreVertical,
-} from "lucide-react";
-import { useChatStore } from "@/stores/chatStore";
-import { useSafeAutocompleteBackground } from "../../utils/BgColorPatch";
-import {
-  saveUrl,
-  deleteSavedUrl,
-  updateSavedUrl,
-  openBrowserPage,
-} from "@/commandApi";
-import { BarLoader } from "react-spinners";
+} from 'lucide-react';
+import { useChatStore } from '@/stores/chatStore';
+import { useSafeAutocompleteBackground } from '../../utils/BgColorPatch';
+import { saveUrl, deleteSavedUrl, updateSavedUrl, openBrowserPage } from '@/commandApi';
+import { BarLoader } from 'react-spinners';
 
 interface AutocompleteMenuProps {
   showAddNewButton?: boolean;
@@ -40,7 +35,7 @@ const iconMap = {
 
 export default function CustomLoader() {
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: '100%' }}>
       <BarLoader
         width="100%"
         color="var(--vscode-editor-foreground)" // dynamically picks up from VSCode theme
@@ -59,19 +54,14 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   const listRef = useRef<HTMLUListElement>(null);
   const [showAddNewForm, setShowAddNewForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<
-    string | null
-  >(null);
-  const [name, setName] = useState("");
-  const [url, setUrl] = useState("");
-  const [id, setId] = useState("");
-  const [urlError, setUrlError] = useState("");
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null,
-  );
+  const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [id, setId] = useState('');
+  const [urlError, setUrlError] = useState('');
+  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedOption, setSelectedOption] =
-    useState<AutocompleteOption | null>(null);
+  const [selectedOption, setSelectedOption] = useState<AutocompleteOption | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -80,25 +70,21 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRefs.current.every(
-          (ref) => !ref || !ref.contains(event.target as Node),
-        )
-      ) {
+      if (dropdownRefs.current.every((ref) => !ref || !ref.contains(event.target as Node))) {
         setOpenDropdownIndex(null);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [options]);
 
   const handleAction = (e: React.MouseEvent, action: string) => {
     e.stopPropagation();
     switch (action) {
-      case "edit":
+      case 'edit':
         setEditMode(true);
         selectedOption && setName(selectedOption.label);
         selectedOption?.url && setUrl(selectedOption.url);
@@ -107,21 +93,21 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "reindex":
+      case 'reindex':
         setIsLoading(true);
         handleSave(selectedOption?.label, selectedOption?.url);
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "open":
+      case 'open':
         selectedOption?.url && openBrowserPage(selectedOption.url);
         setSelectedOption(null);
         setOpenDropdownIndex(null);
         break;
-      case "delete":
+      case 'delete':
         selectedOption?.id && setConfirmingDeleteIndex(selectedOption.id);
         break;
-      case "confirm-delete":
+      case 'confirm-delete':
         setIsLoading(true);
         selectedOption?.id && deleteSavedUrl(selectedOption.id);
         setConfirmingDeleteIndex(null);
@@ -138,8 +124,8 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       const selectedElement = listRef.current.children[selectedOptionIndex];
       if (selectedElement) {
         selectedElement.scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
+          block: 'nearest',
+          behavior: 'smooth',
         });
       }
     }
@@ -161,7 +147,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setUrl(value);
-    setUrlError(validateUrl(value) ? "" : "Please enter a valid URL");
+    setUrlError(validateUrl(value) ? '' : 'Please enter a valid URL');
   };
 
   const handleSave = (customName?: string, customUrl?: string) => {
@@ -178,18 +164,14 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       saveUrl(payload);
     }
 
-    setName("");
-    setUrl("");
-    setUrlError("");
+    setName('');
+    setUrl('');
+    setUrlError('');
     setShowAddNewForm(false);
     setEditMode(false);
   };
 
-  const handleMoreClick = (
-    e: React.MouseEvent,
-    option: AutocompleteOption,
-    index: number,
-  ) => {
+  const handleMoreClick = (e: React.MouseEvent, option: AutocompleteOption, index: number) => {
     e.stopPropagation();
     setSelectedOption(option);
     const button = e.currentTarget;
@@ -198,7 +180,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     const spaceBelow = window.innerHeight - buttonRect.bottom;
 
     let top = buttonRect.bottom;
-    let left = buttonRect.right - 150;
+    const left = buttonRect.right - 150;
 
     if (spaceBelow < dropdownHeight && buttonRect.top > dropdownHeight) {
       top = buttonRect.top - dropdownHeight;
@@ -211,7 +193,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   return (
     <div
       className={`${
-        options.length > 0 ? "max-h-[300px]" : "h-auto"
+        options.length > 0 ? 'max-h-[300px]' : 'h-auto'
       } z-50 w-full overflow-y-auto rounded-md border border-[#3c3c3c] shadow-xl`}
       style={{ backgroundColor: safeBg }}
     >
@@ -219,7 +201,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       {showAddNewForm ? (
         <div
           className="flex flex-col space-y-4 p-4"
-          style={{ fontFamily: "var(--vscode-font-family)" }}
+          style={{ fontFamily: 'var(--vscode-font-family)' }}
         >
           <div className="flex items-center justify-between">
             <button
@@ -238,7 +220,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             <div>
               <label
                 className="mb-1 block text-sm font-medium"
-                style={{ color: "var(--vscode-foreground)" }}
+                style={{ color: 'var(--vscode-foreground)' }}
               >
                 Name
                 <span className="ml-1 text-red-500">*</span>
@@ -250,23 +232,19 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
                   style={{
-                    background: "var(--vscode-input-background)",
-                    color: "var(--vscode-input-foreground)",
-                    border: "1px solid var(--vscode-input-border)",
-                    boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                    transition: "all 0.2s ease", // Smooth transition
+                    background: 'var(--vscode-input-background)',
+                    color: 'var(--vscode-input-foreground)',
+                    border: '1px solid var(--vscode-input-border)',
+                    boxShadow: 'var(--vscode-widget-shadow) 0px 1px 4px',
+                    transition: 'all 0.2s ease', // Smooth transition
                   }}
                   onFocus={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--vscode-focusBorder)";
-                    e.target.style.boxShadow =
-                      "var(--vscode-widget-shadow) 0px 2px 6px";
+                    e.target.style.border = '1px solid var(--vscode-focusBorder)';
+                    e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 2px 6px';
                   }}
                   onBlur={(e) => {
-                    e.target.style.border =
-                      "1px solid var(--vscode-input-border)";
-                    e.target.style.boxShadow =
-                      "var(--vscode-widget-shadow) 0px 1px 4px";
+                    e.target.style.border = '1px solid var(--vscode-input-border)';
+                    e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 1px 4px';
                   }}
                   placeholder="Friendly URL Name"
                   maxLength={50}
@@ -274,7 +252,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
 
                 <div
                   className="absolute bottom-1.5 right-3 text-xs opacity-70"
-                  style={{ color: "var(--vscode-descriptionForeground)" }}
+                  style={{ color: 'var(--vscode-descriptionForeground)' }}
                 >
                   {name.length}/50
                 </div>
@@ -284,7 +262,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             <div>
               <label
                 className="mb-1 block text-sm font-medium"
-                style={{ color: "var(--vscode-foreground)" }}
+                style={{ color: 'var(--vscode-foreground)' }}
               >
                 URL
                 <span className="ml-1 text-red-500">*</span>
@@ -297,27 +275,25 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
                   disabled={editMode}
                   style={{
-                    background: "var(--vscode-input-background)",
-                    color: "var(--vscode-input-foreground)",
+                    background: 'var(--vscode-input-background)',
+                    color: 'var(--vscode-input-foreground)',
                     border: urlError
-                      ? "1px solid var(--vscode-errorForeground)"
-                      : "1px solid var(--vscode-input-border)",
-                    boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                    transition: "all 0.2s ease", // Smooth transition
+                      ? '1px solid var(--vscode-errorForeground)'
+                      : '1px solid var(--vscode-input-border)',
+                    boxShadow: 'var(--vscode-widget-shadow) 0px 1px 4px',
+                    transition: 'all 0.2s ease', // Smooth transition
                   }}
                   onFocus={(e) => {
                     e.target.style.border = urlError
-                      ? "1px solid var(--vscode-errorForeground)"
-                      : "1px solid var(--vscode-focusBorder)";
-                    e.target.style.boxShadow =
-                      "var(--vscode-widget-shadow) 0px 2px 6px";
+                      ? '1px solid var(--vscode-errorForeground)'
+                      : '1px solid var(--vscode-focusBorder)';
+                    e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 2px 6px';
                   }}
                   onBlur={(e) => {
                     e.target.style.border = urlError
-                      ? "1px solid var(--vscode-errorForeground)"
-                      : "1px solid var(--vscode-input-border)";
-                    e.target.style.boxShadow =
-                      "var(--vscode-widget-shadow) 0px 1px 4px";
+                      ? '1px solid var(--vscode-errorForeground)'
+                      : '1px solid var(--vscode-input-border)';
+                    e.target.style.boxShadow = 'var(--vscode-widget-shadow) 0px 1px 4px';
                   }}
                   placeholder="http://example.com"
                 />
@@ -326,7 +302,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                   <div className="mt-1">
                     <p
                       className="text-[0.75rem] font-medium"
-                      style={{ color: "var(--vscode-errorForeground)" }}
+                      style={{ color: 'var(--vscode-errorForeground)' }}
                     >
                       {urlError}
                     </p>
@@ -340,8 +316,8 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             style={
               urlError
                 ? {
-                    marginTop: "0px",
-                    paddingTop: "5px",
+                    marginTop: '0px',
+                    paddingTop: '5px',
                   }
                 : {}
             }
@@ -350,15 +326,15 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             <button
               className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
               style={{
-                color: "var(--vscode-button-secondaryForeground)",
-                background: "var(--vscode-button-secondaryBackground)",
+                color: 'var(--vscode-button-secondaryForeground)',
+                background: 'var(--vscode-button-secondaryBackground)',
               }}
               onClick={() => {
                 setShowAddNewForm(false);
                 setEditMode(false);
-                setName("");
-                setUrl("");
-                setUrlError("");
+                setName('');
+                setUrl('');
+                setUrlError('');
               }}
             >
               Discard
@@ -366,9 +342,9 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
             <button
               className="rounded-lg px-4 py-2 text-sm font-medium transition-all hover:opacity-90 disabled:pointer-events-none disabled:opacity-50"
               style={{
-                background: "var(--vscode-button-background)",
-                color: "var(--vscode-button-foreground)",
-                boxShadow: "var(--vscode-widget-shadow) 0px 2px 8px -2px",
+                background: 'var(--vscode-button-background)',
+                color: 'var(--vscode-button-foreground)',
+                boxShadow: 'var(--vscode-widget-shadow) 0px 2px 8px -2px',
               }}
               onClick={() => {
                 handleSave();
@@ -382,43 +358,32 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       ) : (
         <ul className="space-y-1 p-1" ref={listRef}>
           {options.length === 0 && (
-            <li className="py-2 text-center text-xs opacity-70">
-              No results found
-            </li>
+            <li className="py-2 text-center text-xs opacity-70">No results found</li>
           )}
           {options.map((option, index) => (
             <li
               key={index}
               className={`relative flex cursor-pointer items-start justify-between gap-3 rounded-sm px-3 py-2 transition-all duration-150 ${
                 index === selectedOptionIndex &&
-                "bg-[var(--deputydev-active-selection-background)] text-[--vscode-list-activeSelectionForeground]"
+                'bg-[var(--deputydev-active-selection-background)] text-[--vscode-list-activeSelectionForeground]'
               }`}
               onClick={(e) => {
                 e.preventDefault();
                 onSelect(option);
               }}
-              onMouseEnter={() =>
-                useChatStore.setState({ selectedOptionIndex: index })
-              }
+              onMouseEnter={() => useChatStore.setState({ selectedOptionIndex: index })}
             >
               <div className="flex min-w-0 flex-1 gap-3">
-                <div className="rounded-md p-1">
-                  {iconMap[option.icon as keyof typeof iconMap]}
-                </div>
+                <div className="rounded-md p-1">{iconMap[option.icon as keyof typeof iconMap]}</div>
                 <div className="min-w-0">
-                  <span
-                    className="block truncate text-sm font-medium"
-                    title={option.label}
-                  >
+                  <span className="block truncate text-sm font-medium" title={option.label}>
                     {option.label}
                   </span>
-                  <p className="block truncate text-xs opacity-70">
-                    {option.description}
-                  </p>
+                  <p className="block truncate text-xs opacity-70">{option.description}</p>
                 </div>
               </div>
 
-              {option.icon === "url" && option.label !== "URL" && (
+              {option.icon === 'url' && option.label !== 'URL' && (
                 <div
                   ref={(el) => {
                     dropdownRefs.current[index] = el;
@@ -443,7 +408,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                         <div className="space-y-4 p-3">
                           <p
                             className="text-sm"
-                            style={{ color: "var(--vscode-editor-foreground)" }}
+                            style={{ color: 'var(--vscode-editor-foreground)' }}
                           >
                             Are you sure you want to delete this URL?
                           </p>
@@ -455,35 +420,32 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                               }}
                               className="rounded-md px-2 py-1 text-sm"
                               style={{
-                                color: "var(--vscode-button-foreground)",
-                                backgroundColor:
-                                  "var(--vscode-button-secondaryBackground)",
+                                color: 'var(--vscode-button-foreground)',
+                                backgroundColor: 'var(--vscode-button-secondaryBackground)',
                               }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.backgroundColor =
-                                  "var(--vscode-button-secondaryHoverBackground)";
+                                  'var(--vscode-button-secondaryHoverBackground)';
                               }}
                               onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor =
-                                  "var(--vscode-button-secondaryBackground)";
+                                  'var(--vscode-button-secondaryBackground)';
                               }}
                             >
                               Cancel
                             </button>
                             <button
-                              onClick={(e) => handleAction(e, "confirm-delete")}
+                              onClick={(e) => handleAction(e, 'confirm-delete')}
                               className="rounded-md px-2 py-1 text-sm"
                               style={{
-                                color: "var(--vscode-button-foreground)",
-                                backgroundColor: "#de8188",
+                                color: 'var(--vscode-button-foreground)',
+                                backgroundColor: '#de8188',
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#ed939a";
+                                e.currentTarget.style.backgroundColor = '#ed939a';
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor =
-                                  "#de8188";
+                                e.currentTarget.style.backgroundColor = '#de8188';
                               }}
                             >
                               Delete
@@ -493,25 +455,25 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
                       ) : (
                         <ul>
                           <li
-                            onClick={(e) => handleAction(e, "edit")}
+                            onClick={(e) => handleAction(e, 'edit')}
                             className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                           >
                             <Pencil size={16} /> Edit
                           </li>
                           <li
-                            onClick={(e) => handleAction(e, "reindex")}
+                            onClick={(e) => handleAction(e, 'reindex')}
                             className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                           >
                             <RefreshCw size={16} /> Re-Index
                           </li>
                           <li
-                            onClick={(e) => handleAction(e, "open")}
+                            onClick={(e) => handleAction(e, 'open')}
                             className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-700"
                           >
                             <ExternalLink size={16} /> Open Page
                           </li>
                           <li
-                            onClick={(e) => handleAction(e, "delete")}
+                            onClick={(e) => handleAction(e, 'delete')}
                             className="flex cursor-pointer items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700"
                           >
                             <Trash2 size={16} /> Delete

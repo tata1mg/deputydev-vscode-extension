@@ -1,13 +1,13 @@
-import * as path from "path";
-import { v4 as uuidv4 } from "uuid";
-import * as vscode from "vscode";
-import { AuthenticationManager } from "../auth/AuthenticationManager";
-import { ChatManager } from "../chat/ChatManager";
-import { DiffViewManager } from "../diff/DiffManager";
-import { getUri } from "../utilities/getUri";
-import { HistoryService } from "../services/history/HistoryService";
-import { AuthService } from "../services/auth/AuthService";
-import { ReferenceManager } from "../references/ReferenceManager";
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as vscode from 'vscode';
+import { AuthenticationManager } from '../auth/AuthenticationManager';
+import { ChatManager } from '../chat/ChatManager';
+import { DiffViewManager } from '../diff/DiffManager';
+import { getUri } from '../utilities/getUri';
+import { HistoryService } from '../services/history/HistoryService';
+import { AuthService } from '../services/auth/AuthService';
+import { ReferenceManager } from '../references/ReferenceManager';
 import {
   deleteSessionId,
   getActiveRepo,
@@ -15,25 +15,25 @@ import {
   setSessionId,
   sendProgress,
   clearWorkspaceStorage,
-} from "../utilities/contextManager";
-import { api, binaryApi } from "../services/api/axios";
-import { API_ENDPOINTS } from "../services/api/endpoints";
-import { updateVectorStoreWithResponse } from "../clients/common/websocketHandlers";
-import { ConfigManager } from "../utilities/ConfigManager";
-import { CLIENT_VERSION, DD_HOST } from "../config";
-import { ProfileUiService } from "../services/profileUi/profileUiService";
-import { UsageTrackingManager } from "../usageTracking/UsageTrackingManager";
-import { Logger } from "../utilities/Logger";
-import { createNewWorkspaceFn } from "../terminal/workspace/CreateNewWorkspace";
-import { ContinueNewWorkspace } from "../terminal/workspace/ContinueNewWorkspace";
-import { refreshCurrentToken } from "../services/refreshToken/refreshCurrentToken";
-import { SESSION_TYPE } from "../constants";
-import osName from "os-name";
-import { getShell } from "../terminal/utils/shell";
-import { FeedbackService } from "../services/feedback/feedbackService";
-import { UserQueryEnhancerService } from "../services/userQueryEnhancer/userQueryEnhancerService";
-import { ApiErrorHandler } from "../services/api/apiErrorHandler";
-import * as fs from "fs";
+} from '../utilities/contextManager';
+import { api, binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { updateVectorStoreWithResponse } from '../clients/common/websocketHandlers';
+import { ConfigManager } from '../utilities/ConfigManager';
+import { CLIENT_VERSION, DD_HOST } from '../config';
+import { ProfileUiService } from '../services/profileUi/profileUiService';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { Logger } from '../utilities/Logger';
+import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
+import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { SESSION_TYPE } from '../constants';
+import osName from 'os-name';
+import { getShell } from '../terminal/utils/shell';
+import { FeedbackService } from '../services/feedback/feedbackService';
+import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import * as fs from 'fs';
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -59,13 +59,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private trackingManager: UsageTrackingManager,
     private feedbackService: FeedbackService,
     private userQueryEnhancerService: UserQueryEnhancerService,
-    private continueWorkspace: ContinueNewWorkspace
+    private continueWorkspace: ContinueNewWorkspace,
   ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context?: vscode.WebviewViewResolveContext,
-    _token?: vscode.CancellationToken
+    _token?: vscode.CancellationToken,
   ): void {
     this._view = webviewView;
     webviewView.webview.options = {
@@ -89,7 +89,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this.sendMessageToSidebar({
           // Use the same ID so that the front-end resolver knows which generator to push data into.
           id: message.id,
-          command: "chunk",
+          command: 'chunk',
           data: chunkData,
         });
       };
@@ -99,15 +99,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       };
       // Depending on `command`, handle each case
       switch (command) {
-        case "api-chat":
+        case 'api-chat':
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
-        case "api-stop-chat":
+        case 'api-stop-chat':
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
-        case "delete-session-id":
-          this.outputChannel.info("Deleting session ID");
+        case 'delete-session-id':
+          this.outputChannel.info('Deleting session ID');
           deleteSessionId();
           break;
         // case 'api-clear-chat':
@@ -119,185 +119,179 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         // case 'api-chat-setting':
         //   promise = this.chatService.apiChatSetting(data);
         // break;
-        case "get-client-version":
+        case 'get-client-version':
           promise = this.sendMessageToSidebar({
             id: uuidv4(),
-            command: "send-client-version",
+            command: 'send-client-version',
             data: CLIENT_VERSION,
           });
           break;
-        case "keyword-search":
+        case 'keyword-search':
           promise = this.codeReferenceService.keywordSearch(data, sendMessage);
           break;
-        case "keyword-type-search":
-          promise = this.codeReferenceService.keywordTypeSearch(
-            data,
-            sendMessage
-          );
+        case 'keyword-type-search':
+          promise = this.codeReferenceService.keywordTypeSearch(data, sendMessage);
           break;
-        case "url-search":
+        case 'url-search':
           promise = this.codeReferenceService.urlSearch(data, sendMessage);
           break;
-        case "get-saved-urls":
+        case 'get-saved-urls':
           promise = this.codeReferenceService.getSavedUrls(data, sendMessage);
           break;
-        case "save-url":
+        case 'save-url':
           promise = this.codeReferenceService.saveUrl(data, sendMessage);
           break;
-        case "delete-saved-url":
+        case 'delete-saved-url':
           promise = this.codeReferenceService.deleteSavedUrl(data, sendMessage);
           break;
-        case "update-saved-url":
+        case 'update-saved-url':
           promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
           break;
-        case "usage-tracking":
+        case 'usage-tracking':
           promise = this.trackingManager.trackUsage(data);
           break;
 
         // File Operations
-        case "accept-file":
+        case 'accept-file':
           promise = this.acceptFile(data.path);
           break;
-        case "reject-file":
+        case 'reject-file':
           promise = this.rejectFile(data.path);
           break;
-        case "get-opened-files":
+        case 'get-opened-files':
           promise = this.getOpenedFiles();
           break;
-        case "search-file":
+        case 'search-file':
           break;
 
         // Profile UI data
-        case "fetch-profile-ui-data":
+        case 'fetch-profile-ui-data':
           promise = this.fetchProfileUiData();
           break;
-        case "open-requested-browser-page":
+        case 'open-requested-browser-page':
           promise = this.openBrowserPage(data);
           break;
-        case "save-settings":
+        case 'save-settings':
           promise = this.configManager.saveSettings(data);
           break;
 
-        case "initialize-settings":
+        case 'initialize-settings':
           promise = this.configManager.initializeSettings(sendMessage);
           break;
 
         // Feedback
-        case "submit-feedback":
-          promise = this.feedbackService.submitFeedback(
-            data.feedback,
-            data.queryId
-          );
+        case 'submit-feedback':
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
           break;
 
         // Enhance user query feature
-        case "enhance-user-query":
+        case 'enhance-user-query':
           promise = this.enhanceUserQuery(data.userQuery);
           break;
 
         // Logging and Messages
-        case "log-to-output":
+        case 'log-to-output':
           promise = this.logToOutput(data);
           break;
-        case "show-error-message":
+        case 'show-error-message':
           promise = this.showErrorMessage(data);
           break;
-        case "show-info-message":
+        case 'show-info-message':
           promise = this.showInfoMessage(data);
           break;
-        case "show-logs":
+        case 'show-logs':
           promise = this.showLogs();
           break;
 
         // Global State Management
-        case "set-global-state":
+        case 'set-global-state':
           promise = this.setGlobalState(data);
           break;
-        case "get-global-state":
+        case 'get-global-state':
           promise = this.getGlobalState(data);
           break;
-        case "delete-global-state":
+        case 'delete-global-state':
           promise = this.deleteGlobalState(data);
           break;
 
         // Workspace State Management
-        case "set-workspace-state":
+        case 'set-workspace-state':
           promise = this.setWorkspaceState(data);
           break;
-        case "get-workspace-state":
+        case 'get-workspace-state':
           promise = this.getWorkspaceState(data);
           break;
-        case "delete-workspace-state":
+        case 'delete-workspace-state':
           promise = this.deleteWorkspaceState(data);
           break;
 
         // Secret State Management
-        case "set-secret-state":
+        case 'set-secret-state':
           promise = this.setSecretState(data);
           break;
-        case "get-secret-state":
+        case 'get-secret-state':
           promise = this.getSecretState(data);
           break;
-        case "delete-secret-state":
+        case 'delete-secret-state':
           promise = this.deleteSecretState(data);
           break;
 
-        case "initiate-login":
+        case 'initiate-login':
           promise = this.initiateLogin(data);
           break;
-        case "sign-out":
+        case 'sign-out':
           promise = this.signOut();
           break;
 
         // past sessions
-        case "get-sessions":
+        case 'get-sessions':
           promise = this.getSessions(data);
           break;
-        case "get-pinned-sessions":
+        case 'get-pinned-sessions':
           promise = this.getPinnedSessions(data);
           break;
-        case "reorder-pinned-sessions":
+        case 'reorder-pinned-sessions':
           promise = this.historyService.reorderPinnedSessions(data);
           break;
-        case "get-session-chats":
+        case 'get-session-chats':
           promise = this.getSessionChats(data);
           break;
-        case "delete-session":
+        case 'delete-session':
           promise = this.deleteSession(data);
           break;
-        case "pin-unpin-session":
+        case 'pin-unpin-session':
           promise = this.historyService.pinOrUnpinSession(data);
           break;
 
-        case "workspace-repo-change":
+        case 'workspace-repo-change':
           promise = this.setWorkspaceRepo(data);
           break;
-        case "create-new-workspace":
+        case 'create-new-workspace':
           promise = this.createNewWorkspace(data.tool_use_id);
           break;
-        case "accept-terminal-command":
+        case 'accept-terminal-command':
           this.chatService._onTerminalApprove.fire({
             toolUseId: data.tool_use_id,
             command: data.command,
           });
           break;
-        case "edit-terminal-command":
+        case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
           break;
 
         // diff
-        case "write-file":
+        case 'write-file':
           promise = this.writeFile(data);
           break;
-        case "open-file":
+        case 'open-file':
           this.openFile(data.path);
           break;
 
-        case "open-or-create-file":
+        case 'open-or-create-file':
           this.openOrCreateFileByAbsolutePath(data.path);
           break;
 
-        case "check-diff-applicable": {
+        case 'check-diff-applicable': {
           try {
             const diffRecord = (await this.chatService.getModifiedRequest({
               filepath: data.filePath,
@@ -310,11 +304,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         }
-        case "hit-retry-embedding":
+        case 'hit-retry-embedding':
           this.hitRetryEmbedding();
           break;
 
-        case "webview-initialized":
+        case 'webview-initialized':
           this.isWebviewInitialized = true;
           this.sendPendingMessages();
           break;
@@ -325,7 +319,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           const result = await promise;
           this.sendMessageToSidebar({
             id: message.id,
-            command: "result",
+            command: 'result',
             data: result,
           });
         } catch (err) {
@@ -343,8 +337,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const authToken = await this.authService.loadAuthToken();
       const headers = {
         Authorization: `Bearer ${authToken}`,
-        "X-Session-Type": SESSION_TYPE,
-        "X-Session-Id": getSessionId(),
+        'X-Session-Type': SESSION_TYPE,
+        'X-Session-Id': getSessionId(),
       };
       const payload = {
         query: user_query,
@@ -352,21 +346,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         os_name: osName(),
         shell: getShell(),
       };
-      const response = await api.post(
-        API_ENDPOINTS.TERMINAL_COMMAND_EDIT,
-        payload,
-        {
-          headers,
-        }
-      );
-      this.outputChannel.info(
-        "Terminal command edit response:",
-        response.data.data.terminal_command
-      );
+      const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
+        headers,
+      });
+      this.outputChannel.info('Terminal command edit response:', response.data.data.terminal_command);
       refreshCurrentToken(response.headers);
       return response.data.data.terminal_command;
     } catch (error) {
-      this.logger.error("Error updating terminal command:");
+      this.logger.error('Error updating terminal command:');
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -377,14 +364,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(
-      this.context,
-      this.configManager,
-      this.logger
-    );
+    const authenticationManager = new AuthenticationManager(this.context, this.configManager, this.logger);
     const status = await authenticationManager.initiateAuthentication();
-    if (status === "AUTHENTICATION_FAILED") {
-      this.setViewType("error");
+    if (status === 'AUTHENTICATION_FAILED') {
+      this.setViewType('error');
     } else {
       this.sendMessageToSidebar(status);
       this.initiateBinary();
@@ -393,45 +376,35 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async signOut() {
     const response = await this.authService.deleteAuthToken();
-    if (response === "success") {
-      vscode.commands.executeCommand(
-        "setContext",
-        "deputydev.isAuthenticated",
-        false
-      );
-      this.logger.info("Signed out successfully");
-      this.outputChannel.info("Signed out successfully");
-      this.context.workspaceState.update("isAuthenticated", false);
-      this.setViewType("auth");
+    if (response === 'success') {
+      vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+      this.logger.info('Signed out successfully');
+      this.outputChannel.info('Signed out successfully');
+      this.context.workspaceState.update('isAuthenticated', false);
+      this.setViewType('auth');
       clearWorkspaceStorage(true);
     }
   }
 
   // For Binary init
   public async initiateBinary() {
-    this.outputChannel.info(
-      "🔧 Initiating Binary **********************************"
-    );
+    this.outputChannel.info('🔧 Initiating Binary **********************************');
 
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
 
     if (!authToken) {
-      this.outputChannel.warn(
-        "❌ No auth token available. Aborting binary initiation."
-      );
+      this.outputChannel.warn('❌ No auth token available. Aborting binary initiation.');
       return;
     }
 
-    await this.context.workspaceState.update("authToken", authToken);
+    await this.context.workspaceState.update('authToken', authToken);
 
     const essentialConfig = this.configManager.getAllConfigEssentials();
-    this.outputChannel.info(
-      `📦 Essential config: ${JSON.stringify(essentialConfig)}`
-    );
+    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
-    this.logger.info("Initiating binary...");
-    this.outputChannel.info("🚀 Initiating binary...");
+    this.logger.info('Initiating binary...');
+    this.outputChannel.info('🚀 Initiating binary...');
     const payload = {
       config: {
         DEPUTY_DEV: {
@@ -453,64 +426,50 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     sendProgress({
       repo: activeRepo as string,
       progress: 0,
-      status: "In Progress",
+      status: 'In Progress',
     });
 
     try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.INIT_BINARY,
-        payload,
-        { headers }
-      );
+      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
       this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
       let attempts = 0;
       let response_inner: any;
       while (attempts < 3) {
-        response_inner = await binaryApi().post(
-          API_ENDPOINTS.INIT_BINARY,
-          payload,
-          { headers }
-        );
-        this.outputChannel.info(
-          `✅ Binary init status: ${response.data.status}`
-        );
+        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
         this.logger.info(`Binary init status: ${response.data.status}`);
-        if (response.data.status != "Completed") {
+        if (response.data.status != 'Completed') {
           attempts++;
           this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);
           if (attempts === 3) {
-            this.logger.warn("Binary initialization failed");
-            this.outputChannel.warn("🚨 Binary initialization failed.");
-            throw new Error("Binary initialization failed");
+            this.logger.warn('Binary initialization failed');
+            this.outputChannel.warn('🚨 Binary initialization failed.');
+            throw new Error('Binary initialization failed');
           }
         } else {
           break;
         }
       }
 
-      if (response.data.status === "Completed" && activeRepo) {
+      if (response.data.status === 'Completed' && activeRepo) {
         this.continueWorkspace.triggerAuthChange(true);
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
-        this.outputChannel.info(
-          `📁 Creating embedding for repo: ${activeRepo}`
-        );
+        this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
         const params = { repo_path: activeRepo };
-        this.outputChannel.info(
-          `📡 Sending WebSocket update: ${JSON.stringify(params)}`
-        );
+        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
 
         try {
           await updateVectorStoreWithResponse(params);
         } catch (error) {
-          this.logger.warn("Embedding failed");
-          this.outputChannel.warn("Embedding failed");
+          this.logger.warn('Embedding failed');
+          this.outputChannel.warn('Embedding failed');
         }
       }
     } catch (error) {
-      this.logger.error("Binary initialization failed");
-      this.outputChannel.error("🚨 Binary initialization failed.");
-      throw new Error("Binary initialization failed");
+      this.logger.error('Binary initialization failed');
+      this.outputChannel.error('🚨 Binary initialization failed.');
+      throw new Error('Binary initialization failed');
     }
   }
 
@@ -520,23 +479,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return;
     }
     const params = { repo_path: activeRepo, retried_by_user: true };
-    this.outputChannel.info(
-      `📡 Sending WebSocket update: ${JSON.stringify(params)}`
-    );
+    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
     try {
       await updateVectorStoreWithResponse(params);
     } catch (error) {
-      this.logger.warn("Embedding failed");
-      this.outputChannel.warn("Embedding failed");
+      this.logger.warn('Embedding failed');
+      this.outputChannel.warn('Embedding failed');
     }
   }
 
   private async setWorkspaceRepo(data: any) {
-    this.outputChannel.info(
-      `Setting active repo to via frotnend ${data.repoPath}`
-    );
+    this.outputChannel.info(`Setting active repo to via frotnend ${data.repoPath}`);
     this._onDidChangeRepo.fire(data.repoPath);
-    return this.setWorkspaceState({ key: "activeRepo", value: data.repoPath });
+    return this.setWorkspaceState({ key: 'activeRepo', value: data.repoPath });
   }
 
   // File Operations
@@ -552,7 +507,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async openFile(file_path: string) {
     const active_repo = getActiveRepo();
     if (!active_repo) {
-      vscode.window.showErrorMessage("No workspace folder found.");
+      vscode.window.showErrorMessage('No workspace folder found.');
       return;
     } else {
       const absolutePath = path.join(active_repo, file_path);
@@ -566,14 +521,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const uri = vscode.Uri.file(filePath);
     try {
       if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, "");
+        fs.writeFileSync(filePath, '');
       }
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
     } catch (error: any) {
-      vscode.window.showErrorMessage(
-        `Failed to open or create file: ${error.message}`
-      );
+      vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
     }
   }
 
@@ -581,12 +534,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    * Example of applying changes (like "openDiffView" in your other code)
    */
 
-  private async writeFile(data: {
-    filePath: string;
-    raw_diff: string;
-    is_inline?: boolean;
-    write_mode?: boolean;
-  }) {
+  private async writeFile(data: { filePath: string; raw_diff: string; is_inline?: boolean; write_mode?: boolean }) {
     const modifiedFiles = (await this.chatService.getModifiedRequest({
       filepath: data.filePath,
       raw_diff: data.raw_diff,
@@ -596,16 +544,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const active_repo = getActiveRepo();
     if (!active_repo) {
-      this.outputChannel.error("No active repo found");
+      this.outputChannel.error('No active repo found');
       return;
     }
-    this.chatService.handleModifiedFiles(
-      modifiedFiles,
-      active_repo,
-      getSessionId(),
-      data.write_mode,
-      data.is_inline
-    );
+    this.chatService.handleModifiedFiles(modifiedFiles, active_repo, getSessionId(), data.write_mode, data.is_inline);
     return;
   }
 
@@ -616,7 +558,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return allTabs
       .filter((tab) => {
         const uri = (tab.input as any)?.uri;
-        return uri?.scheme === "file";
+        return uri?.scheme === 'file';
       })
       .map((tab) => {
         const uri = (tab.input as any).uri as vscode.Uri;
@@ -635,7 +577,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         return {
           id: uri.fsPath,
-          type: "file",
+          type: 'file',
           name: path.basename(uri.fsPath),
           basePath: basePath,
           path: path.relative(basePath, uri.fsPath),
@@ -646,15 +588,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private getFileBasePath(fileUri: vscode.Uri) {
     const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
-    return workspaceFolder?.uri.fsPath ?? "";
+    return workspaceFolder?.uri.fsPath ?? '';
   }
 
   // Logging and Messages
 
-  private async logToOutput(data: {
-    type: "info" | "warn" | "error";
-    message: string;
-  }) {
+  private async logToOutput(data: { type: 'info' | 'warn' | 'error'; message: string }) {
     // For example: this.outputChannel.info(`From Webview: ${data.message}`);
     this.outputChannel[data.type](`From Webview: ${data.message}`);
   }
@@ -715,19 +654,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async enhanceUserQuery(userQuery: string) {
     try {
-      const response =
-        await this.userQueryEnhancerService.generateEnhancedUserQuery(
-          userQuery
-        );
+      const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "enhanced-user-query",
+        command: 'enhanced-user-query',
         data: { enhancedUserQuery: response.enhanced_query },
       });
     } catch (error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "enhanced-user-query",
+        command: 'enhanced-user-query',
         data: { error: error },
       });
     }
@@ -735,23 +671,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async getSessions(data: { limit: number; offset: number }) {
     try {
-      const response = await this.historyService.getPastSessions(
-        data.limit,
-        data.offset,
-        "UNPINNED"
-      );
+      const response = await this.historyService.getPastSessions(data.limit, data.offset, 'UNPINNED');
       const unpinnedSessions = response.sessions;
       const hasMore = response.has_more;
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "sessions-history",
+        command: 'sessions-history',
         data: { unpinnedSessions, hasMore },
       });
     } catch (error) {
       const unpinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "sessions-history",
+        command: 'sessions-history',
         data: { unpinnedSessions, hasMore: false },
       });
     }
@@ -759,23 +691,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async getPinnedSessions(data: { limit: number; offset: number }) {
     try {
-      const response = await this.historyService.getPastSessions(
-        data.limit,
-        data.offset,
-        "PINNED"
-      );
+      const response = await this.historyService.getPastSessions(data.limit, data.offset, 'PINNED');
       const pinnedSessions = response.sessions;
 
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "pinned-sessions",
+        command: 'pinned-sessions',
         data: pinnedSessions,
       });
     } catch (error) {
       const pinnedSessions: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "pinned-sessions",
+        command: 'pinned-sessions',
         data: pinnedSessions,
       });
     }
@@ -783,12 +711,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   async getSessionChats(sessionData: { sessionId: number }) {
     try {
-      const response = await this.historyService.getPastSessionChats(
-        sessionData.sessionId
-      );
+      const response = await this.historyService.getPastSessionChats(sessionData.sessionId);
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "session-chats-history",
+        command: 'session-chats-history',
         data: response,
       });
       setSessionId(sessionData.sessionId);
@@ -796,7 +722,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const response: any[] = [];
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "session-chats-history",
+        command: 'session-chats-history',
         data: response,
       });
     }
@@ -821,20 +747,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
   }
 
-  setViewType(
-    viewType:
-      | "chat"
-      | "setting"
-      | "history"
-      | "auth"
-      | "profile"
-      | "error"
-      | "loader"
-      | "force-upgrade"
-  ) {
+  setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth' | 'profile' | 'error' | 'loader' | 'force-upgrade') {
     this.sendMessageToSidebar({
       id: uuidv4(),
-      command: "set-view-type",
+      command: 'set-view-type',
       data: viewType,
     });
   }
@@ -842,7 +758,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   setAuthStatus(status: boolean) {
     this.sendMessageToSidebar({
       id: uuidv4(),
-      command: "set-auth-status",
+      command: 'set-auth-status',
       data: status,
     });
   }
@@ -851,7 +767,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.profileService.getProfileUi().then((response) => {
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: "profile-ui-data",
+        command: 'profile-ui-data',
         data: response.ui_profile_data,
       });
     });
@@ -860,12 +776,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   newChat() {
     this.sendMessageToSidebar({
       id: uuidv4(),
-      command: "new-chat",
+      command: 'new-chat',
     });
   }
 
   currentEditorChanged(editor: vscode.TextEditor) {
-    if (editor.document.uri.scheme !== "file") {
+    if (editor.document.uri.scheme !== 'file') {
       return;
     }
 
@@ -873,10 +789,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const basePath = this.getFileBasePath(uri);
     this.sendMessageToSidebar({
       id: uuidv4(),
-      command: "current-editor-changed",
+      command: 'current-editor-changed',
       data: {
         id: uri.fsPath,
-        type: "file",
+        type: 'file',
         name: path.basename(uri.fsPath),
         basePath,
         path: path.relative(basePath, uri.fsPath),
@@ -886,10 +802,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   async addSelectedTerminalOutputToChat(output: string) {
-    await vscode.commands.executeCommand("deputydev-sidebar.focus");
+    await vscode.commands.executeCommand('deputydev-sidebar.focus');
     this.sendMessageToSidebar({
       id: uuidv4(),
-      command: "terminal-output-to-chat",
+      command: 'terminal-output-to-chat',
       data: {
         terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\``,
       },
@@ -902,19 +818,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    */
   private _getHtmlForWebview(webview: vscode.Webview): string {
     // The CSS file from the React build output
-    const stylesUri = getUri(webview, this._extensionUri, [
-      "webview-ui",
-      "build",
-      "assets",
-      "index.css",
-    ]);
+    const stylesUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.css']);
     // The JS file from the React build output
-    const scriptUri = getUri(webview, this._extensionUri, [
-      "webview-ui",
-      "build",
-      "assets",
-      "index.js",
-    ]);
+    const scriptUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.js']);
 
     return /*html*/ `
       <!DOCTYPE html>
