@@ -74,12 +74,8 @@ export function ChatUI() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
 
-  // Add state for globe toggle
-  const [isGlobeEnabled, setIsGlobeEnabled] = useState(false);
-
   const handleGlobeToggle = () => {
-    setIsGlobeEnabled(prev => !prev);
-    // You can add any additional logic here when the globe is toggled
+    useChatStore.setState({ isWebSearchEnabled: !useChatStore.getState().isWebSearchEnabled });
   };
 
   useEffect(() => {
@@ -490,11 +486,15 @@ export function ChatUI() {
               />
             </div>
 
-            <div className="absolute bottom-2 right-2.5 flex items-center gap-1">
+            <div className='absolute bottom-1 left-1 flex items-center gap-1'>
+              <RepoSelector />
+            </div>
+
+            <div className="absolute bottom-1 right-2.5 flex items-center gap-1">
               <button
                 className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                 data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content="Add context"
+                data-tooltip-content="Add Context"
                 data-tooltip-place="top-start"
                 onClick={() => {
                   const textarea = textareaRef.current;
@@ -518,25 +518,25 @@ export function ChatUI() {
               </button>
 
               <button
-                className={`flex items-center justify-center p-1 rounded ${isGlobeEnabled
+                className={`flex items-center justify-center p-1 rounded ${useChatStore.getState().isWebSearchEnabled
                   ? 'bg-blue-500 hover:bg-blue-600 text-white'
                   : 'hover:bg-slate-400 hover:bg-opacity-10'
                   }`}
                 onClick={handleGlobeToggle}
                 data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content={`${isGlobeEnabled ? 'Disable web search' : 'Enable web search'}`}
+                data-tooltip-content={`${useChatStore.getState().isWebSearchEnabled ? 'Disable Web Search' : 'Enable Web Search'}`}
                 data-tooltip-place="top-start"
               >
                 <Globe className="h-4 w-4" />
               </button>
 
-              <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+              {/* <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content="Upload image"
                 data-tooltip-place="top-start"
               >
                 <Image className="h-4 w-4" />
-              </button>
+              </button> */}
 
               {enhancingUserQuery ? (
                 <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
@@ -585,11 +585,8 @@ export function ChatUI() {
 
         {/* Chat Type Toggle and RepoSelector */}
         <div className="flex items-center justify-between gap-2 text-xs">
-          <RepoSelector />
-          <div className='flex items-center justify-between gap-2 text-xs'>
-            <ModelSelector />
-            <ChatTypeToggle />
-          </div>
+          <ModelSelector />
+          <ChatTypeToggle />
         </div>
       </div>
     </div>

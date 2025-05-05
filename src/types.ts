@@ -34,6 +34,8 @@ type ChatReferenceItem = {
 };
 
 export interface ChatPayload {
+  isWebSearchEnabled: boolean;
+  llmModel: string;
   focus_files?: string[];
   focus_chunks?: string[];
   message_id?: string;
@@ -64,6 +66,8 @@ export interface ToolRequest {
   tool_use_id: string;
   accumulatedContent: string;
   write_mode?: boolean;
+  llmModel: string;
+  isWebSearchEnabled: boolean;
 }
 
 export interface CurrentDiffRequest {
