@@ -21,6 +21,7 @@ import {
   ProgressBarData,
   ChatTerminalNoShell,
   ChatMetaData,
+  LLMModels
 } from '@/types';
 
 // =============================================================================
@@ -91,6 +92,10 @@ export const useChatStore = create(
         selectedOptionIndex: -1,
         enhancingUserQuery: false,
         enhancedUserQuery: '',
+        llmModels: [] as LLMModels[],
+        webSearchInToolUse: false,
+        activeModel: "",
+        isWebSearchEnabled: false
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -157,6 +162,8 @@ export const useChatStore = create(
 
               // Build the payload
               const payload: any = {
+                isWebSearchEnabled: useChatStore.getState().isWebSearchEnabled,
+                llmModel: useChatStore.getState().activeModel,
                 query: message,
                 urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,

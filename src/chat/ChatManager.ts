@@ -35,8 +35,8 @@ export class ChatManager {
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public onTerminalApprove = this._onTerminalApprove.event;
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
@@ -88,13 +88,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-                auth_token: await this.authService.loadAuthToken(),
-                repo_path: active_repo,
-                chunks: chunkDetails,
-                search_item_name: element.value,
-                search_item_type: element.type,
-                search_item_path: element.path,
-              })
+              auth_token: await this.authService.loadAuthToken(),
+              repo_path: active_repo,
+              chunks: chunkDetails,
+              search_item_name: element.value,
+              search_item_type: element.type,
+              search_item_path: element.path,
+            })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -195,9 +195,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-          abortController: AbortController;
-          asyncIterator: AsyncIterableIterator<any>;
-        }
+        abortController: AbortController;
+        asyncIterator: AsyncIterableIterator<any>;
+      }
       | undefined;
 
     try {
@@ -273,6 +273,8 @@ export class ChatManager {
               tool_use_id: event.content.tool_use_id,
               accumulatedContent: '',
               write_mode: payload.write_mode,
+              llmModel: payload.llmModel,
+              isWebSearchEnabled: payload.isWebSearchEnabled
             };
             // Immediately forward the start event.
             chunkCallback({ name: event.type, data: event.content });
@@ -713,7 +715,7 @@ export class ChatManager {
           // Don't kill the underlying process—let it keep running in the terminal.
           resolve(
             output +
-              `
+            `
               ===========
               Process is still running after 15s; returning partial output.
               ===========
@@ -803,6 +805,8 @@ export class ChatManager {
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
   ): Promise<void> {
+    const mainConfig: any = await this.context.workspaceState.get("configData");
+    const isToolUseWebSearchEnabled = mainConfig["is_tool_use_web_search_enabled"];
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
       this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
@@ -906,6 +910,8 @@ export class ChatManager {
       // Prepare payload to continue chat with the tool's response
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
       const continuationPayload: ChatPayload = {
+        isWebSearchEnabled: toolRequest.isWebSearchEnabled && isToolUseWebSearchEnabled,
+        llmModel: toolRequest.llmModel,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
         is_tool_response: true,
@@ -959,6 +965,8 @@ export class ChatManager {
       });
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
+        isWebSearchEnabled: toolRequest.isWebSearchEnabled && isToolUseWebSearchEnabled,
+        llmModel: toolRequest.llmModel,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
         is_tool_response: true,

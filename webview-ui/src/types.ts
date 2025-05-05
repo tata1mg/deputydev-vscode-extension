@@ -249,3 +249,8 @@ export interface SaveUrlRequest {
   name: string;
   url: string;
 }
+
+export interface LLMModels {
+  id: string;
+  name: string
+}
