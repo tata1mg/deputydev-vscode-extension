@@ -68,7 +68,7 @@ export class ReferenceService {
       });
 
       if (postResponse.status === 200 || postResponse.status === 201) {
-        const response = await this.getSavedUrls();
+        const response = await this.getSavedUrls(payload.isSettings);
         return response;
       } else {
         throw new Error("Failed to save URL");
@@ -78,7 +78,10 @@ export class ReferenceService {
     }
   }
 
-  public async deleteSavedUrl(id: string): Promise<any> {
+  public async deleteSavedUrl(data: {
+    id: string;
+    isSettings?: boolean;
+  }): Promise<any> {
     try {
       const authToken = await this.fetchAuthToken();
       const headers = {
@@ -88,13 +91,13 @@ export class ReferenceService {
       const deleteResponse = await binaryApi().get(
         API_ENDPOINTS.DELETE_SAVED_URL,
         {
-          params: { id },
+          params: { id: data.id },
           headers,
         }
       );
 
       if (deleteResponse.status === 200 || deleteResponse.status === 204) {
-        const response = await this.getSavedUrls();
+        const response = await this.getSavedUrls(data.isSettings);
         return response;
       } else {
         throw new Error("Failed to delete URL");
@@ -107,6 +110,7 @@ export class ReferenceService {
   public async updateSavedUrl(payload: {
     id: string;
     name: string;
+    isSettings?: boolean;
   }): Promise<any> {
     try {
       const authToken = await this.fetchAuthToken();
@@ -121,7 +125,7 @@ export class ReferenceService {
       );
 
       if (updateResponse.status === 200 || updateResponse.status === 204) {
-        const response = await this.getSavedUrls();
+        const response = await this.getSavedUrls(payload.isSettings);
         return response;
       } else {
         throw new Error("Failed to update URL");

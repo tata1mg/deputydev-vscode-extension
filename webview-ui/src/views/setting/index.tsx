@@ -10,6 +10,7 @@ import {
   ExternalLink,
   ArrowLeft,
   Plus,
+  CornerDownLeft,
 } from "lucide-react";
 import { Settings, URLListItem, SaveUrlRequest } from "../../types";
 import { useSettingsStore } from "@/stores/settingsStore";
@@ -22,6 +23,8 @@ import {
   openBrowserPage,
   urlSearch,
   createOrOpenFile,
+  setGlobalState,
+  getGlobalState,
 } from "@/commandApi";
 import { BarLoader } from "react-spinners";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -66,9 +69,9 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         backgroundColor: "var(--vscode-editorWidget-background)",
         border: "1px solid var(--vscode-editorWidget-border)",
       }}
-      className="mb-4 rounded-lg p-4 transition-colors hover:border-opacity-80"
+      className="my-2 rounded-lg p-4 transition-colors hover:border-opacity-80"
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <h2
           style={{ color: "var(--vscode-editor-foreground)" }}
           className="mb-1 text-[13px] font-semibold leading-6"
@@ -81,13 +84,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({
         {description && (
           <p
             style={{ color: "var(--vscode-descriptionForeground)" }}
-            className="mb-2 text-[12px] leading-5"
+            className="mb-1 text-[12px] leading-5"
           >
             {description}
           </p>
         )}
       </div>
-      <div className="mt-2 w-full">{children && bottom && children}</div>
+      <div className={`${bottom ? "mt-2" : ""} w-full`}>
+        {children && bottom && children}
+      </div>
     </div>
   );
 };
@@ -112,8 +117,9 @@ const EditRulesButton: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={toggleDropdown}
-        className="rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
+        className="flex items-center gap-1 rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
       >
+        <Pencil className="h-4 w-4" />
         Edit Rules
       </button>
 
@@ -225,18 +231,25 @@ const CommandDenyList: React.FC<CommandDenyListProps> = ({
       </div>
 
       <div className="mt-2 flex w-full gap-2">
-        <input
-          type="text"
-          value={currentCommand}
-          onChange={handleChange}
-          onKeyDown={(e) => e.key === "Enter" && handleAddCommand()}
-          placeholder="Enter command to deny"
-          className="flex-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-1.5 text-sm text-[var(--vscode-input-foreground)] focus:border-[var(--vscode-input-border)] focus:outline-none focus:ring-2 focus:ring-[var(--vscode-focusBorder)]"
-        />
+        <div className="flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-1.5 focus-within:ring-2 focus-within:ring-[var(--vscode-focusBorder)]">
+          <input
+            type="text"
+            value={currentCommand}
+            onChange={handleChange}
+            onKeyDown={(e) => e.key === "Enter" && handleAddCommand()}
+            placeholder="Enter command to deny"
+            className="flex-1 bg-transparent text-sm text-[var(--vscode-input-foreground)] focus:outline-none"
+          />
+          <CornerDownLeft
+            size={16}
+            className="ml-2 text-[var(--vscode-input-foreground)]"
+          />
+        </div>
         <button
           onClick={handleAddCommand}
-          className="rounded-md bg-[--deputydev-button-background] px-3 py-1 text-white hover:bg-blue-600"
+          className="flex items-center gap-1 rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
         >
+          <Plus className="h-4 w-4" />
           Add
         </button>
       </div>
@@ -399,14 +412,23 @@ const Setting = () => {
     const settings: Settings = {
       default_mode: chatType,
       terminal_settings: {
-        terminal_output_limit: terminalOutputLimit,
-        shell_integration_timeout: shellIntegrationTimeout,
-        shell_command_timeout: shellCommandTimeout,
         enable_yolo_mode: isYoloModeOn,
         command_deny_list: commandsToDeny,
       },
     };
     saveSettings(settings);
+    setGlobalState({
+      key: "terminal-output-limit",
+      value: terminalOutputLimit,
+    });
+    setGlobalState({
+      key: "terminal-shell-limit",
+      value: shellIntegrationTimeout,
+    });
+    setGlobalState({
+      key: "terminal-command-timeout",
+      value: shellCommandTimeout,
+    });
   }, [
     chatType,
     terminalOutputLimit,
@@ -521,12 +543,12 @@ const Setting = () => {
           className="mb-3 text-lg font-semibold"
           style={{ color: "var(--vscode-editor-foreground)" }}
         >
-          DeputyDev Settings
+          General Settings
         </h3>
         <SettingsCard
           title="DeputyDev Default Behavior"
           description={
-            "Choose how DeputyDev interacts with your code by default. In 'Act' mode, it can directly modify your code. In 'Chat' mode, it will only provide recommendations without making changes."
+            "When 'Act' mode is turned on. DeputyDev will be able to make changes to your code."
           }
         >
           <ChatTypeToggle chatType={chatType} setChatType={setChatType} />
@@ -534,7 +556,7 @@ const Setting = () => {
         <SettingsCard
           title="DeputyDev Configuration Rules"
           description={
-            "Customize DeputyDev behavior by creating a `.deputudevrules` file in the root of your project. Define rules to tailor functionality to your needs."
+            "Set DeputyDev rules that will be used as a contract for DeputyDev to follow. Each repository to have its own rules."
           }
         >
           <EditRulesButton />
@@ -550,7 +572,7 @@ const Setting = () => {
         <SettingsCard
           title="Enable/Disable YOLO Mode"
           description={
-            "YOLO mode allows DeputyDev to execute commands in the terminal without confirmation. Use with caution!"
+            "Allow DeputyDev to execute commands in the terminal without asking for confirmation."
           }
         >
           <YoloModeToggle
@@ -560,9 +582,7 @@ const Setting = () => {
         </SettingsCard>
         <SettingsCard
           title="Command Deny List"
-          description={
-            "Prevent DeputyDev from executing specific commands in the terminal. This is useful for security and safety."
-          }
+          description={"Commands which should never be executed automatically."}
           bottom
         >
           <CommandDenyList
@@ -573,7 +593,7 @@ const Setting = () => {
         <SettingsCard
           title="Terminal Output Limit"
           description={
-            "Set the maximum number of lines DeputyDev will include in a terminal output when executing commands. When exceeded, it will truncate the output. Saving tokens and improving performance."
+            "Set the maximum lines DeputyDev includes in terminal output. Excess lines are truncated to save tokens and boost performance."
           }
           bottom
         >
@@ -588,7 +608,7 @@ const Setting = () => {
         <SettingsCard
           title="Shell Integration Initialization Timeout"
           description={
-            "Set the maximum wait time (in seconds) for the terminal shell integration to initialize. Increase this value if you're working on a large project or using a slower machine to avoid premature timeout errors."
+            "Set the max wait time (in seconds) for terminal shell setup. Increase for large projects or slower machines to avoid timeout errors."
           }
           bottom
         >
@@ -603,7 +623,7 @@ const Setting = () => {
         <SettingsCard
           title="Shell Command Execution Timeout"
           description={
-            "Set the maximum wait time (in seconds) for a shell command to execute. Increase this value if you're working on a large project or using a slower machine to avoid premature timeout errors."
+            "Set the max wait time (in seconds) for shell command execution. Increase for large projects or slower machines to prevent timeout errors."
           }
           bottom
         >
@@ -642,9 +662,35 @@ const Setting = () => {
             backgroundColor: "var(--vscode-editorWidget-background)",
             border: "1px solid var(--vscode-editorWidget-border)",
           }}
-          className={`mb-4 rounded-lg p-2 transition-colors hover:border-opacity-80`}
+          className={`mb-4 h-[375px] rounded-lg p-2 transition-colors hover:border-opacity-80`}
         >
           {isLoading && <CustomLoader />}
+          {!showAddNewForm && (
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSeachInput(e.target.value)}
+              className="my-2 w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
+              style={{
+                background: "var(--vscode-input-background)",
+                color: "var(--vscode-input-foreground)",
+                border: "1px solid var(--vscode-input-border)",
+                boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
+                transition: "all 0.2s ease", // Smooth transition
+              }}
+              onFocus={(e) => {
+                e.target.style.border = "1px solid var(--vscode-focusBorder)";
+                e.target.style.boxShadow =
+                  "var(--vscode-widget-shadow) 0px 2px 6px";
+              }}
+              onBlur={(e) => {
+                e.target.style.border = "1px solid var(--vscode-input-border)";
+                e.target.style.boxShadow =
+                  "var(--vscode-widget-shadow) 0px 1px 4px";
+              }}
+              placeholder="Search URL"
+            />
+          )}
 
           <div
             className={`${urls.length > 0 ? "max-h-[300px]" : "h-auto"} overflow-y-auto`}
@@ -955,32 +1001,6 @@ const Setting = () => {
               </ul>
             )}
           </div>
-          {!showAddNewForm && (
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSeachInput(e.target.value)}
-              className="w-full rounded-lg px-4 py-2 text-sm transition-all focus:outline-none"
-              style={{
-                background: "var(--vscode-input-background)",
-                color: "var(--vscode-input-foreground)",
-                border: "1px solid var(--vscode-input-border)",
-                boxShadow: "var(--vscode-widget-shadow) 0px 1px 4px",
-                transition: "all 0.2s ease", // Smooth transition
-              }}
-              onFocus={(e) => {
-                e.target.style.border = "1px solid var(--vscode-focusBorder)";
-                e.target.style.boxShadow =
-                  "var(--vscode-widget-shadow) 0px 2px 6px";
-              }}
-              onBlur={(e) => {
-                e.target.style.border = "1px solid var(--vscode-input-border)";
-                e.target.style.boxShadow =
-                  "var(--vscode-widget-shadow) 0px 1px 4px";
-              }}
-              placeholder="Search URL"
-            />
-          )}
         </div>
       </div>
     </div>
