@@ -20,6 +20,7 @@ import {
   logToOutput,
   getSessions,
   sendWorkspaceRepoChange,
+  getGlobalState,
 } from "./commandApi";
 import { useSessionsStore } from "./stores/sessionsStore";
 import { useLoaderViewStore } from "./stores/useLoaderViewStore";
@@ -336,16 +337,19 @@ addCommandEventListener("keyword-search-response", ({ data }) => {
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
-addCommandEventListener("initialize-settings-response", ({ data }) => {
+addCommandEventListener("initialize-settings-response", async ({ data }) => {
   const settings = data as Settings;
   useSettingsStore.setState({
-    terminalOutputLimit: settings.terminal_settings.terminal_output_limit,
-    shellIntegrationTimeout:
-      settings.terminal_settings.shell_integration_timeout,
-    shellCommandTimeout: settings.terminal_settings.shell_command_timeout,
     isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
     commandsToDeny: settings.terminal_settings.command_deny_list,
     chatType: settings.default_mode,
+    terminalOutputLimit: await getGlobalState({ key: "terminal-output-limit" }),
+    shellIntegrationTimeout: await getGlobalState({
+      key: "terminal-shell-limit",
+    }),
+    shellCommandTimeout: await getGlobalState({
+      key: "terminal-command-timeout",
+    }),
   });
 });
 

@@ -264,9 +264,6 @@ export interface Settings {
   terminal_settings: {
     enable_yolo_mode: boolean;
     command_deny_list: string[];
-    terminal_output_limit: number;
-    shell_integration_timeout: number;
-    shell_command_timeout: number;
   };
 }
 

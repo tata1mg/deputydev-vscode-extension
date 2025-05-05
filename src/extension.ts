@@ -37,6 +37,7 @@ import { ContinueNewWorkspace } from "./terminal/workspace/ContinueNewWorkspace"
 import { TerminalManager } from "./terminal/TerminalManager";
 import { createNewWorkspaceFn } from "./terminal/workspace/CreateNewWorkspace";
 import { UserQueryEnhancerService } from "./services/userQueryEnhancer/userQueryEnhancerService";
+import { updateTerminalSettings } from "./utilities/setDefaultSettings";
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -45,20 +46,24 @@ export async function activate(context: vscode.ExtensionContext) {
   setExtensionContext(context);
 
   await clearWorkspaceStorage();
+  await updateTerminalSettings(context);
   const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel("DeputyDev", ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
-
-
-
 
   // 2. Configuration Management
   const configManager = new ConfigManager(context, logger, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
   if (!(await configManager.getAllConfigEssentials())) {
-    logger.error("Failed to fetch essential configuration. Aborting activation.");
-    outputChannel.error("Failed to fetch essential configuration. Aborting activation.");
-    vscode.window.showErrorMessage("DeputyDev failed to initialize: Could not load essential configuration.");
+    logger.error(
+      "Failed to fetch essential configuration. Aborting activation."
+    );
+    outputChannel.error(
+      "Failed to fetch essential configuration. Aborting activation."
+    );
+    vscode.window.showErrorMessage(
+      "DeputyDev failed to initialize: Could not load essential configuration."
+    );
     return;
   }
 

@@ -89,7 +89,7 @@ export class ReferenceManager {
     data: { id: string; isSettings?: boolean },
     sendMessage: (message: Object) => void
   ) {
-    const response = await this.referenceService.deleteSavedUrl(data.id);
+    const response = await this.referenceService.deleteSavedUrl(data);
     this.outputChannel.info("deleteSavedUrl-response", response);
     sendMessage({
       id: uuidv4(),

@@ -27,7 +27,7 @@ export const useSettingsStore = create<SettingsStore>()(
     (set) => ({
       terminalOutputLimit: 1000,
       shellIntegrationTimeout: 30,
-      shellCommandTimeout: 60,
+      shellCommandTimeout: 30,
       isYoloModeOn: false,
       commandsToDeny: ["rm -rf"],
       chatType: "ask",
