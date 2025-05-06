@@ -1,5 +1,14 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop, Globe, Image, AtSign } from 'lucide-react';
+import {
+  Check,
+  Sparkles,
+  CornerDownLeft,
+  Loader2,
+  CircleStop,
+  Globe,
+  Image,
+  AtSign,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
@@ -135,7 +144,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
+      await sendChatMessage(message, editorReferences, () => {});
     } catch (error) {
       // Handle error if needed
       console.error('Error sending message:', error);
@@ -479,14 +488,14 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                  'data-tooltip-id': 'repo-tooltip',
-                  'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
-                })}
+                    'data-tooltip-id': 'repo-tooltip',
+                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                  })}
                 autoFocus
               />
             </div>
 
-            <div className='absolute bottom-1 left-1 flex items-center gap-1'>
+            <div className="absolute bottom-1 left-1 flex items-center gap-1">
               <RepoSelector />
             </div>
 
@@ -505,11 +514,11 @@ export function ChatUI() {
                     textarea.focus();
 
                     // Update store and trigger change handler
-                    useChatStore.setState({ userInput: "@" });
+                    useChatStore.setState({ userInput: '@' });
                     handleTextAreaChange({
                       target: {
-                        value: "@"
-                      }
+                        value: '@',
+                      },
                     } as React.ChangeEvent<HTMLTextAreaElement>);
                   }
                 }}
@@ -518,10 +527,11 @@ export function ChatUI() {
               </button>
 
               <button
-                className={`flex items-center justify-center p-1 rounded ${useChatStore.getState().search_web
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'hover:bg-slate-400 hover:bg-opacity-10'
-                  }`}
+                className={`flex items-center justify-center rounded p-1 ${
+                  useChatStore.getState().search_web
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'hover:bg-slate-400 hover:bg-opacity-10'
+                }`}
                 onClick={handleGlobeToggle}
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}

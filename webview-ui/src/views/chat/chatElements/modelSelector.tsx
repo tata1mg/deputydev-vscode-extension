@@ -5,22 +5,21 @@ import { getWorkspaceState } from '@/commandApi';
 import { useChatStore } from '@/stores/chatStore';
 
 const ModelSelector = () => {
-
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedModel = event.target.value;
 
     if (selectedModel) {
-      useChatStore.setState({ activeModel: selectedModel })
+      useChatStore.setState({ activeModel: selectedModel });
     }
     // console.log("************", useChatStore.getState().activeModel)
   };
 
   useEffect(() => {
     const fetchConfigFromWorkspaceState = async () => {
-      const essentialConfig = await getWorkspaceState({ key: "essentialConfigData" })
+      const essentialConfig = await getWorkspaceState({ key: 'essentialConfigData' });
 
       // will use this once getting from config
-      const llmModels = essentialConfig["LLM_MODELS"];
+      const llmModels = essentialConfig['LLM_MODELS'];
       // dummy values for now
       // const llmModels = [
       //   {id: 1,display_name: "Claude 3.5 Sonnet", name: "CLAUDE_3_POINT_5_SONNET"},
@@ -28,17 +27,17 @@ const ModelSelector = () => {
       //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
-        useChatStore.setState({ activeModel: llmModels[0]["name"] })
+        useChatStore.setState({ activeModel: llmModels[0]['name'] });
       }
       // console.log("******active model ***********", useChatStore.getState().activeModel);
-    }
+    };
     fetchConfigFromWorkspaceState();
-  }, [])
+  }, []);
 
   const selectElement = (
     <div className="relative w-full">
       <select
-        className="w-[110px] cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none appearance-none pl-6"
+        className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-xs focus:outline-none"
         value={useChatStore.getState().activeModel}
         onChange={handleChange}
       >
@@ -54,10 +53,8 @@ const ModelSelector = () => {
           </option>
         )}
       </select>
-      <div
-        className="absolute left-0.5 top-1/2 -translate-y-1/2 cursor-pointer"
-      >
-        <Box className='h-4 w-4' />
+      <div className="absolute left-0.5 top-1/2 -translate-y-1/2 cursor-pointer">
+        <Box className="h-4 w-4" />
       </div>
     </div>
   );
@@ -66,7 +63,7 @@ const ModelSelector = () => {
       {' '}
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <div className="relative inline-flex w-fit items-center gap-1 px-1 py-0.5 rounded-full text-xs border border-[--vscode-commandCenter-inactiveBorder] hover:bg-[var(--deputydev-input-background)]">
+          <div className="relative inline-flex w-fit items-center gap-1 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs hover:bg-[var(--deputydev-input-background)]">
             {selectElement}
           </div>
         </Tooltip.Trigger>
@@ -88,6 +85,6 @@ const ModelSelector = () => {
       </Tooltip.Root>
     </Tooltip.Provider>
   );
-}
+};
 
 export default ModelSelector;

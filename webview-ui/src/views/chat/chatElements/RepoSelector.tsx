@@ -29,7 +29,7 @@ const RepoSelector = () => {
 
   const selectElement = (
     <select
-      className="w-full cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none"
+      className="w-full cursor-pointer text-ellipsis whitespace-nowrap bg-inherit text-xs focus:outline-none"
       value={activeRepo || ''}
       onChange={handleChange}
       disabled={disableRepoSelector}
