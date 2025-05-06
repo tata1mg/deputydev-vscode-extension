@@ -93,19 +93,25 @@ export class TerminalManager {
   private terminalIds: Set<number> = new Set();
   private processes: Map<number, TerminalProcess> = new Map();
   private disposables: vscode.Disposable[] = [];
-  private shellIntegrationTimeout: number = 4000;
   private context: vscode.ExtensionContext;
+  private shellIntegrationTimeout: number = 4000;
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+
+    // Fix the timeout logic
+    const timeout = context.globalState.get<number>('terminal-command-timeout', 4);
+    this.shellIntegrationTimeout = timeout * 1000;
+
     let disposable: vscode.Disposable | undefined;
     try {
       disposable = (vscode.window as vscode.Window).onDidStartTerminalShellExecution?.(async (e) => {
-        // Creating a read stream here results in a more consistent output. This is most obvious when running the `date` command.
         e?.execution?.read();
       });
     } catch (error) {
-      // console.error("Error setting up onDidEndTerminalShellExecution", error)
+      // handle error
     }
+
     if (disposable) {
       this.disposables.push(disposable);
     }

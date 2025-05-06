@@ -12,5 +12,5 @@ export async function updateTerminalSettings(context: vscode.ExtensionContext) {
   // Set default values for terminal settings
   await setDefaultGlobalStateValue('terminal-output-limit', 500); // Limit excessive output
   await setDefaultGlobalStateValue('terminal-shell-limit', 5); // Restrict active shells
-  await setDefaultGlobalStateValue('terminal-command-timeout', 40); // Prevent hanging commands
+  await setDefaultGlobalStateValue('terminal-command-timeout', 15); // Prevent hanging commands
 }

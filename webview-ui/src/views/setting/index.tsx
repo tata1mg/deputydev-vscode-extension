@@ -379,12 +379,12 @@ const Setting = () => {
       value: terminalOutputLimit,
     });
     setGlobalState({
-      key: 'terminal-shell-limit',
-      value: shellIntegrationTimeout,
-    });
-    setShellIntegrationTimeoutMessage({
       key: 'terminal-command-timeout',
       value: shellCommandTimeout,
+    });
+    setShellIntegrationTimeoutMessage({
+      key: 'terminal-shell-limit',
+      value: shellIntegrationTimeout,
     });
   }, [
     chatType,

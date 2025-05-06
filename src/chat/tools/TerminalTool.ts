@@ -44,23 +44,33 @@ export class TerminalExecutor {
 
     // Determine if we need to prompt
     const deputyDevSettings = this.context.workspaceState.get('dd-settings') as Settings;
+
     const terminalSettings = deputyDevSettings?.terminal_settings ?? {};
     const denyList = terminalSettings.command_deny_list ?? [];
-    const isDenied = denyList.some((deny) => original.includes(deny));
     const yoloEnabled = terminalSettings.enable_yolo_mode === true;
+    const isDenied = denyList.some((deny) => original.includes(deny));
     const shouldPrompt = !yoloEnabled || requiresApproval || isDenied;
 
     // Possibly ask for approval/edit
     let commandToRun = original;
     let userEdited: string | undefined;
+
     if (shouldPrompt) {
       userEdited = await this.requestApproval(toolRequest.tool_name, toolRequest.tool_use_id, chunkCallback);
       if (userEdited) {
         commandToRun = userEdited;
       }
+    } else {
+      chunkCallback({
+        name: 'TERMINAL_APPROVAL',
+        data: {
+          tool_name: toolRequest.tool_name,
+          tool_use_id: toolRequest.tool_use_id,
+          terminal_approval_required: false,
+        },
+      });
     }
 
-    // Launch & collect
     const { process, terminalId } = await this.launchProcess(commandToRun);
     return this.collectOutput(process, {
       original,
