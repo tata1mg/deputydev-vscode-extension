@@ -42,12 +42,10 @@ export class ReferenceService {
         Authorization: `Bearer ${authToken}`,
       };
       response = await binaryApi().get(API_ENDPOINTS.GET_SAVED_URLS, {
-        params: isSettings
-          ? {}
-          : {
-              limit: 4,
-              offset: 0,
-            },
+        params: {
+          limit: isSettings ? 20 : 4,
+          offset: 0,
+        },
         headers,
       });
       return response.data;
@@ -132,7 +130,7 @@ export class ReferenceService {
       };
 
       const searchResponse = await binaryApi().get(
-        `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}${payload.isSettings ? '' : '&limit=5'}`,
+        `${API_ENDPOINTS.SEARCH_URL}?keyword=${payload.keyword}${payload.isSettings ? '&limit=20' : '&limit=4'}`,
         { headers },
       );
       return searchResponse.data;

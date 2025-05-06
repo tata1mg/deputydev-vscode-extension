@@ -66,7 +66,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, childre
       }}
       className="my-2 rounded-lg p-4 transition-colors hover:border-opacity-80"
     >
-      <div className="mb-1 flex items-center justify-between">
+      <div className="mb-1 flex flex-wrap items-center justify-between">
         <h2
           style={{ color: 'var(--vscode-editor-foreground)' }}
           className="mb-1 text-[13px] font-semibold leading-6"
@@ -199,28 +199,28 @@ const CommandDenyList: React.FC<CommandDenyListProps> = ({ commands, setCommands
         {commands.map((command, index) => (
           <div
             key={index}
-            className="bg-[color:var(--vscode-editor-background)]/80 flex items-center gap-2 rounded-full border border-[color:var(--vscode-editorWidget-border)] px-3 py-1 text-[color:var(--vscode-foreground)] shadow-sm"
+            className="bg-[color:var(--vscode-editor-background)]/80 flex items-center gap-1.5 rounded-full border border-[color:var(--vscode-editorWidget-border)] px-2 py-0.5 text-[color:var(--vscode-foreground)] shadow-sm"
           >
-            <span className="text-sm">{command}</span>
+            <span className="text-xs">{command}</span>
             <button
               onClick={() => handleRemoveCommand(command)}
               className="hover:bg-[color:var(--vscode-input-background)]/60 rounded-full p-0.5 transition-colors duration-150"
             >
-              <X className="h-4 w-4 text-[color:var(--vscode-icon-foreground)]" />
+              <X className="h-3 w-3 text-[color:var(--vscode-icon-foreground)]" />
             </button>
           </div>
         ))}
       </div>
 
-      <div className="mt-2 flex w-full gap-2">
-        <div className="flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-1.5 focus-within:ring-2 focus-within:ring-[var(--vscode-focusBorder)]">
+      <div className="mt-2 flex w-full flex-wrap gap-2">
+        <div className="flex min-w-0 flex-1 items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-1.5 focus-within:ring-2 focus-within:ring-[var(--vscode-focusBorder)]">
           <input
             type="text"
             value={currentCommand}
             onChange={handleChange}
             onKeyDown={(e) => e.key === 'Enter' && handleAddCommand()}
             placeholder="Enter command to deny"
-            className="flex-1 bg-transparent text-sm text-[var(--vscode-input-foreground)] focus:outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[var(--vscode-input-foreground)] focus:outline-none"
           />
           <CornerDownLeft size={16} className="ml-2 text-[var(--vscode-input-foreground)]" />
         </div>
@@ -588,7 +588,7 @@ const Setting = () => {
       </div>
       <div>
         <div>
-          <div className="mb-3 mt-2 flex items-center justify-between gap-4">
+          <div className="mb-3 mt-2 flex flex-wrap items-center justify-between gap-4">
             <h3
               className="text-lg font-semibold"
               style={{ color: 'var(--vscode-editor-foreground)' }}
@@ -600,7 +600,7 @@ const Setting = () => {
                 e.preventDefault();
                 setShowAddNewForm(true);
               }}
-              className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:underline focus:outline-none"
             >
               <Plus className="h-4 w-4" />
               Add New URL
