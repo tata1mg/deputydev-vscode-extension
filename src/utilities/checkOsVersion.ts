@@ -1,13 +1,14 @@
 import * as os from 'os';
 import { execSync } from 'child_process';
-import * as vscode from "vscode";
+import * as vscode from 'vscode';
 
 function isNotCompatible(): boolean {
   const platform = os.platform(); // 'darwin', 'linux', 'win32', etc.
+  const arch = os.arch();
 
-  if (platform === 'win32') {
+  if (platform === 'win32' && (arch === 'arm' || arch === 'arm64')) {
     vscode.window.showWarningMessage(
-      "Windows support is in beta. Some features may not work as expected. Please report any issues with logs."
+      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!",
     );
     return false; // Allow Windows users to use the extension in beta mode
   }
@@ -18,7 +19,7 @@ function isNotCompatible(): boolean {
       const [major, minor] = version.split('.').map(Number);
       if (major < 14 || (major === 14 && minor < 1)) {
         vscode.window.showWarningMessage(
-          "DeputyDev requires macOS 14.1 or later. Please update your OS to use this extension."
+          'DeputyDev requires macOS 14.1 or later. Please update your OS to use this extension.',
         );
         return true;
       }
@@ -33,7 +34,7 @@ function isNotCompatible(): boolean {
     const [major, minor] = kernel.split('.').map(Number);
     if (major < 6 || (major === 6 && minor < 8)) {
       vscode.window.showWarningMessage(
-        "DeputyDev requires Linux kernel 6.8 or later. Please update your OS to use this extension."
+        'DeputyDev requires Linux kernel 6.8 or later. Please update your OS to use this extension.',
       );
       return true;
     }
@@ -46,13 +47,13 @@ function isNotCompatible(): boolean {
     const [major, minor] = gitVersion.split('.').map(Number);
     if (major < 2 || (major === 2 && minor < 36)) {
       vscode.window.showWarningMessage(
-        `DeputyDev requires Git version 2.36.0 or later. You have ${gitVersion}. Please update Git to continue.`
+        `DeputyDev requires Git version 2.36.0 or later. You have ${gitVersion}. Please update Git to continue.`,
       );
       return true;
     }
   } catch (err) {
     vscode.window.showWarningMessage(
-      "Git is not installed or not available in PATH. Please install Git (version 2.36.0 or later) to use this extension."
+      'Git is not installed or not available in PATH. Please install Git (version 2.36.0 or later) to use this extension.',
     );
     return true;
   }

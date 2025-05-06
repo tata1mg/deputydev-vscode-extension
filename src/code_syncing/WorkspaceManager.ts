@@ -5,12 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
-import { updateVectorStoreWithResponse, updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
-
-
-
-
-
+import {
+  updateVectorStoreWithResponse,
+  updateVectorStore,
+  UpdateVectorStoreParams,
+} from '../clients/common/websocketHandlers';
 
 export class WorkspaceManager {
   private workspaceRepos: Map<string, string> = new Map();
@@ -22,15 +21,11 @@ export class WorkspaceManager {
   private configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
 
-
-
-
   constructor(
     context: vscode.ExtensionContext,
     sidebarProvider: SidebarProvider,
     outputChannel: vscode.LogOutputChannel,
-    configManager: ConfigManager
-
+    configManager: ConfigManager,
   ) {
     this.context = context;
     this.sidebarProvider = sidebarProvider;
@@ -52,7 +47,6 @@ export class WorkspaceManager {
       this.outputChannel.info('Config updated – reinitializing file watcher');
       this.initializeFileWatcher();
     });
-
   }
 
   /**
@@ -110,7 +104,6 @@ export class WorkspaceManager {
       this.initializeFileWatcher();
     }
 
-
     // this.outputChannel.info('Done with WebSockets.');
 
     // After updating active repo, inform the sidebar.
@@ -156,7 +149,9 @@ export class WorkspaceManager {
         activeRepo: this.activeRepo || null,
       },
     });
-    this.outputChannel.info(`these are the repos stored in the workspace ${JSON.stringify(this.context.workspaceState.get("workspace-storage"))}`);
+    this.outputChannel.info(
+      `these are the repos stored in the workspace ${JSON.stringify(this.context.workspaceState.get('workspace-storage'))}`,
+    );
   }
 
   /**
@@ -167,11 +162,13 @@ export class WorkspaceManager {
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
         this.updateWorkspaceRepos();
         vscode.window.showInformationMessage(
-          `Workspace repositories updated: ${Array.from(this.workspaceRepos.entries())
-            .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
-            .join(', ') || 'None'}`
+          `Workspace repositories updated: ${
+            Array.from(this.workspaceRepos.entries())
+              .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
+              .join(', ') || 'None'
+          }`,
         );
-      })
+      }),
     );
   }
 
@@ -182,7 +179,7 @@ export class WorkspaceManager {
    */
   public setActiveRepo(newActiveRepo: string | undefined): void {
     if (!newActiveRepo) {
-      this.outputChannel.info("Skipping WebSocket request: Active repo is undefined.");
+      this.outputChannel.info('Skipping WebSocket request: Active repo is undefined.');
       return; // ✅ Do NOT send WebSocket request if undefined
     }
 
@@ -192,7 +189,6 @@ export class WorkspaceManager {
     this.sendReposToSidebar();
     this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
-
   }
 
   /**
@@ -200,31 +196,34 @@ export class WorkspaceManager {
    */
   private async sendWebSocketUpdate(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
-    const chatStorage = this.context.workspaceState.get("chat-storage") as string;
+    const chatStorage = this.context.workspaceState.get('chat-storage') as string;
     const parsedChatStorage = JSON.parse(chatStorage);
-    const progressBars = parsedChatStorage?.state?.progressBars as { repo: string, progress: number, status: string }[];
+    const progressBars = parsedChatStorage?.state?.progressBars as { repo: string; progress: number; status: string }[];
 
-    const repoSpecificEmbeddingProgress = progressBars.find(bar => bar.repo === this.activeRepo);
+    const repoSpecificEmbeddingProgress = progressBars.find((bar) => bar.repo === this.activeRepo);
     if (repoSpecificEmbeddingProgress) {
-      if (repoSpecificEmbeddingProgress.status === "In Progress" || repoSpecificEmbeddingProgress.status === "Completed") {
+      if (
+        repoSpecificEmbeddingProgress.status === 'In Progress' ||
+        repoSpecificEmbeddingProgress.status === 'Completed'
+      ) {
         return;
       }
     }
 
-
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
-    await updateVectorStoreWithResponse(params).then((response) => {
-      // this.sidebarProvider.sendMessageToSidebar({
-      //   id: uuidv4(),
-      //   command: 'repo-selector-state',
-      //   data: false
-      // });
-      // this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
-    }
-    ).catch((error) => {
-      this.outputChannel.info("Embedding failed 3 times...")
-    });
+    await updateVectorStoreWithResponse(params)
+      .then((response) => {
+        // this.sidebarProvider.sendMessageToSidebar({
+        //   id: uuidv4(),
+        //   command: 'repo-selector-state',
+        //   data: false
+        // });
+        // this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
+      })
+      .catch((error) => {
+        this.outputChannel.info('Embedding failed 3 times...');
+      });
   }
 
   /**
@@ -235,4 +234,3 @@ export class WorkspaceManager {
     return this.workspaceRepos;
   }
 }
-

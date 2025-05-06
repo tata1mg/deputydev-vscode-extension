@@ -1,9 +1,9 @@
-import { WebSocketClient } from "./websocketClient";
-import { API_ENDPOINTS } from "../../services/api/endpoints";
-import { AuthService } from "../../services/auth/AuthService";
-import { getBinaryWsHost } from "../../config";
-import { SingletonLogger } from "../../utilities/Singleton-logger";
-import { sendProgress } from "../../utilities/contextManager";
+import { WebSocketClient } from './websocketClient';
+import { API_ENDPOINTS } from '../../services/api/endpoints';
+import { AuthService } from '../../services/auth/AuthService';
+import { getBinaryWsHost } from '../../config';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { sendProgress } from '../../utilities/contextManager';
 // Updated interface for RelevantChunksParams (includes new backend fields)
 
 export interface RelevantChunksParams {
@@ -36,23 +36,21 @@ const fetchAuthToken = async () => {
  * @returns Promise resolving to the response data.
  */
 
-export const fetchRelevantChunks = async (
-  params: RelevantChunksParams
-): Promise<any> => {
+export const fetchRelevantChunks = async (params: RelevantChunksParams): Promise<any> => {
   const authToken = await fetchAuthToken();
   const logger = SingletonLogger.getInstance();
   if (!authToken) {
-    throw new Error("Authentication token is required");
+    throw new Error('Authentication token is required');
   }
   const Websocket_host = getBinaryWsHost();
   // console.log("websocket host:", Websocket_host);
   const client = new WebSocketClient(Websocket_host, API_ENDPOINTS.RELEVANT_CHUNKS, authToken);
   try {
     return await client.send({
-      ...params
+      ...params,
     });
   } catch (error) {
-    logger.error("Error fetching relevant chunks");
+    logger.error('Error fetching relevant chunks');
     // console.error("Error fetching relevant chunks:", error);
     throw error;
   } finally {
@@ -68,12 +66,12 @@ export const fetchRelevantChunks = async (
 
 export const updateVectorStore = async (
   params: UpdateVectorStoreParams,
-  waitForResponse: boolean = false
+  waitForResponse: boolean = false,
 ): Promise<any> => {
   const authToken = await fetchAuthToken();
   const logger = SingletonLogger.getInstance();
   if (!authToken) {
-    throw new Error("Authentication token is required while updating vector store.");
+    throw new Error('Authentication token is required while updating vector store.');
   }
 
   // console.log("updateVectorStore with params:", params);
@@ -82,10 +80,10 @@ export const updateVectorStore = async (
   if (waitForResponse) {
     try {
       return await client.send({
-        ...params
+        ...params,
       });
     } catch (error) {
-      logger.error("Error updating vector store");
+      logger.error('Error updating vector store');
       // console.error("Error updating vector store:", error);
       throw error;
     } finally {
@@ -99,20 +97,20 @@ export const updateVectorStore = async (
         auth_token: authToken,
       })
       .catch((error) => {
-        logger.error("Error updating vector store");
+        logger.error('Error updating vector store');
         // console.error("Error updating vector store (fire-and-forget):", error);
       });
-    return { status: "sent" };
+    return { status: 'sent' };
   }
 };
 
-export const updateVectorStoreWithResponse = async (
-  params: UpdateVectorStoreParams
-): Promise<any> => {
+export const updateVectorStoreWithResponse = async (params: UpdateVectorStoreParams): Promise<any> => {
   const authToken = await fetchAuthToken();
   const logger = SingletonLogger.getInstance();
   if (!authToken) {
-    throw new Error("Authentication token is required while updating vector store with response. , authToken: " + authToken);
+    throw new Error(
+      'Authentication token is required while updating vector store with response. , authToken: ' + authToken,
+    );
   }
 
   // console.log("updateVectorStoreWithResponse with params:", params);
@@ -121,20 +119,20 @@ export const updateVectorStoreWithResponse = async (
   let attempts = 0;
   if (params.retried_by_user) {
     attempts = 2;
-    logger.info("Retrying embedding by user")
+    logger.info('Retrying embedding by user');
   }
   while (attempts < 3) {
     try {
       sendProgress({
         repo: params.repo_path,
         progress: 0,
-        status: "In Progress"
-    })
+        status: 'In Progress',
+      });
       const result = await client.send({
         ...params,
-        sync: true
+        sync: true,
       });
-      logger.info("Response received from binary WebSocket:", result);
+      logger.info('Response received from binary WebSocket:', result);
       // console.log("✅ Response received from WebSocket:", result);
       return result;
     } catch (error) {
@@ -144,9 +142,9 @@ export const updateVectorStoreWithResponse = async (
         sendProgress({
           repo: params.repo_path,
           progress: 0,
-          status: "Failed"
-        })
-        logger.error("Error updating vector store after 3 attempts");
+          status: 'Failed',
+        });
+        logger.error('Error updating vector store after 3 attempts');
         throw new Error(`Failed to update vector store after 3 attempts: ${error}`);
       }
     }
@@ -178,17 +176,13 @@ export const updateVectorStoreWithResponse = async (
 // };
 
 // Keeping these for backward compatibility, with deprecation warnings
-export const subscribeToRelevantChunks = (
-  callback: (data: any) => void
-): void => {
+export const subscribeToRelevantChunks = (callback: (data: any) => void): void => {
   // console.warn(
   //   "subscribeToRelevantChunks is deprecated. Use async fetchRelevantChunks instead."
   // );
 };
 
-export const subscribeToVectorStoreUpdates = (
-  callback: (data: any) => void
-): void => {
+export const subscribeToVectorStoreUpdates = (callback: (data: any) => void): void => {
   // console.warn(
   //   "subscribeToVectorStoreUpdates is deprecated. Use async updateVectorStore instead."
   // );
