@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ChangeProposerDocument } from '../document/changeProposerDocument';
 import { getUri } from '../../../../utilities/getUri';
 import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChangeStateManager';
+import path = require('node:path');
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
@@ -103,6 +104,11 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               command: 'result',
               data: newContent,
             });
+            // open the original file in vscode native editor
+            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+            await vscode.window.showTextDocument(originalFileUri, {
+              preview: false,
+            });
           }
           break;
         }
@@ -117,6 +123,11 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               id: message.id,
               command: 'result',
               data: newContent,
+            });
+            // open the original file in vscode native editor
+            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+            await vscode.window.showTextDocument(originalFileUri, {
+              preview: false,
             });
           }
           break;
