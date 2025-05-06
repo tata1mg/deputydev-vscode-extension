@@ -35,8 +35,8 @@ export class ChatManager {
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public onTerminalApprove = this._onTerminalApprove.event;
 
-  onStarted: () => void = () => { };
-  onError: (error: Error) => void = () => { };
+  onStarted: () => void = () => {};
+  onError: (error: Error) => void = () => {};
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
@@ -88,13 +88,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-              auth_token: await this.authService.loadAuthToken(),
-              repo_path: active_repo,
-              chunks: chunkDetails,
-              search_item_name: element.value,
-              search_item_type: element.type,
-              search_item_path: element.path,
-            })
+                auth_token: await this.authService.loadAuthToken(),
+                repo_path: active_repo,
+                chunks: chunkDetails,
+                search_item_name: element.value,
+                search_item_type: element.type,
+                search_item_path: element.path,
+              })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -195,9 +195,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-        abortController: AbortController;
-        asyncIterator: AsyncIterableIterator<any>;
-      }
+          abortController: AbortController;
+          asyncIterator: AsyncIterableIterator<any>;
+        }
       | undefined;
 
     try {
@@ -274,7 +274,7 @@ export class ChatManager {
               accumulatedContent: '',
               write_mode: payload.write_mode,
               llm_model: payload.llm_model,
-              search_web: payload.search_web
+              search_web: payload.search_web,
             };
             // Immediately forward the start event.
             chunkCallback({ name: event.type, data: event.content });
@@ -740,7 +740,7 @@ export class ChatManager {
           // Don't kill the underlying process—let it keep running in the terminal.
           resolve(
             output +
-            `
+              `
               ===========
               Process is still running after 15s; returning partial output.
               ===========
