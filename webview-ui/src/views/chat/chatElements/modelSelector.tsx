@@ -20,17 +20,17 @@ const ModelSelector = () => {
       const essentialConfig = await getWorkspaceState({ key: "essentialConfigData" })
 
       // will use this once getting from config
-      const llmModels = essentialConfig["llm_models"];
+      const llmModels = essentialConfig["LLM_MODELS"];
       // dummy values for now
-      // const models = [
-      //   { id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-      //   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' }
-      // ];
+      // const llmModels = [
+      //   {id: 1,display_name: "Claude 3.5 Sonnet", name: "CLAUDE_3_POINT_5_SONNET"},
+      //   {id: 2, display_name: "Gemini 2.5 Pro", name: "GEMINI_2_POINT_5_PRO"},
+      //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
         useChatStore.setState({ activeModel: llmModels[0]["name"] })
       }
-      // console.log("******active model ***********", useChatStore.getState().activeModel)
+      // console.log("******active model ***********", useChatStore.getState().activeModel);
     }
     fetchConfigFromWorkspaceState();
   }, [])
@@ -44,8 +44,8 @@ const ModelSelector = () => {
       >
         {useChatStore.getState().llmModels.length !== 0 ? (
           useChatStore.getState().llmModels.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
+            <option key={model.id} value={model.name}>
+              {model.display_name}
             </option>
           ))
         ) : (

@@ -75,7 +75,7 @@ export function ChatUI() {
   const backspaceCountRef = useRef(0);
 
   const handleGlobeToggle = () => {
-    useChatStore.setState({ isWebSearchEnabled: !useChatStore.getState().isWebSearchEnabled });
+    useChatStore.setState({ search_web: !useChatStore.getState().search_web });
   };
 
   useEffect(() => {
@@ -518,13 +518,13 @@ export function ChatUI() {
               </button>
 
               <button
-                className={`flex items-center justify-center p-1 rounded ${useChatStore.getState().isWebSearchEnabled
+                className={`flex items-center justify-center p-1 rounded ${useChatStore.getState().search_web
                   ? 'bg-blue-500 hover:bg-blue-600 text-white'
                   : 'hover:bg-slate-400 hover:bg-opacity-10'
                   }`}
                 onClick={handleGlobeToggle}
                 data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content={`${useChatStore.getState().isWebSearchEnabled ? 'Disable Web Search' : 'Enable Web Search'}`}
+                data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
                 data-tooltip-place="top-start"
               >
                 <Globe className="h-4 w-4" />

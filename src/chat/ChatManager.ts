@@ -273,8 +273,8 @@ export class ChatManager {
               tool_use_id: event.content.tool_use_id,
               accumulatedContent: '',
               write_mode: payload.write_mode,
-              llmModel: payload.llmModel,
-              isWebSearchEnabled: payload.isWebSearchEnabled
+              llm_model: payload.llm_model,
+              search_web: payload.search_web
             };
             // Immediately forward the start event.
             chunkCallback({ name: event.type, data: event.content });
@@ -806,7 +806,7 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
   ): Promise<void> {
     const mainConfig: any = await this.context.workspaceState.get("configData");
-    const isToolUseWebSearchEnabled = mainConfig["is_tool_use_web_search_enabled"];
+    const isToolUseWebSearchEnabled = mainConfig["WEB_SEARCH_IN_TOOL"];
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
       this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
@@ -910,8 +910,8 @@ export class ChatManager {
       // Prepare payload to continue chat with the tool's response
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
       const continuationPayload: ChatPayload = {
-        isWebSearchEnabled: toolRequest.isWebSearchEnabled && isToolUseWebSearchEnabled,
-        llmModel: toolRequest.llmModel,
+        search_web: toolRequest.search_web && isToolUseWebSearchEnabled,
+        llm_model: toolRequest.llm_model,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
         is_tool_response: true,
@@ -965,8 +965,8 @@ export class ChatManager {
       });
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
-        isWebSearchEnabled: toolRequest.isWebSearchEnabled && isToolUseWebSearchEnabled,
-        llmModel: toolRequest.llmModel,
+        search_web: toolRequest.search_web && isToolUseWebSearchEnabled,
+        llm_model: toolRequest.llm_model,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
         is_tool_response: true,
