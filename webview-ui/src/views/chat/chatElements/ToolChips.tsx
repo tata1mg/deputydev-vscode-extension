@@ -71,14 +71,14 @@ export function ToolUseStatusMessage({
         displayText = 'Error Analysing URL';
       }
       break;
-      case 'web_search':
-        displayText = 'Searched Web';
-        if (status === 'pending') {
-          displayText = 'Searching Web...';
-        } else if (status === 'error') {
-          displayText = 'Error Searching Web';
-        }
-        break;
+    case 'web_search':
+      displayText = 'Searched Web';
+      if (status === 'pending') {
+        displayText = 'Searching Web...';
+      } else if (status === 'error') {
+        displayText = 'Error Searching Web';
+      }
+      break;
     default:
       displayText = 'Searched codebase';
       if (status === 'pending') {
