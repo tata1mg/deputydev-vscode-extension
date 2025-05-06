@@ -36,10 +36,10 @@ import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace'
 import { TerminalManager } from './terminal/TerminalManager';
 import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
 export async function activate(context: vscode.ExtensionContext) {
-  // const isNotCompatibleCheck = isNotCompatible();
-  // if (isNotCompatibleCheck) {
-  //   return;
-  // }
+  const isNotCompatibleCheck = isNotCompatible();
+  if (isNotCompatibleCheck) {
+    return;
+  }
   setExtensionContext(context);
 
   await clearWorkspaceStorage();
@@ -132,10 +132,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   (async () => {
     // sidebarProvider.setViewType("loader");
-    // await serverManager.ensureBinaryExists();
-    // await serverManager.startServer();
+    await serverManager.ensureBinaryExists();
+    await serverManager.startServer();
     outputChannel.info('this binary host now is ' + getBinaryHost());
-    // pinger.start();
+    pinger.start();
 
     authenticationManager
       .validateCurrentSession()
@@ -324,6 +324,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }

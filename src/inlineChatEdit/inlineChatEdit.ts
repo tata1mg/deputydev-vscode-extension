@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatManager } from '../chat/ChatManager';
 import { InlineEditService } from '../services/inlineEdit/inlineEditService';
@@ -83,6 +84,7 @@ export class InlineChatEditManager {
             _token: vscode.CancellationToken,
           ): vscode.ProviderResult<vscode.CodeAction[]> => {
             const editor = vscode.window.activeTextEditor;
+
             if (!editor) return [];
 
             const selection = editor.selection;
@@ -91,7 +93,10 @@ export class InlineChatEditManager {
             const selectedText = document.getText(selection);
             const codeActions: vscode.CodeAction[] = [];
 
-            const actionChat = new vscode.CodeAction('Chat using DeputyDev ⌘ L', vscode.CodeActionKind.QuickFix);
+            const platform = os.platform();
+            const actionChatText = platform === 'darwin' ? "Chat using DeputyDev ⌘ L" : "Chat using DeputyDev ctrl L"
+
+            const actionChat = new vscode.CodeAction(actionChatText, vscode.CodeActionKind.QuickFix);
             actionChat.command = {
               command: 'deputydev.chatWithDeputy',
               title: 'Chat',
@@ -102,8 +107,10 @@ export class InlineChatEditManager {
             const isFile = document.uri.scheme === 'file';
             const readOnly = isFile && isReadOnly(document.uri.fsPath);
 
+            const actionEditText = platform === 'darwin' ? "Modify using DeputyDev ⌘ I" : "Modify using DeputyDev ctrl I"
+
             if (isNonWhitespace && (!isFile || !readOnly)) {
-              const actionEdit = new vscode.CodeAction('Modify using DeputyDev ⌘ I', vscode.CodeActionKind.QuickFix);
+              const actionEdit = new vscode.CodeAction(actionEditText, vscode.CodeActionKind.QuickFix);
               actionEdit.command = {
                 command: 'deputydev.editThisCode',
                 title: 'Modify',
