@@ -59,14 +59,30 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
         }
         case 'accept-change': {
           const line = message.data.line;
-          this.outputChannel.info(`Accepting change at line ${line}`);
-          const newContent = await this.fileChangeStateManager.acceptChangeAtLine(document.filePath, document.repoPath, line);
-          this.outputChannel.info(`New content after accepting change: ${newContent}`);
+          const newContent = await this.fileChangeStateManager.acceptChangeAtLine(
+            document.filePath,
+            document.repoPath,
+            line,
+          );
           if (newContent) {
             document.content = newContent;
-            // this._onDidChangeCustomDocument.fire({
-            //   document,
-            // });
+            webviewPanel.webview.postMessage({
+              id: message.id,
+              command: 'result',
+              data: newContent,
+            });
+          }
+          break;
+        }
+        case 'reject-change': {
+          const line = message.data.line;
+          const newContent = await this.fileChangeStateManager.rejectChangeAtLine(
+            document.filePath,
+            document.repoPath,
+            line,
+          );
+          if (newContent) {
+            document.content = newContent;
             webviewPanel.webview.postMessage({
               id: message.id,
               command: 'result',

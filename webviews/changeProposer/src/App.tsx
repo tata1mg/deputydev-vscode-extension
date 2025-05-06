@@ -5,6 +5,8 @@ import { callCommand } from './vscode';
 
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
+  const contentWidgetsRef = useRef<monacoEditor.editor.IContentWidget[]>([]);
+
   const [content, setContent] = useState<string>('Loading...');
 
   useEffect(() => {
@@ -22,11 +24,53 @@ const App: React.FC = () => {
     decorateEditor(editor, monaco);
   };
   
+  const clearContentWidgets = () => {
+    if (!editorRef.current) return;
+    for (const widget of contentWidgetsRef.current) {
+      editorRef.current.removeContentWidget(widget);
+    }
+    contentWidgetsRef.current = [];
+  };
+
+  const handleAcceptChangeAtLine = async (line: number, acceptBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+    if (!editorRef.current) return;
+    try {
+      console.log(`Accepting change at line ${line}`);
+      const newContent = await callCommand('accept-change', { line });
+      console.log(`New content after accepting change: ${newContent}`);
+      if (typeof newContent === 'string') {
+        editorRef.current.setValue(newContent);
+      }
+      decorateEditor(editorRef.current, monaco);
+      // disable the button after accepting
+      acceptBtn.disabled = true;
+    } catch (err) {
+      console.error('Failed to accept change:', err);
+    }
+  };
+
+
+  const handleRejectChangeAtLine = async (line: number, rejectBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+    if (!editorRef.current) return;
+    try {
+      const newContent = await callCommand('reject-change', { line });
+      if (typeof newContent === 'string') {
+        editorRef.current.setValue(newContent);
+      }
+      decorateEditor(editorRef.current, monaco);
+      // disable the button after rejecting
+      rejectBtn.disabled = true;
+    } catch (err) {
+      console.error('Failed to reject change:', err);
+    }
+  };
 
   const decorateEditor = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
     editorRef.current = editor;
     const model = editor.getModel();
     if (!model) return;
+
+    clearContentWidgets();
 
     const lines = model.getLinesContent();
     const decorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
@@ -57,27 +101,11 @@ const App: React.FC = () => {
       };
     
       const acceptBtn = createButton('Accept', ACCEPT_ICON, () => {
-
-        const handleAcceptChange = async (line: number) => {
-          if (!editorRef.current) return;
-          try {
-            const newContent = await callCommand('accept-change', { line });
-            if (typeof newContent === 'string') {
-              editorRef.current.setValue(newContent);
-            }
-          } catch (err) {
-            console.error('Failed to accept change:', err);
-          }
-        };
-        handleAcceptChange(line);
-        // Re-decorate the editor after accepting
-        if (!editorRef.current) return;
-        decorateEditor(editorRef.current, monaco);
-        // disable the button after accepting
-        acceptBtn.disabled = true;
-        console.log(`✅ Accepted change at line ${line}`);
+        handleAcceptChangeAtLine(line, acceptBtn, monaco);
       });
-      const rejectBtn = createButton('Reject', REJECT_ICON, () => alert(`❌ Rejected change at line ${line}`));
+      const rejectBtn = createButton('Reject', REJECT_ICON, () => {
+        handleRejectChangeAtLine(line, rejectBtn, monaco);
+      });
     
       domNode.appendChild(acceptBtn);
       domNode.appendChild(rejectBtn);
@@ -156,10 +184,11 @@ const App: React.FC = () => {
       if (isBlockStart) {
         const widget = createContentWidget(lineNum);
         editor.addContentWidget(widget);
+        contentWidgetsRef.current.push(widget);
       }
     }
 
-    editor.deltaDecorations([], decorations);
+    editor.createDecorationsCollection(decorations);
   };
 
   return (
