@@ -248,8 +248,6 @@ export class FileChangeStateManager {
     let udiffLineNumber = 0;
     const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
 
-    console.log(`Udiff lines: ${currentUdiffLines.length}`);
-
     // iterate through the lines in the udiff
     while (udiffLineNumber < currentUdiffLines.length) {
       // if we find the line that starts the block we want to accept, we accept the change
@@ -273,8 +271,6 @@ export class FileChangeStateManager {
       }
     }
 
-    this.outputChannel.info(`New udiff lines: ${newUdiffLines}`);
-
     // since same iterator is used, udiffLineNumber will be at the end of the file
     // now, get the new udiff
     const newUdiff = newUdiffLines.join(lineEol);
@@ -287,8 +283,6 @@ export class FileChangeStateManager {
       originalContent: originalAndModifiedContent.originalContent,
       modifiedContent: originalAndModifiedContent.modifiedContent,
     });
-
-    this.outputChannel.info(`New udiff: ${newUdiff}`);
 
     // return the new udiff
     return newUdiff;
@@ -314,8 +308,6 @@ export class FileChangeStateManager {
     let udiffLineNumber = 0;
     const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
 
-    console.log(`Udiff lines: ${currentUdiffLines.length}`);
-
     // iterate through the lines in the udiff
     while (udiffLineNumber < currentUdiffLines.length) {
       // if we find the line that starts the block we want to accept, we accept the change
@@ -339,7 +331,56 @@ export class FileChangeStateManager {
       }
     }
 
-    this.outputChannel.info(`New udiff lines: ${newUdiffLines}`);
+    // since same iterator is used, udiffLineNumber will be at the end of the file
+    // now, get the new udiff
+    const newUdiff = newUdiffLines.join(lineEol);
+
+    // now, set the new udiff in the fileChangeStateMap
+    const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
+    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+      ...fileChangeState,
+      currentUdiff: newUdiff,
+      originalContent: originalAndModifiedContent.originalContent,
+      modifiedContent: originalAndModifiedContent.modifiedContent,
+    });
+
+    // return the new udiff
+    return newUdiff;
+  };
+
+  public acceptAllChangesInFile = async (
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+  ): Promise<string> => {
+    // accept all changes in the file, until either the end of file is reached or the diff block ends
+    // to accept, just navigate through the udiff and add all lines that are not removed
+    const fileChangeState = this.fileChangeStateMap.get(path.join(repoPath, filePath));
+
+    if (!fileChangeState) {
+      throw new Error(`File change state not found for ${filePath}`);
+    }
+    const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
+    const currentUdiffLines = currentUdiff.split('\n');
+    const newUdiffLines: string[] = [];
+    const lineNumber = 0;
+    let udiffLineNumber = 0;
+    const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
+
+    // iterate through the lines in the udiff
+    while (udiffLineNumber < currentUdiffLines.length) {
+      if (currentUdiffLines[udiffLineNumber].startsWith('+')) {
+        // convert the line to space
+        newUdiffLines.push(` ${currentUdiffLines[udiffLineNumber].substring(1)}`);
+        udiffLineNumber++;
+      } else if (currentUdiffLines[udiffLineNumber].startsWith('-')) {
+        // skip the line
+        udiffLineNumber++;
+      } else {
+        // we add the line as it is
+        newUdiffLines.push(currentUdiffLines[udiffLineNumber]);
+        udiffLineNumber++;
+      }
+    }
 
     // since same iterator is used, udiffLineNumber will be at the end of the file
     // now, get the new udiff
@@ -354,7 +395,56 @@ export class FileChangeStateManager {
       modifiedContent: originalAndModifiedContent.modifiedContent,
     });
 
-    this.outputChannel.info(`New udiff: ${newUdiff}`);
+    // return the new udiff
+    return newUdiff;
+  };
+
+  public rejectAllChangesInFile = async (
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+  ): Promise<string> => {
+    // reject all changes in the file, until either the end of file is reached or the diff block ends
+    // to reject, just navigate through the udiff and add all lines that are removed
+    const fileChangeState = this.fileChangeStateMap.get(path.join(repoPath, filePath));
+
+    if (!fileChangeState) {
+      throw new Error(`File change state not found for ${filePath}`);
+    }
+    const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
+    const currentUdiffLines = currentUdiff.split('\n');
+    const newUdiffLines: string[] = [];
+    const lineNumber = 0;
+    let udiffLineNumber = 0;
+    const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
+
+    // iterate through the lines in the udiff
+    while (udiffLineNumber < currentUdiffLines.length) {
+      if (currentUdiffLines[udiffLineNumber].startsWith('+')) {
+        // skip the line
+        udiffLineNumber++;
+      } else if (currentUdiffLines[udiffLineNumber].startsWith('-')) {
+        // convert the line to space
+        newUdiffLines.push(` ${currentUdiffLines[udiffLineNumber].substring(1)}`);
+        udiffLineNumber++;
+      } else {
+        // we add the line as it is
+        newUdiffLines.push(currentUdiffLines[udiffLineNumber]);
+        udiffLineNumber++;
+      }
+    }
+
+    // since same iterator is used, udiffLineNumber will be at the end of the file
+    // now, get the new udiff
+    const newUdiff = newUdiffLines.join(lineEol);
+
+    // now, set the new udiff in the fileChangeStateMap
+    const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
+    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+      ...fileChangeState,
+      currentUdiff: newUdiff,
+      originalContent: originalAndModifiedContent.originalContent,
+      modifiedContent: originalAndModifiedContent.modifiedContent,
+    });
 
     // return the new udiff
     return newUdiff;

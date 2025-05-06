@@ -91,6 +91,36 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           }
           break;
         }
+        case 'accept-all-changes': {
+          const newContent = await this.fileChangeStateManager.acceptAllChangesInFile(
+            document.filePath,
+            document.repoPath,
+          );
+          if (newContent) {
+            document.content = newContent;
+            webviewPanel.webview.postMessage({
+              id: message.id,
+              command: 'result',
+              data: newContent,
+            });
+          }
+          break;
+        }
+        case 'reject-all-changes': {
+          const newContent = await this.fileChangeStateManager.rejectAllChangesInFile(
+            document.filePath,
+            document.repoPath,
+          );
+          if (newContent) {
+            document.content = newContent;
+            webviewPanel.webview.postMessage({
+              id: message.id,
+              command: 'result',
+              data: newContent,
+            });
+          }
+          break;
+        }
         default: {
           console.log('Unknown message received:', message);
           break;
