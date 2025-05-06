@@ -10,7 +10,7 @@ function isNotCompatible(): boolean {
     vscode.window.showWarningMessage(
       "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!",
     );
-    return false; // Allow Windows users to use the extension in beta mode
+    return true;
   }
 
   if (platform === 'darwin') {
