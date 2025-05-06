@@ -28,12 +28,13 @@ import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
 import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { SESSION_TYPE } from '../constants';
-import osName from 'os-name';
 import { getShell } from '../terminal/utils/shell';
 import { FeedbackService } from '../services/feedback/feedbackService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import * as fs from 'fs';
+import { getOSName } from '../utilities/osName';
+
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -343,7 +344,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const payload = {
         query: user_query,
         old_terminal_command: old_command,
-        os_name: osName(),
+        os_name: await getOSName(),
         shell: getShell(),
       };
       const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
