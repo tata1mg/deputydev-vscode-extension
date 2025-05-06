@@ -794,9 +794,6 @@ export const useChatSettingStore = create(
         setChatSource(nextChatSource: string) {
           set({ chatSource: nextChatSource });
         },
-        setActiveModel(activeModel: string) {
-          set({ activeModel: activeModel });
-        },
       })
     ),
     {

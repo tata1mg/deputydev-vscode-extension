@@ -9,9 +9,9 @@ const ModelSelector = () => {
     const selectedModel = event.target.value;
 
     if (selectedModel) {
-      useChatSettingStore().setActiveModel(selectedModel);
+      useChatSettingStore.setState({activeModel: selectedModel});
     }
-    // console.log("************", useChatStore.getState().activeModel)
+    // console.log("************", useChatSettingStore.getState().activeModel)
   };
 
   useEffect(() => {
@@ -27,9 +27,9 @@ const ModelSelector = () => {
       //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
-        useChatSettingStore().setActiveModel(llmModels[0]['name']);
+        useChatSettingStore.setState({activeModel: llmModels[0]['name']});
       }
-      // console.log("******active model ***********", useChatStore.getState().activeModel);
+      // console.log("******active model ***********", useChatSettingStore.getState().activeModel);
     };
     fetchConfigFromWorkspaceState();
   }, []);
@@ -38,7 +38,7 @@ const ModelSelector = () => {
     <div className="relative w-full">
       <select
         className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-xs focus:outline-none"
-        value={useChatSettingStore().activeModel}
+        value={useChatSettingStore.getState().activeModel}
         onChange={handleChange}
       >
         {useChatStore.getState().llmModels.length !== 0 ? (
