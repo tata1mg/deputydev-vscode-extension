@@ -27,7 +27,7 @@ const ModelSelector = () => {
       //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
-        useChatSettingStore().setActiveModel(llmModels[0]["name"]);
+        useChatSettingStore().setActiveModel(llmModels[0]['name']);
       }
       // console.log("******active model ***********", useChatStore.getState().activeModel);
     };
@@ -37,7 +37,7 @@ const ModelSelector = () => {
   const selectElement = (
     <div className="relative w-full">
       <select
-        className="w-[110px] cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none appearance-none pl-6"
+        className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-xs focus:outline-none"
         value={useChatSettingStore().activeModel}
         onChange={handleChange}
       >
