@@ -95,7 +95,7 @@ export const useChatStore = create(
         llmModels: [] as LLMModels[],
         webSearchInToolUse: false,
         activeModel: "",
-        isWebSearchEnabled: false
+        search_web: false
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -162,8 +162,8 @@ export const useChatStore = create(
 
               // Build the payload
               const payload: any = {
-                isWebSearchEnabled: useChatStore.getState().isWebSearchEnabled,
-                llmModel: useChatStore.getState().activeModel,
+                search_web: useChatStore.getState().search_web,
+                llm_model: useChatStore.getState().activeModel,
                 query: message,
                 urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,
