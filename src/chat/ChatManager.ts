@@ -3,7 +3,7 @@ import { join } from 'path';
 import * as vscode from 'vscode';
 import { DiffViewManager } from '../diff/DiffManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
-import { binaryApi } from '../services/api/axios';
+import { binaryApi, api } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { QuerySolverService } from '../services/chat/ChatService';
 import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
@@ -624,6 +624,31 @@ export class ChatManager {
     }
   }
 
+  async _runWebSearch(payload: { descriptive_query: string[] }) {
+    try {
+      const authToken = await this.authService.loadAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+        'X-Session-Type': SESSION_TYPE,
+        'X-Session-Id': getSessionId(),
+      };
+      const response = await api.post(
+        API_ENDPOINTS.WEB_SEARCH,
+        { descriptive_query: payload.descriptive_query },
+        { headers },
+      );
+      if (response.status === 200) {
+        this.outputChannel.info('Web Search API call successful.');
+        this.outputChannel.info(`Web Search API result: ${JSON.stringify(response.data)}`);
+        return response.data;
+      }
+    } catch (error: any) {
+      this.logger.error(`Error calling Web Search API: ${error.message}`);
+      this.outputChannel.error(`Error calling Web Search API: ${error.message}`, error);
+      throw error;
+    }
+  }
+
   async _runExecuteCommand(
     command: string,
     requires_approval: boolean,
@@ -805,8 +830,6 @@ export class ChatManager {
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
   ): Promise<void> {
-    const mainConfig: any = await this.context.workspaceState.get("configData");
-    const isToolUseWebSearchEnabled = mainConfig["WEB_SEARCH_IN_TOOL"];
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
       this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
@@ -874,6 +897,10 @@ export class ChatManager {
             messageId || '',
           );
           break;
+        case 'web_search':
+          this.outputChannel.info(`Running web_search with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this._runWebSearch(parsedContent);
+          break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
           // Treat as completed but with a message indicating it's unknown
@@ -910,7 +937,7 @@ export class ChatManager {
       // Prepare payload to continue chat with the tool's response
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
       const continuationPayload: ChatPayload = {
-        search_web: toolRequest.search_web && isToolUseWebSearchEnabled,
+        search_web: toolRequest.search_web,
         llm_model: toolRequest.llm_model,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
@@ -965,7 +992,7 @@ export class ChatManager {
       });
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
-        search_web: toolRequest.search_web && isToolUseWebSearchEnabled,
+        search_web: toolRequest.search_web,
         llm_model: toolRequest.llm_model,
         message_id: messageId, // Pass original message ID for context if needed by UI later
         write_mode: toolRequest.write_mode,
