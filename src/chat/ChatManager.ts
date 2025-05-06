@@ -19,10 +19,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
 import { UsageTrackingRequest } from '../types';
-import osName from 'os-name';
 import { getShell } from '../terminal/utils/shell';
 import { TerminalManager } from '../terminal/TerminalManager';
 import { DEFAULT_TERMINAL_TIMEOUT } from '../config';
+import { getOSName } from '../utilities/osName';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -232,7 +232,7 @@ export class ChatManager {
       if (deputyDevRules) {
         payload.deputy_dev_rules = deputyDevRules;
       }
-      payload.os_name = osName();
+      payload.os_name = await getOSName();
       payload.shell = getShell();
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
@@ -914,7 +914,7 @@ export class ChatManager {
           tool_use_id: toolRequest.tool_use_id,
           response: structuredResponse, // Use the structured response for the backend
         },
-        os_name: osName(),
+        os_name: await getOSName(),
         shell: getShell(),
         // TODO: Consider if previous_query_ids need to be passed down through tool calls
       };
@@ -971,7 +971,7 @@ export class ChatManager {
             error_message: error.message,
           },
         },
-        os_name: osName(),
+        os_name: await getOSName(),
         shell: getShell(),
       };
       await this.apiChat(toolUseRetryPayload, chunkCallback);
