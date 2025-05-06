@@ -70,24 +70,17 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
     const filePath = uri.path.split('.ddproposed')[0];
 
-    const newFileContent = content.toString();
-    const updated = await this.fileChangeStateManager.updateFileStateInFileChangeStateMap(
-      filePath,
-      repoPath,
-      newFileContent,
-      filePath,
+    const fileChangeState = this.fileChangeStateManager.getFileChangeState(
+      uri.path.split('.ddproposed')[0], // remove the last .ddproposed
+      Buffer.from(uri.query, 'base64').toString('utf-8'), // decode the base64 query for repoPath
     );
 
-    if (!updated) {
-      throw vscode.FileSystemError.Unavailable(`Could not write to file: ${uri.toString()}`);
+    if (!fileChangeState) {
+      throw new Error(`File not found: ${uri.toString()}`);
     }
-
-    this.outputChannel.info(`Wrote file: ${uri.toString()}`);
-
     // write to file system using native node 
     try {
-      await fs.writeFile(path.join(repoPath, filePath), updated.modifiedContent);
-      this.outputChannel.info(`Wrote file: ${uri.toString()}`);
+      await fs.writeFile(path.join(repoPath, filePath), fileChangeState.modifiedContent, 'utf-8');
       console.log('File written successfully.');
     } catch (err) {
       console.error('Error writing file:', err);

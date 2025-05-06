@@ -203,7 +203,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     if (!document) {
       return Promise.reject(new Error('No document to save'));
     }
-    return vscode.workspace.fs.writeFile(destination, Buffer.from(document.content, 'utf-8'));
+    return vscode.workspace.fs.writeFile(destination, Buffer.from('', 'utf-8')); // dummy buffer as we don't have a real file. The content is handled in fsProvider
   }
 
   revertCustomDocument(): Thenable<void> {
