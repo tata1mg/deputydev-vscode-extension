@@ -785,7 +785,7 @@ export const useChatSettingStore = create(
       {
         chatType: 'ask' as ChatType,
         chatSource: 'chat' as string,
-        activeModel: "",
+        activeModel: '',
       },
       (set) => ({
         setChatType(nextChatType: ChatType) {
@@ -795,8 +795,8 @@ export const useChatSettingStore = create(
           set({ chatSource: nextChatSource });
         },
         setActiveModel(activeModel: string) {
-          set({activeModel: activeModel});
-        }
+          set({ activeModel: activeModel });
+        },
       })
     ),
     {
