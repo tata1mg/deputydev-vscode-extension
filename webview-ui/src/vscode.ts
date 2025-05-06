@@ -330,6 +330,9 @@ addCommandEventListener('initialize-settings-response', async ({ data }) => {
       key: 'terminal-command-timeout',
     }),
   });
+  useChatSettingStore.setState({
+    chatType: settings.default_mode,
+  });
 });
 
 addCommandEventListener('keyword-type-search-response', ({ data }) => {

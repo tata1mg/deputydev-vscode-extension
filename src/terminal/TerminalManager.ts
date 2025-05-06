@@ -94,17 +94,24 @@ export class TerminalManager {
   private processes: Map<number, TerminalProcess> = new Map();
   private disposables: vscode.Disposable[] = [];
   private context: vscode.ExtensionContext;
+  private shellIntegrationTimeout: number = 4000;
+
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
+
+    // Fix the timeout logic
+    const timeout = context.globalState.get<number>('terminal-command-timeout', 4);
+    this.shellIntegrationTimeout = timeout * 1000;
+
     let disposable: vscode.Disposable | undefined;
     try {
       disposable = (vscode.window as vscode.Window).onDidStartTerminalShellExecution?.(async (e) => {
-        // Creating a read stream here results in a more consistent output. This is most obvious when running the `date` command.
         e?.execution?.read();
       });
     } catch (error) {
-      // console.error("Error setting up onDidEndTerminalShellExecution", error)
+      // handle error
     }
+
     if (disposable) {
       this.disposables.push(disposable);
     }
@@ -145,13 +152,20 @@ export class TerminalManager {
       process.run(terminalInfo.terminal, command);
     } else {
       // docs recommend waiting 3s for shell integration to activate
-      pWaitFor(() => terminalInfo.terminal.shellIntegration !== undefined, { timeout: 4000 }).finally(() => {
-        const existingProcess = this.processes.get(terminalInfo.id);
-        if (existingProcess && existingProcess.waitForShellIntegration) {
-          existingProcess.waitForShellIntegration = false;
-          existingProcess.run(terminalInfo.terminal, command);
-        }
-      });
+      pWaitFor(() => terminalInfo.terminal.shellIntegration !== undefined, {
+        timeout: this.shellIntegrationTimeout,
+      })
+        .then(() => {})
+        .catch(() => {})
+        .finally(() => {
+          const existingProcess = this.processes.get(terminalInfo.id);
+
+          if (existingProcess && existingProcess.waitForShellIntegration) {
+            existingProcess.waitForShellIntegration = false;
+
+            existingProcess.run(terminalInfo.terminal, command);
+          }
+        });
     }
 
     return mergePromise(process, promise);
@@ -219,5 +233,9 @@ export class TerminalManager {
     this.processes.clear();
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables = [];
+  }
+
+  setShellIntegrationTimeout(timeout: number): void {
+    this.shellIntegrationTimeout = timeout * 1000; // Convert to milliseconds
   }
 }

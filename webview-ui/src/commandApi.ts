@@ -246,12 +246,12 @@ export function editTerminalCommand(data: { user_query: string; old_command: str
   return callCommand('edit-terminal-command', data);
 }
 
-export function webviewInitialized() {
-  return callCommand('webview-initialized', {});
+export function setShellIntegrationTimeoutMessage(data: { key: string; value: unknown }) {
+  return callCommand('set-shell-integration-timeout', data);
 }
 
-export function initializeSettings() {
-  return callCommand('initialize-settings', {});
+export function webviewInitialized() {
+  return callCommand('webview-initialized', {});
 }
 
 export function submitFeedback(feedback: string, queryId: number) {

@@ -15,7 +15,6 @@ import {
   setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
-  getActiveRepo,
 } from './utilities/contextManager';
 import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import { HistoryService } from './services/history/HistoryService';
@@ -122,6 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
     feedBackService,
     userQueryEnhancerService,
     continueNewWorkspace,
+    terminalManager,
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
@@ -188,8 +188,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
 
   new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
-
-  const relevantPaths = workspaceManager.getWorkspaceRepos();
 
   // 7) Register commands for Accept/Reject etc
   //
