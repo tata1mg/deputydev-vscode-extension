@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { ChangeProposerDocument } from '../document/changeProposerDocument';
 import { getUri } from '../../../../utilities/getUri';
 import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChangeStateManager';
-import path = require('node:path');
+import * as path from 'path';
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
