@@ -25,11 +25,11 @@ interface SettingsStore {
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set) => ({
-      terminalOutputLimit: 1000,
+      terminalOutputLimit: 500,
       shellIntegrationTimeout: 30,
-      shellCommandTimeout: 30,
+      shellCommandTimeout: 10,
       isYoloModeOn: false,
-      commandsToDeny: ['rm -rf'],
+      commandsToDeny: [],
       chatType: 'ask',
       urls: [] as URLListItem[],
 

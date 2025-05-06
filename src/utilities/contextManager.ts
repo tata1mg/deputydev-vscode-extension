@@ -129,5 +129,4 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('vscode-theme-storage', undefined);
   await extensionContext.workspaceState.update('isAuthenticated', false);
   await extensionContext.workspaceState.update('activeRepo', undefined);
-  await extensionContext.workspaceState.update('settings-storage', undefined);
 }
