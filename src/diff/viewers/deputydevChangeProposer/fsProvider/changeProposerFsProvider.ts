@@ -3,7 +3,6 @@ import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChan
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-
 export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>().event;
 
@@ -22,20 +21,20 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
     const filePath = uri.path.split('.ddproposed')[0]; // Remove the `.ddproposed` suffix
-  
+
     // Retrieve file state from the fileChangeStateManager
     const fileState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
-    
+
     if (!fileState) {
       throw vscode.FileSystemError.FileNotFound(uri);
     }
-  
+
     // In a virtual file system, we simulate metadata
     const content = fileState.currentUdiff; // Get the virtual file content
     const size = Buffer.byteLength(content, 'utf-8'); // Calculate the size of the content
     const mtime = Date.now(); // You can use the current time as the modification time
     const ctime = mtime; // In a virtual FS, creation time can be the same as mtime
-  
+
     // Return a virtual file stat
     return {
       type: vscode.FileType.File, // Assuming this is a file (not a directory)
@@ -78,7 +77,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     if (!fileChangeState) {
       throw new Error(`File not found: ${uri.toString()}`);
     }
-    // write to file system using native node 
+    // write to file system using native node
     try {
       await fs.writeFile(path.join(repoPath, filePath), fileChangeState.modifiedContent, 'utf-8');
       console.log('File written successfully.');
@@ -97,5 +96,5 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     // Since this is a virtual filesystem, we assume directories don't matter.
     // Just log or silently ignore.
     this.outputChannel.info(`createDirectory called for ${uri.toString()}`);
-  }}
-
+  }
+}

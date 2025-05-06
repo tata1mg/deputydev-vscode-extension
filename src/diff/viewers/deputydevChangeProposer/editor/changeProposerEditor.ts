@@ -12,8 +12,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly fileChangeStateManager: FileChangeStateManager,
-  ) {
-  }
+  ) {}
 
   async openCustomDocument(
     uri: vscode.Uri,
