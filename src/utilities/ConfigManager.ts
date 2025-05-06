@@ -7,6 +7,8 @@ import { CLIENT } from '../config';
 import * as os from 'os';
 import { setEssentialConfig, setMainConfig } from '../config/configSetGet';
 import { Logger } from './Logger';
+import { Settings } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -141,5 +143,45 @@ export class ConfigManager {
 
     const stored = this.context.workspaceState.get<Record<string, any>>(this.CONFIG_KEY);
     return stored ? stored[key] : undefined;
+  }
+
+  public async saveSettings(payload: Settings) {
+    try {
+      const authService = new AuthService();
+      const auth_token = await authService.loadAuthToken();
+      const headers = {
+        Authorization: `Bearer ${auth_token}`,
+      };
+      await api.post(API_ENDPOINTS.SAVE_SETTINGS, payload, {
+        headers,
+      });
+    } catch (error) {
+      this.logger.error(`Error saving settings`);
+    }
+  }
+
+  public async initializeSettings(sendMessage: (message: object) => void) {
+    try {
+      const authService = new AuthService();
+      const auth_token = await authService.loadAuthToken();
+      const headers = {
+        Authorization: `Bearer ${auth_token}`,
+      };
+      const response = await api.get(API_ENDPOINTS.FETCH_SETTINGS, {
+        headers,
+      });
+      if (response.data && response.data.is_success) {
+        const settings = response.data.data;
+        sendMessage({
+          id: uuidv4(),
+          command: 'initialize-settings-response',
+          data: settings,
+        });
+      }
+      return null;
+    } catch (error) {
+      this.logger.error(`Error fetching settings`);
+      return null;
+    }
   }
 }

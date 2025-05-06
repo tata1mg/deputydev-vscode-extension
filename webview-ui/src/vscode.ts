@@ -13,12 +13,16 @@ import {
   ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
+  Settings,
+  URLListItem,
 } from '@/types';
-import { logToOutput, sendWorkspaceRepoChange } from './commandApi';
+import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
+import { url } from 'inspector';
+import { useSettingsStore } from './stores/settingsStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -312,6 +316,22 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
   // useChatStore.setState({ currentEditorReference: editorReference });
 });
 
+addCommandEventListener('initialize-settings-response', async ({ data }) => {
+  const settings = data as Settings;
+  useSettingsStore.setState({
+    isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
+    commandsToDeny: settings.terminal_settings.command_deny_list,
+    chatType: settings.default_mode,
+    terminalOutputLimit: await getGlobalState({ key: 'terminal-output-limit' }),
+    shellIntegrationTimeout: await getGlobalState({
+      key: 'terminal-shell-limit',
+    }),
+    shellCommandTimeout: await getGlobalState({
+      key: 'terminal-command-timeout',
+    }),
+  });
+});
+
 addCommandEventListener('keyword-type-search-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
@@ -349,6 +369,10 @@ addCommandEventListener('get-saved-urls-response', ({ data }) => {
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
+addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
+  useSettingsStore.setState({ urls: data as URLListItem[] });
+});
+
 addCommandEventListener('session-chats-history', ({ data }) => {
   useExtensionStore.setState({ viewType: 'chat' });
   useChatStore.setState({ history: data as ChatMessage[] });
@@ -356,7 +380,9 @@ addCommandEventListener('session-chats-history', ({ data }) => {
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
-    useChatStore.setState({ enhancedUserQuery: data.enhancedUserQuery as string });
+    useChatStore.setState({
+      enhancedUserQuery: data.enhancedUserQuery as string,
+    });
   } else {
     useChatStore.setState({ enhancingUserQuery: false });
   }
@@ -432,10 +458,16 @@ addCommandEventListener('send-client-version', ({ data }) => {
 addCommandEventListener('last-chat-data', ({ data }) => {
   const lastChatData = data as string;
   const lastChatDataParsed = JSON.parse(lastChatData).state;
-  useChatStore.setState({ history: lastChatDataParsed.history as ChatMessage[] });
+  useChatStore.setState({
+    history: lastChatDataParsed.history as ChatMessage[],
+  });
   useChatStore.setState({ isLoading: true });
-  useChatStore.setState({ showSessionsBox: lastChatDataParsed.showSessionsBox });
-  useChatStore.setState({ showAllSessions: lastChatDataParsed.showAllSessions });
+  useChatStore.setState({
+    showSessionsBox: lastChatDataParsed.showSessionsBox,
+  });
+  useChatStore.setState({
+    showAllSessions: lastChatDataParsed.showAllSessions,
+  });
   useChatStore.setState({ showSkeleton: true });
   const rawTime = lastChatDataParsed.lastMessageSentTime;
   const parsedTime = rawTime ? new Date(rawTime) : null;
@@ -471,7 +503,10 @@ addCommandEventListener('last-chat-data', ({ data }) => {
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
-  const { tool_use_id, status } = data as { tool_use_id: string; status: string };
+  const { tool_use_id, status } = data as {
+    tool_use_id: string;
+    status: string;
+  };
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {

@@ -75,4 +75,13 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+  isSettings?: boolean;
+}
+
+export interface Settings {
+  default_mode: 'ask' | 'write';
+  terminal_settings: {
+    enable_yolo_mode: boolean;
+    command_deny_list: string[];
+  };
 }

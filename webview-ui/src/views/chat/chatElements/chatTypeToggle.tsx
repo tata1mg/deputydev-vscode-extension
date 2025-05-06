@@ -2,10 +2,17 @@
 import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 
-function ChatTypeToggle() {
+interface ChatTypeToggleProps {
+  chatType?: 'ask' | 'write';
+  setChatType?: (type: 'ask' | 'write') => void;
+}
+
+function ChatTypeToggle(props: ChatTypeToggleProps) {
   const { isLoading } = useChatStore();
-  const { chatType, setChatType } = useChatSettingStore();
+  const store = useChatSettingStore();
   const { themeKind } = useThemeStore();
+  const chatType = props.chatType ?? store.chatType;
+  const setChatType = props.setChatType ?? store.setChatType;
 
   const borderClass =
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
