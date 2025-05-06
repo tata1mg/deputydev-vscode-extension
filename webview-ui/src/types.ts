@@ -159,7 +159,7 @@ export interface ChatCodeBlockMessage {
   completed: boolean;
   actor: 'ASSISTANT';
   write_mode: boolean;
-  status: 'pending' | 'completed' | 'error';
+  status: 'pending' | 'completed' | 'error' | 'aborted';
 }
 
 export interface ChatErrorMessage {

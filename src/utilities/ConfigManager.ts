@@ -147,6 +147,9 @@ export class ConfigManager {
 
   public async saveSettings(payload: Settings) {
     try {
+      this.outputChannel.appendLine('Saving settings...');
+      this.logger.info('Saving settings...');
+      this.context.workspaceState.update('dd-settings', payload);
       const authService = new AuthService();
       const auth_token = await authService.loadAuthToken();
       const headers = {
@@ -162,6 +165,8 @@ export class ConfigManager {
 
   public async initializeSettings(sendMessage: (message: object) => void) {
     try {
+      this.outputChannel.appendLine('Fetching settings...');
+      this.logger.info('Fetching settings...');
       const authService = new AuthService();
       const auth_token = await authService.loadAuthToken();
       const headers = {
@@ -172,6 +177,7 @@ export class ConfigManager {
       });
       if (response.data && response.data.is_success) {
         const settings = response.data.data;
+        this.context.workspaceState.update('dd-settings', settings);
         sendMessage({
           id: uuidv4(),
           command: 'initialize-settings-response',

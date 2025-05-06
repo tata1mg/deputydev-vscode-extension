@@ -34,6 +34,7 @@ import { FeedbackService } from '../services/feedback/feedbackService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import * as fs from 'fs';
+import { TerminalManager } from '../terminal/TerminalManager';
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -60,6 +61,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private feedbackService: FeedbackService,
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
+    private terminalManager: TerminalManager,
   ) {}
 
   public resolveWebviewView(
@@ -175,10 +177,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.configManager.saveSettings(data);
           break;
 
-        case 'initialize-settings':
-          promise = this.configManager.initializeSettings(sendMessage);
-          break;
-
         // Feedback
         case 'submit-feedback':
           promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
@@ -277,6 +275,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
+          break;
+        case 'set-shell-integration-timeout':
+          this.terminalManager.setShellIntegrationTimeout(data.value);
+          this.setGlobalState(data);
           break;
 
         // diff
@@ -397,9 +399,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.warn('❌ No auth token available. Aborting binary initiation.');
       return;
     }
-
+    const sendMessage = (message: any) => {
+      this.sendMessageToSidebar(message);
+    };
     await this.context.workspaceState.update('authToken', authToken);
-
+    this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
@@ -430,12 +434,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
 
     try {
-      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
       let attempts = 0;
-      let response_inner: any;
+      let response: any;
       while (attempts < 3) {
-        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
         this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != 'Completed') {

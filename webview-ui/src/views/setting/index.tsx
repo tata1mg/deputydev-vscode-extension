@@ -25,6 +25,7 @@ import {
   createOrOpenFile,
   setGlobalState,
   getGlobalState,
+  setShellIntegrationTimeoutMessage,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -381,7 +382,7 @@ const Setting = () => {
       key: 'terminal-shell-limit',
       value: shellIntegrationTimeout,
     });
-    setGlobalState({
+    setShellIntegrationTimeoutMessage({
       key: 'terminal-command-timeout',
       value: shellCommandTimeout,
     });
