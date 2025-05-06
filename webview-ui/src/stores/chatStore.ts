@@ -94,7 +94,6 @@ export const useChatStore = create(
         enhancedUserQuery: '',
         llmModels: [] as LLMModels[],
         webSearchInToolUse: false,
-        activeModel: "",
         search_web: false
       },
       (set, get) => {
@@ -163,7 +162,7 @@ export const useChatStore = create(
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
-                llm_model: useChatStore.getState().activeModel,
+                llm_model: useChatSettingStore.getState().activeModel,
                 query: message,
                 urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,
@@ -785,6 +784,7 @@ export const useChatSettingStore = create(
       {
         chatType: 'ask' as ChatType,
         chatSource: 'chat' as string,
+        activeModel: "",
       },
       (set) => ({
         setChatType(nextChatType: ChatType) {
@@ -793,6 +793,9 @@ export const useChatSettingStore = create(
         setChatSource(nextChatSource: string) {
           set({ chatSource: nextChatSource });
         },
+        setActiveModel(activeModel: string) {
+          set({activeModel: activeModel});
+        }
       })
     ),
     {
