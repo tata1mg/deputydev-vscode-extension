@@ -1,8 +1,8 @@
 // file: webview-ui/src/stores/userProfileStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { persistStorage } from './lib'; 
-import { UserData, ProfileUiDiv } from '@/types'; 
+import { persistStorage } from './lib';
+import { UserData, ProfileUiDiv } from '@/types';
 
 type UserProfileStore = {
   userData: UserData;

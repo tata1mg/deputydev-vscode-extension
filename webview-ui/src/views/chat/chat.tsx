@@ -1,37 +1,32 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
   useChatStore,
-} from "../../stores/chatStore";
-import { ChatTypeToggle } from "./chatElements/chatTypeToggle";
-import { Tooltip } from "react-tooltip";
+} from '../../stores/chatStore';
+import { ChatTypeToggle } from './chatElements/chatTypeToggle';
+import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import RepoSelector from "./chatElements/RepoSelector";
-import { ChatArea } from "./chatMessagesArea";
+import RepoSelector from './chatElements/RepoSelector';
+import { ChatArea } from './chatMessagesArea';
 import {
-  editTerminalCommand, 
   keywordSearch,
   keywordTypeSearch,
   logToOutput,
   getSavedUrls,
   urlSearch,
   enhanceUserQuery,
-} from "@/commandApi";
-import { useThemeStore } from "@/stores/useThemeStore";
-import { useWorkspaceStore } from "@/stores/workspaceStore";
-import {
-  AutocompleteOption,
-  ChatReferenceItem,
-  ChatUserMessage,
-} from "@/types";
-import { isEqual as lodashIsEqual } from "lodash";
-import "../../styles/markdown-body.css";
-import { AutocompleteMenu } from "./autocomplete";
-import ProgressBar from "./chatElements/progressBar";
-import ReferenceChip from "./referencechip";
+} from '@/commandApi';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from '@/types';
+import { isEqual as lodashIsEqual } from 'lodash';
+import '../../styles/markdown-body.css';
+import { AutocompleteMenu } from './autocomplete';
+import ProgressBar from './chatElements/progressBar';
+import ReferenceChip from './referencechip';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -47,24 +42,25 @@ export function ChatUI() {
     progressBars,
     selectedOptionIndex,
     enhancingUserQuery,
-    enhancedUserQuery
+    enhancedUserQuery,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
 
   const deputyDevLogo =
-  themeKind === "light" || themeKind === "high-contrast-light"
-    ? "https://onemg.gumlet.io/dd_logo_dark_name_14_04.png"
-    : "https://onemg.gumlet.io/dd_logo_with_name_10_04.png";
-  const borderClass = (themeKind === "high-contrast" || themeKind === "high-contrast-light")
-  ? "outline outline-[1px]  outline-[--deputydev-button-border] "
-  : "";
+    themeKind === 'light' || themeKind === 'high-contrast-light'
+      ? 'https://onemg.gumlet.io/dd_logo_dark_name_14_04.png'
+      : 'https://onemg.gumlet.io/dd_logo_with_name_10_04.png';
+  const borderClass =
+    themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
+      ? 'outline outline-[1px]  outline-[--deputydev-button-border] '
+      : '';
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
     const activeProgress = progressBars.find((bar) => bar.repo === activeRepo);
-    return activeProgress?.status !== "Completed";
+    return activeProgress?.status !== 'Completed';
   }, [activeRepo, progressBars]);
 
   // const [repoSelectorDisabled] = useState(false);
@@ -79,7 +75,7 @@ export function ChatUI() {
 
   useEffect(() => {
     const handleCopy = () => {
-      let copiedText = "";
+      let copiedText = '';
 
       const activeElement = document.activeElement;
 
@@ -89,17 +85,17 @@ export function ChatUI() {
       ) {
         copiedText = activeElement.value.substring(
           activeElement.selectionStart || 0,
-          activeElement.selectionEnd || 0,
+          activeElement.selectionEnd || 0
         );
       } else {
-        copiedText = window.getSelection()?.toString() || "";
+        copiedText = window.getSelection()?.toString() || '';
       }
 
-      logToOutput("info", `Copied: ${JSON.stringify(copiedText)}`);
+      logToOutput('info', `Copied: ${JSON.stringify(copiedText)}`);
     };
 
-    document.addEventListener("copy", handleCopy);
-    return () => document.removeEventListener("copy", handleCopy);
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
   }, []);
 
   // Function to handle showing all sessions
@@ -108,73 +104,68 @@ export function ChatUI() {
   const autoResize = () => {
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "auto";
+    el.style.height = 'auto';
     el.style.height = `${Math.max(70, Math.min(el.scrollHeight, 300))}px`;
   };
 
   const handleSend = async () => {
     if (enhancingUserQuery) {
-      return
+      return;
     }
     useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
     const resetTextareaHeight = () => {
       if (textareaRef.current) {
-        textareaRef.current.style.height = "70px";
+        textareaRef.current.style.height = '70px';
       }
     };
 
     useChatStore.setState({ showSessionsBox: false });
 
     const message = userInput.trim();
-    const editorReferences = [
-      ...useChatStore.getState().currentEditorReference,
-    ];
-    setUserInput("");
+    const editorReferences = [...useChatStore.getState().currentEditorReference];
+    setUserInput('');
     useChatStore.setState({ currentEditorReference: [] });
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
-    } finally {
+      await sendChatMessage(message, editorReferences, () => {});
+    } catch (error) {
+      // Handle error if needed
+      console.error('Error sending message:', error);
     }
   };
 
   useEffect(() => {
     if (enhancedUserQuery && enhancingUserQuery) {
       setUserInput(enhancedUserQuery);
-      useChatStore.setState({ enhancingUserQuery: false })
+      useChatStore.setState({ enhancingUserQuery: false });
       setTimeout(autoResize, 0);
     }
-  }, [enhancedUserQuery])
+  }, [enhancedUserQuery]);
 
   useEffect(() => {
-    if (
-      messages.length > 0 &&
-      messages[messages.length - 1].type === "TEXT_BLOCK"
-    ) {
+    if (messages.length > 0 && messages[messages.length - 1].type === 'TEXT_BLOCK') {
       const lastMessage = messages[messages.length - 1] as ChatUserMessage;
-      if (lastMessage.actor === "USER") {
+      if (lastMessage.actor === 'USER') {
         messagesEndRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
+          behavior: 'smooth',
+          block: 'end',
         });
       }
     }
   }, [messages]);
 
-  const handleTextAreaKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-  ) => {
+  const handleTextAreaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const options = useChatStore.getState().ChatAutocompleteOptions;
 
     if (showAutocomplete && options.length > 0) {
       // Prevent default behavior for up/down arrows when autocomplete is active
-      if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
         const newIndex =
-          e.key === "ArrowUp"
+          e.key === 'ArrowUp'
             ? (selectedOptionIndex - 1 + options.length) % options.length
             : (selectedOptionIndex + 1) % options.length;
         useChatStore.setState({ selectedOptionIndex: newIndex });
@@ -182,7 +173,7 @@ export function ChatUI() {
       }
 
       // Handle enter key for autocomplete selection
-      if (e.key === "Enter") {
+      if (e.key === 'Enter') {
         e.preventDefault();
         if (selectedOptionIndex >= 0) {
           const selectedOption = options[selectedOptionIndex];
@@ -196,38 +187,28 @@ export function ChatUI() {
     }
 
     // Handle regular enter key when not in autocomplete mode
-    if (
-      !repoSelectorEmbedding &&
-      e.key === "Enter" &&
-      !e.shiftKey &&
-      !showAutocomplete
-    ) {
+    if (!repoSelectorEmbedding && e.key === 'Enter' && !e.shiftKey && !showAutocomplete) {
       e.preventDefault();
       if (!isLoading) {
         handleSend();
       }
     }
 
-    if (e.key === "Backspace") {
+    if (e.key === 'Backspace') {
       const textarea = e.currentTarget;
       const isEntireTextSelected =
-        textarea.selectionStart === 0 &&
-        textarea.selectionEnd === textarea.value.length;
+        textarea.selectionStart === 0 && textarea.selectionEnd === textarea.value.length;
 
       if (isEntireTextSelected) {
-        setUserInput("");
+        setUserInput('');
         setChipEditMode(false);
         setShowAutocomplete(false);
-      }
-
-      else if (userInput.endsWith("@") && !isEntireTextSelected) {
+      } else if (userInput.endsWith('@') && !isEntireTextSelected) {
         e.preventDefault();
         setShowAutocomplete(false);
         setChipEditMode(false);
         setUserInput(userInput.slice(0, -1));
-      }
-
-      else if (userInput === "" && !isEntireTextSelected) {
+      } else if (userInput === '' && !isEntireTextSelected) {
         backspaceCountRef.current += 1;
         if (backspaceCountRef.current === 2) {
           const allChips = [...useChatStore.getState().currentEditorReference];
@@ -244,36 +225,32 @@ export function ChatUI() {
         }
         setTimeout(() => (backspaceCountRef.current = 0), 300);
       }
-
     }
   };
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (chipEditMode) {
-      const value = e.target.value.split("@")[1];
-      const valueArr = value.split(": ");
-      if (
-        ["file", "directory", "function", "class"].includes(
-          valueArr[0].toLowerCase(),
-        )
-      ) {
+      const value = e.target.value.split('@')[1];
+      const valueArr = value.split(': ');
+      if (['file', 'directory', 'function', 'class'].includes(valueArr[0].toLowerCase())) {
         setShowAutocomplete(true);
         keywordTypeSearch({
           type: valueArr[0].toLowerCase(),
           keyword: valueArr[1],
         });
-      } else if (valueArr[0].toLowerCase() === "url") {
+      } else if (valueArr[0].toLowerCase() === 'url') {
         setShowAutocomplete(true);
-        valueArr[1] && urlSearch({
-          keyword: valueArr[1].trim(),
-        });
+        valueArr[1] &&
+          urlSearch({
+            keyword: valueArr[1].trim(),
+          });
       } else {
         setShowAutocomplete(true);
-        if (value !== "" && !value.startsWith("url:")) {
+        if (value !== '' && !value.startsWith('url:')) {
           keywordSearch({ keyword: value });
         }
       }
     }
-    if (e.target.value.endsWith("@")) {
+    if (e.target.value.endsWith('@')) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -293,11 +270,10 @@ export function ChatUI() {
   };
 
   const handleAutoCompleteSelect = (option: AutocompleteOption) => {
-    const currentAutocompleteOptions =
-      useChatStore.getState().ChatAutocompleteOptions;
+    const currentAutocompleteOptions = useChatStore.getState().ChatAutocompleteOptions;
     if (lodashIsEqual(currentAutocompleteOptions, initialAutocompleteOptions)) {
-      setUserInput(userInput.split("@")[0] + `@${option.value}`);
-      if (option.icon === "url") {
+      setUserInput(userInput.split('@')[0] + `@${option.value}`);
+      if (option.icon === 'url') {
         getSavedUrls();
         setShowAddNewButton(true);
       } else {
@@ -310,7 +286,7 @@ export function ChatUI() {
         const newChatRefrenceItem: ChatReferenceItem = {
           index: allChips.length,
           type: option.icon,
-          keyword: option.icon + ": " + option.value,
+          keyword: option.icon + ': ' + option.value,
           path: option.description,
           chunks: option.chunks,
           value: option.value,
@@ -320,11 +296,10 @@ export function ChatUI() {
           currentEditorReference: [...allChips, newChatRefrenceItem],
         });
         setShowAutocomplete(false);
-        setUserInput(userInput.split("@")[0]);
+        setUserInput(userInput.split('@')[0]);
         setChipEditMode(false);
       } else {
-        allChips[chipIndexBeingEdited].keyword =
-          option.icon + ": " + option.value;
+        allChips[chipIndexBeingEdited].keyword = option.icon + ': ' + option.value;
         allChips[chipIndexBeingEdited].type = option.icon;
         allChips[chipIndexBeingEdited].path = option.description;
         allChips[chipIndexBeingEdited].chunks = option.chunks;
@@ -377,9 +352,9 @@ export function ChatUI() {
       }
     };
 
-    container.addEventListener("scroll", handleScroll);
+    container.addEventListener('scroll', handleScroll);
     return () => {
-      container.removeEventListener("scroll", handleScroll);
+      container.removeEventListener('scroll', handleScroll);
       if (reenableTimer) clearTimeout(reenableTimer);
     };
   }, []);
@@ -388,7 +363,7 @@ export function ChatUI() {
   useEffect(() => {
     // console.log("messages updated:", messages);
     if (isAutoScrollEnabled) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
 
@@ -412,14 +387,12 @@ export function ChatUI() {
               {!repoSelectorEmbedding && (
                 <div className="h-[128px] px-4 fade-in">
                   <div className="flex items-center gap-2">
-                    <p className="mb-2 text-lg text-gray-400">
-                      You are ready to go.
-                    </p>
+                    <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
                     <Check className="mb-1 animate-pulse text-sm text-green-500" />
                   </div>
                   <p className="text-md">
-                    Ask questions about your repository or instantly generate
-                    code, tests, and documentation
+                    Ask questions about your repository or instantly generate code, tests, and
+                    documentation
                   </p>
                 </div>
               )}
@@ -434,7 +407,7 @@ export function ChatUI() {
       </div>
 
       {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mb-0 mx-2 mt-3.5">
+      <div className="absolute bottom-0 left-0 right-0 mx-2 mb-0 mt-3.5">
         <div className="">
           {showAutocomplete && (
             <div className="w-full">
@@ -449,8 +422,7 @@ export function ChatUI() {
           {messages.length === 0 && !showAutocomplete && (
             <div className="px-4">
               <p className="mb-1 mt-4 text-center text-xs text-gray-500">
-                DeputyDev is powered by AI. It can make mistakes. Please double
-                check all output.
+                DeputyDev is powered by AI. It can make mistakes. Please double check all output.
               </p>
             </div>
           )}
@@ -466,8 +438,10 @@ export function ChatUI() {
           )}
 
           {/* The textarea remains enabled even when a response is pending */}
-          <div className="relative w-full ">
-            <div className={`mb-1 flex flex-wrap focus-within:outline focus-within:outline-[1px]  focus-within:outline-[--vscode-list-focusOutline] items-center gap-1 rounded bg-[--deputydev-input-background] p-2 ${borderClass}`}>
+          <div className="relative w-full">
+            <div
+              className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
+            >
               {useChatStore.getState().currentEditorReference?.map((chip) => (
                 <ReferenceChip
                   key={chip.index}
@@ -478,8 +452,7 @@ export function ChatUI() {
                   }}
                   autoEdit={
                     !chip.noEdit &&
-                    chip.index ===
-                    useChatStore.getState().currentEditorReference.length - 1
+                    chip.index === useChatStore.getState().currentEditorReference.length - 1
                   }
                   setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
@@ -489,11 +462,11 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto no-scrollbar bg-transparent p-0 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`no-scrollbar relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={
                   useChatStore.getState().currentEditorReference?.length
-                    ? ""
-                    : "Ask DeputyDev to do anything, @ to mention"
+                    ? ''
+                    : 'Ask DeputyDev to do anything, @ to mention'
                 }
                 value={userInput}
                 onChange={handleTextAreaChange}
@@ -501,28 +474,27 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                  "data-tooltip-id": "repo-tooltip",
-                  "data-tooltip-content":
-                    "Please wait, DeputyDev is initializing.",
-                })}
+                    'data-tooltip-id': 'repo-tooltip',
+                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                  })}
                 autoFocus
               />
             </div>
 
-            <div className="absolute right-2.5 bottom-2 flex items-center gap-2">
-
+            <div className="absolute bottom-2 right-2.5 flex items-center gap-2">
               {enhancingUserQuery ? (
-                <div className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
               ) : (
-                <button className="flex items-center justify-center disabled:cursor-not-allowed p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"
+                <button
+                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 disabled:cursor-not-allowed"
                   onClick={() => {
-                    enhanceUserQuery(userInput)
-                    useChatStore.setState({ enhancingUserQuery: true })
+                    enhanceUserQuery(userInput);
+                    useChatStore.setState({ enhancingUserQuery: true });
                   }}
                   data-tooltip-id="sparkles-tooltip"
-                  data-tooltip-content={`${userInput ? "Enhance your prompt" : "Please write your prompt first."}`}
+                  data-tooltip-content={`${userInput ? 'Enhance your prompt' : 'Please write your prompt first.'}`}
                   data-tooltip-place="top-start"
                   disabled={!userInput}
                 >
@@ -532,14 +504,14 @@ export function ChatUI() {
 
               {isLoading ? (
                 <button
-                  className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"  
+                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                   onClick={cancelChat}
                 >
                   <CircleStop className="h-4 w-4 text-red-500" />
                 </button>
               ) : (
                 <button
-                  className="flex items-center justify-center p-1 hover:bg-slate-400 hover:bg-opacity-10 hover:rounded"
+                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                   onClick={() => {
                     if (!isLoading) {
                       handleSend();

@@ -1,16 +1,11 @@
-import {
-  acceptTerminalCommand,
-  editTerminalCommand,
-  logToOutput,
-} from "@/commandApi";
-import { useState, useEffect } from "react";
-import { parse, Allow } from "partial-json";
-import { TerminalPanelProps } from "@/types";
-import { useThemeStore } from "@/stores/useThemeStore";
-import { TerminalIcon, LoaderCircle } from "lucide-react";
-import { useChatStore } from "@/stores/chatStore";
-import { cn } from "@/lib/utils"; 
-
+import { acceptTerminalCommand, editTerminalCommand, logToOutput } from '@/commandApi';
+import { useState, useEffect } from 'react';
+import { parse, Allow } from 'partial-json';
+import { TerminalPanelProps } from '@/types';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { TerminalIcon, LoaderCircle } from 'lucide-react';
+import { useChatStore } from '@/stores/chatStore';
+import { cn } from '@/lib/utils';
 
 /**
  * Updates the terminal approval status for a specific tool use request in the chat history.
@@ -23,10 +18,7 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
   const history = useChatStore.getState().history;
 
   const updatedHistory = history.map((msg) => {
-    if (
-      msg.type === "TOOL_USE_REQUEST" &&
-      msg.content.tool_use_id === tool_use_id
-    ) {
+    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
       // Ensure terminal_approval_required exists before updating
       if (msg.content.terminal_approval_required !== undefined) {
         return {
@@ -53,28 +45,28 @@ export function TerminalPanel({
   show_approval_options,
 }: TerminalPanelProps) {
   const [isStreaming, setIsStreaming] = useState(true);
-  const [editInput, setEditInput] = useState("");
-  const [commandState, setCommandState] = useState("");
+  const [editInput, setEditInput] = useState('');
+  const [commandState, setCommandState] = useState('');
   const [isEditPromptOpen, setIsEditPromptOpen] = useState(false);
   const [isEditingApiCall, setIsEditingApiCall] = useState(false);
-  const [dots, setDots] = useState("");
+  const [dots, setDots] = useState('');
   const { themeKind } = useThemeStore();
   const borderClass =
-    themeKind === "high-contrast" || themeKind === "high-contrast-light"
-      ? "border border-[--deputydev-button-border]"
-      : "";
+    themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
+      ? 'border border-[--deputydev-button-border]'
+      : '';
 
   // Parse and set commandState from terminal_command prop
   useEffect(() => {
     try {
       const parsed = parse(terminal_command, Allow.STR | Allow.OBJ);
-      if (parsed && typeof parsed === "object") {
-        setCommandState(parsed.command || "");
-        setIsStreaming(false)
+      if (parsed && typeof parsed === 'object') {
+        setCommandState(parsed.command || '');
+        setIsStreaming(false);
       }
     } catch {
       // still streaming, clear command
-      setCommandState("");
+      setCommandState('');
     }
   }, [terminal_command]);
 
@@ -84,20 +76,18 @@ export function TerminalPanel({
   //   }
   // }, [status, tool_id]);
 
-  
   useEffect(() => {
     if (!(isEditingApiCall || (isStreaming && !commandState))) {
-      setDots("");
+      setDots('');
       return;
     }
-  
+
     const timer = setInterval(() => {
-      setDots((prev) => (prev.length < 3 ? prev + "." : ""));
+      setDots((prev) => (prev.length < 3 ? prev + '.' : ''));
     }, 500);
-  
+
     return () => clearInterval(timer);
   }, [isEditingApiCall, isStreaming, commandState]);
-  
 
   // Handler to accept and execute the current command
   const handleExecute = () => {
@@ -106,11 +96,10 @@ export function TerminalPanel({
     updateTerminalApproval(tool_id, false);
   };
 
-
   // Handler to open the inline edit prompt
   const handleEditPromptOpen = () => {
     setIsEditPromptOpen(true);
-    setEditInput(""); // Clear previous edit input
+    setEditInput(''); // Clear previous edit input
   };
 
   // Handler to close the inline edit prompt
@@ -118,39 +107,41 @@ export function TerminalPanel({
     setIsEditPromptOpen(false);
   };
 
-
   // Handler to submit the edit request
   const handleEditSubmit = async () => {
     const userQuery = editInput.trim();
-    if (!userQuery) return; 
+    if (!userQuery) return;
 
     setIsEditingApiCall(true); // Indicate API call started
     setIsEditPromptOpen(false); // Close the prompt
 
     try {
-      const currentCommand = commandState?.trim() || "<no command exists>";
+      const currentCommand = commandState?.trim() || '<no command exists>';
       const newCommand = await editTerminalCommand({
         user_query: userQuery,
         old_command: currentCommand,
       });
 
-      if (newCommand !== null && newCommand !== undefined) { // Check if editTerminalCommand returned a valid command
+      if (newCommand !== null && newCommand !== undefined) {
+        // Check if editTerminalCommand returned a valid command
         setCommandState(newCommand); // Update the displayed command
       } else {
-          logToOutput("info", "Edit command did not return a new command.");
+        logToOutput('info', 'Edit command did not return a new command.');
       }
     } catch (err) {
-      logToOutput("error", `Failed to edit command: ${err instanceof Error ? err.message : String(err)}`);
+      logToOutput(
+        'error',
+        `Failed to edit command: ${err instanceof Error ? err.message : String(err)}`
+      );
       // Optionally: Re-open edit prompt or show error message to user
     } finally {
       setIsEditingApiCall(false); // Indicate API call finished
-      setEditInput(""); // Clear the input field after submission attempt
+      setEditInput(''); // Clear the input field after submission attempt
     }
   };
 
-
   // Determine button disabled states
-  const isExecuteDisabled = commandState === null || commandState.trim() === "" || isEditingApiCall;
+  const isExecuteDisabled = commandState === null || commandState.trim() === '' || isEditingApiCall;
 
   return (
     <div className="mt-2 w-full rounded-md border border-gray-500/40">
@@ -164,17 +155,17 @@ export function TerminalPanel({
       <div className="max-h-40 overflow-auto whitespace-pre-wrap border-b border-gray-500/40 bg-[--vscode-editor-background] font-mono text-sm text-[--vscode-terminal-foreground]">
         {(() => {
           switch (true) {
-            case isEditingApiCall :
+            case isEditingApiCall:
               return (
-                <div className="flex px-2 py-3 items-center gap-2">
+                <div className="flex items-center gap-2 px-2 py-3">
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                   {`Editing${dots}`}
                 </div>
               );
-            
+
             case isStreaming && !commandState:
               return (
-                <div className="flex px-2 py-3 items-center gap-2">
+                <div className="flex items-center gap-2 px-2 py-3">
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                   {`Streaming command${dots}`}
                 </div>
@@ -182,25 +173,20 @@ export function TerminalPanel({
 
             default:
               return (
-                <div className="flex items-center px-2 pt-2.5 pb-2">
+                <div className="flex items-center px-2 pb-2 pt-2.5">
                   <textarea
-                    className="w-full bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] resize-none h-6 overflow-x-auto overflow-y-hidden whitespace-nowrap no-scrollbar focus:outline-none focus:ring-0"
+                    className="no-scrollbar h-6 w-full resize-none overflow-x-auto overflow-y-hidden whitespace-nowrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"
                     value={commandState}
-                    disabled={status === "completed" || status === "aborted"}
+                    disabled={status === 'completed' || status === 'aborted'}
                     onChange={(e) => setCommandState(e.target.value)}
                     placeholder="Enter terminal command..."
                     spellCheck={false}
                   />
                 </div>
               );
-
-
-            
-              
           }
         })()}
       </div>
-
 
       {/* only show these when not editing */}
       {show_approval_options && !isEditPromptOpen && (
@@ -212,7 +198,7 @@ export function TerminalPanel({
             <button
               onClick={handleExecute}
               disabled={isExecuteDisabled}
-              className={`flex-1 rounded bg-[--deputydev-button-background] px-2 py-2 font-semibold text-[--deputydev-button-foreground] hover:bg-[--deputydev-button-hover-background] ${borderClass} disabled:opacity-80 disabled:cursor-progress`}
+              className={`flex-1 rounded bg-[--deputydev-button-background] px-2 py-2 font-semibold text-[--deputydev-button-foreground] hover:bg-[--deputydev-button-hover-background] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
             >
               Execute
             </button>
@@ -227,10 +213,10 @@ export function TerminalPanel({
         </>
       )}
 
-      {(show_approval_options === false) && (
+      {show_approval_options === false && (
         <div className="flex items-center gap-2 px-2 py-2 text-xs">
           <strong>Status:</strong>
-          {status === "pending" ? (
+          {status === 'pending' ? (
             <div className="flex items-center gap-2">
               <span>In progress</span>
               <span className="relative flex h-2 w-2">

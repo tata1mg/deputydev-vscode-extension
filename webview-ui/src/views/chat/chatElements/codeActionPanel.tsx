@@ -1,14 +1,9 @@
-import { UsageTrackingRequest } from "@/types";
-import { SnippetReference } from "./CodeBlockStyle";
+import { UsageTrackingRequest } from '@/types';
+import { SnippetReference } from './CodeBlockStyle';
 
-import {
-  checkDiffApplicable,
-  usageTracking,
-  openFile,
-  writeFile,
-} from "@/commandApi";
-import { useEffect, useState } from "react";
-import { useChatSettingStore } from "@/stores/chatStore";
+import { checkDiffApplicable, usageTracking, openFile, writeFile } from '@/commandApi';
+import { useEffect, useState } from 'react';
+import { useChatSettingStore } from '@/stores/chatStore';
 
 export interface CodeActionPanelProps {
   language: string;
@@ -58,10 +53,10 @@ export function CodeActionPanel({
   useEffect(() => {
     if (isApplicable && is_live_chat) {
       const usageTrackingData: UsageTrackingRequest = {
-        event: "generated",
+        event: 'generated',
         properties: {
           source: getSource(),
-          file_path: filepath || "",
+          file_path: filepath || '',
           lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
         },
       };
@@ -72,26 +67,26 @@ export function CodeActionPanel({
   const getSource = () => {
     const chatSource = useChatSettingStore.getState().chatSource;
     const chatType = useChatSettingStore.getState().chatType;
-    if (chatSource === "inline-chat") {
-      if (chatType === "write") {
-        return "inline-chat-act";
+    if (chatSource === 'inline-chat') {
+      if (chatType === 'write') {
+        return 'inline-chat-act';
       }
-      return "inline-chat";
+      return 'inline-chat';
     } else {
-      if (chatType === "write") {
-        return "act";
+      if (chatType === 'write') {
+        return 'act';
       }
-      return "chat";
+      return 'chat';
     }
   };
 
   const getLineCountFromContent = (content: string) => {
-    const lines = content.split("\n");
+    const lines = content.split('\n');
     let line_count = lines.length;
-    if (lines[line_count - 1] === "") {
+    if (lines[line_count - 1] === '') {
       line_count--;
     }
-    if (lines[0] === "") {
+    if (lines[0] === '') {
       line_count--;
     }
     return line_count;
@@ -101,9 +96,9 @@ export function CodeActionPanel({
     if (!copyCooldown) {
       if (!showApplyButton && is_live_chat) {
         const usageTrackingData: UsageTrackingRequest = {
-          event: "generated",
+          event: 'generated',
           properties: {
-            file_path: filepath || "",
+            file_path: filepath || '',
             lines: getLineCountFromContent(content),
             source: getSource(),
           },
@@ -112,9 +107,9 @@ export function CodeActionPanel({
       }
 
       const usageTrackingData: UsageTrackingRequest = {
-        event: "copied",
+        event: 'copied',
         properties: {
-          file_path: filepath || "",
+          file_path: filepath || '',
           source: getSource(),
           lines: showApplyButton
             ? Math.abs(added_lines || 0) + Math.abs(removed_lines || 0)
@@ -136,10 +131,10 @@ export function CodeActionPanel({
   const handleApply = (filePath: string, diff: string) => {
     setIsApplying(true);
     const usageTrackingData: UsageTrackingRequest = {
-      event: "applied",
+      event: 'applied',
       properties: {
         source: getSource(),
-        file_path: filepath || "",
+        file_path: filepath || '',
         lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
       },
     };
@@ -147,18 +142,18 @@ export function CodeActionPanel({
     writeFile({
       filePath: filePath,
       raw_diff: diff,
-      write_mode: useChatSettingStore.getState().chatType === "write",
-      is_inline: useChatSettingStore.getState().chatSource === "inline-chat",
+      write_mode: useChatSettingStore.getState().chatType === 'write',
+      is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
     });
     setTimeout(() => {
       setIsApplying(false);
-      alert("Apply diff logic to be implemented.");
+      alert('Apply diff logic to be implemented.');
     }, 500);
   };
 
   const handleInsert = () => {
     // console.log("Insert clicked:", content);
-    alert("Insert logic to be implemented.");
+    alert('Insert logic to be implemented.');
   };
 
   const snippet = {
@@ -171,7 +166,7 @@ export function CodeActionPanel({
   const isApplyDisabled = !diff;
 
   // Extract the filename from the full path
-  const filename = filepath ? filepath.split("/").pop() : "";
+  const filename = filepath ? filepath.split('/').pop() : '';
 
   return (
     <div className="mt-3 w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
@@ -191,7 +186,7 @@ export function CodeActionPanel({
             <span className="text-red-400">-{removed_lines || 0}</span>
           </div>
         ) : (
-          <span>{language || "plaintext"}</span>
+          <span>{language || 'plaintext'}</span>
         )}
 
         <div className="flex gap-2">
@@ -199,25 +194,25 @@ export function CodeActionPanel({
             className="text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90"
             onClick={handleCopy}
           >
-            {copied ? "Copied!" : "Copy"}
+            {copied ? 'Copied!' : 'Copy'}
           </button>
 
           {
             showApplyButton ? (
               <button
                 className={`text-xs text-neutral-300 transition-transform duration-150 hover:text-white active:scale-90 ${
-                  isApplyDisabled ? "cursor-not-allowed opacity-50" : ""
+                  isApplyDisabled ? 'cursor-not-allowed opacity-50' : ''
                 }`}
                 onClick={() => {
                   if (filepath && diff) {
                     handleApply(filepath, diff);
                   } else {
-                    alert("File path or diff is missing!");
+                    alert('File path or diff is missing!');
                   }
                 }}
                 disabled={isApplyDisabled}
               >
-                {isApplying ? "Applying..." : "Apply"}
+                {isApplying ? 'Applying...' : 'Apply'}
               </button>
             ) : null
 
