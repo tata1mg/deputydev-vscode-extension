@@ -6,12 +6,14 @@ import * as path from 'path';
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
+  private document: ChangeProposerDocument | undefined;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly fileChangeStateManager: FileChangeStateManager,
-  ) {}
+  ) {
+  }
 
   async openCustomDocument(
     uri: vscode.Uri,
@@ -22,6 +24,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     const document = new ChangeProposerDocument(uri);
     await document.init(); // load file content
     console.log('Document content loaded:', document.content);
+    this.document = document;
     return document;
   }
 
@@ -188,10 +191,18 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
   saveCustomDocument(): Thenable<void> {
-    return Promise.resolve(); // no-op for in-memory
+    if (!this.document) {
+      return Promise.reject(new Error('No document to save'));
+    }
+    console.log('Document URI:', this.document.uri.toString());
+    console.log('Scheme:', this.document.uri.scheme);
+    return vscode.workspace.fs.writeFile(this.document.uri, Buffer.from(this.document.content, 'utf-8'));
   }
 
   saveCustomDocumentAs(document: ChangeProposerDocument, destination: vscode.Uri): Thenable<void> {
+    if (!document) {
+      return Promise.reject(new Error('No document to save'));
+    }
     return vscode.workspace.fs.writeFile(destination, Buffer.from(document.content, 'utf-8'));
   }
 
