@@ -6,6 +6,7 @@ import { callCommand } from './vscode';
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
   const contentWidgetsRef = useRef<monacoEditor.editor.IContentWidget[]>([]);
+  const overlayWidgetsRef = useRef<monacoEditor.editor.IOverlayWidget[]>([]);
 
   const [content, setContent] = useState<string>('Loading...');
 
@@ -32,12 +33,18 @@ const App: React.FC = () => {
     contentWidgetsRef.current = [];
   };
 
+  const clearOverlayWidgets = () => {
+    if (!editorRef.current) return;
+    for (const widget of overlayWidgetsRef.current) {
+      editorRef.current.removeOverlayWidget(widget);
+    }
+    overlayWidgetsRef.current = [];
+  };
+
   const handleAcceptChangeAtLine = async (line: number, acceptBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
     if (!editorRef.current) return;
     try {
-      console.log(`Accepting change at line ${line}`);
       const newContent = await callCommand('accept-change', { line });
-      console.log(`New content after accepting change: ${newContent}`);
       if (typeof newContent === 'string') {
         editorRef.current.setValue(newContent);
       }
@@ -65,12 +72,45 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAcceptAll = async (acceptBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+    if (!editorRef.current) return;
+    try {
+      const newContent = await callCommand('accept-all-changes', {});
+      if (typeof newContent === 'string') {
+        editorRef.current.setValue(newContent);
+      }
+      decorateEditor(editorRef.current, monaco);
+      clearOverlayWidgets();
+      // disable the button after accepting
+      acceptBtn.disabled = true;
+    } catch (err) {
+      console.error('Failed to accept all changes:', err);
+    }
+  };
+
+  const handleRejectAll = async (rejectBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+    if (!editorRef.current) return;
+    try {
+      const newContent = await callCommand('reject-all-changes', {});
+      if (typeof newContent === 'string') {
+        editorRef.current.setValue(newContent);
+      }
+      decorateEditor(editorRef.current, monaco);
+      clearOverlayWidgets();
+      // disable the button after rejecting
+      rejectBtn.disabled = true;
+    } catch (err) {
+      console.error('Failed to reject all changes:', err);
+    }
+  };
+
   const decorateEditor = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
     editorRef.current = editor;
     const model = editor.getModel();
     if (!model) return;
 
     clearContentWidgets();
+    clearOverlayWidgets();
 
     const lines = model.getLinesContent();
     const decorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
@@ -143,11 +183,13 @@ const App: React.FC = () => {
       };
     
       const acceptAll = createButton('Accept All', ACCEPT_ICON, () =>
-        alert('✅ Accepted all changes')
-      );
+      {
+        handleAcceptAll(acceptAll, monaco);
+      });
       const rejectAll = createButton('Reject All', REJECT_ICON, () =>
-        alert('❌ Rejected all changes')
-      );
+      {
+        handleRejectAll(rejectAll, monaco);
+      });
     
       domNode.appendChild(acceptAll);
       domNode.appendChild(rejectAll);
@@ -161,7 +203,10 @@ const App: React.FC = () => {
       };
     };
 
-    editor.addOverlayWidget(createOverlayWidget());
+    const overlayWidget = createOverlayWidget();
+    editor.addOverlayWidget(overlayWidget);
+    overlayWidgetsRef.current.push(overlayWidget);
+
 
     for (let i = 0; i < lines.length; i++) {
       const lineNum = i + 1;
