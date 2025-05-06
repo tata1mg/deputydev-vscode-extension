@@ -3,6 +3,7 @@ import { ProgressBarData } from '@/types';
 import React, { useEffect, useRef, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { sendRetryEmbedding } from '@/commandApi';
+import path from 'path';
 
 interface ProgressBarProps {
   progressBars: ProgressBarData[];
@@ -10,7 +11,7 @@ interface ProgressBarProps {
 
 const ProgressBar: React.FC<ProgressBarProps> = ({ progressBars }) => {
   const { activeRepo } = useWorkspaceStore();
-  const repoName = activeRepo?.split('/').pop();
+  const repoName = activeRepo?.split(/[/\\]/).pop();
 
   const [shouldShowCompleted, setShouldShowCompleted] = useState(false);
   const prevStatusRef = useRef<string | null>(null);
