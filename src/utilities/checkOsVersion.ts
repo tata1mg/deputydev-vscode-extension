@@ -4,8 +4,9 @@ import * as vscode from 'vscode';
 
 function isNotCompatible(): boolean {
   const platform = os.platform(); // 'darwin', 'linux', 'win32', etc.
+  const arch = os.arch();
 
-  if (platform === 'win32') {
+  if (platform === 'win32' && (arch === 'arm' || arch === 'arm64')) {
     vscode.window.showWarningMessage(
       "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!",
     );
