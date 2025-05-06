@@ -15,7 +15,7 @@ export class DeputydevChangeProposer {
     this.outputChannel.info('Registering custom editor provider');
     this.vscodeContext.subscriptions.push(
       vscode.workspace.registerFileSystemProvider(
-        'deputydev-custom',
+        'ddproposed',
         new ChangeProposerFsProvider(this.fileChangeStateManager, this.outputChannel),
         { isReadonly: false },
       ),
@@ -51,7 +51,7 @@ export class DeputydevChangeProposer {
       vscode.commands.executeCommand('setContext', 'deputydev.changeProposer.hasChanges', true);
 
       const displayableUdiffUri = vscode.Uri.from({
-        scheme: 'deputydev-custom',
+        scheme: 'ddproposed',
         query: Buffer.from(repoPath).toString('base64'),
         path: `${filePath}.ddproposed`,
       });

@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChangeStateManager';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+
 
 export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>().event;
@@ -16,12 +19,29 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     return new vscode.Disposable(() => {});
   }
 
-  stat(): vscode.FileStat {
+  async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+    const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
+    const filePath = uri.path.split('.ddproposed')[0]; // Remove the `.ddproposed` suffix
+  
+    // Retrieve file state from the fileChangeStateManager
+    const fileState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
+    
+    if (!fileState) {
+      throw vscode.FileSystemError.FileNotFound(uri);
+    }
+  
+    // In a virtual file system, we simulate metadata
+    const content = fileState.currentUdiff; // Get the virtual file content
+    const size = Buffer.byteLength(content, 'utf-8'); // Calculate the size of the content
+    const mtime = Date.now(); // You can use the current time as the modification time
+    const ctime = mtime; // In a virtual FS, creation time can be the same as mtime
+  
+    // Return a virtual file stat
     return {
-      type: vscode.FileType.File,
-      ctime: 0,
-      mtime: 0,
-      size: 0,
+      type: vscode.FileType.File, // Assuming this is a file (not a directory)
+      ctime,
+      mtime,
+      size,
     };
   }
 
@@ -41,11 +61,48 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   }
 
   // The rest are no-ops
-  writeFile() {}
+  async writeFile(
+    uri: vscode.Uri,
+    content: Uint8Array,
+    options: { create: boolean; overwrite: boolean },
+  ): Promise<void> {
+    console.log('Writing file:', uri.toString());
+    const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
+    const filePath = uri.path.split('.ddproposed')[0];
+
+    const newFileContent = content.toString();
+    const updated = await this.fileChangeStateManager.updateFileStateInFileChangeStateMap(
+      filePath,
+      repoPath,
+      newFileContent,
+      filePath,
+    );
+
+    if (!updated) {
+      throw vscode.FileSystemError.Unavailable(`Could not write to file: ${uri.toString()}`);
+    }
+
+    this.outputChannel.info(`Wrote file: ${uri.toString()}`);
+
+    // write to file system using native node 
+    try {
+      await fs.writeFile(path.join(repoPath, filePath), updated.modifiedContent);
+      this.outputChannel.info(`Wrote file: ${uri.toString()}`);
+      console.log('File written successfully.');
+    } catch (err) {
+      console.error('Error writing file:', err);
+    }
+
+    // this.onDidChangeFile.fire([{ type: vscode.FileChangeType.Changed, uri }]);
+  }
   delete() {}
   rename() {}
   readDirectory(): [string, vscode.FileType][] {
     return [];
   }
-  createDirectory() {}
-}
+  createDirectory(uri: vscode.Uri): void {
+    // Since this is a virtual filesystem, we assume directories don't matter.
+    // Just log or silently ignore.
+    this.outputChannel.info(`createDirectory called for ${uri.toString()}`);
+  }}
+
