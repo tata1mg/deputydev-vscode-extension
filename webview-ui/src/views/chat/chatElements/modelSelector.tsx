@@ -2,14 +2,14 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { useEffect } from 'react';
 import { Box } from 'lucide-react';
 import { getWorkspaceState } from '@/commandApi';
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore, useChatSettingStore } from '@/stores/chatStore';
 
 const ModelSelector = () => {
   const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedModel = event.target.value;
 
     if (selectedModel) {
-      useChatStore.setState({ activeModel: selectedModel });
+      useChatSettingStore().setActiveModel(selectedModel);
     }
     // console.log("************", useChatStore.getState().activeModel)
   };
@@ -27,7 +27,7 @@ const ModelSelector = () => {
       //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
-        useChatStore.setState({ activeModel: llmModels[0]['name'] });
+        useChatSettingStore().setActiveModel(llmModels[0]["name"]);
       }
       // console.log("******active model ***********", useChatStore.getState().activeModel);
     };
@@ -37,8 +37,8 @@ const ModelSelector = () => {
   const selectElement = (
     <div className="relative w-full">
       <select
-        className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-xs focus:outline-none"
-        value={useChatStore.getState().activeModel}
+        className="w-[110px] cursor-pointer bg-inherit text-xs text-ellipsis whitespace-nowrap focus:outline-none appearance-none pl-6"
+        value={useChatSettingStore().activeModel}
         onChange={handleChange}
       >
         {useChatStore.getState().llmModels.length !== 0 ? (
