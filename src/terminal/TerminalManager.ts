@@ -93,6 +93,7 @@ export class TerminalManager {
   private terminalIds: Set<number> = new Set();
   private processes: Map<number, TerminalProcess> = new Map();
   private disposables: vscode.Disposable[] = [];
+  private shellIntegrationTimeout: number = 4000;
   private context: vscode.ExtensionContext;
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -145,13 +146,20 @@ export class TerminalManager {
       process.run(terminalInfo.terminal, command);
     } else {
       // docs recommend waiting 3s for shell integration to activate
-      pWaitFor(() => terminalInfo.terminal.shellIntegration !== undefined, { timeout: 4000 }).finally(() => {
-        const existingProcess = this.processes.get(terminalInfo.id);
-        if (existingProcess && existingProcess.waitForShellIntegration) {
-          existingProcess.waitForShellIntegration = false;
-          existingProcess.run(terminalInfo.terminal, command);
-        }
-      });
+      pWaitFor(() => terminalInfo.terminal.shellIntegration !== undefined, {
+        timeout: this.shellIntegrationTimeout,
+      })
+        .then(() => {})
+        .catch(() => {})
+        .finally(() => {
+          const existingProcess = this.processes.get(terminalInfo.id);
+
+          if (existingProcess && existingProcess.waitForShellIntegration) {
+            existingProcess.waitForShellIntegration = false;
+
+            existingProcess.run(terminalInfo.terminal, command);
+          }
+        });
     }
 
     return mergePromise(process, promise);
@@ -219,5 +227,9 @@ export class TerminalManager {
     this.processes.clear();
     this.disposables.forEach((disposable) => disposable.dispose());
     this.disposables = [];
+  }
+
+  setShellIntegrationTimeout(timeout: number): void {
+    this.shellIntegrationTimeout = timeout * 1000; // Convert to milliseconds
   }
 }
