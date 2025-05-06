@@ -94,7 +94,7 @@ export class InlineChatEditManager {
             const codeActions: vscode.CodeAction[] = [];
 
             const platform = os.platform();
-            const actionChatText = platform === 'darwin' ? "Chat using DeputyDev ⌘ L" : "Chat using DeputyDev ctrl L"
+            const actionChatText = platform === 'darwin' ? 'Chat using DeputyDev ⌘ L' : 'Chat using DeputyDev ctrl L';
 
             const actionChat = new vscode.CodeAction(actionChatText, vscode.CodeActionKind.QuickFix);
             actionChat.command = {
@@ -107,7 +107,8 @@ export class InlineChatEditManager {
             const isFile = document.uri.scheme === 'file';
             const readOnly = isFile && isReadOnly(document.uri.fsPath);
 
-            const actionEditText = platform === 'darwin' ? "Modify using DeputyDev ⌘ I" : "Modify using DeputyDev ctrl I"
+            const actionEditText =
+              platform === 'darwin' ? 'Modify using DeputyDev ⌘ I' : 'Modify using DeputyDev ctrl I';
 
             if (isNonWhitespace && (!isFile || !readOnly)) {
               const actionEdit = new vscode.CodeAction(actionEditText, vscode.CodeActionKind.QuickFix);
