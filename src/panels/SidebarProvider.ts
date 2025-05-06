@@ -32,6 +32,7 @@ import { getShell } from '../terminal/utils/shell';
 import { FeedbackService } from '../services/feedback/feedbackService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import * as fs from 'fs';
 import { getOSName } from '../utilities/osName';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
@@ -136,13 +137,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.codeReferenceService.urlSearch(data, sendMessage);
           break;
         case 'get-saved-urls':
-          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          promise = this.codeReferenceService.getSavedUrls(data, sendMessage);
           break;
         case 'save-url':
           promise = this.codeReferenceService.saveUrl(data, sendMessage);
           break;
         case 'delete-saved-url':
-          promise = this.codeReferenceService.deleteSavedUrl(data.id, sendMessage);
+          promise = this.codeReferenceService.deleteSavedUrl(data, sendMessage);
           break;
         case 'update-saved-url':
           promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
@@ -170,6 +171,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'open-requested-browser-page':
           promise = this.openBrowserPage(data);
+          break;
+        case 'save-settings':
+          promise = this.configManager.saveSettings(data);
+          break;
+
+        case 'initialize-settings':
+          promise = this.configManager.initializeSettings(sendMessage);
           break;
 
         // Feedback
@@ -263,7 +271,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.createNewWorkspace(data.tool_use_id);
           break;
         case 'accept-terminal-command':
-          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id, command: data.command });
+          this.chatService._onTerminalApprove.fire({
+            toolUseId: data.tool_use_id,
+            command: data.command,
+          });
           break;
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
@@ -275,6 +286,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'open-file':
           this.openFile(data.path);
+          break;
+
+        case 'open-or-create-file':
+          this.openOrCreateFileByAbsolutePath(data.path);
           break;
 
         case 'check-diff-applicable': {
@@ -500,6 +515,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
+    }
+  }
+
+  private async openOrCreateFileByAbsolutePath(filePath: string) {
+    const uri = vscode.Uri.file(filePath);
+    try {
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, '');
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
     }
   }
 

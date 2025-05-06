@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect } from 'react';
-import { sendWebviewFocusState, webviewInitialized } from '@/commandApi';
+import { sendWebviewFocusState, webviewInitialized, initializeSettings } from '@/commandApi';
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -25,6 +25,7 @@ function App() {
   useEffect(() => {
     // Send a message to the extension host when the webview is initialized
     webviewInitialized();
+    initializeSettings();
     function handleMessage(event: MessageEvent) {
       const response = event.data || {};
 
@@ -67,9 +68,9 @@ function App() {
     case 'profile':
       view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Profile /> : <Auth />;
       break;
-    // case 'setting':
-    //   view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
-    //   break;
+    case 'setting':
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Setting /> : <Auth />;
+      break;
     case 'loader':
       view = <Loader />;
       break;

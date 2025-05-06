@@ -105,6 +105,11 @@
         "icon": "$(history)"
       },
       {
+        "command": "deputydev.SettingsButtonClick",
+        "title": "Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "deputydev.UserProfile",
         "title": "Profile",
         "icon": "$(account)"
@@ -153,6 +158,11 @@
           "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@3"
+        },
+        {
+          "command": "deputydev.SettingsButtonClick",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
+          "group": "navigation@4"
         },
         {
           "command": "deputydev.ViewLogs",
