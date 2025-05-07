@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { ChatTypeToggle } from '../chat/chatElements/chatTypeToggle';
 import {
   X,
@@ -94,11 +94,24 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, childre
 const EditRulesButton: React.FC = () => {
   const { workspaceRepos } = useWorkspaceStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(true);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const toggleDropdown = () => {
-    setIsOpen(!isOpen);
+    setIsOpen((prev) => !prev);
   };
+
+  useLayoutEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceLeft = rect.left;
+      if (spaceLeft < 100) {
+        setAlignRight(false);
+      } else {
+        setAlignRight(true);
+      }
+    }
+  }, [isOpen]);
 
   const handleRepoClick = (repoPath: string) => {
     setIsOpen(false);
@@ -118,7 +131,11 @@ const EditRulesButton: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-10 mt-2 w-64 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg">
+        <div
+          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${
+            alignRight ? 'right-0' : 'left-0'
+          }`}
+        >
           <ul className="py-1 text-sm text-[--vscode-editor-foreground]">
             {workspaceRepos.map((repo, index) => (
               <li
@@ -508,7 +525,7 @@ const Setting = () => {
             "When 'Act' mode is turned on. DeputyDev will be able to make changes to your code."
           }
         >
-          <ChatTypeToggle chatType={chatType} setChatType={setChatType} />
+          <ChatTypeToggle chatType={chatType} setChatType={setChatType} isSetting={true} />
         </SettingsCard>
         <SettingsCard
           title="DeputyDev Configuration Rules"
