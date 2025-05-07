@@ -114,7 +114,7 @@ const EditRulesButton: React.FC = () => {
         className="flex items-center gap-1 rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
       >
         <Pencil className="h-4 w-4" />
-        Edit Rules
+        Edit DeputyDev Rules
       </button>
 
       {isOpen && (
@@ -503,7 +503,7 @@ const Setting = () => {
           General Settings
         </h3>
         <SettingsCard
-          title="DeputyDev Default Behavior"
+          title="Default Mode"
           description={
             "When 'Act' mode is turned on. DeputyDev will be able to make changes to your code."
           }
@@ -511,9 +511,9 @@ const Setting = () => {
           <ChatTypeToggle chatType={chatType} setChatType={setChatType} />
         </SettingsCard>
         <SettingsCard
-          title="DeputyDev Configuration Rules"
+          title="DeputyDev Rules"
           description={
-            'Set DeputyDev rules that will be used as a contract for DeputyDev to follow. Each repository to have its own rules.'
+            'Set DeputyDev rules that will be used as context for DeputyDev. Each repository to have its own rules.'
           }
         >
           <EditRulesButton />
@@ -527,7 +527,7 @@ const Setting = () => {
           Terminal Settings
         </h3>
         <SettingsCard
-          title="Enable/Disable YOLO Mode"
+          title="Enable YOLO Mode"
           description={
             'Allow DeputyDev to execute commands in the terminal without asking for confirmation.'
           }
