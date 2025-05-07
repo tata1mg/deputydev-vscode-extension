@@ -799,7 +799,7 @@ export const useChatSettingStore = create(
     {
       name: 'chat-type-storage',
       storage: persistGlobalStorage,
-      partialize: (state) => pick(state, ['chatType', 'chatSource']),
+      partialize: (state) => pick(state, ['chatType', 'chatSource', 'activeModel']),
     }
   )
 );
