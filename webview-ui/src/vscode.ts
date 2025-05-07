@@ -213,15 +213,17 @@ export function removeCommandEventListener(command: string, listener: EventListe
 }
 
 addCommandEventListener('new-chat', async () => {
-  useChatSettingStore.setState({
-    chatSource: 'new-chat',
-  });
-
   const currentViewType = useExtensionStore.getState().viewType;
-
+  const currentDefaultChatType = useSettingsStore.getState().chatType;
   if (currentViewType !== 'chat') {
     useExtensionStore.setState({ viewType: 'chat' });
   } else {
+    useChatSettingStore.setState({
+      chatSource: 'new-chat',
+    });
+    useChatSettingStore.setState({
+      chatType: currentDefaultChatType,
+    });
     useChatStore.getState().clearChat();
     callCommand('delete-session-id', null);
   }

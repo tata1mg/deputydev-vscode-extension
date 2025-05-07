@@ -5,6 +5,7 @@ import { useThemeStore } from '@/stores/useThemeStore';
 interface ChatTypeToggleProps {
   chatType?: 'ask' | 'write';
   setChatType?: (type: 'ask' | 'write') => void;
+  isSetting?: boolean;
 }
 
 function ChatTypeToggle(props: ChatTypeToggleProps) {
@@ -58,7 +59,7 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
             setChatType('ask');
           }
         }}
-        disabled={isLoading || chatType === 'ask'}
+        disabled={!props.isSetting && (isLoading || chatType === 'ask')}
         aria-pressed={chatType === 'ask'}
       >
         Chat
@@ -73,7 +74,7 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
             setChatType('write');
           }
         }}
-        disabled={isLoading || chatType === 'write'}
+        disabled={!props.isSetting && (isLoading || chatType === 'write')}
         aria-pressed={chatType === 'write'}
       >
         Act
