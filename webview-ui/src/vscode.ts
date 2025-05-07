@@ -215,6 +215,12 @@ export function removeCommandEventListener(command: string, listener: EventListe
 addCommandEventListener('new-chat', async () => {
   const currentViewType = useExtensionStore.getState().viewType;
   const currentDefaultChatType = useSettingsStore.getState().chatType;
+  const history = useChatStore.getState().history;
+  if (history.length === 0) {
+    useChatSettingStore.setState({
+      chatType: currentDefaultChatType,
+    });
+  }
   if (currentViewType !== 'chat') {
     useExtensionStore.setState({ viewType: 'chat' });
   } else {

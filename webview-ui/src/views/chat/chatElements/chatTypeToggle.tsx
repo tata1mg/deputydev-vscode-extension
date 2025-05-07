@@ -55,7 +55,7 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
         type="button"
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'ask' ? activeFg : inactiveFg} `}
         onClick={() => {
-          if (!isLoading) {
+          if (!isLoading || props.isSetting) {
             setChatType('ask');
           }
         }}
@@ -70,7 +70,7 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
         type="button"
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'write' ? activeFg : inactiveFg} `}
         onClick={() => {
-          if (!isLoading) {
+          if (!isLoading || props.isSetting) {
             setChatType('write');
           }
         }}
