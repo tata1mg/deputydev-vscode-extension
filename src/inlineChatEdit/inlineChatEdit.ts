@@ -17,6 +17,8 @@ import { AuthService } from '../services/auth/AuthService';
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
+  llm_model: string;
+  search_web: boolean;
   code_selection: {
     selected_text?: string;
     file_path?: string;
@@ -245,7 +247,20 @@ export class InlineChatEditManager {
       vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
         this.outputChannel.info('Now inside edit feature.....');
         this.active_repo = getActiveRepo();
+
+        //Getting search web value from chat storage
+        const chatStorage = this.context.workspaceState.get('chat-storage') as string;
+        const parsedChatStorage = JSON.parse(chatStorage);
+        const search_web = parsedChatStorage?.state?.search_web;
+
+        //Getting active model value from chat type storage
+        const chatTypeStorage = this.context.globalState.get('chat-type-storage') as string;
+        const parsedChatTypeStorage = JSON.parse(chatTypeStorage);
+        const llm_model = parsedChatTypeStorage?.state?.activeModel;
+
         const payloadForInlineEdit: InlineEditPayload = {
+          llm_model: llm_model ? llm_model : "CLAUDE_3_POINT_5_SONNET",
+          search_web: search_web ? search_web : false,
           query: reply.text,
           relevant_chunks: [],
           code_selection: {

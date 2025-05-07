@@ -27,7 +27,9 @@ const ModelSelector = () => {
       //   ];
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
-        useChatSettingStore.setState({activeModel: llmModels[0]['name']});
+        if (useChatSettingStore.getState().activeModel === '') {
+          useChatSettingStore.setState({activeModel: llmModels[0]['name']});
+        }
       }
       // console.log("******active model ***********", useChatSettingStore.getState().activeModel);
     };
