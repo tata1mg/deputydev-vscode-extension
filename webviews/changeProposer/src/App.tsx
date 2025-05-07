@@ -207,6 +207,7 @@ const App: React.FC = () => {
     editor.addOverlayWidget(overlayWidget);
     overlayWidgetsRef.current.push(overlayWidget);
 
+    const uneditableLines = new Set<number>();
 
     for (let i = 0; i < lines.length; i++) {
       const lineNum = i + 1;
@@ -218,6 +219,7 @@ const App: React.FC = () => {
           options: { isWholeLine: true, className: 'plus-line' },
         });
       } else if (line.startsWith('-')) {
+        uneditableLines.add(lineNum);
         decorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'minus-line' },
@@ -234,6 +236,35 @@ const App: React.FC = () => {
     }
 
     editor.createDecorationsCollection(decorations);
+
+    editor.onKeyDown((e) => {
+      const position = editor.getPosition();
+      if (position && uneditableLines.has(position.lineNumber)) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    
+    editor.onMouseDown((e) => {
+      const position = e.target.position;
+      if (position && uneditableLines.has(position.lineNumber)) {
+        e.event.preventDefault();
+        e.event.stopPropagation();
+      }
+    });
+    
+    editor.onDidPaste((e) => {
+      const selection = editor.getSelection();
+      if (!selection) return;
+      const { startLineNumber, endLineNumber } = selection;
+      for (let i = startLineNumber; i <= endLineNumber; i++) {
+        if (uneditableLines.has(i)) {
+          // cancel the paste
+          editor.trigger('keyboard', 'undo', null);
+          break;
+        }
+      }
+    });
   };
 
   return (
