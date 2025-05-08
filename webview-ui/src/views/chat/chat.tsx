@@ -147,7 +147,6 @@ export function ChatUI() {
       await sendChatMessage(message, editorReferences, () => {});
     } catch (error) {
       // Handle error if needed
-      console.error('Error sending message:', error);
     }
   };
 

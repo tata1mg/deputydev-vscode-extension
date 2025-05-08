@@ -151,9 +151,22 @@ export const useChatStore = create(
               }
 
               // Remove any error messages from history
-              set((state) => ({
-                history: state.history.filter((msg) => msg.type !== 'ERROR'),
-              }));
+              // Update CODE_BLOCK_STREAMING message status to 'aborted' if pending
+              set((state) => {
+                const newHistory = [...state.history];
+                const lastMsg = newHistory[newHistory.length - 1];
+                if (lastMsg?.type === 'CODE_BLOCK_STREAMING' && lastMsg.status === 'pending') {
+                  newHistory[newHistory.length - 1] = {
+                    ...lastMsg,
+                    status: 'aborted',
+                  };
+                }
+
+                // Remove any error messages
+                return {
+                  history: newHistory.filter((msg) => msg.type !== 'ERROR'),
+                };
+              });
 
               set({
                 isLoading: true,
@@ -751,6 +764,13 @@ export const useChatStore = create(
                         ? false
                         : toolMsg.content.terminal_approval_required,
                   },
+                };
+              }
+              //  Abort pending CODE_BLOCK_STREAMING messages
+              if (lastMsg?.type === 'CODE_BLOCK_STREAMING' && lastMsg.status === 'pending') {
+                newHistory[newHistory.length - 1] = {
+                  ...lastMsg,
+                  status: 'aborted',
                 };
               }
 
