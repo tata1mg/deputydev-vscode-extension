@@ -21,6 +21,7 @@ import {
   ProgressBarData,
   ChatTerminalNoShell,
   ChatMetaData,
+  LLMModels,
 } from '@/types';
 
 // =============================================================================
@@ -91,6 +92,10 @@ export const useChatStore = create(
         selectedOptionIndex: -1,
         enhancingUserQuery: false,
         enhancedUserQuery: '',
+        llmModels: [] as LLMModels[],
+        webSearchInToolUse: false,
+        activeModel: '',
+        search_web: false,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -170,6 +175,8 @@ export const useChatStore = create(
 
               // Build the payload
               const payload: any = {
+                search_web: useChatStore.getState().search_web,
+                llm_model: useChatSettingStore.getState().activeModel,
                 query: message,
                 urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,
@@ -798,6 +805,7 @@ export const useChatSettingStore = create(
       {
         chatType: 'ask' as ChatType,
         chatSource: 'chat' as string,
+        activeModel: '',
       },
       (set) => ({
         setChatType(nextChatType: ChatType) {
@@ -811,7 +819,7 @@ export const useChatSettingStore = create(
     {
       name: 'chat-type-storage',
       storage: persistGlobalStorage,
-      partialize: (state) => pick(state, ['chatType', 'chatSource']),
+      partialize: (state) => pick(state, ['chatType', 'chatSource', 'activeModel']),
     }
   )
 );

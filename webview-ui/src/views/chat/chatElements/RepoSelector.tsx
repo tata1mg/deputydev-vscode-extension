@@ -21,7 +21,7 @@ const RepoSelector = () => {
   };
 
   // Common class names for the wrapper div
-  const wrapperBaseClasses = `relative inline-flex w-fit items-center gap-1 px-1 py-0.5 rounded text-sm border border-[--vscode-commandCenter-inactiveBorder]`;
+  const wrapperBaseClasses = `relative inline-flex w-[107px] items-center gap-1 px-1 py-0.5 text-sm`;
   // Conditional classes based on the disabled state
   const wrapperConditionalClasses = disableRepoSelector
     ? 'opacity-50 p-0 cursor-not-allowed' // Disabled styles
@@ -29,7 +29,7 @@ const RepoSelector = () => {
 
   const selectElement = (
     <select
-      className="w-full cursor-pointer bg-inherit text-xs focus:outline-none"
+      className="w-full cursor-pointer text-ellipsis whitespace-nowrap bg-inherit text-xs focus:outline-none"
       value={activeRepo || ''}
       onChange={handleChange}
       disabled={disableRepoSelector}

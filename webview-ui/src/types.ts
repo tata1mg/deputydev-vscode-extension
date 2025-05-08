@@ -265,3 +265,9 @@ export interface URLListItem {
   url: string;
   last_indexed: string;
 }
+
+export interface LLMModels {
+  id: number;
+  display_name: string;
+  name: string;
+}
