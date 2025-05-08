@@ -258,27 +258,9 @@ const App: React.FC = () => {
       },
     });
 
-    // editor.addCommand(monaco.KeyCode.Enter, () => {
-    //   const editor = editorRef.current;
-    //   if (!editor) return;
-    //   const pos = editor.getPosition();
-    //   const model = editor.getModel();
-    //   if (!pos || !model) return;
-    
-    //   const line = model.getLineContent(pos.lineNumber);
-    //   if (line.startsWith('+')) {
-    //     editor.executeEdits('', [{
-    //       range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
-    //       text: '\n+',
-    //       forceMoveMarkers: true,
-    //     }]);
-    //     decorateEditor(editor, monaco);
-    //   } else {
-    //     editor.trigger('keyboard', 'type', { text: '\n ' });
-    //   }
-    // });
+    editor.onDidChangeModelContent((e) => {
+      console.log('Model content changed:', e);
 
-    editor.onDidChangeModelContent(() => {
     });
 
     editor.onKeyDown((e) => {
@@ -293,6 +275,14 @@ const App: React.FC = () => {
       console.log('keycode', e.keyCode);
     
       const isSingleLine = startLineNumber === endLineNumber;
+      const currentLineContent = model.getLineContent(startLineNumber);
+
+      const position = editor.getPosition();
+      if ((position && position.column === 1) || (currentLineContent.startsWith('-'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
     
       // Block backspace at column 2
       if (
@@ -362,16 +352,6 @@ const App: React.FC = () => {
           e.stopPropagation();
           return;
         }
-      }
-
-      const position = editor.getPosition();
-      if (position && position.column === 1) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      if (position && uneditableLines.has(position.lineNumber)) {
-        e.preventDefault();
-        e.stopPropagation();
       }
     });
     
