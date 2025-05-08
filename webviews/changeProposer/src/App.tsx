@@ -208,12 +208,14 @@ const App: React.FC = () => {
     overlayWidgetsRef.current.push(overlayWidget);
 
     const uneditableLines = new Set<number>();
+    const insertedLines = new Set<number>();
 
     for (let i = 0; i < lines.length; i++) {
       const lineNum = i + 1;
       const line = lines[i];
 
       if (line.startsWith('+')) {
+        insertedLines.add(lineNum);
         decorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'plus-line' },
@@ -250,6 +252,84 @@ const App: React.FC = () => {
         }
         return null;
       },
+    });
+
+    editor.addCommand(monaco.KeyCode.Enter, () => {
+      const position = editor.getPosition();
+      if (!position) return;
+    
+      const model = editor.getModel();
+      if (!model) return;
+    
+      const lineContent = model.getLineContent(position.lineNumber);
+    
+      if (lineContent.startsWith('+')) {
+        const indent = lineContent.match(/^(\+[\s]*)/)?.[1] || '+';
+        const newText = `\n${indent}`;
+        editor.executeEdits('', [{
+          range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+          text: newText,
+          forceMoveMarkers: true,
+        }]);
+      } else {
+        // Default behavior if not on a green line
+        editor.trigger('keyboard', 'type', { text: '\n' });
+      }
+    });
+
+    editor.addCommand(monaco.KeyCode.Enter, () => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const pos = editor.getPosition();
+      const model = editor.getModel();
+      if (!pos || !model) return;
+    
+      const line = model.getLineContent(pos.lineNumber);
+      if (line.startsWith('+')) {
+        const indent = line.match(/^(\+[\s]*)/)?.[1] ?? '+';
+        editor.executeEdits('', [{
+          range: new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column),
+          text: '\n' + indent,
+          forceMoveMarkers: true,
+        }]);
+        decorateEditor(editor, monaco);
+      } else {
+        editor.trigger('keyboard', 'type', { text: '\n' });
+      }
+    });
+
+    editor.onDidChangeModelContent(() => {
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      const model = editor.getModel();
+      if (!model) return;
+    
+      const lines = model.getLinesContent();
+      const newLines: string[] = [];
+    
+      for (let i = 0; i < lines.length; i++) {
+        const curr = lines[i];
+    
+        // Check if this line is between two '+' lines
+        const prev = lines[i - 1] ?? '';
+        const next = lines[i + 1] ?? '';
+    
+        const shouldPrefix =
+        !curr.startsWith('+') &&
+        curr.trim() !== '' && // Only reinsert + if line isn't empty
+        prev.startsWith('+') &&
+        next.startsWith('+');
+    
+        newLines.push(shouldPrefix ? '+' + curr : curr);
+      }
+    
+      const updated = newLines.join('\n');
+      if (updated !== model.getValue()) {
+        // Avoid triggering infinite loop
+        editor.setValue(updated);
+        decorateEditor(editor, monaco);
+      }
     });
 
     editor.onKeyDown((e) => {
