@@ -267,7 +267,7 @@ export class InlineChatEditManager {
         const llm_model = parsedChatTypeStorage?.state?.activeModel;
 
         const payloadForInlineEdit: InlineEditPayload = {
-          llm_model: llm_model ? llm_model : "CLAUDE_3_POINT_5_SONNET",
+          llm_model: llm_model ? llm_model : 'CLAUDE_3_POINT_5_SONNET',
           search_web: search_web ? search_web : false,
           query: reply.text,
           relevant_chunks: [],
