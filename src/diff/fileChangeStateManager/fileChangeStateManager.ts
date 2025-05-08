@@ -56,8 +56,8 @@ export class FileChangeStateManager {
         modifiedContent += line.substring(1) + lineEol;
       } else {
         // Context lines are added to both original and modified content
-        originalContent += line + lineEol;
-        modifiedContent += line + lineEol;
+        originalContent += line.substring(1) + lineEol;
+        modifiedContent += line.substring(1) + lineEol;
       }
     }
     return {
@@ -437,6 +437,28 @@ export class FileChangeStateManager {
     // now, get the new udiff
     const newUdiff = newUdiffLines.join(lineEol);
 
+    // now, set the new udiff in the fileChangeStateMap
+    const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
+    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+      ...fileChangeState,
+      currentUdiff: newUdiff,
+      originalContent: originalAndModifiedContent.originalContent,
+      modifiedContent: originalAndModifiedContent.modifiedContent,
+    });
+
+    // return the new udiff
+    return newUdiff;
+  };
+
+  public changeUdiffContent = async (
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+    newUdiff: string, // new udiff content
+  ): Promise<string> => {
+    const fileChangeState = this.fileChangeStateMap.get(path.join(repoPath, filePath));
+    if (!fileChangeState) {
+      throw new Error(`File change state not found for ${filePath}`);
+    }
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
     this.fileChangeStateMap.set(path.join(repoPath, filePath), {

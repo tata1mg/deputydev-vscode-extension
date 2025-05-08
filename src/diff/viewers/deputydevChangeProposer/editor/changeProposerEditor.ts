@@ -134,6 +134,16 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           }
           break;
         }
+        case 'content-changed': {
+          const currentEditorContent = message.data.content;
+          const newContent = await this.fileChangeStateManager.changeUdiffContent(document.filePath, document.repoPath, currentEditorContent);
+          webviewPanel.webview.postMessage({
+            id: message.id,
+            command: 'result',
+            data: newContent,
+          });
+          break;
+        }
         default: {
           console.log('Unknown message received:', message);
           break;

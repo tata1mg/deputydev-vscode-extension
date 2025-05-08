@@ -259,8 +259,11 @@ const App: React.FC = () => {
     });
 
     editor.onDidChangeModelContent((e) => {
-      console.log('Model content changed:', e);
-
+      // send event to vscode
+      const model = editor.getModel();
+      if (!model) return;
+      const content = model.getValue();
+      callCommand('content-changed', { content });
     });
 
     editor.onKeyDown((e) => {
