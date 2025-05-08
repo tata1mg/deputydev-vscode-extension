@@ -1,5 +1,14 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop } from 'lucide-react';
+import {
+  Check,
+  Sparkles,
+  CornerDownLeft,
+  Loader2,
+  CircleStop,
+  Globe,
+  Image,
+  AtSign,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
@@ -27,6 +36,7 @@ import '../../styles/markdown-body.css';
 import { AutocompleteMenu } from './autocomplete';
 import ProgressBar from './chatElements/progressBar';
 import ReferenceChip from './referencechip';
+import ModelSelector from './chatElements/modelSelector';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -72,6 +82,10 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
+
+  const handleGlobeToggle = () => {
+    useChatStore.setState({ search_web: !useChatStore.getState().search_web });
+  };
 
   useEffect(() => {
     const handleCopy = () => {
@@ -480,7 +494,59 @@ export function ChatUI() {
               />
             </div>
 
-            <div className="absolute bottom-2 right-2.5 flex items-center gap-2">
+            <div className="absolute bottom-1 left-1 flex items-center gap-1">
+              <RepoSelector />
+            </div>
+
+            <div className="absolute bottom-1 right-2.5 flex items-center gap-1">
+              <button
+                className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content="Add Context"
+                data-tooltip-place="top-start"
+                onClick={() => {
+                  const textarea = textareaRef.current;
+                  if (textarea) {
+                    // Set the value and move cursor
+                    textarea.value = '@';
+                    textarea.setSelectionRange(1, 1);
+                    textarea.focus();
+
+                    // Update store and trigger change handler
+                    useChatStore.setState({ userInput: '@' });
+                    handleTextAreaChange({
+                      target: {
+                        value: '@',
+                      },
+                    } as React.ChangeEvent<HTMLTextAreaElement>);
+                  }
+                }}
+              >
+                <AtSign className="h-4 w-4" />
+              </button>
+
+              <button
+                className={`flex items-center justify-center rounded p-1 ${
+                  useChatStore.getState().search_web
+                    ? 'bg-blue-500 text-white hover:bg-blue-600'
+                    : 'hover:bg-slate-400 hover:bg-opacity-10'
+                }`}
+                onClick={handleGlobeToggle}
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
+                data-tooltip-place="top-start"
+              >
+                <Globe className="h-4 w-4" />
+              </button>
+
+              {/* <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                data-tooltip-id="sparkles-tooltip"
+                data-tooltip-content="Upload image"
+                data-tooltip-place="top-start"
+              >
+                <Image className="h-4 w-4" />
+              </button> */}
+
               {enhancingUserQuery ? (
                 <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -528,7 +594,7 @@ export function ChatUI() {
 
         {/* Chat Type Toggle and RepoSelector */}
         <div className="flex items-center justify-between gap-2 text-xs">
-          <RepoSelector />
+          <ModelSelector />
           <ChatTypeToggle />
         </div>
       </div>
