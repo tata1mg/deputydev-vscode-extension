@@ -80,7 +80,7 @@ const ModelSelector = () => {
               border: '1px solid var(--vscode-editorHoverWidget-border)',
             }}
           >
-            Change Model
+            Choose Model
             <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
           </Tooltip.Content>
         </Tooltip.Portal>
