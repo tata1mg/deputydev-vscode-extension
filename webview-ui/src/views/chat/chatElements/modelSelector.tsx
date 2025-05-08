@@ -9,7 +9,7 @@ const ModelSelector = () => {
     const selectedModel = event.target.value;
 
     if (selectedModel) {
-      useChatSettingStore.setState({activeModel: selectedModel});
+      useChatSettingStore.setState({ activeModel: selectedModel });
     }
     // console.log("************", useChatSettingStore.getState().activeModel)
   };
@@ -28,7 +28,7 @@ const ModelSelector = () => {
       if (llmModels.length !== 0) {
         useChatStore.setState({ llmModels: llmModels });
         if (useChatSettingStore.getState().activeModel === '') {
-          useChatSettingStore.setState({activeModel: llmModels[0]['name']});
+          useChatSettingStore.setState({ activeModel: llmModels[0]['name'] });
         }
       }
       // console.log("******active model ***********", useChatSettingStore.getState().activeModel);
