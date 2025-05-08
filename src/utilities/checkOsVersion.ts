@@ -8,7 +8,7 @@ function isNotCompatible(): boolean {
 
   if (platform === 'win32' && (arch === 'arm' || arch === 'arm64')) {
     vscode.window.showWarningMessage(
-      "Windows support coming soon! DeputyDev is currently MacOS-only, but we're working hard to expand. Stay tuned!",
+      "DeputyDev is now available on Windows (x64)! ARM-based Windows devices aren't supported yet—but we're working on it. Stay tuned!",
     );
     return true;
   }
