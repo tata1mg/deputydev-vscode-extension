@@ -51,12 +51,12 @@ export class ReferenceManager {
     });
   }
 
-  async getSavedUrls(sendMessage: (message: object) => void) {
-    const response = await this.referenceService.getSavedUrls();
+  async getSavedUrls(data: { isSettings?: boolean }, sendMessage: (message: object) => void) {
+    const response = await this.referenceService.getSavedUrls(data.isSettings);
     this.outputChannel.info('getSavedUrls-response', response);
     sendMessage({
       id: uuidv4(),
-      command: 'get-saved-urls-response',
+      command: data.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
@@ -66,37 +66,40 @@ export class ReferenceManager {
     this.outputChannel.info('saveUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: 'get-saved-urls-response',
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async deleteSavedUrl(id: string, sendMessage: (message: object) => void) {
-    const response = await this.referenceService.deleteSavedUrl(id);
+  async deleteSavedUrl(data: { id: string; isSettings?: boolean }, sendMessage: (message: object) => void) {
+    const response = await this.referenceService.deleteSavedUrl(data);
     this.outputChannel.info('deleteSavedUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: 'get-saved-urls-response',
+      command: data.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async updateSavedUrl(payload: { id: string; name: string }, sendMessage: (message: object) => void) {
+  async updateSavedUrl(
+    payload: { id: string; name: string; isSettings?: boolean },
+    sendMessage: (message: object) => void,
+  ) {
     const response = await this.referenceService.updateSavedUrl(payload);
     this.outputChannel.info('updateSavedUrl-response', response);
     sendMessage({
       id: uuidv4(),
-      command: 'get-saved-urls-response',
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }
 
-  async urlSearch(payload: { keyword: string }, sendMessage: (message: object) => void) {
+  async urlSearch(payload: { keyword: string; isSettings?: boolean }, sendMessage: (message: object) => void) {
     const response = await this.referenceService.urlSearch(payload);
     this.outputChannel.info('urlSearch-response', response);
     sendMessage({
       id: uuidv4(),
-      command: 'get-saved-urls-response',
+      command: payload.isSettings ? 'get-saved-urls-response-settings' : 'get-saved-urls-response',
       data: response.urls,
     });
   }

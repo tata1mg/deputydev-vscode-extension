@@ -2,10 +2,18 @@
 import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 
-function ChatTypeToggle() {
+interface ChatTypeToggleProps {
+  chatType?: 'ask' | 'write';
+  setChatType?: (type: 'ask' | 'write') => void;
+  isSetting?: boolean;
+}
+
+function ChatTypeToggle(props: ChatTypeToggleProps) {
   const { isLoading } = useChatStore();
-  const { chatType, setChatType } = useChatSettingStore();
+  const store = useChatSettingStore();
   const { themeKind } = useThemeStore();
+  const chatType = props.chatType ?? store.chatType;
+  const setChatType = props.setChatType ?? store.setChatType;
 
   const borderClass =
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
@@ -47,11 +55,11 @@ function ChatTypeToggle() {
         type="button"
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'ask' ? activeFg : inactiveFg} `}
         onClick={() => {
-          if (!isLoading) {
+          if (!isLoading || props.isSetting) {
             setChatType('ask');
           }
         }}
-        disabled={isLoading || chatType === 'ask'}
+        disabled={!props.isSetting && (isLoading || chatType === 'ask')}
         aria-pressed={chatType === 'ask'}
       >
         Chat
@@ -62,11 +70,11 @@ function ChatTypeToggle() {
         type="button"
         className={`relative z-20 flex h-full w-1/2 cursor-pointer items-center justify-center font-medium transition-colors duration-200 ease-in-out ${chatType === 'write' ? activeFg : inactiveFg} `}
         onClick={() => {
-          if (!isLoading) {
+          if (!isLoading || props.isSetting) {
             setChatType('write');
           }
         }}
-        disabled={isLoading || chatType === 'write'}
+        disabled={!props.isSetting && (isLoading || chatType === 'write')}
         aria-pressed={chatType === 'write'}
       >
         Act

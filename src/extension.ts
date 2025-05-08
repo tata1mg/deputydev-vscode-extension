@@ -34,7 +34,9 @@ import { isNotCompatible } from './utilities/checkOsVersion';
 import { FeedbackService } from './services/feedback/feedbackService';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { TerminalManager } from './terminal/TerminalManager';
+import { createNewWorkspaceFn } from './terminal/workspace/CreateNewWorkspace';
 import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
+import { updateTerminalSettings } from './utilities/setDefaultSettings';
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -43,6 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
   setExtensionContext(context);
 
   await clearWorkspaceStorage();
+  await updateTerminalSettings(context);
   const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
@@ -118,6 +121,7 @@ export async function activate(context: vscode.ExtensionContext) {
     feedBackService,
     userQueryEnhancerService,
     continueNewWorkspace,
+    terminalManager,
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
@@ -184,8 +188,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
 
   new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
-
-  const relevantPaths = workspaceManager.getWorkspaceRepos();
 
   // 7) Register commands for Accept/Reject etc
   //
@@ -271,8 +273,15 @@ export async function activate(context: vscode.ExtensionContext) {
   // history button click
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.HistoryButtonClick', () => {
-      outputChannel.info('Setting button clicked!');
+      outputChannel.info('History button clicked!');
       sidebarProvider.setViewType('history');
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.SettingsButtonClick', () => {
+      outputChannel.info('Settings button clicked!');
+      sidebarProvider.setViewType('setting');
     }),
   );
 

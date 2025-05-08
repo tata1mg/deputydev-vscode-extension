@@ -159,7 +159,7 @@ export interface ChatCodeBlockMessage {
   completed: boolean;
   actor: 'ASSISTANT';
   write_mode: boolean;
-  status: 'pending' | 'completed' | 'error';
+  status: 'pending' | 'completed' | 'error' | 'aborted';
 }
 
 export interface ChatErrorMessage {
@@ -248,6 +248,22 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+  isSettings?: boolean;
+}
+
+export interface Settings {
+  default_mode: 'ask' | 'write';
+  terminal_settings: {
+    enable_yolo_mode: boolean;
+    command_deny_list: string[];
+  };
+}
+
+export interface URLListItem {
+  id: string;
+  name: string;
+  url: string;
+  last_indexed: string;
 }
 
 export interface LLMModels {

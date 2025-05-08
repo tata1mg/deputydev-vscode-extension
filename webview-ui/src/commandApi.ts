@@ -1,4 +1,4 @@
-import { UsageTrackingRequest, SaveUrlRequest } from './types';
+import { UsageTrackingRequest, SaveUrlRequest, Settings } from './types';
 import { callCommand } from './vscode';
 
 // export function webviewReady() {
@@ -60,23 +60,23 @@ export function keywordTypeSearch(payload: unknown) {
   return callCommand('keyword-type-search', payload);
 }
 
-export function urlSearch(payload: { keyword: string }) {
+export function urlSearch(payload: { keyword: string; isSettings?: boolean }) {
   return callCommand('url-search', payload);
 }
 
-export function getSavedUrls() {
-  return callCommand('get-saved-urls', null);
+export function getSavedUrls(payload: { isSettings?: boolean } = {}) {
+  return callCommand('get-saved-urls', payload);
 }
 
 export function saveUrl(payload: SaveUrlRequest) {
   return callCommand('save-url', payload);
 }
 
-export function deleteSavedUrl(id: string) {
-  return callCommand('delete-saved-url', { id });
+export function deleteSavedUrl(id: string, isSettings?: boolean) {
+  return callCommand('delete-saved-url', { id, isSettings });
 }
 
-export function updateSavedUrl(payload: { id: string; name: string }) {
+export function updateSavedUrl(payload: { id: string; name: string; isSettings?: boolean }) {
   return callCommand('update-saved-url', payload);
 }
 
@@ -98,6 +98,10 @@ export function rejectFile(path: string) {
 
 export function openFile(path: string) {
   return callCommand('open-file', { path });
+}
+
+export function createOrOpenFile(path: string) {
+  return callCommand('open-or-create-file', { path });
 }
 
 // generate code
@@ -208,6 +212,10 @@ export function openBrowserPage(url: string) {
   return callCommand('open-requested-browser-page', { url });
 }
 
+export function saveSettings(data: Settings) {
+  return callCommand('save-settings', data);
+}
+
 export function signOut() {
   return callCommand('sign-out', {});
 }
@@ -236,6 +244,10 @@ export function createNewWorkspace(tool_use_id: string) {
 }
 export function editTerminalCommand(data: { user_query: string; old_command: string }) {
   return callCommand('edit-terminal-command', data);
+}
+
+export function setShellIntegrationTimeoutMessage(data: { key: string; value: unknown }) {
+  return callCommand('set-shell-integration-timeout', data);
 }
 
 export function webviewInitialized() {
