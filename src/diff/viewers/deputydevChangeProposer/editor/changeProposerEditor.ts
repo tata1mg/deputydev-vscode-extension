@@ -75,6 +75,12 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
+          // set the document as dirty
+          this._onDidChangeCustomDocument.fire({
+            document: document,
+            undo: () => {},
+            redo: () => {},
+          });
           break;
         }
         case 'reject-change': {
@@ -92,6 +98,12 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
+          // set the document as dirty
+          this._onDidChangeCustomDocument.fire({
+            document: document,
+            undo: () => {},
+            redo: () => {},
+          });
           break;
         }
         case 'accept-all-changes': {
@@ -110,6 +122,12 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
+            });
+            // set the document as dirty
+            this._onDidChangeCustomDocument.fire({
+              document: document,
+              undo: () => {},
+              redo: () => {},
             });
           }
           break;
@@ -131,16 +149,32 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
             });
+            // set the document as dirty
+            this._onDidChangeCustomDocument.fire({
+              document: document,
+              undo: () => {},
+              redo: () => {},
+            });
           }
           break;
         }
         case 'content-changed': {
           const currentEditorContent = message.data.content;
-          const newContent = await this.fileChangeStateManager.changeUdiffContent(document.filePath, document.repoPath, currentEditorContent);
+          const newContent = await this.fileChangeStateManager.changeUdiffContent(
+            document.filePath,
+            document.repoPath,
+            currentEditorContent,
+          );
           webviewPanel.webview.postMessage({
             id: message.id,
             command: 'result',
             data: newContent,
+          });
+          // set the document as dirty
+          this._onDidChangeCustomDocument.fire({
+            document: document,
+            undo: () => {},
+            redo: () => {},
           });
           break;
         }
