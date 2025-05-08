@@ -237,6 +237,21 @@ const App: React.FC = () => {
 
     editor.createDecorationsCollection(decorations);
 
+    monaco.languages.registerHoverProvider('python', {
+      provideHover: function (model, position) {
+        if (uneditableLines.has(position.lineNumber)) {
+          return {
+            range: new monaco.Range(position.lineNumber, 1, position.lineNumber, 1),
+            contents: [
+              { value: '**This line is not editable**' },
+              { value: 'Use Accept/Reject buttons to modify it.' },
+            ],
+          };
+        }
+        return null;
+      },
+    });
+
     editor.onKeyDown((e) => {
       const position = editor.getPosition();
       if (position && uneditableLines.has(position.lineNumber)) {
