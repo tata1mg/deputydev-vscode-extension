@@ -375,7 +375,9 @@ export class InlineChatEditManager {
           return;
         }
         const rawUdiffLines: string[] = raw_diff.split('\n');
-        const modifiedLinesCount = rawUdiffLines.filter((line: string) => line.startsWith('+') || line.startsWith('-')).length;
+        const modifiedLinesCount = rawUdiffLines.filter(
+          (line: string) => line.startsWith('+') || line.startsWith('-'),
+        ).length;
         const usageTrackingData: UsageTrackingRequest = {
           event: 'generated',
           properties: {

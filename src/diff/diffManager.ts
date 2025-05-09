@@ -39,8 +39,6 @@ export class DiffManager {
         vscode.window.showInformationMessage('All changes rejected.');
       }),
     );
-
-
   }
 
   // initialize the diff manager
@@ -147,7 +145,7 @@ export class DiffManager {
     applicationTrackingData: {
       usageTrackingSource: string;
       usageTrackingSessionId: number | null;
-    }
+    },
   ): Promise<boolean> => {
     this.checkInit();
     // first get the original and modified content after applying diff
