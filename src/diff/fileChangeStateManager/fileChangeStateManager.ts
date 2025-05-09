@@ -11,8 +11,8 @@ type FileChangeState = {
   modifiedContent: string; // The modified content based on the current udiff
   currentUdiff: string; // The current udiff content
   stateMetadata: {
-    usageTrackingSource: string,
-    usageTrackingSessionId: number | null, // The session ID for tracking usage
+    usageTrackingSource: string;
+    usageTrackingSessionId: number | null; // The session ID for tracking usage
   };
 };
 
@@ -139,8 +139,8 @@ export class FileChangeStateManager {
     newFileContent: string,
     newFilePath: string,
     stateMetadata: {
-      usageTrackingSource: string,
-      usageTrackingSessionId: number | null, 
+      usageTrackingSource: string;
+      usageTrackingSessionId: number | null;
     },
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
   ): Promise<{
@@ -249,7 +249,12 @@ export class FileChangeStateManager {
     return this.fileChangeStateMap.get(uri);
   };
 
-  private readonly trackUsage = async (eventName: string, eventData: {lines: number }, filePath: string, repoPath: string) => {
+  private readonly trackUsage = async (
+    eventName: string,
+    eventData: { lines: number },
+    filePath: string,
+    repoPath: string,
+  ) => {
     // track usage for the event
     const uri = path.join(repoPath, filePath);
     const fileChangeState = this.fileChangeStateMap.get(uri);
@@ -265,7 +270,6 @@ export class FileChangeStateManager {
     const usageTrackingManager = new UsageTrackingManager();
     await usageTrackingManager.trackUsage(usageTrackingData);
   };
-
 
   public acceptChangeAtLine = async (
     filePath: string, // relative path of the file from the repo

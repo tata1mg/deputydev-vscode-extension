@@ -291,9 +291,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           let usageTrackingSource;
           if (data.is_inline) {
-              usageTrackingSource = data.write_mode? 'inline-chat-act' : 'inline-chat';
+            usageTrackingSource = data.write_mode ? 'inline-chat-act' : 'inline-chat';
           } else {
-              usageTrackingSource = data.write_mode? 'act' : 'chat';
+            usageTrackingSource = data.write_mode ? 'act' : 'chat';
           }
           promise = this.diffManager.applyDiff(
             { path: data.filePath, incrementalUdiff: data.raw_diff },
@@ -301,8 +301,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             true,
             {
               usageTrackingSessionId: getSessionId() || null,
-              usageTrackingSource: usageTrackingSource, 
-            }
+              usageTrackingSource: usageTrackingSource,
+            },
           );
           break;
         }
