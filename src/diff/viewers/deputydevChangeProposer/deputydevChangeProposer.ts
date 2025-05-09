@@ -40,7 +40,7 @@ export class DeputydevChangeProposer {
   /**
    * Open a diff view for a file: calculates line-based diffs and highlights them inline.
    */
-  async openDiffView(filePath: string, repoPath: string): Promise<void> {
+  async openDiffView(filePath: string, repoPath: string, writeMode: boolean): Promise<void> {
     try {
       this.outputChannel.info(`opening diff view for: ${filePath}`);
 

@@ -358,6 +358,7 @@ export class ChatManager {
                     usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
                     usageTrackingSessionId: getSessionId() || null,
                   },
+                  payload.write_mode,
                 );
                 this.sidebarProvider?.sendMessageToSidebar({
                   id: messageId,

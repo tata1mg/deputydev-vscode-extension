@@ -90,6 +90,11 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               theme: this.getMonacoThemeKind(vscode.window.activeColorTheme.kind),
             },
           });
+
+          // save the document if file change state is in wirte mode
+          if (initialContent?.writeMode) {
+            await this.saveCustomDocument();
+          }
           break;
         }
         case 'accept-change': {

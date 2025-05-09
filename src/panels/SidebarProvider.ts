@@ -303,6 +303,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
               usageTrackingSessionId: getSessionId() || null,
               usageTrackingSource: usageTrackingSource,
             },
+            data.write_mode,
           );
           break;
         }

@@ -107,7 +107,7 @@ export class DiffManager {
     // return the new content
     return {
       originalContent,
-      newContent,
+      newContent: newContent || originalContent,
     };
   };
 
@@ -131,11 +131,11 @@ export class DiffManager {
     return originalContent !== modifiedContent;
   };
 
-  public openDiffView = async (filePath: string, repoPath: string) => {
+  public openDiffView = async (filePath: string, repoPath: string, writeMode: boolean) => {
     if (!this.deputydevChangeProposer) {
       throw new Error('DiffManager not initialized');
     }
-    await this.deputydevChangeProposer.openDiffView(filePath, repoPath);
+    await this.deputydevChangeProposer.openDiffView(filePath, repoPath, writeMode);
   };
 
   public applyDiff = async (
@@ -146,6 +146,7 @@ export class DiffManager {
       usageTrackingSource: string;
       usageTrackingSessionId: number | null;
     },
+    writeMode: boolean,
   ): Promise<boolean> => {
     this.checkInit();
     // first get the original and modified content after applying diff
@@ -157,13 +158,14 @@ export class DiffManager {
       repoPath,
       newContent,
       data.path,
+      writeMode,
       applicationTrackingData,
       originalContent,
     );
 
     if (openViewer) {
       // open the diff view
-      await this.openDiffView(data.path, repoPath);
+      await this.openDiffView(data.path, repoPath, writeMode);
     }
 
     return true;

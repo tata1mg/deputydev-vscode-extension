@@ -14,6 +14,7 @@ type FileChangeState = {
     usageTrackingSource: string;
     usageTrackingSessionId: number | null; // The session ID for tracking usage
   };
+  writeMode: boolean; // Indicates if the file is in write mode
 };
 
 export class FileChangeStateManager {
@@ -66,8 +67,16 @@ export class FileChangeStateManager {
         modifiedContent += line.substring(1) + lineEol;
       }
     }
+
+    // Remove the last line ending from the original and modified content
+    originalContent = originalContent.endsWith(lineEol)
+      ? originalContent.substring(0, originalContent.length - lineEol.length)
+      : originalContent;
+    modifiedContent = modifiedContent.endsWith(lineEol)
+      ? modifiedContent.substring(0, modifiedContent.length - lineEol.length)
+      : modifiedContent;
     return {
-      originalContent: originalContent,
+      originalContent: originalContent, 
       modifiedContent: modifiedContent,
     };
   };
@@ -138,6 +147,7 @@ export class FileChangeStateManager {
     repoPath: string, // absolute path of the repo
     newFileContent: string,
     newFilePath: string,
+    writeMode: boolean,
     stateMetadata: {
       usageTrackingSource: string;
       usageTrackingSessionId: number | null;
@@ -176,6 +186,7 @@ export class FileChangeStateManager {
           usageTrackingSource: 'inlineDiff',
           usageTrackingSessionId: 0,
         },
+        writeMode: writeMode,
       });
     } else {
       // update the udiff in the fileChangeStateMap
