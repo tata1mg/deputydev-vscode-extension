@@ -43,7 +43,7 @@ export function Shimmer() {
       const selectedPhrase = phrases[currentIndex];
       setSelectedPhrase(selectedPhrase);
       currentIndex = (currentIndex + 1) % phrases.length;
-      phraseTimeout = setTimeout(updatePhrase, 2000);
+      phraseTimeout = setTimeout(updatePhrase, 2500);
     };
 
     updatePhrase();
