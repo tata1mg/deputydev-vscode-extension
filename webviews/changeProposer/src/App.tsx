@@ -47,6 +47,9 @@ const App: React.FC = () => {
           setContent(result.content);
           setContentLanguage(result.language);
           setCurrentVSCodeTheme(result.theme);
+          // delay the decoration to ensure the editor is mounted
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          // re-decorate the editor
           decorateEditor(editorRef.current, monacoEditor);
         };
         loadContent();
