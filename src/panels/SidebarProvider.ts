@@ -28,11 +28,14 @@ import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
 import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { SESSION_TYPE } from '../constants';
-import osName from 'os-name';
 import { getShell } from '../terminal/utils/shell';
 import { FeedbackService } from '../services/feedback/feedbackService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import * as fs from 'fs';
+import { TerminalManager } from '../terminal/TerminalManager';
+import { getOSName } from '../utilities/osName';
+
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
@@ -59,6 +62,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private feedbackService: FeedbackService,
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
+    private terminalManager: TerminalManager,
   ) {}
 
   public resolveWebviewView(
@@ -135,13 +139,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.codeReferenceService.urlSearch(data, sendMessage);
           break;
         case 'get-saved-urls':
-          promise = this.codeReferenceService.getSavedUrls(sendMessage);
+          promise = this.codeReferenceService.getSavedUrls(data, sendMessage);
           break;
         case 'save-url':
           promise = this.codeReferenceService.saveUrl(data, sendMessage);
           break;
         case 'delete-saved-url':
-          promise = this.codeReferenceService.deleteSavedUrl(data.id, sendMessage);
+          promise = this.codeReferenceService.deleteSavedUrl(data, sendMessage);
           break;
         case 'update-saved-url':
           promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
@@ -169,6 +173,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'open-requested-browser-page':
           promise = this.openBrowserPage(data);
+          break;
+        case 'save-settings':
+          promise = this.configManager.saveSettings(data);
           break;
 
         // Feedback
@@ -262,10 +269,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.createNewWorkspace(data.tool_use_id);
           break;
         case 'accept-terminal-command':
-          this.chatService._onTerminalApprove.fire({ toolUseId: data.tool_use_id, command: data.command });
+          this.chatService._onTerminalApprove.fire({
+            toolUseId: data.tool_use_id,
+            command: data.command,
+          });
           break;
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
+          break;
+        case 'set-shell-integration-timeout':
+          this.terminalManager.setShellIntegrationTimeout(data.value);
+          this.setGlobalState(data);
           break;
 
         // diff
@@ -284,6 +298,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case 'open-file':
           this.openFile(data.path);
+          break;
+
+        case 'open-or-create-file':
+          this.openOrCreateFileByAbsolutePath(data.path);
           break;
 
         case 'check-diff-applicable': {
@@ -337,7 +355,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const payload = {
         query: user_query,
         old_terminal_command: old_command,
-        os_name: osName(),
+        os_name: await getOSName(),
         shell: getShell(),
       };
       const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
@@ -391,9 +409,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.warn('❌ No auth token available. Aborting binary initiation.');
       return;
     }
-
+    const sendMessage = (message: any) => {
+      this.sendMessageToSidebar(message);
+    };
     await this.context.workspaceState.update('authToken', authToken);
-
+    this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
 
@@ -424,12 +444,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
 
     try {
-      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-      this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
       let attempts = 0;
-      let response_inner: any;
+      let response: any;
       while (attempts < 3) {
-        response_inner = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
         this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != 'Completed') {
@@ -499,6 +517,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
+    }
+  }
+
+  private async openOrCreateFileByAbsolutePath(filePath: string) {
+    const uri = vscode.Uri.file(filePath);
+    try {
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, '');
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
     }
   }
 

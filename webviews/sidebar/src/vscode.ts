@@ -13,12 +13,16 @@ import {
   ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
+  Settings,
+  URLListItem,
 } from '@/types';
-import { logToOutput, sendWorkspaceRepoChange } from './commandApi';
+import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
+import { url } from 'inspector';
+import { useSettingsStore } from './stores/settingsStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -209,15 +213,23 @@ export function removeCommandEventListener(command: string, listener: EventListe
 }
 
 addCommandEventListener('new-chat', async () => {
-  useChatSettingStore.setState({
-    chatSource: 'new-chat',
-  });
-
   const currentViewType = useExtensionStore.getState().viewType;
-
+  const currentDefaultChatType = useSettingsStore.getState().chatType;
+  const history = useChatStore.getState().history;
+  if (history.length === 0) {
+    useChatSettingStore.setState({
+      chatType: currentDefaultChatType,
+    });
+  }
   if (currentViewType !== 'chat') {
     useExtensionStore.setState({ viewType: 'chat' });
   } else {
+    useChatSettingStore.setState({
+      chatSource: 'new-chat',
+    });
+    useChatSettingStore.setState({
+      chatType: currentDefaultChatType,
+    });
     useChatStore.getState().clearChat();
     callCommand('delete-session-id', null);
   }
@@ -300,6 +312,25 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
   }
 });
 
+addCommandEventListener('initialize-settings-response', async ({ data }) => {
+  const settings = data as Settings;
+  useSettingsStore.setState({
+    isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
+    commandsToDeny: settings.terminal_settings.command_deny_list,
+    chatType: settings.default_mode,
+    terminalOutputLimit: await getGlobalState({ key: 'terminal-output-limit' }),
+    shellIntegrationTimeout: await getGlobalState({
+      key: 'terminal-shell-limit',
+    }),
+    shellCommandTimeout: await getGlobalState({
+      key: 'terminal-command-timeout',
+    }),
+  });
+  useChatSettingStore.setState({
+    chatType: settings.default_mode,
+  });
+});
+
 addCommandEventListener('keyword-type-search-response', ({ data }) => {
   const AutoSearchResponse = (data as any[]).map((item) => {
     return {
@@ -333,6 +364,10 @@ addCommandEventListener('get-saved-urls-response', ({ data }) => {
   useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
+addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
+  useSettingsStore.setState({ urls: data as URLListItem[] });
+});
+
 addCommandEventListener('session-chats-history', ({ data }) => {
   useExtensionStore.setState({ viewType: 'chat' });
   useChatStore.setState({ history: data as ChatMessage[] });
@@ -340,7 +375,9 @@ addCommandEventListener('session-chats-history', ({ data }) => {
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
-    useChatStore.setState({ enhancedUserQuery: data.enhancedUserQuery as string });
+    useChatStore.setState({
+      enhancedUserQuery: data.enhancedUserQuery as string,
+    });
   } else {
     useChatStore.setState({ enhancingUserQuery: false });
   }
@@ -416,10 +453,16 @@ addCommandEventListener('send-client-version', ({ data }) => {
 addCommandEventListener('last-chat-data', ({ data }) => {
   const lastChatData = data as string;
   const lastChatDataParsed = JSON.parse(lastChatData).state;
-  useChatStore.setState({ history: lastChatDataParsed.history as ChatMessage[] });
+  useChatStore.setState({
+    history: lastChatDataParsed.history as ChatMessage[],
+  });
   useChatStore.setState({ isLoading: true });
-  useChatStore.setState({ showSessionsBox: lastChatDataParsed.showSessionsBox });
-  useChatStore.setState({ showAllSessions: lastChatDataParsed.showAllSessions });
+  useChatStore.setState({
+    showSessionsBox: lastChatDataParsed.showSessionsBox,
+  });
+  useChatStore.setState({
+    showAllSessions: lastChatDataParsed.showAllSessions,
+  });
   useChatStore.setState({ showSkeleton: true });
   const rawTime = lastChatDataParsed.lastMessageSentTime;
   const parsedTime = rawTime ? new Date(rawTime) : null;
@@ -438,13 +481,13 @@ addCommandEventListener('last-chat-data', ({ data }) => {
       tool_use_id: lastMessage.content.tool_use_id,
       response: {
         message: `
-        - Workspace Created Successfully, and now we are inside new Workspace. 
+        - Workspace Created Successfully, and now we are inside new Workspace.
         - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
-        - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool. 
+        - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
         - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
         - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
         - If file-creation steps are needed in a follow-up, emit code-block diffs annotated with "<is_diff>true</is_diff>".
-        - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+        - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
         - Leverage other available tools as needed to complete scaffolding.
         `,
       },
@@ -455,7 +498,10 @@ addCommandEventListener('last-chat-data', ({ data }) => {
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
-  const { tool_use_id, status } = data as { tool_use_id: string; status: string };
+  const { tool_use_id, status } = data as {
+    tool_use_id: string;
+    status: string;
+  };
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
@@ -508,13 +554,13 @@ addCommandEventListener('update-workspace-dd', () => {
         tool_use_id: lastToolMessage.content.tool_use_id,
         response: {
           message: `
-          - Workspace Created Successfully, and now we are inside new Workspace. 
+          - Workspace Created Successfully, and now we are inside new Workspace.
           - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
           - If additional setup steps or library installations are required (eg. setting up nextjs, react, python env, tailwind, etc), invoke the "execute_command".
           - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
           - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool if you have any confusions.
           - If file-creation steps are needed in a follow-up, emit code-block diffs annotated with "<is_diff>true</is_diff>".
-          - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+          - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
           - Leverage other available tools as needed to complete scaffolding.
           `,
         },

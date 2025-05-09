@@ -53,7 +53,7 @@ export class DeputydevChangeProposer {
       const displayableUdiffUri = vscode.Uri.from({
         scheme: 'ddproposed',
         query: Buffer.from(repoPath).toString('base64'),
-        path: `${filePath}.ddproposed`,
+        path: `${filePath}`,
       });
 
       await vscode.commands.executeCommand('vscode.openWith', displayableUdiffUri, 'deputydev.changeProposer');

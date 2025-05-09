@@ -71,6 +71,14 @@ export function ToolUseStatusMessage({
         displayText = 'Error Analysing URL';
       }
       break;
+    case 'web_search':
+      displayText = 'Searched Web';
+      if (status === 'pending') {
+        displayText = 'Searching Web...';
+      } else if (status === 'error') {
+        displayText = 'Error Searching Web';
+      }
+      break;
     default:
       displayText = 'Searched codebase';
       if (status === 'pending') {
@@ -226,15 +234,23 @@ export function FileEditedChip({
 
   let statusText;
   let statusColor = '';
-  if (status === 'pending') {
-    statusText = 'Editing';
-  } else if (status === 'completed') {
-    statusText = 'Edited';
-  } else if (status === 'idle') {
-    statusText = 'Edited';
-  } else {
-    statusText = 'Error editing';
-    statusColor = 'text-red-400';
+
+  switch (status) {
+    case 'pending':
+      statusText = 'Editing';
+      break;
+    case 'completed':
+    case 'idle':
+      statusText = 'Edited';
+      break;
+    case 'aborted':
+      statusText = 'Edit aborted';
+      break;
+    case 'error':
+    default:
+      statusText = 'Error editing';
+      statusColor = 'text-red-400';
+      break;
   }
 
   return (

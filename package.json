@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -35,21 +35,35 @@
         "displayName": "DeputyDev Change Proposer",
         "selector": [
           {
-            "filenamePattern": "*.ddproposed"
+            "filenamePattern": "ddproposed://*"
           }
         ],
         "priority": "default"
+      }
+    ],
+    "resourceLabelFormatters": [
+      {
+        "scheme": "ddproposed",
+        "formatting": {
+          "label": "${path} (DeputyDev Changes)",
+          "separator": "/",
+          "workspaceSuffix": "DeputyDev Proposed Changes"
+        }
       }
     ],
     "keybindings": [
       {
         "command": "deputydev.editThisCode",
         "key": "cmd+i",
+        "win": "ctrl+i",
+        "linux": "ctrl+i",
         "when": "editorHasSelection"
       },
       {
         "command": "deputydev.chatWithDeputy",
         "key": "cmd+l",
+        "win": "ctrl+l",
+        "linux": "ctrl+l",
         "when": "editorHasSelection"
       }
     ],
@@ -119,6 +133,11 @@
         "icon": "$(history)"
       },
       {
+        "command": "deputydev.SettingsButtonClick",
+        "title": "Settings",
+        "icon": "$(gear)"
+      },
+      {
         "command": "deputydev.UserProfile",
         "title": "Profile",
         "icon": "$(account)"
@@ -167,6 +186,11 @@
           "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@3"
+        },
+        {
+          "command": "deputydev.SettingsButtonClick",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
+          "group": "navigation@4"
         },
         {
           "command": "deputydev.ViewLogs",
