@@ -20,7 +20,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
 
   async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
     const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
-    const filePath = uri.path.split('.ddproposed')[0]; // Remove the `.ddproposed` suffix
+    const filePath = uri.path;
 
     // Retrieve file state from the fileChangeStateManager
     const fileState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
@@ -46,7 +46,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
     const content = this.fileChangeStateManager.getFileChangeState(
-      uri.path.split('.ddproposed')[0], // remove the last .ddproposed
+      uri.path,
       Buffer.from(uri.query, 'base64').toString('utf-8'), // decode the base64 query for repoPath
     );
 
@@ -67,10 +67,10 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   ): Promise<void> {
     console.log('Writing file:', uri.toString());
     const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
-    const filePath = uri.path.split('.ddproposed')[0];
+    const filePath = uri.path;
 
     const fileChangeState = this.fileChangeStateManager.getFileChangeState(
-      uri.path.split('.ddproposed')[0], // remove the last .ddproposed
+      uri.path,
       Buffer.from(uri.query, 'base64').toString('utf-8'), // decode the base64 query for repoPath
     );
 

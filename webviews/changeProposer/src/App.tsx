@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import * as monacoEditor from 'monaco-editor';
 import { callCommand } from './vscode';
+import { update } from 'lodash';
 
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
@@ -10,19 +11,37 @@ const App: React.FC = () => {
   const lineDecorationsRef = useRef<monacoEditor.editor.IEditorDecorationsCollection>(null);
 
   const [content, setContent] = useState<string>('Loading...');
+  const [contentLanguage, setContentLanguage] = useState<string>('plaintext');
+  const [currentVSCodeTheme, setCurrentVSCodeTheme] = useState<string>('vs-dark'); // Default value
+  const [plusMinusSeries, setPlusMinusSeries] = useState<string[]>([]);
+
+  const ACCEPT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiM3N2ZkOGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS00LjI5IDEwLjI5TDguNzEgMTQuNzFsMi44NS0yLjg1IDQuNzEgNC43MS0xLjQxIDEuNDFMMTAuNzEgMTIuMjl6Ii8+PC9zdmc+';
+  const REJECT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlMjQzNDMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEuNDEgMTMuNDFMMTIgMTMuNDFsLTMuNDEgMy40MS0xLjQxLTEuNDFMMTAuNTkgMTIgNy4xOCA4LjU5bDEuNDEtMS40MUwxMiAxMC41OWwzLjQxLTMuNDFsMS40MSAxLjQxTDEzLjQxIDEybDMuNDEgMy40MS0xLjQxIDEuNDF6Ii8+PC9zdmc+';
 
   useEffect(() => {
     const loadContent = async () => {
       const result = await callCommand('get-initial-content', {});
-      if (typeof result === 'string') {
-        setContent(result);
-      }
+      setContent(result.content);
+      setContentLanguage(result.language);
+      setCurrentVSCodeTheme(result.theme);
     };
     loadContent();
   }, []);
 
+  useEffect(() => {
+    // Listen for messages from VSCode extension
+    window.addEventListener('message', (event) => {
+      const message = event.data;
+
+      if (message.command === 'set-theme') {
+        setCurrentVSCodeTheme(message.theme);
+      }
+    });
+  }, []);
+
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    addEditorListeners(editor, monaco);
     decorateEditor(editor, monaco);
   };
   
@@ -34,12 +53,97 @@ const App: React.FC = () => {
     contentWidgetsRef.current = [];
   };
 
+  const createContentWidget = (line: number, monaco: typeof monacoEditor): monacoEditor.editor.IContentWidget => {
+    const widgetId = `diff-buttons-${line}`;
+  
+    const domNode = document.createElement('span');
+    domNode.className = 'inline-buttons';
+  
+    const createButton = (label: string, base64: string, onClick: () => void) => {
+      const btn = document.createElement('button');
+      btn.className = 'diff-action-button';
+      const img = document.createElement('img');
+      img.src = `data:image/svg+xml;base64,${base64}`;
+      img.width = 16;
+      img.height = 16;
+      img.alt = label;
+      const text = document.createElement('span');
+      text.textContent = ` ${label}`;
+      btn.appendChild(img);
+      btn.appendChild(text);
+      btn.onclick = onClick;
+      return btn;
+    };
+  
+    const acceptBtn = createButton('Accept', ACCEPT_ICON, () => {
+      handleAcceptChangeAtLine(line, acceptBtn, monaco);
+    });
+    const rejectBtn = createButton('Reject', REJECT_ICON, () => {
+      handleRejectChangeAtLine(line, rejectBtn, monaco);
+    });
+  
+    domNode.appendChild(acceptBtn);
+    domNode.appendChild(rejectBtn);
+  
+    return {
+      getId: () => widgetId,
+      getDomNode: () => domNode,
+      getPosition: () => ({
+        position: { lineNumber: line, column: Number.MAX_SAFE_INTEGER },
+        preference: [monaco.editor.ContentWidgetPositionPreference.EXACT],
+      }),
+    };
+  };
+
   const clearOverlayWidgets = () => {
     if (!editorRef.current) return;
     for (const widget of overlayWidgetsRef.current) {
       editorRef.current.removeOverlayWidget(widget);
     }
     overlayWidgetsRef.current = [];
+  };
+
+  const createOverlayWidget = (monaco: typeof monacoEditor): monacoEditor.editor.IOverlayWidget => {
+    const widgetId = 'top-right-actions';
+  
+    const domNode = document.createElement('div');
+    domNode.className = 'top-right-buttons';
+  
+    const createButton = (label: string, base64: string, onClick: () => void) => {
+      const btn = document.createElement('button');
+      btn.className = 'diff-action-button';
+      const img = document.createElement('img');
+      img.src = `data:image/svg+xml;base64,${base64}`;
+      img.width = 8;
+      img.height = 8;
+      img.alt = label;
+      const text = document.createElement('span');
+      text.textContent = ` ${label}`;
+      btn.appendChild(img);
+      btn.appendChild(text);
+      btn.onclick = onClick;
+      return btn;
+    };
+  
+    const acceptAll = createButton('Accept All', ACCEPT_ICON, () =>
+    {
+      handleAcceptAll(acceptAll, monaco);
+    });
+    const rejectAll = createButton('Reject All', REJECT_ICON, () =>
+    {
+      handleRejectAll(rejectAll, monaco);
+    });
+  
+    domNode.appendChild(acceptAll);
+    domNode.appendChild(rejectAll);
+  
+    return {
+      getId: () => widgetId,
+      getDomNode: () => domNode,
+      getPosition: () => ({
+        preference: monaco.editor.OverlayWidgetPositionPreference.TOP_RIGHT_CORNER,
+      }),
+    };
   };
 
   const handleAcceptChangeAtLine = async (line: number, acceptBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
@@ -105,6 +209,153 @@ const App: React.FC = () => {
     }
   };
 
+  const addEditorListeners = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
+        // add listeners for content changes and key presses
+        editor.onDidChangeModelContent((e) => {
+          // send event to vscode
+          const model = editor.getModel();
+          if (!model) return;
+          const content = model.getValue();
+          callCommand('content-changed', { content });
+        });
+    
+        // custom keypress behavior, basically preserves the first column
+        editor.onKeyDown((e) => {
+          const editor = editorRef.current;
+          if (!editor) return;
+          const model = editor.getModel();
+          if (!model) return;
+
+          // get the current selection and position
+          const selection = editor.getSelection();
+          const position = editor.getPosition();
+
+          // ensure selection and position are valid
+          if (!selection || !position) return;
+        
+          const { startColumn, endColumn, startLineNumber, endLineNumber } = selection;
+          console.log('selection', selection);
+          console.log('keycode', e.keyCode);
+        
+          const isSingleLine = startLineNumber === endLineNumber;
+          const currentLineContent = model.getLineContent(startLineNumber);
+    
+          if ((position && position.column === 1) || (currentLineContent.startsWith('-'))) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        
+          // Block backspace at column 2
+          if (
+            e.keyCode === monaco.KeyCode.Backspace &&
+            isSingleLine &&
+            startColumn === 2 &&
+            endColumn === 2
+          ) {
+            // if current line is not empty
+            const lineContent = model.getLineContent(startLineNumber);
+            if (lineContent.length > 1) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            } else {
+              editor.executeEdits('', [
+                {
+                  range: new monaco.Range(startLineNumber - 1, 1, startLineNumber, 2),
+                  text: `${model.getLineContent(startLineNumber - 1)}`,
+                  forceMoveMarkers: true,
+                },
+              ]);
+              decorateEditor(editor, monaco);
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+          }
+    
+          // --- BLOCK DELETE if selection includes column 1 (but not whole line) ---
+          if (
+            (e.keyCode === monaco.KeyCode.Delete || e.keyCode === monaco.KeyCode.Backspace) &&
+            isSingleLine &&
+            startColumn === 1 &&
+            !(startColumn === 1 && endColumn)
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+    
+          // Make sure enter only adds a new line from column 2
+          if (
+            e.keyCode === monaco.KeyCode.Enter
+          ) {
+            const lineContent = model.getLineContent(startLineNumber);
+            if (lineContent.startsWith('+')) {
+              editor.executeEdits('', [
+                {
+                  range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
+                  text: '\n+',
+                  forceMoveMarkers: true,
+                },
+              ]);
+              e.preventDefault();
+              e.stopPropagation();
+              decorateEditor(editor, monaco);
+              return;
+            } else {
+              editor.executeEdits('', [
+                {
+                  range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
+                  text: '\n ',
+                  forceMoveMarkers: true,
+                },
+              ]);
+              e.preventDefault();
+              e.stopPropagation();
+              decorateEditor(editor, monaco);
+              return;
+            }
+          }
+        });
+        
+        editor.onMouseDown((e) => {
+          const position = e.target.position;
+          if (!position) return;
+          if (position && position.column === 1) {
+            e.event.preventDefault();
+            e.event.stopPropagation();
+          }
+          const positionLineContent = editor.getModel()?.getLineContent(position.lineNumber);
+          if (position && positionLineContent?.startsWith('-')) {
+            e.event.preventDefault();
+            e.event.stopPropagation();
+          }
+        });
+    
+        editor.onDidChangeCursorPosition((e) => {
+          if (e.position.column === 1) {
+            editor.setPosition({ ...e.position, column: 2 });
+          }
+        });
+    
+        editor.onDidPaste((e) => {
+          const selection = editor.getSelection();
+          if (!selection) return;
+          const { startLineNumber, endLineNumber } = selection;
+          for (let i = startLineNumber; i <= endLineNumber; i++) {
+            const lineContent = editor.getModel()?.getLineContent(i);
+            if (!lineContent) continue;
+            if (lineContent.startsWith('-')) {
+              // cancel the paste
+              editor.trigger('keyboard', 'undo', null);
+              break;
+            }
+          }
+          decorateEditor(editor, monaco);
+        });
+      };
+
   const decorateEditor = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
     editorRef.current = editor;
     const model = editor.getModel();
@@ -116,136 +367,50 @@ const App: React.FC = () => {
     const lines = model.getLinesContent();
     const decorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
 
-    const ACCEPT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiM3N2ZkOGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS00LjI5IDEwLjI5TDguNzEgMTQuNzFsMi44NS0yLjg1IDQuNzEgNC43MS0xLjQxIDEuNDFMMTAuNzEgMTIuMjl6Ii8+PC9zdmc+';
-    const REJECT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlMjQzNDMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEuNDEgMTMuNDFMMTIgMTMuNDFsLTMuNDEgMy40MS0xLjQxLTEuNDFMMTAuNTkgMTIgNy4xOCA4LjU5bDEuNDEtMS40MUwxMiAxMC41OWwzLjQxLTMuNDFsMS40MSAxLjQxTDEzLjQxIDEybDMuNDEgMy40MS0xLjQxIDEuNDF6Ii8+PC9zdmc+';
-
-    const createContentWidget = (line: number): monacoEditor.editor.IContentWidget => {
-      const widgetId = `diff-buttons-${line}`;
-    
-      const domNode = document.createElement('span');
-      domNode.className = 'inline-buttons';
-    
-      const createButton = (label: string, base64: string, onClick: () => void) => {
-        const btn = document.createElement('button');
-        btn.className = 'diff-action-button';
-        const img = document.createElement('img');
-        img.src = `data:image/svg+xml;base64,${base64}`;
-        img.width = 16;
-        img.height = 16;
-        img.alt = label;
-        const text = document.createElement('span');
-        text.textContent = ` ${label}`;
-        btn.appendChild(img);
-        btn.appendChild(text);
-        btn.onclick = onClick;
-        return btn;
-      };
-    
-      const acceptBtn = createButton('Accept', ACCEPT_ICON, () => {
-        handleAcceptChangeAtLine(line, acceptBtn, monaco);
-      });
-      const rejectBtn = createButton('Reject', REJECT_ICON, () => {
-        handleRejectChangeAtLine(line, rejectBtn, monaco);
-      });
-    
-      domNode.appendChild(acceptBtn);
-      domNode.appendChild(rejectBtn);
-    
-      return {
-        getId: () => widgetId,
-        getDomNode: () => domNode,
-        getPosition: () => ({
-          position: { lineNumber: line, column: Number.MAX_SAFE_INTEGER },
-          preference: [monaco.editor.ContentWidgetPositionPreference.EXACT],
-        }),
-      };
-    };
-
-    const createOverlayWidget = (): monacoEditor.editor.IOverlayWidget => {
-      const widgetId = 'top-right-actions';
-    
-      const domNode = document.createElement('div');
-      domNode.className = 'top-right-buttons';
-    
-      const createButton = (label: string, base64: string, onClick: () => void) => {
-        const btn = document.createElement('button');
-        btn.className = 'diff-action-button';
-        const img = document.createElement('img');
-        img.src = `data:image/svg+xml;base64,${base64}`;
-        img.width = 8;
-        img.height = 8;
-        img.alt = label;
-        const text = document.createElement('span');
-        text.textContent = ` ${label}`;
-        btn.appendChild(img);
-        btn.appendChild(text);
-        btn.onclick = onClick;
-        return btn;
-      };
-    
-      const acceptAll = createButton('Accept All', ACCEPT_ICON, () =>
-      {
-        handleAcceptAll(acceptAll, monaco);
-      });
-      const rejectAll = createButton('Reject All', REJECT_ICON, () =>
-      {
-        handleRejectAll(rejectAll, monaco);
-      });
-    
-      domNode.appendChild(acceptAll);
-      domNode.appendChild(rejectAll);
-    
-      return {
-        getId: () => widgetId,
-        getDomNode: () => domNode,
-        getPosition: () => ({
-          preference: monaco.editor.OverlayWidgetPositionPreference.TOP_RIGHT_CORNER,
-        }),
-      };
-    };
-
-    const overlayWidget = createOverlayWidget();
+    // Create overlay widget for top-right actions accept all/reject all
+    const overlayWidget = createOverlayWidget(monaco);
     editor.addOverlayWidget(overlayWidget);
     overlayWidgetsRef.current.push(overlayWidget);
 
-    const uneditableLines = new Set<number>();
-    const insertedLines = new Set<number>();
-
+    // perform inline decorations and content widgets
     for (let i = 0; i < lines.length; i++) {
       const lineNum = i + 1;
       const line = lines[i];
 
+      // add green/red line decorations
       if (line.startsWith('+')) {
-        insertedLines.add(lineNum);
         decorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'plus-line' },
         });
       } else if (line.startsWith('-')) {
-        uneditableLines.add(lineNum);
         decorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'minus-line' },
         });
       }
 
+      // add content widgets for accept/reject buttons on first line of each block
       const prev = i > 0 ? lines[i - 1] : '';
       const isBlockStart = (line.startsWith('+') || line.startsWith('-')) && !(prev.startsWith('+') || prev.startsWith('-'));
       if (isBlockStart) {
-        const widget = createContentWidget(lineNum);
+        const widget = createContentWidget(lineNum, monaco);
         editor.addContentWidget(widget);
         contentWidgetsRef.current.push(widget);
       }
     }
 
+    // add red/green decorations to the editor
     if (lineDecorationsRef.current) {
       lineDecorationsRef.current.clear();
     }
     lineDecorationsRef.current = editor.createDecorationsCollection(decorations);
 
+    // add hover provider for uneditable lines tooltip
     monaco.languages.registerHoverProvider('python', {
       provideHover: function (model, position) {
-        if (uneditableLines.has(position.lineNumber)) {
+        const lineContent = model.getLineContent(position.lineNumber);
+        if (lineContent.startsWith('-')) {
           return {
             range: new monaco.Range(position.lineNumber, 1, position.lineNumber, 1),
             contents: [
@@ -257,146 +422,15 @@ const App: React.FC = () => {
         return null;
       },
     });
-
-    editor.onDidChangeModelContent((e) => {
-      // send event to vscode
-      const model = editor.getModel();
-      if (!model) return;
-      const content = model.getValue();
-      callCommand('content-changed', { content });
-    });
-
-    editor.onKeyDown((e) => {
-      const editor = editorRef.current;
-      if (!editor) return;
-      const model = editor.getModel();
-      const selection = editor.getSelection();
-      if (!selection || !model) return;
-    
-      const { startColumn, endColumn, startLineNumber, endLineNumber } = selection;
-      console.log('selection', selection);
-      console.log('keycode', e.keyCode);
-    
-      const isSingleLine = startLineNumber === endLineNumber;
-      const currentLineContent = model.getLineContent(startLineNumber);
-
-      const position = editor.getPosition();
-      if ((position && position.column === 1) || (currentLineContent.startsWith('-'))) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-    
-      // Block backspace at column 2
-      if (
-        e.keyCode === monaco.KeyCode.Backspace &&
-        isSingleLine &&
-        startColumn === 2 &&
-        endColumn === 2
-      ) {
-        // if current line is not empty
-        const lineContent = model.getLineContent(startLineNumber);
-        if (lineContent.length > 1) {
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        } else {
-          // if current line is empty, remove the line
-          editor.executeEdits('', [
-            {
-              range: new monaco.Range(startLineNumber - 1, 1, startLineNumber, 2),
-              text: `${model.getLineContent(startLineNumber - 1)}`,
-              forceMoveMarkers: true,
-            },
-          ]);
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        }
-      }
-
-      // --- BLOCK DELETE if selection includes column 1 (but not whole line) ---
-      if (
-        (e.keyCode === monaco.KeyCode.Delete || e.keyCode === monaco.KeyCode.Backspace) &&
-        isSingleLine &&
-        startColumn === 1 &&
-        !(startColumn === 1 && endColumn)
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return;
-      }
-
-      // Make sure enter only adds a new line from column 2
-      if (
-        e.keyCode === monaco.KeyCode.Enter
-      ) {
-        const lineContent = model.getLineContent(startLineNumber);
-        if (lineContent.startsWith('+')) {
-          editor.executeEdits('', [
-            {
-              range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
-              text: '\n+',
-              forceMoveMarkers: true,
-            },
-          ]);
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        } else {
-          editor.executeEdits('', [
-            {
-              range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
-              text: '\n ',
-              forceMoveMarkers: true,
-            },
-          ]);
-          e.preventDefault();
-          e.stopPropagation();
-          return;
-        }
-      }
-    });
-    
-    editor.onMouseDown((e) => {
-      const position = e.target.position;
-      if (position && position.column === 1) {
-        e.event.preventDefault();
-        e.event.stopPropagation();
-      }
-      if (position && uneditableLines.has(position.lineNumber)) {
-        e.event.preventDefault();
-        e.event.stopPropagation();
-      }
-    });
-
-    editor.onDidChangeCursorPosition((e) => {
-      if (e.position.column === 1) {
-        editor.setPosition({ ...e.position, column: 2 });
-      }
-    });
-
-    editor.onDidPaste((e) => {
-      const selection = editor.getSelection();
-      if (!selection) return;
-      const { startLineNumber, endLineNumber } = selection;
-      for (let i = startLineNumber; i <= endLineNumber; i++) {
-        if (uneditableLines.has(i)) {
-          // cancel the paste
-          editor.trigger('keyboard', 'undo', null);
-          break;
-        }
-      }
-    });
   };
 
   return (
     <div style={{ height: '100vh' }}>
       <Editor
         height="100%"
-        language="python"
+        language={contentLanguage}
         value={content}
-        theme="vs-dark"
+        theme={currentVSCodeTheme}
         options={{ glyphMargin: true }}
         onMount={handleEditorDidMount}
       />

@@ -27,18 +27,42 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     return document;
   }
 
+  private getMonacoThemeKind(vscodeTheme: vscode.ColorThemeKind): string {
+    switch (vscodeTheme) {
+      case vscode.ColorThemeKind.Light:
+        return 'vs';
+      case vscode.ColorThemeKind.Dark:
+        return 'vs-dark';
+      case vscode.ColorThemeKind.HighContrastLight:
+        return 'hc-light';
+      case vscode.ColorThemeKind.HighContrast:
+        return 'hc-black';
+      default:
+        return 'vs-dark';
+    }
+  }
+
   async resolveCustomEditor(
     document: ChangeProposerDocument,
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
     console.log('Resolving custom editor for document:', document.uri.toString());
-
-    webviewPanel.title = 'DeputyDev Change Proposer';
-    webviewPanel.iconPath = vscode.Uri.joinPath(this.context.extensionUri, 'assets', 'dd_logo_light.png');
     webviewPanel.webview.options = {
       enableScripts: true,
     };
+
+    vscode.window.onDidChangeActiveColorTheme((e) => {
+      const theme = this.getMonacoThemeKind(e.kind);
+
+      // Send the new theme information to the webview
+      if (webviewPanel) {
+        webviewPanel.webview.postMessage({
+          command: 'set-theme',
+          theme: theme,
+        });
+      }
+    });
 
     this.outputChannel.info(`Opening custom editor for: ${document.uri.toString()}`);
     this.outputChannel.info(`Document content: ${document.content}`);
@@ -56,7 +80,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           webviewPanel.webview.postMessage({
             id: message.id,
             command: 'result',
-            data: initialContent,
+            data: {
+              content: initialContent,
+              filePath: document.filePath,
+              repoPath: document.repoPath,
+              language: document.language,
+              theme: this.getMonacoThemeKind(vscode.window.activeColorTheme.kind),
+            },
           });
           break;
         }
