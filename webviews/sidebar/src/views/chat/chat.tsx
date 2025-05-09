@@ -1,13 +1,5 @@
 // file: webview-ui/src/components/Chat.tsx
-import {
-  Check,
-  Sparkles,
-  CornerDownLeft,
-  Loader2,
-  CircleStop,
-  Globe,
-  AtSign,
-} from 'lucide-react';
+import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop, Globe, AtSign } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
