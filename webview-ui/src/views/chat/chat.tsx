@@ -144,7 +144,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => { });
+      await sendChatMessage(message, editorReferences, () => {});
     } catch (error) {
       // Handle error if needed
     }
@@ -487,9 +487,9 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                  'data-tooltip-id': 'repo-tooltip',
-                  'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
-                })}
+                    'data-tooltip-id': 'repo-tooltip',
+                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                  })}
                 autoFocus
               />
             </div>
@@ -504,39 +504,46 @@ export function ChatUI() {
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content="Add Context"
                 data-tooltip-place="top-start"
+                disabled={repoSelectorEmbedding || enhancingUserQuery}
                 onClick={() => {
-                  const textarea = textareaRef.current;
-                  if (textarea) {
-                    // Get the current value and cursor position
-                    const currentValue = textarea.value;
-                    const cursorPosition = textarea.selectionStart;
+                  // Add @ to the end of the current input value
+                  const newValue = userInput + '@';
 
-                    // Insert @ at the current cursor position
-                    const newValue = currentValue.slice(0, cursorPosition) + '@' + currentValue.slice(cursorPosition);
+                  // Update store
+                  setUserInput(newValue);
 
-                    // Set the new value and move cursor
-                    textarea.value = newValue;
-                    textarea.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
-                    textarea.focus();
+                  // Trigger the change to activate autocomplete
+                  setShowAutocomplete(true);
+                  setChipEditMode(true);
 
-                    // Update store and trigger change handler
-                    useChatStore.setState({ userInput: newValue });
-                    handleTextAreaChange({
-                      target: {
-                        value: newValue,
-                      },
-                    } as React.ChangeEvent<HTMLTextAreaElement>);
-                  }
+                  // Make sure to update textarea and focus
+                  setTimeout(() => {
+                    if (textareaRef.current) {
+                      textareaRef.current.focus();
+                      autoResize();
+
+                      // Set cursor position to the end
+                      textareaRef.current.selectionStart = newValue.length;
+                      textareaRef.current.selectionEnd = newValue.length;
+                    }
+                  }, 0);
+
+                  // Set autocomplete options
+                  useChatStore.setState({
+                    ChatAutocompleteOptions: initialAutocompleteOptions,
+                  });
+                  setShowAddNewButton(false);
                 }}
               >
                 <AtSign className="h-4 w-4" />
               </button>
 
               <button
-                className={`flex items-center justify-center rounded p-1 ${useChatStore.getState().search_web
+                className={`flex items-center justify-center rounded p-1 ${
+                  useChatStore.getState().search_web
                     ? 'bg-blue-500 text-white hover:bg-blue-600'
                     : 'hover:bg-slate-400 hover:bg-opacity-10'
-                  }`}
+                }`}
                 onClick={handleGlobeToggle}
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
