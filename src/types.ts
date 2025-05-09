@@ -34,6 +34,8 @@ type ChatReferenceItem = {
 };
 
 export interface ChatPayload {
+  search_web: boolean;
+  llm_model: string;
   focus_files?: string[];
   focus_chunks?: string[];
   message_id?: string;
@@ -64,6 +66,8 @@ export interface ToolRequest {
   tool_use_id: string;
   accumulatedContent: string;
   write_mode?: boolean;
+  llm_model: string;
+  search_web: boolean;
 }
 
 export interface CurrentDiffRequest {
@@ -75,4 +79,13 @@ export interface SaveUrlRequest {
   id?: string;
   name: string;
   url: string;
+  isSettings?: boolean;
+}
+
+export interface Settings {
+  default_mode: 'ask' | 'write';
+  terminal_settings: {
+    enable_yolo_mode: boolean;
+    command_deny_list: string[];
+  };
 }

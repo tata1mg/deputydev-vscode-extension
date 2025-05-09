@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatManager } from '../chat/ChatManager';
 import { InlineEditService } from '../services/inlineEdit/inlineEditService';
@@ -17,6 +18,8 @@ import { DiffManager } from '../diff/diffManager';
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
+  llm_model: string;
+  search_web: boolean;
   code_selection: {
     selected_text?: string;
     file_path?: string;
@@ -85,6 +88,7 @@ export class InlineChatEditManager {
             _token: vscode.CancellationToken,
           ): vscode.ProviderResult<vscode.CodeAction[]> => {
             const editor = vscode.window.activeTextEditor;
+
             if (!editor) return [];
 
             const selection = editor.selection;
@@ -93,7 +97,10 @@ export class InlineChatEditManager {
             const selectedText = document.getText(selection);
             const codeActions: vscode.CodeAction[] = [];
 
-            const actionChat = new vscode.CodeAction('Chat using DeputyDev ⌘ L', vscode.CodeActionKind.QuickFix);
+            const platform = os.platform();
+            const actionChatText = platform === 'darwin' ? 'Chat using DeputyDev ⌘ L' : 'Chat using DeputyDev ctrl L';
+
+            const actionChat = new vscode.CodeAction(actionChatText, vscode.CodeActionKind.QuickFix);
             actionChat.command = {
               command: 'deputydev.chatWithDeputy',
               title: 'Chat',
@@ -104,8 +111,11 @@ export class InlineChatEditManager {
             const isFile = document.uri.scheme === 'file';
             const readOnly = isFile && isReadOnly(document.uri.fsPath);
 
+            const actionEditText =
+              platform === 'darwin' ? 'Modify using DeputyDev ⌘ I' : 'Modify using DeputyDev ctrl I';
+
             if (isNonWhitespace && (!isFile || !readOnly)) {
-              const actionEdit = new vscode.CodeAction('Modify using DeputyDev ⌘ I', vscode.CodeActionKind.QuickFix);
+              const actionEdit = new vscode.CodeAction(actionEditText, vscode.CodeActionKind.QuickFix);
               actionEdit.command = {
                 command: 'deputydev.editThisCode',
                 title: 'Modify',
@@ -247,7 +257,20 @@ export class InlineChatEditManager {
       vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
         this.outputChannel.info('Now inside edit feature.....');
         this.active_repo = getActiveRepo();
+
+        //Getting search web value from chat storage
+        const chatStorage = this.context.workspaceState.get('chat-storage') as string;
+        const parsedChatStorage = JSON.parse(chatStorage);
+        const search_web = parsedChatStorage?.state?.search_web;
+
+        //Getting active model value from chat type storage
+        const chatTypeStorage = this.context.globalState.get('chat-type-storage') as string;
+        const parsedChatTypeStorage = JSON.parse(chatTypeStorage);
+        const llm_model = parsedChatTypeStorage?.state?.activeModel;
+
         const payloadForInlineEdit: InlineEditPayload = {
+          llm_model: llm_model ? llm_model : 'CLAUDE_3_POINT_5_SONNET',
+          search_web: search_web ? search_web : false,
           query: reply.text,
           relevant_chunks: [],
           code_selection: {

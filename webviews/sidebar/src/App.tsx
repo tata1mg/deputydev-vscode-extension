@@ -67,9 +67,9 @@ function App() {
     case 'profile':
       view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Profile /> : <Auth />;
       break;
-    // case 'setting':
-    //   view = showForceUpgrade ? <ForceUpgradeView /> : (isAuthenticated ? <Setting /> : <Auth />)
-    //   break;
+    case 'setting':
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Setting /> : <Auth />;
+      break;
     case 'loader':
       view = <Loader />;
       break;

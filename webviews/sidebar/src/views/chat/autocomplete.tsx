@@ -18,7 +18,6 @@ import { useChatStore } from '@/stores/chatStore';
 import { useSafeAutocompleteBackground } from '../../utils/BgColorPatch';
 import { saveUrl, deleteSavedUrl, updateSavedUrl, openBrowserPage } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
-import { set } from 'lodash';
 
 interface AutocompleteMenuProps {
   showAddNewButton?: boolean;
