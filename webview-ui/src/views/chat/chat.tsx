@@ -504,22 +504,35 @@ export function ChatUI() {
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content="Add Context"
                 data-tooltip-place="top-start"
+                disabled={repoSelectorEmbedding || enhancingUserQuery}
                 onClick={() => {
-                  const textarea = textareaRef.current;
-                  if (textarea) {
-                    // Set the value and move cursor
-                    textarea.value = '@';
-                    textarea.setSelectionRange(1, 1);
-                    textarea.focus();
+                  // Add @ to the end of the current input value
+                  const newValue = userInput + '@';
 
-                    // Update store and trigger change handler
-                    useChatStore.setState({ userInput: '@' });
-                    handleTextAreaChange({
-                      target: {
-                        value: '@',
-                      },
-                    } as React.ChangeEvent<HTMLTextAreaElement>);
-                  }
+                  // Update store
+                  setUserInput(newValue);
+
+                  // Trigger the change to activate autocomplete
+                  setShowAutocomplete(true);
+                  setChipEditMode(true);
+
+                  // Make sure to update textarea and focus
+                  setTimeout(() => {
+                    if (textareaRef.current) {
+                      textareaRef.current.focus();
+                      autoResize();
+
+                      // Set cursor position to the end
+                      textareaRef.current.selectionStart = newValue.length;
+                      textareaRef.current.selectionEnd = newValue.length;
+                    }
+                  }, 0);
+
+                  // Set autocomplete options
+                  useChatStore.setState({
+                    ChatAutocompleteOptions: initialAutocompleteOptions,
+                  });
+                  setShowAddNewButton(false);
                 }}
               >
                 <AtSign className="h-4 w-4" />
