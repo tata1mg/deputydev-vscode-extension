@@ -94,7 +94,7 @@ export function Shimmer() {
           style={{
             color: 'var(--vscode-foreground)',
             transition: 'opacity 0.3s ease',
-            opacity: 0.7
+            opacity: 0.7,
           }}
         >
           {selectedPhrase}
