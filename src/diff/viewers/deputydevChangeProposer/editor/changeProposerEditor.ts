@@ -113,7 +113,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           //   undo: () => {},
           //   redo: () => {},
           // });
-          this.saveCustomDocument();
+          await this.saveCustomDocument();
           // if there is no line with changes now, close the editor
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
@@ -147,7 +147,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           //   undo: () => {},
           //   redo: () => {},
           // });
-          this.saveCustomDocument();
+          await this.saveCustomDocument();
           // if there is no line with changes now, close the editor
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
@@ -183,7 +183,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             //   undo: () => {},
             //   redo: () => {},
             // });
-            this.saveCustomDocument();
+            await this.saveCustomDocument();
 
             // close this editor
             webviewPanel.dispose();
@@ -213,7 +213,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             //   undo: () => {},
             //   redo: () => {},
             // });
-            this.saveCustomDocument();
+            await this.saveCustomDocument();
 
             // close this editor
             webviewPanel.dispose();

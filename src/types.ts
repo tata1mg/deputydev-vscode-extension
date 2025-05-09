@@ -3,12 +3,12 @@ export interface UsageTrackingProperties {
   lines: number;
   file_path: string;
   timestamp?: string;
-  source?: 'inline-modify' | 'inline-chat' | 'chat' | 'act' | 'inline-chat-act';
+  source?: string;
 }
 
 export type UsageTrackingRequest = {
   anonymous_id?: string;
-  event: 'accepted' | 'generated' | 'copied' | 'applied';
+  event: string;
   properties: UsageTrackingProperties;
 };
 

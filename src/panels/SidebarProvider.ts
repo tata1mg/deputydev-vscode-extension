@@ -289,10 +289,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             this.outputChannel.error('No active repo found');
             return;
           }
+          let usageTrackingSource;
+          if (data.is_inline) {
+              usageTrackingSource = data.write_mode? 'inline-chat-act' : 'inline-chat';
+          } else {
+              usageTrackingSource = data.write_mode? 'act' : 'chat';
+          }
           promise = this.diffManager.applyDiff(
             { path: data.filePath, incrementalUdiff: data.raw_diff },
             activeRepo,
             true,
+            {
+              usageTrackingSessionId: getSessionId() || null,
+              usageTrackingSource: usageTrackingSource, 
+            }
           );
           break;
         }

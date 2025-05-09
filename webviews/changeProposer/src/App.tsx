@@ -38,17 +38,18 @@ const App: React.FC = () => {
 
       if (message.command === 'refresh-content') {
         // update content will be honoured only if the editor ref is not null
-        if (!editorRef.current) {
-          return;
-        }
+
         const loadContent = async () => {
           const result = await callCommand('get-latest-content', {});
+          if (!editorRef.current) {
+            return;
+          }
           setContent(result.content);
           setContentLanguage(result.language);
           setCurrentVSCodeTheme(result.theme);
+          decorateEditor(editorRef.current, monacoEditor);
         };
         loadContent();
-        decorateEditor(editorRef.current, monacoEditor);
       }
     });
   }, []);
