@@ -210,18 +210,6 @@
           "group": "my_group@1"
         }
       ],
-      "editor/title": [
-        {
-          "command": "deputydev.AcceptAllChanges",
-          "when": "deputydev.changeProposer.hasChanges",
-          "group": "navigation@2"
-        },
-        {
-          "command": "deputydev.RejectAllChanges",
-          "when": "deputydev.changeProposer.hasChanges",
-          "group": "navigation@3"
-        }
-      ],
       "terminal/context": [
         {
           "command": "deputydev.addTerminalOutputToChat",

@@ -183,6 +183,12 @@ export class FileChangeStateManager {
   private readonly getDiskFileContent = async (uri: string): Promise<string> => {
     const fileUri = vscode.Uri.file(uri);
     try {
+      // if file is not on disk, return empty string
+      if (!(await vscode.workspace.fs.stat(fileUri))) {
+        this.outputChannel.error(`File not found, creating in memory empty file: ${fileUri}`);
+        return '';
+      }
+      // read the file content
       const fileContent = await vscode.workspace.fs.readFile(fileUri);
       return fileContent.toString();
     } catch (error) {
@@ -470,5 +476,14 @@ export class FileChangeStateManager {
 
     // return the new udiff
     return newUdiff;
+  };
+
+  public removeFileChangeState = (filePath: string, repoPath: string): void => {
+    const uri = path.join(repoPath, filePath);
+    this.fileChangeStateMap.delete(uri);
+  };
+
+  public clearAllFileChangeStates = (): void => {
+    this.fileChangeStateMap.clear();
   };
 }
