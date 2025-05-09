@@ -144,7 +144,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => { });
     } catch (error) {
       // Handle error if needed
     }
@@ -487,9 +487,9 @@ export function ChatUI() {
                 disabled={repoSelectorEmbedding || enhancingUserQuery}
                 {...(repoSelectorEmbedding &&
                   activeRepo && {
-                    'data-tooltip-id': 'repo-tooltip',
-                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
-                  })}
+                  'data-tooltip-id': 'repo-tooltip',
+                  'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                })}
                 autoFocus
               />
             </div>
@@ -507,16 +507,23 @@ export function ChatUI() {
                 onClick={() => {
                   const textarea = textareaRef.current;
                   if (textarea) {
-                    // Set the value and move cursor
-                    textarea.value = '@';
-                    textarea.setSelectionRange(1, 1);
+                    // Get the current value and cursor position
+                    const currentValue = textarea.value;
+                    const cursorPosition = textarea.selectionStart;
+
+                    // Insert @ at the current cursor position
+                    const newValue = currentValue.slice(0, cursorPosition) + '@' + currentValue.slice(cursorPosition);
+
+                    // Set the new value and move cursor
+                    textarea.value = newValue;
+                    textarea.setSelectionRange(cursorPosition + 1, cursorPosition + 1);
                     textarea.focus();
 
                     // Update store and trigger change handler
-                    useChatStore.setState({ userInput: '@' });
+                    useChatStore.setState({ userInput: newValue });
                     handleTextAreaChange({
                       target: {
-                        value: '@',
+                        value: newValue,
                       },
                     } as React.ChangeEvent<HTMLTextAreaElement>);
                   }
@@ -526,11 +533,10 @@ export function ChatUI() {
               </button>
 
               <button
-                className={`flex items-center justify-center rounded p-1 ${
-                  useChatStore.getState().search_web
+                className={`flex items-center justify-center rounded p-1 ${useChatStore.getState().search_web
                     ? 'bg-blue-500 text-white hover:bg-blue-600'
                     : 'hover:bg-slate-400 hover:bg-opacity-10'
-                }`}
+                  }`}
                 onClick={handleGlobeToggle}
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
