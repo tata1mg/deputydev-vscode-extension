@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { createTwoFilesPatch } from 'diff';
 import * as path from 'path';
+import { UsageTrackingManager } from '../../usageTracking/UsageTrackingManager';
+import { UsageTrackingRequest } from '../../types';
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -8,6 +10,10 @@ type FileChangeState = {
   originalContent: string; // The original content based on the current udiff
   modifiedContent: string; // The modified content based on the current udiff
   currentUdiff: string; // The current udiff content
+  stateMetadata: {
+    usageTrackingSource: string,
+    usageTrackingSessionId: number | null, // The session ID for tracking usage
+  };
 };
 
 export class FileChangeStateManager {
@@ -127,11 +133,15 @@ export class FileChangeStateManager {
   // If it does, it updates the udiff in the fileChangeStateMap.
   // It returns the original and modified content extracted from the udiff.
   // TODO: Handle rename
-  public updateFileStateInFileChangeStateMap = async (
+  public updateFileStateInFileChangeStateMapPostDiffApply = async (
     filePath: string, // relative path of the file from the repo
     repoPath: string, // absolute path of the repo
     newFileContent: string,
     newFilePath: string,
+    stateMetadata: {
+      usageTrackingSource: string,
+      usageTrackingSessionId: number | null, 
+    },
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
   ): Promise<{
     originalContent: string;
@@ -162,6 +172,10 @@ export class FileChangeStateManager {
         originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
         currentUdiff: udiff,
+        stateMetadata: {
+          usageTrackingSource: 'inlineDiff',
+          usageTrackingSessionId: 0,
+        },
       });
     } else {
       // update the udiff in the fileChangeStateMap
@@ -170,6 +184,7 @@ export class FileChangeStateManager {
         currentUdiff: udiff,
         originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
+        stateMetadata: stateMetadata,
       });
     }
 
@@ -234,6 +249,24 @@ export class FileChangeStateManager {
     return this.fileChangeStateMap.get(uri);
   };
 
+  private readonly trackUsage = async (eventName: string, eventData: {lines: number }, filePath: string, repoPath: string) => {
+    // track usage for the event
+    const uri = path.join(repoPath, filePath);
+    const fileChangeState = this.fileChangeStateMap.get(uri);
+    const usageTrackingData: UsageTrackingRequest = {
+      event: eventName,
+      properties: {
+        ...eventData,
+        source: fileChangeState?.stateMetadata.usageTrackingSource || 'unknown',
+        session_id: fileChangeState?.stateMetadata.usageTrackingSessionId || undefined,
+        file_path: filePath,
+      },
+    };
+    const usageTrackingManager = new UsageTrackingManager();
+    await usageTrackingManager.trackUsage(usageTrackingData);
+  };
+
+
   public acceptChangeAtLine = async (
     filePath: string, // relative path of the file from the repo
     repoPath: string, // absolute path of the repo
@@ -254,6 +287,7 @@ export class FileChangeStateManager {
     let udiffLineNumber = 0;
     const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
 
+    let acceptedLinesCount = 0;
     // iterate through the lines in the udiff
     while (udiffLineNumber < currentUdiffLines.length) {
       // if we find the line that starts the block we want to accept, we accept the change
@@ -268,6 +302,7 @@ export class FileChangeStateManager {
             // convert the line to space
             newUdiffLines.push(` ${currentLine.substring(1)}`);
           }
+          acceptedLinesCount++;
           udiffLineNumber++;
         }
       } else {
@@ -289,6 +324,9 @@ export class FileChangeStateManager {
       originalContent: originalAndModifiedContent.originalContent,
       modifiedContent: originalAndModifiedContent.modifiedContent,
     });
+
+    // track usage for the event
+    await this.trackUsage('accepted', { lines: acceptedLinesCount }, filePath, repoPath);
 
     // return the new udiff
     return newUdiff;
@@ -372,14 +410,17 @@ export class FileChangeStateManager {
     let udiffLineNumber = 0;
     const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
 
+    let acceptedLinesCount = 0;
     // iterate through the lines in the udiff
     while (udiffLineNumber < currentUdiffLines.length) {
       if (currentUdiffLines[udiffLineNumber].startsWith('+')) {
         // convert the line to space
         newUdiffLines.push(` ${currentUdiffLines[udiffLineNumber].substring(1)}`);
+        acceptedLinesCount++;
         udiffLineNumber++;
       } else if (currentUdiffLines[udiffLineNumber].startsWith('-')) {
         // skip the line
+        acceptedLinesCount++;
         udiffLineNumber++;
       } else {
         // we add the line as it is
@@ -400,6 +441,9 @@ export class FileChangeStateManager {
       originalContent: originalAndModifiedContent.originalContent,
       modifiedContent: originalAndModifiedContent.modifiedContent,
     });
+
+    // track usage for the event
+    await this.trackUsage('accepted', { lines: acceptedLinesCount }, filePath, repoPath);
 
     // return the new udiff
     return newUdiff;

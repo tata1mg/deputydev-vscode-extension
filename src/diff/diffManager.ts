@@ -25,35 +25,6 @@ export class DiffManager {
     this.outputChannel = outputChannel;
     this.authService = authService;
 
-    this.vscodeContext.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.acceptChanges', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showErrorMessage('No active editor to accept changes for.');
-          return;
-        }
-        const fileUri = editor.document.uri;
-        outputChannel.info(`Accepting changes for ${fileUri.fsPath}`);
-        await this.acceptFile(fileUri.fsPath);
-        vscode.window.showInformationMessage('Changes accepted successfully.');
-      }),
-    );
-
-    // Reject changes in the active file
-    this.vscodeContext.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.rejectChanges', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-          vscode.window.showErrorMessage('No active editor to reject changes for.');
-          return;
-        }
-        const fileUri = editor.document.uri;
-        outputChannel.info(`rejecting changes for ${fileUri.fsPath}`);
-        await this.rejectFile(fileUri.fsPath);
-        vscode.window.showInformationMessage('Changes rejected successfully.');
-      }),
-    );
-
     // If you want commands for accepting or rejecting ALL tracked files:
     this.vscodeContext.subscriptions.push(
       vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
@@ -69,18 +40,7 @@ export class DiffManager {
       }),
     );
 
-    // Command to open a diff view for any file path + new content
-    this.vscodeContext.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.openDiffView', async (path: string, content: string) => {
-        try {
-          await this.applyDiff({ path, incrementalUdiff: content }, path, true);
-          vscode.window.showInformationMessage(`Diff view opened for ${path}`);
-        } catch (error) {
-          outputChannel.error(`Failed to open diff view: ${error}`);
-          vscode.window.showErrorMessage('Failed to open diff view.');
-        }
-      }),
-    );
+
   }
 
   // initialize the diff manager
@@ -184,17 +144,22 @@ export class DiffManager {
     data: { path: string; incrementalUdiff: string },
     repoPath: string,
     openViewer: boolean,
+    applicationTrackingData: {
+      usageTrackingSource: string;
+      usageTrackingSessionId: number | null;
+    }
   ): Promise<boolean> => {
     this.checkInit();
     // first get the original and modified content after applying diff
     const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
 
     // update the fileChangeStateMap with the original and modified content from the udiff
-    await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMap(
+    await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMapPostDiffApply(
       data.path,
       repoPath,
       newContent,
       data.path,
+      applicationTrackingData,
       originalContent,
     );
 

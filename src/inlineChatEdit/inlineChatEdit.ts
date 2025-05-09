@@ -12,9 +12,10 @@ import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
 import { SESSION_TYPE } from '../constants';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { SearchTerm } from '../types';
+import { SearchTerm, UsageTrackingRequest } from '../types';
 import { AuthService } from '../services/auth/AuthService';
 import { DiffManager } from '../diff/diffManager';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
@@ -373,7 +374,23 @@ export class InlineChatEditManager {
           this.outputChannel.error('Modified file path, raw diff, or active repo is not set.');
           return;
         }
-        this.diffManager.applyDiff({ path: modified_file_path, incrementalUdiff: raw_diff }, this.active_repo, true);
+        const rawUdiffLines: string[] = raw_diff.split('\n');
+        const modifiedLinesCount = rawUdiffLines.filter((line: string) => line.startsWith('+') || line.startsWith('-')).length;
+        const usageTrackingData: UsageTrackingRequest = {
+          event: 'generated',
+          properties: {
+            file_path: modified_file_path,
+            lines: modifiedLinesCount,
+            source: 'inline-modify',
+            session_id: job.session_id,
+          },
+        };
+        const usageTrackingManager = new UsageTrackingManager();
+        usageTrackingManager.trackUsage(usageTrackingData);
+        this.diffManager.applyDiff({ path: modified_file_path, incrementalUdiff: raw_diff }, this.active_repo, true, {
+          usageTrackingSessionId: job.session_id,
+          usageTrackingSource: 'inline-modify',
+        });
       }
     }
     if (inlineEditResponse.tool_use_request) {
