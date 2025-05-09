@@ -392,7 +392,7 @@ export class InlineChatEditManager {
         this.diffManager.applyDiff({ path: modified_file_path, incrementalUdiff: raw_diff }, this.active_repo, true, {
           usageTrackingSessionId: job.session_id,
           usageTrackingSource: 'inline-modify',
-        });
+        }, true);
       }
     }
     if (inlineEditResponse.tool_use_request) {
