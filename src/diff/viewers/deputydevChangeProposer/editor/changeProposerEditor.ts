@@ -7,6 +7,7 @@ import * as path from 'path';
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
   private document: ChangeProposerDocument | undefined;
+  private readonly panels = new Map<string, vscode.WebviewPanel>(); // Track open panels
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -19,10 +20,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     _openContext: vscode.CustomDocumentOpenContext,
     _token: vscode.CancellationToken,
   ): Promise<ChangeProposerDocument> {
-    console.log('Opening custom document:', uri.toString());
     const document = new ChangeProposerDocument(uri);
     await document.init(); // load file content
-    console.log('Document content loaded:', document.content);
     this.document = document;
     return document;
   }
@@ -47,7 +46,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken,
   ): Promise<void> {
-    console.log('Resolving custom editor for document:', document.uri.toString());
+    const key = document.uri.toString();
+    this.panels.set(key, webviewPanel);
     webviewPanel.webview.options = {
       enableScripts: true,
     };
@@ -65,7 +65,6 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     });
 
     this.outputChannel.info(`Opening custom editor for: ${document.uri.toString()}`);
-    this.outputChannel.info(`Document content: ${document.content}`);
 
     const updateWebview = () => {
       webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
@@ -75,13 +74,16 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
-        case 'get-initial-content': {
-          const initialContent = document.content;
+        case 'get-latest-content': {
+          const initialContent = this.fileChangeStateManager.getFileChangeState(document.filePath, document.repoPath);
+          document.content = initialContent?.currentUdiff || document.content;
+          this.outputChannel.info(`Sending initial content to webview: ${document.content}`);
+
           webviewPanel.webview.postMessage({
             id: message.id,
             command: 'result',
             data: {
-              content: initialContent,
+              content: document.content,
               filePath: document.filePath,
               repoPath: document.repoPath,
               language: document.language,
@@ -105,12 +107,23 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
-          // set the document as dirty
-          this._onDidChangeCustomDocument.fire({
-            document: document,
-            undo: () => {},
-            redo: () => {},
-          });
+          // // set the document as dirty
+          // this._onDidChangeCustomDocument.fire({
+          //   document: document,
+          //   undo: () => {},
+          //   redo: () => {},
+          // });
+          this.saveCustomDocument();
+          // if there is no line with changes now, close the editor
+          const newContentLines = newContent.split('\n');
+          const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
+          if (!hasChanges) {
+            webviewPanel.dispose();
+            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+            await vscode.window.showTextDocument(originalFileUri, {
+              preview: false,
+            });
+          }
           break;
         }
         case 'reject-change': {
@@ -128,12 +141,23 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
-          // set the document as dirty
-          this._onDidChangeCustomDocument.fire({
-            document: document,
-            undo: () => {},
-            redo: () => {},
-          });
+          // // set the document as dirty
+          // this._onDidChangeCustomDocument.fire({
+          //   document: document,
+          //   undo: () => {},
+          //   redo: () => {},
+          // });
+          this.saveCustomDocument();
+          // if there is no line with changes now, close the editor
+          const newContentLines = newContent.split('\n');
+          const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
+          if (!hasChanges) {
+            webviewPanel.dispose();
+            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+            await vscode.window.showTextDocument(originalFileUri, {
+              preview: false,
+            });
+          }
           break;
         }
         case 'accept-all-changes': {
@@ -153,12 +177,16 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
             });
-            // set the document as dirty
-            this._onDidChangeCustomDocument.fire({
-              document: document,
-              undo: () => {},
-              redo: () => {},
-            });
+            // // set the document as dirty
+            // this._onDidChangeCustomDocument.fire({
+            //   document: document,
+            //   undo: () => {},
+            //   redo: () => {},
+            // });
+            this.saveCustomDocument();
+
+            // close this editor
+            webviewPanel.dispose();
           }
           break;
         }
@@ -179,12 +207,16 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
             });
-            // set the document as dirty
-            this._onDidChangeCustomDocument.fire({
-              document: document,
-              undo: () => {},
-              redo: () => {},
-            });
+            // // set the document as dirty
+            // this._onDidChangeCustomDocument.fire({
+            //   document: document,
+            //   undo: () => {},
+            //   redo: () => {},
+            // });
+            this.saveCustomDocument();
+
+            // close this editor
+            webviewPanel.dispose();
           }
           break;
         }
@@ -195,6 +227,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             document.repoPath,
             currentEditorContent,
           );
+          document.content = newContent;
           webviewPanel.webview.postMessage({
             id: message.id,
             command: 'result',
@@ -216,8 +249,21 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     });
 
     webviewPanel.onDidDispose(() => {
-      // No-op for now
+      // Remove the document from the fileChangeStateManager
+      this.fileChangeStateManager.removeFileChangeState(document.filePath, document.repoPath);
     });
+  }
+
+  // Helper to update an existing panel
+  public updateExistingPanel(uri: vscode.Uri): void {
+    const key = uri.toString();
+    const panel = this.panels.get(key);
+    if (panel) {
+      panel.webview.postMessage({
+        command: 'refresh-content',
+        data: {},
+      });
+    }
   }
 
   private getHtmlForWebview(webview: vscode.Webview): string {

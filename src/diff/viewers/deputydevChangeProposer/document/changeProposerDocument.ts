@@ -25,8 +25,6 @@ export class ChangeProposerDocument implements vscode.CustomDocument {
     this.filePath = this.uri.path;
     this.content = Buffer.from(content).toString('utf-8');
     this.language = await this.getLanguageFromFilePath(this.filePath, this.repoPath);
-
-    console.log(`Initialized ChangeProposerDocument: ${this.filePath}, Language: ${this.language}`);
   }
 
   dispose(): void {

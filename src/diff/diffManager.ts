@@ -115,7 +115,7 @@ export class DiffManager {
     // first get the current content of the file to apply the diff on
     const originalContent = await (
       this.fileChangeStateManager as FileChangeStateManager
-    ).getOriginalContentToShowDiffOn(data.path, repoPath);
+    ).getCurrentContentOnWhichChangesAreToBeApplied(data.path, repoPath);
     // then apply the diff to the original content
     let newContent = originalContent;
     try {

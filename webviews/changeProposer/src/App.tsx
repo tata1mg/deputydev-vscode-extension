@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Editor, { OnMount } from '@monaco-editor/react';
 import * as monacoEditor from 'monaco-editor';
 import { callCommand } from './vscode';
-import { update } from 'lodash';
+
 
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
@@ -13,14 +13,13 @@ const App: React.FC = () => {
   const [content, setContent] = useState<string>('Loading...');
   const [contentLanguage, setContentLanguage] = useState<string>('plaintext');
   const [currentVSCodeTheme, setCurrentVSCodeTheme] = useState<string>('vs-dark'); // Default value
-  const [plusMinusSeries, setPlusMinusSeries] = useState<string[]>([]);
 
   const ACCEPT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiM3N2ZkOGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS00LjI5IDEwLjI5TDguNzEgMTQuNzFsMi44NS0yLjg1IDQuNzEgNC43MS0xLjQxIDEuNDFMMTAuNzEgMTIuMjl6Ii8+PC9zdmc+';
   const REJECT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlMjQzNDMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEuNDEgMTMuNDFMMTIgMTMuNDFsLTMuNDEgMy40MS0xLjQxLTEuNDFMMTAuNTkgMTIgNy4xOCA4LjU5bDEuNDEtMS40MUwxMiAxMC41OWwzLjQxLTMuNDFsMS40MSAxLjQxTDEzLjQxIDEybDMuNDEgMy40MS0xLjQxIDEuNDF6Ii8+PC9zdmc+';
 
   useEffect(() => {
     const loadContent = async () => {
-      const result = await callCommand('get-initial-content', {});
+      const result = await callCommand('get-latest-content', {});
       setContent(result.content);
       setContentLanguage(result.language);
       setCurrentVSCodeTheme(result.theme);
@@ -35,6 +34,21 @@ const App: React.FC = () => {
 
       if (message.command === 'set-theme') {
         setCurrentVSCodeTheme(message.theme);
+      }
+
+      if (message.command === 'refresh-content') {
+        // update content will be honoured only if the editor ref is not null
+        if (!editorRef.current) {
+          return;
+        }
+        const loadContent = async () => {
+          const result = await callCommand('get-latest-content', {});
+          setContent(result.content);
+          setContentLanguage(result.language);
+          setCurrentVSCodeTheme(result.theme);
+        };
+        loadContent();
+        decorateEditor(editorRef.current, monacoEditor);
       }
     });
   }, []);
@@ -101,6 +115,12 @@ const App: React.FC = () => {
       editorRef.current.removeOverlayWidget(widget);
     }
     overlayWidgetsRef.current = [];
+  };
+
+  const clearLineDecorations = () => {
+    if (lineDecorationsRef.current) {
+      lineDecorationsRef.current.clear();
+    }
   };
 
   const createOverlayWidget = (monaco: typeof monacoEditor): monacoEditor.editor.IOverlayWidget => {
@@ -363,9 +383,17 @@ const App: React.FC = () => {
 
     clearContentWidgets();
     clearOverlayWidgets();
+    clearLineDecorations();
 
     const lines = model.getLinesContent();
-    const decorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
+
+    // if there are no + or - lines in content, just return
+    if (!lines.some((line) => line.startsWith('+') || line.startsWith('-'))) {
+      return;
+    }
+
+
+    const lineDecorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
 
     // Create overlay widget for top-right actions accept all/reject all
     const overlayWidget = createOverlayWidget(monaco);
@@ -379,12 +407,12 @@ const App: React.FC = () => {
 
       // add green/red line decorations
       if (line.startsWith('+')) {
-        decorations.push({
+        lineDecorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'plus-line' },
         });
       } else if (line.startsWith('-')) {
-        decorations.push({
+        lineDecorations.push({
           range: new monaco.Range(lineNum, 1, lineNum, 1),
           options: { isWholeLine: true, className: 'minus-line' },
         });
@@ -401,10 +429,8 @@ const App: React.FC = () => {
     }
 
     // add red/green decorations to the editor
-    if (lineDecorationsRef.current) {
-      lineDecorationsRef.current.clear();
-    }
-    lineDecorationsRef.current = editor.createDecorationsCollection(decorations);
+
+    lineDecorationsRef.current = editor.createDecorationsCollection(lineDecorations);
 
     // add hover provider for uneditable lines tooltip
     monaco.languages.registerHoverProvider('python', {
@@ -431,7 +457,7 @@ const App: React.FC = () => {
         language={contentLanguage}
         value={content}
         theme={currentVSCodeTheme}
-        options={{ glyphMargin: true }}
+        options={{ glyphMargin: false }}
         onMount={handleEditorDidMount}
       />
       <style>{`
