@@ -76,7 +76,7 @@ export class FileChangeStateManager {
       ? modifiedContent.substring(0, modifiedContent.length - lineEol.length)
       : modifiedContent;
     return {
-      originalContent: originalContent, 
+      originalContent: originalContent,
       modifiedContent: modifiedContent,
     };
   };
