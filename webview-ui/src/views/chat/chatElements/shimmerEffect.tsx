@@ -10,7 +10,7 @@ export function Shimmer() {
     'DeputyDev is almost done',
   ];
 
-  const [randomPhrase, setRandomPhrase] = useState('');
+  const [selectedPhrase, setSelectedPhrase] = useState('');
   const [activeDots, setActiveDots] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -36,12 +36,14 @@ export function Shimmer() {
 
   useEffect(() => {
     let phraseTimeout: NodeJS.Timeout;
+    let currentIndex = 0;
 
     const updatePhrase = () => {
       if (!isMounted) return;
-      const selectedPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-      setRandomPhrase(selectedPhrase);
-      phraseTimeout = setTimeout(updatePhrase, 3000);
+      const selectedPhrase = phrases[currentIndex];
+      setSelectedPhrase(selectedPhrase);
+      currentIndex = (currentIndex + 1) % phrases.length;
+      phraseTimeout = setTimeout(updatePhrase, 2500);
     };
 
     updatePhrase();
@@ -59,7 +61,7 @@ export function Shimmer() {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
           }
-          
+
           @keyframes dot-bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-2px); }
@@ -95,7 +97,7 @@ export function Shimmer() {
             opacity: 0.7
           }}
         >
-          {randomPhrase}
+          {selectedPhrase}
           {/* Animated Dots */}
           <span className="ml-1.5 inline-block space-x-0.5">
             {Array.from({ length: 3 }).map((_, index) => (
