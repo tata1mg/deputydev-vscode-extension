@@ -173,7 +173,7 @@ export class FileChangeStateManager {
     // if not, set the fileChangeState in fileChangeStateMap
     if (!this.fileChangeStateMap.has(uri)) {
       // if initialFileContent is not provided, throw an error
-      if (!initialFileContent) {
+      if (initialFileContent === undefined) {
         throw new Error(`Initial file content is required for the first time setting the udiff for ${uri}`);
       }
       // Set the initial file content and udiff in the fileChangeStateMap
@@ -210,8 +210,10 @@ export class FileChangeStateManager {
     const fileUri = vscode.Uri.file(uri);
     try {
       // if file is not on disk, return empty string
-      if (!(await vscode.workspace.fs.stat(fileUri))) {
-        this.outputChannel.error(`File not found, creating in memory empty file: ${fileUri}`);
+      try {
+        await vscode.workspace.fs.stat(fileUri);
+      } catch (error) {
+        this.outputChannel.error(`File not found on disk: ${uri}`);
         return '';
       }
       // read the file content
