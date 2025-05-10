@@ -1,7 +1,4 @@
-// import * as path from 'node:path';
-import { join } from 'path';
 import * as vscode from 'vscode';
-import { DiffViewManager } from '../diff/DiffManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { binaryApi, api } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
@@ -21,6 +18,7 @@ import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
 import { UsageTrackingRequest } from '../types';
 import { getShell } from '../terminal/utils/shell';
 import { TerminalManager } from '../terminal/TerminalManager';
+import { DiffManager } from '../diff/diffManager';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { getOSName } from '../utilities/osName';
 
@@ -41,7 +39,7 @@ export class ChatManager {
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
-    private diffViewManager: DiffViewManager,
+    private diffManager: DiffManager,
     private terminalManager: TerminalManager,
   ) {
     this.logger = SingletonLogger.getInstance();
@@ -349,39 +347,28 @@ export class ChatManager {
                 };
                 const usageTrackingManager = new UsageTrackingManager();
                 usageTrackingManager.trackUsage(usageTrackingData);
-                const modifiedFiles = await this.getModifiedRequest(currentDiffRequest);
-                if (modifiedFiles) {
-                  //  only log 1st words
-                  this.outputChannel.error(
-                    `the modified file at vscode side is:  ${JSON.stringify(modifiedFiles).slice(0, 1)}`,
-                  );
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: 'chunk',
-                    data: {
-                      name: 'APPLY_DIFF_RESULT',
-                      data: 'completed',
-                    },
-                  });
-                  await this.handleModifiedFiles(
-                    modifiedFiles,
-                    active_repo,
-                    getSessionId(),
-                    payload.write_mode,
-                    payload.is_inline,
-                  );
-                } else {
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: 'chunk',
-                    data: {
-                      name: 'APPLY_DIFF_RESULT',
-                      data: 'error',
-                    },
-                  });
-                }
+                const isDiffApplied = await this.diffManager.applyDiff(
+                  {
+                    path: currentDiffRequest.filepath,
+                    incrementalUdiff: currentDiffRequest.raw_diff,
+                  },
+                  active_repo,
+                  true,
+                  {
+                    usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
+                    usageTrackingSessionId: getSessionId() || null,
+                  },
+                  payload.write_mode,
+                );
+                this.sidebarProvider?.sendMessageToSidebar({
+                  id: messageId,
+                  command: 'chunk',
+                  data: {
+                    name: 'APPLY_DIFF_RESULT',
+                    data: isDiffApplied ? 'completed' : 'error',
+                  },
+                });
               }
-
               currentDiffRequest = null;
             } else {
               chunkCallback({ name: event.type, data: event.content });
@@ -654,26 +641,6 @@ export class ChatManager {
       this.logger.error(`Error calling Web Search API: ${error.message}`);
       this.outputChannel.error(`Error calling Web Search API: ${error.message}`, error);
       throw error;
-    }
-  }
-
-  async handleModifiedFiles(
-    modifiedFiles: Record<string, string>,
-    active_repo: string,
-    session_id?: number,
-    write_mode?: boolean,
-    is_inline?: boolean,
-    is_inline_modify?: boolean,
-  ): Promise<void> {
-    for (const [relative_path, content] of Object.entries(modifiedFiles)) {
-      const fullPath = join(active_repo, relative_path);
-      await this.diffViewManager.openDiffView(
-        { path: fullPath, content },
-        session_id,
-        write_mode,
-        is_inline,
-        is_inline_modify,
-      );
     }
   }
 

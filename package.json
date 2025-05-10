@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "2.8.1",
+  "version": "3.0.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -24,10 +24,33 @@
     "onCommand:deputydev.RejectAllChanges",
     "onCommand:deputydev.AcceptChange",
     "onCommand:deputydev.RejectChange",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCustomEditor:deputydev.changeProposer"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "deputydev.changeProposer",
+        "displayName": "DeputyDev Change Proposer",
+        "selector": [
+          {
+            "filenamePattern": "ddproposed://*"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "resourceLabelFormatters": [
+      {
+        "scheme": "ddproposed",
+        "formatting": {
+          "label": "${path} (DeputyDev Changes)",
+          "separator": "/",
+          "workspaceSuffix": "DeputyDev Proposed Changes"
+        }
+      }
+    ],
     "keybindings": [
       {
         "command": "deputydev.editThisCode",
@@ -49,6 +72,11 @@
         "command": "deputydev.editThisCode",
         "category": "DeputyDev",
         "title": "Edit this code"
+      },
+      {
+        "command": "deputydev.changeProposer",
+        "category": "DeputyDev",
+        "title": "Open in Custom Editor"
       },
       {
         "command": "deputydev.chatWithDeputy",
@@ -182,23 +210,6 @@
           "group": "my_group@1"
         }
       ],
-      "editor/title": [
-        {
-          "command": "deputydev.ConfirmModify",
-          "group": "navigation@1",
-          "when": "isInDiffEditor && resourceScheme == 'deputydev'"
-        },
-        {
-          "command": "deputydev.AcceptAllChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@2"
-        },
-        {
-          "command": "deputydev.RejectAllChanges",
-          "when": "deputydev.hasChanges",
-          "group": "navigation@3"
-        }
-      ],
       "terminal/context": [
         {
           "command": "deputydev.addTerminalOutputToChat",
@@ -242,26 +253,27 @@
     }
   },
   "scripts": {
-    "build:all": "yarn vscode:prepublish && yarn build:ui",
-    "install:all": "yarn install && yarn --cwd ./webview-ui install",
-    "start:ui": "yarn --cwd ./webview-ui run start",
-    "build:ui": "yarn --cwd ./webview-ui run build",
-    "watch:ui": "yarn --cwd ./webview-ui run watch",
+    "build:all": "yarn build:webviews:sidebar && yarn build:webviews:changeProposer && yarn vscode:prepublish",
+    "install:all": "yarn install && yarn --cwd ./webviews/sidebar install && yarn --cwd ./webviews/changeProposer install",
+    "start:webviews:sidebar": "yarn --cwd ./webviews/sidebar run start",
+    "build:webviews:sidebar": "yarn --cwd ./webviews/sidebar run build",
+    "build:webviews:changeProposer": "yarn --cwd ./webviews/changeProposer run build",
+    "watch:webviews:sidebar": "yarn --cwd ./webviews/sidebar run watch",
     "vscode:prepublish": "yarn run compile",
     "compile": "node esbuild.js",
     "watch:extension": "tsc -watch -p ./",
-    "watch:all": "concurrently \"yarn watch:ui\" \"yarn watch:extension\"",
+    "watch:all": "concurrently \"yarn watch:webviews:sidebar\" \"yarn watch:extension\"",
     "watch": "yarn watch:extension",
     "pretest": "yarn run compile && yarn run lint",
     "lint": "eslint src --ext ts,tsx",
     "lint:fix": "eslint src --ext ts,tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "lint:ui": "yarn --cwd ./webview-ui run lint",
-    "lint:fix:ui": "yarn --cwd ./webview-ui run lint:fix",
-    "format:ui": "yarn --cwd ./webview-ui run format",
-    "lint:all": "yarn lint && yarn lint:ui",
-    "lint:fix:all": "yarn lint:fix && yarn lint:fix:ui",
-    "format:all": "yarn format && yarn format:ui",
+    "lint:webviews:sidebar": "yarn --cwd ./webviews/sidebar run lint",
+    "lint:fix:webviews:sidebar": "yarn --cwd ./webviews/sidebar run lint:fix",
+    "format:webviews:sidebar": "yarn --cwd ./webviews/sidebar run format",
+    "lint:all": "yarn lint && yarn lint:webviews:sidebar",
+    "lint:fix:all": "yarn lint:fix && yarn lint:fix:webviews:sidebar",
+    "format:all": "yarn format && yarn format:webviews:sidebar",
     "prepare": "husky"
   },
   "devDependencies": {

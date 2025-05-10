@@ -2,7 +2,7 @@ node_modules
 .DS_Store
 out
 *.local
-webview-ui/.env
+*.env
 .deputydevrules
 *.vsix
 *.code-workspace

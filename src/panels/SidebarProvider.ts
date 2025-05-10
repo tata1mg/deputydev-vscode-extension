@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
-import { DiffViewManager } from '../diff/DiffManager';
 import { getUri } from '../utilities/getUri';
 import { HistoryService } from '../services/history/HistoryService';
 import { AuthService } from '../services/auth/AuthService';
@@ -24,6 +23,7 @@ import { CLIENT_VERSION, DD_HOST } from '../config';
 import { ProfileUiService } from '../services/profileUi/profileUiService';
 import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
 import { Logger } from '../utilities/Logger';
+import { DiffManager } from '../diff/diffManager';
 import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
 import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
@@ -49,7 +49,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
-    private readonly diffViewManager: DiffViewManager,
+    private readonly diffManager: DiffManager,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly logger: Logger,
     private chatService: ChatManager,
@@ -156,10 +156,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // File Operations
         case 'accept-file':
-          promise = this.acceptFile(data.path);
+          promise = this.diffManager.acceptFile(data.path);
           break;
         case 'reject-file':
-          promise = this.rejectFile(data.path);
+          promise = this.diffManager.rejectFile(data.path);
           break;
         case 'get-opened-files':
           promise = this.getOpenedFiles();
@@ -283,9 +283,30 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         // diff
-        case 'write-file':
-          promise = this.writeFile(data);
+        case 'write-file': {
+          const activeRepo = getActiveRepo();
+          if (!activeRepo) {
+            this.outputChannel.error('No active repo found');
+            return;
+          }
+          let usageTrackingSource;
+          if (data.is_inline) {
+            usageTrackingSource = data.write_mode ? 'inline-chat-act' : 'inline-chat';
+          } else {
+            usageTrackingSource = data.write_mode ? 'act' : 'chat';
+          }
+          promise = this.diffManager.applyDiff(
+            { path: data.filePath, incrementalUdiff: data.raw_diff },
+            activeRepo,
+            true,
+            {
+              usageTrackingSessionId: getSessionId() || null,
+              usageTrackingSource: usageTrackingSource,
+            },
+            data.write_mode,
+          );
           break;
+        }
         case 'open-file':
           this.openFile(data.path);
           break;
@@ -295,16 +316,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'check-diff-applicable': {
-          try {
-            const diffRecord = (await this.chatService.getModifiedRequest({
-              filepath: data.filePath,
-              raw_diff: data.raw_diff,
-            })) as Record<string, string>;
-            // check diffRecord has keys and values
-            promise = diffRecord && Object.keys(diffRecord).length > 0;
-          } catch (error) {
-            // console.error("Error while checking diff applicability:", error);
+          const activeRepo = getActiveRepo();
+          if (!activeRepo) {
+            this.outputChannel.error('No active repo found');
+            return;
           }
+          promise = await this.diffManager.checkIsDiffApplicable(
+            { path: data.filePath, incrementalUdiff: data.raw_diff },
+            activeRepo,
+          );
           break;
         }
         case 'hit-retry-embedding':
@@ -498,15 +518,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // File Operations
-
-  private async acceptFile(path: string) {
-    return this.diffViewManager.acceptFile(path);
-  }
-
-  private async rejectFile(path: string) {
-    return this.diffViewManager.rejectFile(path);
-  }
-
   private async openFile(file_path: string) {
     const active_repo = getActiveRepo();
     if (!active_repo) {
@@ -531,27 +542,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } catch (error: any) {
       vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
     }
-  }
-
-  /**
-   * Example of applying changes (like "openDiffView" in your other code)
-   */
-
-  private async writeFile(data: { filePath: string; raw_diff: string; is_inline?: boolean; write_mode?: boolean }) {
-    const modifiedFiles = (await this.chatService.getModifiedRequest({
-      filepath: data.filePath,
-      raw_diff: data.raw_diff,
-    })) as Record<string, string>;
-
-    this.outputChannel.info(`Writing file(s) for: ${data.filePath}`);
-
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      this.outputChannel.error('No active repo found');
-      return;
-    }
-    this.chatService.handleModifiedFiles(modifiedFiles, active_repo, getSessionId(), data.write_mode, data.is_inline);
-    return;
   }
 
   private async getOpenedFiles() {
@@ -821,9 +811,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
    */
   private _getHtmlForWebview(webview: vscode.Webview): string {
     // The CSS file from the React build output
-    const stylesUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.css']);
+    const stylesUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.css']);
     // The JS file from the React build output
-    const scriptUri = getUri(webview, this._extensionUri, ['webview-ui', 'build', 'assets', 'index.js']);
+    const scriptUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.js']);
 
     return /*html*/ `
       <!DOCTYPE html>
