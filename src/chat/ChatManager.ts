@@ -310,8 +310,6 @@ export class ChatManager {
                   tool_use_id: currentToolRequest.tool_use_id,
                 },
               });
-              await this._runTool(currentToolRequest, messageId, chunkCallback);
-              currentToolRequest = null;
             }
             break;
           }
@@ -380,6 +378,12 @@ export class ChatManager {
             break;
         }
       }
+
+      // 3. Handle Tool Requests
+      if (currentToolRequest) {
+        await this._runTool(currentToolRequest, messageId, chunkCallback);
+      }
+
       // Signal end of stream.
       chunkCallback({ name: 'end', data: {} });
     } catch (error: any) {

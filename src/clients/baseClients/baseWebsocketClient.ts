@@ -21,10 +21,14 @@ export class BaseWebSocketClient {
     extraHeaders?: Record<string, string>,
   ) {
     this.url = `${baseUrl}${endpoint}`;
+    this.initialize(messageHandler, authToken, extraHeaders);
+  }
+
+  private initialize(messageHandler: MessageHandler, authToken: string, extraHeaders?: Record<string, string>) {
     this.responsePromise = new Promise((resolve, reject) => {
-      this.resolveResponse = resolve;
-      this.rejectResponse = reject;
-    });
+          this.resolveResponse = resolve;
+          this.rejectResponse = reject;
+        });
 
     const existingSocket = BaseWebSocketClient.connections.get(this.url);
     // console.log("*******existing socket ***********", existingSocket)
@@ -86,13 +90,13 @@ export class BaseWebSocketClient {
     });
   }
 
-  updateMessageHandler(messageHandler: MessageHandler) {
+  updateMessageHandler(messageHandler: MessageHandler, authToken: string) {
     this.currentMessageHandler = messageHandler;
     // Remove existing message listener and add new one
     if (this.messageListener) {
       this.socket.removeListener('message', this.messageListener);
     }
-    this.setupEventListeners(messageHandler);
+    this.initialize(this.currentMessageHandler, authToken, {});
   }
 
   async send(data: object): Promise<any> {
