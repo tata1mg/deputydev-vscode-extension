@@ -12,9 +12,10 @@ import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
 import { SESSION_TYPE } from '../constants';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { SearchTerm } from '../types';
+import { SearchTerm, UsageTrackingRequest } from '../types';
 import { AuthService } from '../services/auth/AuthService';
-
+import { DiffManager } from '../diff/diffManager';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
@@ -61,12 +62,14 @@ export class InlineChatEditManager {
   private active_repo: string | undefined;
   private relative_file_path: string | undefined;
   private authService = new AuthService();
+
   constructor(
     context: vscode.ExtensionContext,
     outputChannel: vscode.LogOutputChannel,
     logger: Logger,
-    private chatService: ChatManager,
-    private sidebarProvider: SidebarProvider,
+    private readonly chatService: ChatManager,
+    private readonly sidebarProvider: SidebarProvider,
+    private readonly diffManager: DiffManager,
   ) {
     this.context = context;
     this.outputChannel = outputChannel;
@@ -371,7 +374,31 @@ export class InlineChatEditManager {
           this.outputChannel.error('Modified file path, raw diff, or active repo is not set.');
           return;
         }
-        await this.handleUdiff(modified_file_path, raw_diff, this.active_repo, job.session_id);
+        const rawUdiffLines: string[] = raw_diff.split('\n');
+        const modifiedLinesCount = rawUdiffLines.filter(
+          (line: string) => line.startsWith('+') || line.startsWith('-'),
+        ).length;
+        const usageTrackingData: UsageTrackingRequest = {
+          event: 'generated',
+          properties: {
+            file_path: modified_file_path,
+            lines: modifiedLinesCount,
+            source: 'inline-modify',
+            session_id: job.session_id,
+          },
+        };
+        const usageTrackingManager = new UsageTrackingManager();
+        usageTrackingManager.trackUsage(usageTrackingData);
+        this.diffManager.applyDiff(
+          { path: modified_file_path, incrementalUdiff: raw_diff },
+          this.active_repo,
+          true,
+          {
+            usageTrackingSessionId: job.session_id,
+            usageTrackingSource: 'inline-modify',
+          },
+          true,
+        );
       }
     }
     if (inlineEditResponse.tool_use_request) {
@@ -384,14 +411,6 @@ export class InlineChatEditManager {
       };
       await this.fetchInlineEditResult(payload, job.session_id);
     }
-  }
-
-  public async handleUdiff(modified_file_path: string, raw_diff: string, active_repo: string, session_id: number) {
-    const modifiedFiles = (await this.chatService.getModifiedRequest({
-      filepath: modified_file_path,
-      raw_diff: raw_diff,
-    })) as Record<string, string>;
-    this.chatService.handleModifiedFiles(modifiedFiles, active_repo, session_id, false, false, true);
   }
 
   public async pollInlineDiffResult(job_id: number) {

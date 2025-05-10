@@ -17,6 +17,7 @@ export class QuerySolverService {
   private context: vscode.ExtensionContext;
   private DD_HOST_WS: string;
   private QUERY_SOLVER_ENDPOINT: string;
+  private websocketClient: BaseWebSocketClient | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.logger = SingletonLogger.getInstance();
@@ -64,6 +65,10 @@ export class QuerySolverService {
     }
 
     const currentSessionId = getSessionId();
+    payload.session_id = currentSessionId;
+    payload.session_type = SESSION_TYPE;
+    payload.auth_token = authToken;
+
     let streamDone = false;
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
@@ -71,28 +76,29 @@ export class QuerySolverService {
     const handleMessage = (event: RawData): 'RESOLVE' | 'REJECT' | 'WAIT' | 'REJECT_AND_RETRY' => {
       try {
         const messageData = JSON.parse(event.toString());
-        if (messageData.type === 'STREAM_START') {
-          if (messageData.new_session_data) {
-            refreshCurrentToken({
-              new_session_data: messageData.new_session_data,
-            });
-          }
-        } else if (messageData.type === 'STREAM_END') {
-          streamDone = true;
-          return 'RESOLVE';
-        } else if (messageData.type === 'STREAM_ERROR') {
-          if (messageData.status == 'NOT_VERIFIED') {
-            streamError = new Error('Session not verified');
-            sendNotVerified();
-            return 'REJECT_AND_RETRY';
-          }
-          // console.error("❌ Error in WebSocket stream:", messageData.message);
-          this.logger.error('Error in querysolver WebSocket stream: ', messageData.message);
-          // console.error("Error in WebSocket stream:", messageData.message);
-          streamError = Error(messageData.message);
-          return 'REJECT';
+
+        switch (messageData.type) {
+          case 'STREAM_START':
+            if (messageData.new_session_data) {
+              refreshCurrentToken({ new_session_data: messageData.new_session_data });
+            }
+            break;
+          case 'STREAM_END':
+            streamDone = true;
+            return 'RESOLVE';
+          case 'STREAM_ERROR':
+            if (messageData.status === 'NOT_VERIFIED') {
+              streamError = new Error('Session not verified');
+              sendNotVerified();
+              return 'REJECT_AND_RETRY';
+            }
+            streamError = new Error(messageData.message);
+            this.logger.error('Error in querysolver WebSocket stream:', messageData.message);
+            return 'REJECT';
+          default:
+            eventsQueue.push({ type: messageData.type, content: messageData.content });
+            break;
         }
-        eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         // console.error("Error parsing WebSocket message:", error);
         this.logger.error('Error parsing querysolver WebSocket message');
@@ -102,30 +108,29 @@ export class QuerySolverService {
       return 'WAIT';
     };
 
-    let websocketClient = new BaseWebSocketClient(
-      this.DD_HOST_WS,
-      this.QUERY_SOLVER_ENDPOINT,
-      authToken,
-      handleMessage,
-      {
-        ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-        'X-Session-Type': SESSION_TYPE,
-      },
-    );
+    if (!this.websocketClient) {
+      this.websocketClient = new BaseWebSocketClient(
+        this.DD_HOST_WS,
+        this.QUERY_SOLVER_ENDPOINT,
+        authToken,
+        handleMessage,
+      );
+    } else {
+      // Update the message handler for existing connection
+      this.websocketClient.updateMessageHandler(handleMessage);
+    }
 
-    websocketClient
-      .send(payload)
-      .then(() => websocketClient.close())
-      .catch((error) => {
-        // console.error("Error sending message to WebSocket:", error);
-        streamError = error;
-        websocketClient.close();
-      });
+    this.websocketClient.send(payload).catch((error) => {
+      streamError = error;
+      if (this.websocketClient) {
+        this.websocketClient.close();
+      }
+    });
 
     if (signal) {
       signal.addEventListener('abort', () => {
         // console.warn('querySolver stream aborted by user');
-        websocketClient.close();
+        // websocketClient.close();
         streamDone = true;
       });
     }
@@ -134,7 +139,9 @@ export class QuerySolverService {
       if (streamError) {
         // this.logger.error("Error in querysolver WebSocket stream:", streamError);
         // console.error("Error in querysolver WebSocket stream:", streamError);
-        websocketClient.close();
+        if (this.websocketClient) {
+          this.websocketClient.close();
+        }
         this.logger.info('Error in querysolver WebSocket stream:', streamError);
         if (streamError === 'RETRY_NEEDED') {
           this.logger.info('Error in querysolver WebSocket stream 1:', streamError);
@@ -150,33 +157,26 @@ export class QuerySolverService {
             throw new Error('Session not verified');
           }
           authToken = await authService.loadAuthToken();
-          websocketClient = new BaseWebSocketClient(
+          this.websocketClient = new BaseWebSocketClient(
             this.DD_HOST_WS,
             this.QUERY_SOLVER_ENDPOINT,
             authToken,
             handleMessage,
-            {
-              ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-              'X-Session-Type': SESSION_TYPE,
-            },
           );
 
-          websocketClient
-            .send(payload)
-            .then(() => websocketClient.close())
-            .catch((error) => {
-              // console.error("Error sending message to WebSocket:", error);
-              streamError = error;
-              websocketClient.close();
-            });
+          this.websocketClient.send(payload).catch((error) => {
+            streamError = error;
+            if (this.websocketClient) {
+              this.websocketClient.close();
+            }
+          });
           continue;
         }
-
         throw streamError;
       }
       if (signal?.aborted) {
         // console.warn('querySolver aborted during loop');
-        websocketClient.close();
+        // websocketClient.close();
         return;
       }
 
@@ -186,7 +186,5 @@ export class QuerySolverService {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
-
-    websocketClient.close();
   }
 }
