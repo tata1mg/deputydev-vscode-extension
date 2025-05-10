@@ -26,9 +26,9 @@ export class BaseWebSocketClient {
 
   private initialize(messageHandler: MessageHandler, authToken: string, extraHeaders?: Record<string, string>) {
     this.responsePromise = new Promise((resolve, reject) => {
-          this.resolveResponse = resolve;
-          this.rejectResponse = reject;
-        });
+      this.resolveResponse = resolve;
+      this.rejectResponse = reject;
+    });
 
     const existingSocket = BaseWebSocketClient.connections.get(this.url);
     // console.log("*******existing socket ***********", existingSocket)
