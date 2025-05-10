@@ -117,7 +117,7 @@ export class QuerySolverService {
       );
     } else {
       // Update the message handler for existing connection
-      this.websocketClient.updateMessageHandler(handleMessage);
+      this.websocketClient.updateMessageHandler(handleMessage, authToken);
     }
 
     this.websocketClient.send(payload).catch((error) => {
@@ -175,7 +175,6 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        // console.warn('querySolver aborted during loop');
         // websocketClient.close();
         return;
       }
