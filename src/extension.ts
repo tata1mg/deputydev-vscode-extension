@@ -31,6 +31,8 @@ import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace'
 import { TerminalManager } from './terminal/TerminalManager';
 import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
+import { binaryApi } from './services/api/axios';
+import { API_ENDPOINTS } from './services/api/endpoints';
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -253,6 +255,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }
