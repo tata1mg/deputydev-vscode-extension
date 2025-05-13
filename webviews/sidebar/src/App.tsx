@@ -56,8 +56,6 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  console.log('lalalala', extensionState.viewType);
-
   switch (extensionState.viewType) {
     case 'force-upgrade':
       view = <ForceUpgradeView />;
