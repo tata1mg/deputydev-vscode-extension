@@ -157,7 +157,7 @@ const FaqPage = () => {
             marginBottom: '0.25rem',
           }}
         >
-          ❓DD - FAQ Page
+          Frequently Asked Questions (FAQs)
         </h1>
       </header>
 
