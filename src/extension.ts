@@ -192,14 +192,14 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-   context.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.ViewFAQ', () => {
       outputChannel.info('FAQ View Selected!');
       sidebarProvider.setViewType('faq');
     }),
   );
 
-   context.subscriptions.push(
+  context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.ViewHelp', () => {
       outputChannel.info('Help View Selected!');
       sidebarProvider.setViewType('help');
