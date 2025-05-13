@@ -7,6 +7,8 @@ import Setting from './views/setting';
 import Loader from './views/loader';
 import History from './views/history';
 import Auth from './views/auth';
+import FaqPage from './views/faq';
+import DeputyDevHelpPage from './views/help';
 import { useAuthStore } from './stores/authStore';
 import Profile from './views/profile';
 import Error from './views/error';
@@ -54,6 +56,8 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  console.log("lalalala", extensionState.viewType)
+
   switch (extensionState.viewType) {
     case 'force-upgrade':
       view = <ForceUpgradeView />;
@@ -78,6 +82,12 @@ function App() {
       break;
     case 'error':
       view = showForceUpgrade ? <ForceUpgradeView /> : <Error />;
+      break;
+    case 'help':
+      view = showForceUpgrade ? <ForceUpgradeView /> : <DeputyDevHelpPage />
+      break;
+    case 'faq':
+      view = showForceUpgrade ? <ForceUpgradeView /> : <FaqPage />
       break;
     default:
       view = null;
