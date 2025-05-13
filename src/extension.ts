@@ -42,7 +42,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
