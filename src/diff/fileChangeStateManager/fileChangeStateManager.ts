@@ -108,6 +108,7 @@ export class FileChangeStateManager {
         // add the lines with a ' ' prefix to the final content
         for (let i = currentLineInOriginalFile; i < lineNumber - 1; i++) {
           // -1 to account for 0 based index
+          this.outputChannel.debug(`Adding line ${i} from original file: ${originalLines[i]}`);
           finalContentLines.push(` ${originalLines[i]}`);
         }
 
@@ -118,7 +119,11 @@ export class FileChangeStateManager {
         let currentLineInUdiff = patchLineNum + 1;
         while (currentLineInUdiff < udiffLines.length - 1 && !udiffLines[currentLineInUdiff].startsWith('@@')) {
           // -1 to account for the end of file
-          finalContentLines.push(udiffLines[currentLineInUdiff]);
+          // this if is important to check if the line is not a non udiff line
+          if (udiffLines[currentLineInUdiff].startsWith('+') || udiffLines[currentLineInUdiff].startsWith(' ') || udiffLines[currentLineInUdiff].startsWith('-')) {
+            this.outputChannel.debug(`Adding line ${currentLineInUdiff} from udiff: ${udiffLines[currentLineInUdiff]}`);
+            finalContentLines.push(udiffLines[currentLineInUdiff]);
+          }
           currentLineInUdiff++;
         }
 
@@ -128,8 +133,9 @@ export class FileChangeStateManager {
     }
 
     // add the remaining lines in original file
-    for (let i = currentLineInOriginalFile; i < originalLines.length; i++) {
+    for (let i = currentLineInOriginalFile; i >= 0 && i < originalLines.length; i++) {
       // -1 to account for previous increment in the loop
+      this.outputChannel.debug(`Adding remaining line ${i} from original file: ${originalLines[i]}`);
       finalContentLines.push(` ${originalLines[i]}`);
     }
 
@@ -506,6 +512,9 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
+    this.outputChannel.debug(`New udiff: ${newUdiff}`);
+    this.outputChannel.debug(`Original content: ${originalAndModifiedContent.originalContent}`);
+    this.outputChannel.debug(`Modified content: ${originalAndModifiedContent.modifiedContent}`);
     this.fileChangeStateMap.set(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,

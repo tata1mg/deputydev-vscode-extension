@@ -151,7 +151,7 @@ export class DiffManager {
     this.checkInit();
     // first get the original and modified content after applying diff
     const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
-    if (originalContent === newContent) {
+    if ((originalContent === newContent) && originalContent != '') {
       this.outputChannel.info(`Diff is not applicable for ${data.path}`);
       return false;
     }

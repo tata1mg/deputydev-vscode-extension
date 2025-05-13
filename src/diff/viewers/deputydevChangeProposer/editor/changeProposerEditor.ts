@@ -104,7 +104,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             document.repoPath,
             line,
           );
-          if (newContent) {
+          if (newContent !== null && newContent !== undefined) {
             document.content = newContent;
             webviewPanel.webview.postMessage({
               id: message.id,
@@ -138,7 +138,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             document.repoPath,
             line,
           );
-          if (newContent) {
+          if (newContent !== null && newContent !== undefined) {
             document.content = newContent;
             webviewPanel.webview.postMessage({
               id: message.id,
@@ -170,7 +170,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             document.filePath,
             document.repoPath,
           );
-          if (newContent) {
+          if (newContent !== null && newContent !== undefined) {
             document.content = newContent;
             webviewPanel.webview.postMessage({
               id: message.id,
@@ -200,7 +200,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             document.filePath,
             document.repoPath,
           );
-          if (newContent) {
+          if (newContent !== null && newContent !== undefined) {
             document.content = newContent;
             webviewPanel.webview.postMessage({
               id: message.id,
