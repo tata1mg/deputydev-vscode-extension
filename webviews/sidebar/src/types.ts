@@ -6,7 +6,9 @@ export type ViewType =
   | 'auth'
   | 'profile'
   | 'error'
-  | 'force-upgrade';
+  | 'force-upgrade'
+  | 'help'
+  | 'faq';
 export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress';
 export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {

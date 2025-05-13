@@ -154,7 +154,17 @@
       },
       {
         "command": "deputydev.ViewLogs",
-        "title": "View Logs",
+        "title": "Logs",
+        "category": "DeputyDev"
+      },
+      {
+        "command": "deputydev.ViewHelp",
+        "title": "Help",
+        "category": "DeputyDev"
+      },
+      {
+        "command": "deputydev.ViewFAQ",
+        "title": "FAQ",
         "category": "DeputyDev"
       },
       {
@@ -195,7 +205,17 @@
         {
           "command": "deputydev.ViewLogs",
           "when": "view == deputydev-sidebar",
+          "group": "menu@1"
+        },
+        {
+          "command": "deputydev.ViewHelp",
+          "when": "view == deputydev-sidebar",
           "group": "menu@2"
+        },
+        {
+          "command": "deputydev.ViewFAQ",
+          "when": "view == deputydev-sidebar",
+          "group": "menu@3"
         }
       ],
       "editor/context": [
