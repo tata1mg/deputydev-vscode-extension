@@ -151,6 +151,10 @@ export class DiffManager {
     this.checkInit();
     // first get the original and modified content after applying diff
     const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
+    if (originalContent === newContent) {
+      this.outputChannel.info(`Diff is not applicable for ${data.path}`);
+      return false;
+    }
 
     // update the fileChangeStateMap with the original and modified content from the udiff
     await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMapPostDiffApply(
