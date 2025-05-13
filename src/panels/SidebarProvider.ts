@@ -740,7 +740,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
   }
 
-  setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth' | 'profile' | 'error' | 'loader' | 'force-upgrade') {
+  setViewType(viewType: 'chat' | 'setting' | 'history' | 'auth' | 'profile' | 'error' | 'loader' | 'force-upgrade' | "faq" | "help") {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: 'set-view-type',
