@@ -82,7 +82,7 @@ export default function DeputyDevHelpPage() {
                 </strong>
                 <a
                   href="https://marketplace.visualstudio.com/items?itemName=Tata1mg.deputydev"
-                  rel="nofollow"
+                  rel="nofollow noreferrer"
                   target="_blank"
                 >
                   Download here
@@ -258,13 +258,13 @@ export default function DeputyDevHelpPage() {
             <div style={{ display: 'grid', gap: '1rem' }}>
               <div>
                 Reach us at{' '}
-                <a href="mailto:mail:deputydev@1mg.com" rel="nofollow" target="_blank">
+                <a href="mailto:mail:deputydev@1mg.com" rel="nofollow noreferrer" target="_blank">
                   deputydev@1mg.com
                 </a>
               </div>
               <div>
                 Or Visit{' '}
-                <a href="https://deputydev.ai" rel="nofollow" target="_blank">
+                <a href="https://deputydev.ai" rel="nofollow noreferrer" target="_blank">
                   https://deputydev.ai
                 </a>{' '}
                 for more resources.

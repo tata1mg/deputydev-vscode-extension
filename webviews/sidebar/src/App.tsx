@@ -56,7 +56,7 @@ function App() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  console.log("lalalala", extensionState.viewType)
+  console.log('lalalala', extensionState.viewType);
 
   switch (extensionState.viewType) {
     case 'force-upgrade':
@@ -84,10 +84,10 @@ function App() {
       view = showForceUpgrade ? <ForceUpgradeView /> : <Error />;
       break;
     case 'help':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <DeputyDevHelpPage />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <DeputyDevHelpPage />;
       break;
     case 'faq':
-      view = showForceUpgrade ? <ForceUpgradeView /> : <FaqPage />
+      view = showForceUpgrade ? <ForceUpgradeView /> : <FaqPage />;
       break;
     default:
       view = null;
