@@ -120,7 +120,11 @@ export class FileChangeStateManager {
         while (currentLineInUdiff < udiffLines.length - 1 && !udiffLines[currentLineInUdiff].startsWith('@@')) {
           // -1 to account for the end of file
           // this if is important to check if the line is not a non udiff line
-          if (udiffLines[currentLineInUdiff].startsWith('+') || udiffLines[currentLineInUdiff].startsWith(' ') || udiffLines[currentLineInUdiff].startsWith('-')) {
+          if (
+            udiffLines[currentLineInUdiff].startsWith('+') ||
+            udiffLines[currentLineInUdiff].startsWith(' ') ||
+            udiffLines[currentLineInUdiff].startsWith('-')
+          ) {
             this.outputChannel.debug(`Adding line ${currentLineInUdiff} from udiff: ${udiffLines[currentLineInUdiff]}`);
             finalContentLines.push(udiffLines[currentLineInUdiff]);
           }
