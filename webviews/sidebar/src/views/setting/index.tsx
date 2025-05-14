@@ -127,7 +127,69 @@ const EditRulesButton: React.FC = () => {
         className="flex items-center gap-1 rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
       >
         <Pencil className="h-4 w-4" />
-        Edit DeputyDev Rules
+        Edit .deputydevrules
+      </button>
+
+      {isOpen && (
+        <div
+          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${
+            alignRight ? 'right-0' : 'left-0'
+          }`}
+        >
+          <ul className="py-1 text-sm text-[--vscode-editor-foreground]">
+            {workspaceRepos.map((repo, index) => (
+              <li
+                key={index}
+                className="cursor-pointer px-4 py-2 hover:bg-[--vscode-list-hoverBackground]"
+                onClick={() => handleRepoClick(repo.repoPath)}
+              >
+                {repo.repoName}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EditIgnoreButton: React.FC = () => {
+  const { workspaceRepos } = useWorkspaceStore();
+  const [isOpen, setIsOpen] = useState(false);
+  const [alignRight, setAlignRight] = useState(true);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const toggleDropdown = () => {
+    setIsOpen((prev) => !prev);
+  };
+
+  useLayoutEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceLeft = rect.left;
+      if (spaceLeft < 100) {
+        setAlignRight(false);
+      } else {
+        setAlignRight(true);
+      }
+    }
+  }, [isOpen]);
+
+  const handleRepoClick = (repoPath: string) => {
+    setIsOpen(false);
+    const filePath = `${repoPath}/.deputydevignore`;
+    createOrOpenFile(filePath);
+  };
+
+  return (
+    <div className="relative inline-block">
+      <button
+        ref={buttonRef}
+        onClick={toggleDropdown}
+        className="flex items-center gap-1 rounded-md bg-[--vscode-button-background] px-2 py-1 text-[--vscode-button-foreground] hover:bg-[--vscode-button-hoverBackground]"
+      >
+        <Pencil className="h-4 w-4" />
+        Edit .deputydevignore
       </button>
 
       {isOpen && (
@@ -535,6 +597,14 @@ const Setting = () => {
         >
           <EditRulesButton />
         </SettingsCard>
+        <SettingsCard
+          title="DeputyDev Ignore"
+          description={
+            'DeputyDev currently ignores paths specifiec in `.gitignore`, files in `node_modules` and all hidden pathnames (starting with "."). With .deputydevignore file you can explicitly ignore other file paths as well. If you need to include a file that is ignored by `.gitignore`, you can use `!path/to/folder` in your .deputydevignore file.'
+          }
+        >
+          <EditIgnoreButton />
+        </SettingsCard>
       </div>
       <div>
         <h3
@@ -630,7 +700,7 @@ const Setting = () => {
             backgroundColor: 'var(--vscode-editorWidget-background)',
             border: '1px solid var(--vscode-editorWidget-border)',
           }}
-          className={`mb-4 h-[375px] rounded-lg p-2 transition-colors hover:border-opacity-80`}
+          className={`mb-4 max-h-[375px] rounded-lg p-2 transition-colors hover:border-opacity-80`}
         >
           {isLoading && <CustomLoader />}
           {!showAddNewForm && (
