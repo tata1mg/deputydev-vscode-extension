@@ -59,6 +59,25 @@ interface SettingsCardProps {
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, children, bottom }) => {
+  const formatDescription = (text: string) => {
+    const parts = text.split(/(`[^`]+`)/g);
+
+    return parts.map((part, index) => {
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return (
+          <code
+            key={index}
+            className="rounded bg-[var(--vscode-textCodeBlock-background)] px-1 py-0.5 font-mono text-[12px] text-[var(--vscode-editor-foreground)]"
+          >
+            {part.slice(1, -1)}
+          </code>
+        );
+      }
+
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <div
       style={{
@@ -82,7 +101,7 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, childre
             style={{ color: 'var(--vscode-descriptionForeground)' }}
             className="mb-1 text-[12px] leading-5"
           >
-            {description}
+            {formatDescription(description)}
           </p>
         )}
       </div>
@@ -600,7 +619,7 @@ const Setting = () => {
         <SettingsCard
           title="DeputyDev Ignore"
           description={
-            'DeputyDev currently ignores paths specifiec in `.gitignore`, files in `node_modules` and all hidden pathnames (starting with "."). With .deputydevignore file you can explicitly ignore other file paths as well. If you need to include a file that is ignored by `.gitignore`, you can use `!path/to/folder` in your .deputydevignore file.'
+            'DeputyDev currently ignores paths specified in `.gitignore`, files in `node_modules` and all hidden pathnames (starting with "."). With `.deputydevignore` file you can explicitly ignore other file paths as well. If you need to include a file that is ignored by `.gitignore`, you can use `!path/to/folder` in your `.deputydevignore` file.'
           }
         >
           <EditIgnoreButton />
