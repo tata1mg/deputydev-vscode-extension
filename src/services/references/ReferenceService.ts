@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { AuthService } from '../auth/AuthService';
 import { SaveUrlRequest } from '../../types';
-
+import axios from 'axios';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
 
@@ -136,6 +136,49 @@ export class ReferenceService {
       return searchResponse.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
+  public async uploadFileToS3(
+    payload: { name: string; type: string; size: number; content: Buffer },
+    onProgress?: (percent: number) => void,
+  ): Promise<any> {
+    try {
+      const FormData = require('form-data');
+      const authToken = await this.fetchAuthToken();
+      const headers = { Authorization: `Bearer ${authToken}` };
+
+      const url_response = await api.post(
+        API_ENDPOINTS.GET_PRESIGNED_URL,
+        { file_name: payload.name, file_size: payload.size },
+        { headers },
+      );
+      const { url: presigned_url, fields } = url_response.data;
+
+      const formData = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+
+      formData.append('file', payload.content, {
+        filename: payload.name,
+        contentType: payload.type,
+      });
+
+      await axios.post(presigned_url, formData, {
+        headers: { ...formData.getHeaders() },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            if (onProgress) onProgress(percent); // Report progress
+          }
+        },
+      });
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      throw error; // Re-throw to handle in the caller
     }
   }
 }
