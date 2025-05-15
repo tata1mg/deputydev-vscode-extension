@@ -279,9 +279,6 @@ export function uploadFileToS3(data: File) {
   reader.readAsArrayBuffer(data);
 }
 
-export function showVsCodeMessageBox(
-  type: 'info' | 'error' | 'warning',
-  message: string,
-) {
+export function showVsCodeMessageBox(type: 'info' | 'error' | 'warning', message: string) {
   return callCommand('show-vscode-message-box', { type, message });
 }
