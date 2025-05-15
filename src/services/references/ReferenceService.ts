@@ -150,7 +150,7 @@ export class ReferenceService {
 
       const url_response = await api.post(
         API_ENDPOINTS.GET_PRESIGNED_URL,
-        { file_name: payload.name, file_size: payload.size },
+        { file_name: payload.name, file_size: payload.size, file_type: payload.type },
         { headers },
       );
       const { url: presigned_url, fields } = url_response.data;
