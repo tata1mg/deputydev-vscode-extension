@@ -4,6 +4,7 @@ import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { AuthService } from '../auth/AuthService';
 import { SaveUrlRequest } from '../../types';
 import axios from 'axios';
+import FormData from 'form-data';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
 
@@ -144,7 +145,6 @@ export class ReferenceService {
     onProgress?: (percent: number) => void,
   ): Promise<any> {
     try {
-      const FormData = require('form-data');
       const authToken = await this.fetchAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };
 
