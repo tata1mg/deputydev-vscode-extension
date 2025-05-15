@@ -3,6 +3,7 @@ import { ChangeProposerDocument } from '../document/changeProposerDocument';
 import { getUri } from '../../../../utilities/getUri';
 import { FileChangeStateManager } from '../../../fileChangeStateManager/fileChangeStateManager';
 import * as path from 'path';
+import { CancellationToken } from 'vscode';
 
 export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeProposerDocument> {
   static readonly viewType = 'deputydev.changeProposer';
@@ -73,6 +74,14 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     updateWebview();
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      const key = document.uri.toString();
+      const selectedPanel = this.panels.get(key);
+      if (!selectedPanel) {
+        this.outputChannel.error('No panel found for message');
+        return;
+      }
+      // message token set
+      const cancellationToken = new vscode.CancellationTokenSource();
       switch (message.command) {
         case 'get-latest-content': {
           const initialContent = this.fileChangeStateManager.getFileChangeState(document.filePath, document.repoPath);
@@ -91,9 +100,9 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             },
           });
 
-          // save the document if file change state is in wirte mode
+          // save the document if file change state is in write mode
           if (initialContent?.writeMode) {
-            await this.saveCustomDocument();
+            await this.saveCustomDocument(document, message.token);
           }
           break;
         }
@@ -118,12 +127,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           //   undo: () => {},
           //   redo: () => {},
           // });
-          await this.saveCustomDocument();
+          await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            webviewPanel.dispose();
+            selectedPanel.dispose();
+            this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
@@ -152,12 +162,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           //   undo: () => {},
           //   redo: () => {},
           // });
-          await this.saveCustomDocument();
+          await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            webviewPanel.dispose();
+            selectedPanel.dispose();
+            this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
@@ -188,10 +199,11 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             //   undo: () => {},
             //   redo: () => {},
             // });
-            await this.saveCustomDocument();
+            await this.saveCustomDocument(document, cancellationToken.token);
 
             // close this editor
-            webviewPanel.dispose();
+            selectedPanel.dispose();
+            this.panels.delete(key);
           }
           break;
         }
@@ -218,10 +230,11 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             //   undo: () => {},
             //   redo: () => {},
             // });
-            await this.saveCustomDocument();
+            await this.saveCustomDocument(document, cancellationToken.token);
 
             // close this editor
-            webviewPanel.dispose();
+            selectedPanel.dispose();
+            this.panels.delete(key);
           }
           break;
         }
@@ -314,20 +327,15 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
   >();
   readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
 
-  saveCustomDocument(): Thenable<void> {
-    if (!this.document) {
-      return Promise.reject(new Error('No document to save'));
-    }
-    console.log('Document URI:', this.document.uri.toString());
-    console.log('Scheme:', this.document.uri.scheme);
-    return vscode.workspace.fs.writeFile(this.document.uri, Buffer.from(this.document.content, 'utf-8'));
+  saveCustomDocument(document: ChangeProposerDocument, cancellation: CancellationToken): Thenable<void> {
+    return vscode.workspace.fs.writeFile(document.uri, Buffer.from(document.content, 'utf-8'));
   }
 
   saveCustomDocumentAs(document: ChangeProposerDocument, destination: vscode.Uri): Thenable<void> {
     if (!document) {
       return Promise.reject(new Error('No document to save'));
     }
-    return vscode.workspace.fs.writeFile(destination, Buffer.from('', 'utf-8')); // dummy buffer as we don't have a real file. The content is handled in fsProvider
+    return vscode.workspace.fs.writeFile(destination, Buffer.from(document.content, 'utf-8'));
   }
 
   revertCustomDocument(): Thenable<void> {
