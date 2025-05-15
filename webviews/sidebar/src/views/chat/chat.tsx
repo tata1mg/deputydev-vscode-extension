@@ -1,5 +1,15 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop, Globe, AtSign } from 'lucide-react';
+import {
+  Check,
+  Sparkles,
+  CornerDownLeft,
+  Loader2,
+  CircleStop,
+  Globe,
+  AtSign,
+  ImagePlus,
+  X
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
@@ -18,6 +28,8 @@ import {
   getSavedUrls,
   urlSearch,
   enhanceUserQuery,
+  uploadFileToS3,
+  showVsCodeMessageBox,
 } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -73,6 +85,7 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -463,6 +476,43 @@ export function ChatUI() {
                   url={chip.url}
                 />
               ))}
+              {/* {imagePreview && (
+                <div className="relative mb-2 max-w-[100px]">
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="rounded border border-gray-300 shadow"
+                  />
+                  <button
+                    onClick={() => setImagePreview(null)}
+                    className="absolute -right-2 -top-2 rounded-full bg-gray-700 p-1 text-white hover:bg-red-600"
+                    title="Remove image"
+                  >
+                    &times;
+                  </button>
+                </div>
+              )} */}
+
+              {imagePreview && (
+                <div className="group relative mb-2 h-12 w-12">
+                  <div className="h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-full w-full object-cover transition-opacity hover:opacity-90"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setImagePreview(null)}
+                    className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                    title="Remove image"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" strokeWidth={3} />
+                  </button>
+                </div>
+              )}
+
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -550,6 +600,39 @@ export function ChatUI() {
               >
                 <Image className="h-4 w-4" />
               </button> */}
+              <input
+                type="file"
+                accept="image/*"
+                id="image-upload"
+                style={{ display: 'none' }}
+                disabled={imagePreview !== null}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                    if (file.size > maxSize) {
+                      showVsCodeMessageBox(
+                        'error',
+                        'File size exceeds 5MB. Please upload a smaller file.'
+                      );
+                      return;
+                    }
+                    const previewUrl = URL.createObjectURL(file);
+                    setImagePreview(previewUrl);
+                    uploadFileToS3(file);
+                  }
+                }}
+              />
+
+              <label
+                htmlFor="image-upload"
+                className="flex cursor-pointer items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                data-tooltip-id="upload-tooltip"
+                data-tooltip-content={imagePreview !== null ? "Max 1 image allowed" : "Upload Image"}
+                data-tooltip-place="top-start"
+              >
+                <ImagePlus className="h-4 w-4" />
+              </label>
 
               {enhancingUserQuery ? (
                 <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
@@ -593,6 +676,7 @@ export function ChatUI() {
             </div>
             <Tooltip id="repo-tooltip" />
             <Tooltip id="sparkles-tooltip" />
+            <Tooltip id="upload-tooltip" />
           </div>
         </div>
 
