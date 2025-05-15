@@ -75,13 +75,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       const key = document.uri.toString();
-      const selectedPanel = this.panels.get(key);    
+      const selectedPanel = this.panels.get(key);
       if (!selectedPanel) {
         this.outputChannel.error('No panel found for message');
         return;
       }
       // message token set
-      let cancellationToken = new vscode.CancellationTokenSource();
+      const cancellationToken = new vscode.CancellationTokenSource();
       switch (message.command) {
         case 'get-latest-content': {
           const initialContent = this.fileChangeStateManager.getFileChangeState(document.filePath, document.repoPath);
@@ -132,7 +132,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            selectedPanel.dispose();this.panels.delete(key);
+            selectedPanel.dispose();
+            this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
@@ -166,7 +167,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           const newContentLines = newContent.split('\n');
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            selectedPanel.dispose();this.panels.delete(key);
+            selectedPanel.dispose();
+            this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
@@ -200,7 +202,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await this.saveCustomDocument(document, cancellationToken.token);
 
             // close this editor
-            selectedPanel.dispose();this.panels.delete(key);
+            selectedPanel.dispose();
+            this.panels.delete(key);
           }
           break;
         }
@@ -230,7 +233,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await this.saveCustomDocument(document, cancellationToken.token);
 
             // close this editor
-            selectedPanel.dispose();this.panels.delete(key);
+            selectedPanel.dispose();
+            this.panels.delete(key);
           }
           break;
         }
