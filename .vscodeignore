@@ -11,4 +11,5 @@ __tests__/
 docs/
 yarn.lock
 package-lock.json
+webviews/changeProposer/node_modules/**
 webviews/sidebar/node_modules/**
