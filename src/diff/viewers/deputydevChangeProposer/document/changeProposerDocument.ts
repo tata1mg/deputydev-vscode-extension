@@ -12,7 +12,13 @@ export class ChangeProposerDocument implements vscode.CustomDocument {
   private async getLanguageFromFilePath(filePath: string, repoPath: string): Promise<string> {
     try {
       const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(repoPath, filePath)));
-      return doc.languageId;
+      let monacoLanguage = doc.languageId;
+      if (monacoLanguage === 'javascriptreact') {
+        monacoLanguage = 'javascript';
+      } else if (monacoLanguage === 'typescriptreact') {
+        monacoLanguage = 'typescript';
+      }
+      return monacoLanguage;
     } catch (error) {
       console.error(`Failed to get language for ${filePath}:`, error);
       return 'plaintext';
