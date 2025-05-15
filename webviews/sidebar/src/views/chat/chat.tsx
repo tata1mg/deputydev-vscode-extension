@@ -8,7 +8,7 @@ import {
   Globe,
   AtSign,
   ImagePlus,
-  X
+  X,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -628,7 +628,9 @@ export function ChatUI() {
                 htmlFor="image-upload"
                 className="flex cursor-pointer items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                 data-tooltip-id="upload-tooltip"
-                data-tooltip-content={imagePreview !== null ? "Max 1 image allowed" : "Upload Image"}
+                data-tooltip-content={
+                  imagePreview !== null ? 'Max 1 image allowed' : 'Upload Image'
+                }
                 data-tooltip-place="top-start"
               >
                 <ImagePlus className="h-4 w-4" />
