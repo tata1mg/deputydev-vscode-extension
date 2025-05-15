@@ -65,6 +65,9 @@ export class QuerySolverService {
     }
 
     const currentSessionId = getSessionId();
+    payload.session_id = currentSessionId;
+    payload.session_type = SESSION_TYPE;
+    payload.auth_token = authToken;
     let streamDone = false;
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
