@@ -10,7 +10,15 @@ import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { AuthService } from '../services/auth/AuthService';
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from '../constants';
-import { ChatPayload, ChunkCallback, Chunk, ToolRequest, CurrentDiffRequest, SearchTerm, Settings } from '../types';
+import {
+  ChatPayload,
+  ChunkCallback,
+  Chunk,
+  ToolRequest,
+  CurrentDiffRequest,
+  SearchTerm,
+  ToolUseResult,
+} from '../types';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -194,11 +202,11 @@ export class ChatManager {
    * the provided chunkCallback.
    */
 
-  async apiChat(payload: ChatPayload, chunkCallback: ChunkCallback) {
+  async apiChat(payload: ChatPayload, chunkCallback: ChunkCallback, toolUseResult?: ToolUseResult) {
     const originalPayload = structuredClone(payload);
     const abortController = new AbortController();
     this.currentAbortController = abortController; // Track the current controller
-
+    let toolResultSent = false;
     let querySolverTask:
       | {
           abortController: AbortController;
@@ -260,9 +268,12 @@ export class ChatManager {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
           break; // Exit loop if cancelled
         }
-
-        // this.outputChannel.info(`Received event:`, JSON.stringify(event)); // Log event type
-
+        if (!toolResultSent && event.type !== 'STREAM_START' && event.type !== 'RESPONSE_METADATA' && toolUseResult) {
+          this.outputChannel.info(`Event: ${event.type} , updating tool result`);
+          chunkCallback(toolUseResult);
+          toolResultSent = true;
+        }
+        this.outputChannel.info(`Received event:`, JSON.stringify(event)); // Log event type
         switch (event.type) {
           case 'RESPONSE_METADATA':
             if (event.content?.session_id) {
@@ -791,7 +802,7 @@ export class ChatManager {
       // *** CRITICAL STEP ***
       // Send TOOL_USE_RESULT *before* awaiting the recursive apiChat call.
       // This ensures the UI knows this tool finished before the next phase starts.
-      chunkCallback({
+      const toolUseResult = {
         name: 'TOOL_USE_RESULT',
         data: {
           tool_name: toolRequest.tool_name,
@@ -799,11 +810,12 @@ export class ChatManager {
           result_json: resultForUI, // Send the raw result to UI
           status: status,
         },
-      });
+      };
+      // chunkCallback(toolUseResult);
 
       // Now, continue the chat flow with the tool response
       this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
-      await this.apiChat(continuationPayload, chunkCallback);
+      await this.apiChat(continuationPayload, chunkCallback, toolUseResult);
     } catch (error: any) {
       if (this.currentAbortController?.signal.aborted) {
         this.outputChannel.warn(`_runTool aborted during execution: ${toolRequest.tool_name}`);
@@ -817,15 +829,16 @@ export class ChatManager {
 
       // Send error result back to UI
       // No recursive apiChat call should happen on error.
-      chunkCallback({
+      const toolUseResult = {
         name: 'TOOL_USE_RESULT',
         data: {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
-          result_json: resultForUI,
+          result_json: resultForUI, // Send the raw result to UI
           status: status,
         },
-      });
+      };
+      // chunkCallback(toolUseResult);
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
         search_web: toolRequest.search_web,
@@ -845,7 +858,7 @@ export class ChatManager {
         os_name: await getOSName(),
         shell: getShell(),
       };
-      await this.apiChat(toolUseRetryPayload, chunkCallback);
+      await this.apiChat(toolUseRetryPayload, chunkCallback, toolUseResult);
     }
   }
 
