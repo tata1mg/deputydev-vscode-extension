@@ -21,6 +21,7 @@ import { TerminalManager } from '../terminal/TerminalManager';
 import { DiffManager } from '../diff/diffManager';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { getOSName } from '../utilities/osName';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -34,14 +35,16 @@ export class ChatManager {
   public onTerminalApprove = this._onTerminalApprove.event;
   private terminalExecutor: TerminalExecutor;
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
     private diffManager: DiffManager,
     private terminalManager: TerminalManager,
+    private apiErrorHandler: ApiErrorHandler
   ) {
+    this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(
       this.context,
@@ -94,13 +97,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-                auth_token: await this.authService.loadAuthToken(),
-                repo_path: active_repo,
-                chunks: chunkDetails,
-                search_item_name: element.value,
-                search_item_type: element.type,
-                search_item_path: element.path,
-              })
+              auth_token: await this.authService.loadAuthToken(),
+              repo_path: active_repo,
+              chunks: chunkDetails,
+              search_item_name: element.value,
+              search_item_type: element.type,
+              search_item_path: element.path,
+            })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -201,9 +204,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-          abortController: AbortController;
-          asyncIterator: AsyncIterableIterator<any>;
-        }
+        abortController: AbortController;
+        asyncIterator: AsyncIterableIterator<any>;
+      }
       | undefined;
 
     try {
@@ -476,9 +479,9 @@ export class ChatManager {
    */
   private async _fetchBatchChunksSearch(repoPath: string, searchTerms: SearchTerm[]): Promise<any> {
     this.outputChannel.info(`Calling batch chunks search API.`);
+    const authToken = await this.authService.loadAuthToken();
+    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = { Authorization: `Bearer ${authToken}` };
       const response = await binaryApi().post(
         API_ENDPOINTS.BATCH_CHUNKS_SEARCH,
         {
@@ -488,18 +491,13 @@ export class ChatManager {
         { headers },
       );
 
-      if (response.status === 200) {
-        this.outputChannel.info('Batch chunks search API call successful.');
-        return response.data;
-      } else {
-        this.logger.error(`Batch chunks search API failed with status ${response.status}`);
-        this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
-        throw new Error(`Batch chunks search failed with status ${response.status}`);
-      }
+      this.outputChannel.info('Batch chunks search API call successful.');
+      return response.data;
+
     } catch (error: any) {
-      this.logger.error(`Error calling batch chunks search API: ${error.message}`);
-      this.outputChannel.error(`Error calling batch chunks search API: ${error.message}`, error);
-      throw error;
+      this.logger.error(`Error calling batch chunks search API: ${error}`);
+      this.outputChannel.error(`Error calling batch chunks search API: ${error}`, error);
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 
@@ -508,9 +506,9 @@ export class ChatManager {
    */
   private async _fetchFilePathSearch(repoPath: string, directory: string, searchTerms?: string[]): Promise<any> {
     this.outputChannel.info(`Calling file path search API.`);
+    const authToken = await this.authService.loadAuthToken();
+    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = { Authorization: `Bearer ${authToken}` };
       const response = await binaryApi().post(
         API_ENDPOINTS.FILE_PATH_SEARCH,
         {
@@ -521,26 +519,20 @@ export class ChatManager {
         { headers },
       );
 
-      if (response.status === 200) {
-        this.outputChannel.info('File path search API call successful.');
-        return response.data;
-      } else {
-        this.logger.error(`File path search API failed with status ${response.status}`);
-        this.outputChannel.error(`File path search API failed with status ${response.status}`);
-        throw new Error(`File path search failed with status ${response.status}`);
-      }
+      this.outputChannel.info('File path search API call successful.');
+      return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling file path search API: ${error.message}`);
       this.outputChannel.error(`Error calling file path search API: ${error.message}`, error);
-      throw error;
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 
   async _runIterativeFileReader(repoPath: string, filePath: string, startLine: number, endLine: number): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
+    const authToken = await this.authService.loadAuthToken();
+    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = { Authorization: `Bearer ${authToken}` };
       const response = await binaryApi().post(
         API_ENDPOINTS.ITERATIVELY_READ_FILE,
         {
@@ -552,26 +544,20 @@ export class ChatManager {
         { headers },
       );
 
-      if (response.status === 200) {
-        this.outputChannel.info('Iterative file reader API call successful.');
-        return response.data;
-      } else {
-        this.logger.error(`Iterative file reader API failed with status ${response.status}`);
-        this.outputChannel.error(`Iterative file reader API failed with status ${response.status}`);
-        throw new Error(`Iterative file reader failed with status ${response.status}`);
-      }
+      this.outputChannel.info('Iterative file reader API call successful.');
+      return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
       this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
-      throw error;
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 
   async _runGrepSearch(directoryPath: string, repoPath: string, searchTerms?: string[]): Promise<any> {
     this.outputChannel.info(`Running grep search tool for ${directoryPath}`);
+    const authToken = await this.authService.loadAuthToken();
+    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = { Authorization: `Bearer ${authToken}` };
       const response = await binaryApi().post(
         API_ENDPOINTS.GREP_SEARCH,
         {
@@ -582,55 +568,47 @@ export class ChatManager {
         { headers },
       );
 
-      if (response.status === 200) {
-        this.outputChannel.info('Grep search API call successful.');
-        this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
-        return response.data;
-      } else {
-        this.logger.error(`Grep search API failed with status ${response.status}`);
-        this.outputChannel.error(`Grep search API failed with status ${response.status}`);
-        throw new Error(`Grep search API failed with status ${response.status}`);
-      }
+      this.outputChannel.info('Grep search API call successful.');
+      this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
+      return response.data;
     } catch (error: any) {
-      this.logger.error(`Error calling Grep search API: ${error.message}`);
-      this.outputChannel.error(`Error calling Grep search API: ${error.message}`, error);
-      throw error;
+      this.logger.error(`Error calling Grep search API`);
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 
   async _runPublicUrlContentReader(payload: { urls: string[] }) {
+    const authToken = await this.authService.loadAuthToken();
+    const headers = {
+      Authorization: `Bearer ${authToken}`,
+      'X-Session-Type': SESSION_TYPE,
+      'X-Session-Id': getSessionId(),
+    };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        Authorization: `Bearer ${authToken}`,
-        'X-Session-Type': SESSION_TYPE,
-        'X-Session-Id': getSessionId(),
-      };
       const response = await binaryApi().post(
         API_ENDPOINTS.PUBLIC_URL_CONTENT_READER,
         { urls: payload.urls },
         { headers },
       );
-      if (response.status === 200) {
-        this.outputChannel.info('URL Read API call successful.');
-        this.outputChannel.info(`URL Read result: ${JSON.stringify(response.data)}`);
-        return response.data;
-      }
+      this.outputChannel.info('URL Read API call successful.');
+      this.outputChannel.info(`URL Read result: ${JSON.stringify(response.data)}`);
+      return response.data;
+
     } catch (error: any) {
-      this.logger.error(`Error calling URL Read API: ${error.message}`);
-      this.outputChannel.error(`Error calling URL Read API: ${error.message}`, error);
-      throw error;
+      this.logger.error("Error calling URL Read API");
+      this.outputChannel.error("Error calling URL Read API: ", error);
+      this.apiErrorHandler.handleApiError(error);
     }
   }
 
   async _runWebSearch(payload: { descriptive_query: string[] }) {
+    const authToken = await this.authService.loadAuthToken();
+    const headers = {
+      Authorization: `Bearer ${authToken}`,
+      'X-Session-Type': SESSION_TYPE,
+      'X-Session-Id': getSessionId(),
+    };
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        Authorization: `Bearer ${authToken}`,
-        'X-Session-Type': SESSION_TYPE,
-        'X-Session-Id': getSessionId(),
-      };
       const response = await api.post(
         API_ENDPOINTS.WEB_SEARCH,
         { descriptive_query: payload.descriptive_query },
@@ -642,9 +620,13 @@ export class ChatManager {
         return response.data;
       }
     } catch (error: any) {
-      this.logger.error(`Error calling Web Search API: ${error.message}`);
-      this.outputChannel.error(`Error calling Web Search API: ${error.message}`, error);
-      throw error;
+      this.logger.error("Error calling Web Search API");
+      this.outputChannel.error("Error calling Web Search API: ", error);
+      const errorResponse = error.response?.data;
+      if (errorResponse) {
+        throw new Error(errorResponse.error.message);
+      }
+      throw new Error("Web Search failed due to unknow error.")
     }
   }
 
@@ -805,6 +787,17 @@ export class ChatManager {
       this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
       await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
+      let errorResponse = error.response?.data;
+      if (!errorResponse) {
+        errorResponse = {
+          error_code: 500,
+          error_type: "SERVER_ERROR",
+          error_message: error.message
+        }
+      }
+      if (errorResponse && errorResponse.traceback) {
+        delete errorResponse.traceback;
+      }
       if (this.currentAbortController?.signal.aborted) {
         this.outputChannel.warn(`_runTool aborted during execution: ${toolRequest.tool_name}`);
         return;
@@ -837,10 +830,7 @@ export class ChatManager {
         tool_use_response: {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
-          response: {
-            message: 'Tool use failed, you might want to retry',
-            error_message: error.message,
-          },
+          response: errorResponse
         },
         os_name: await getOSName(),
         shell: getShell(),
@@ -883,19 +873,23 @@ export class ChatManager {
     }
     this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
 
-    const result = await fetchRelevantChunks({
-      repo_path: repoPath,
-      query: query,
-      focus_files: [], // Explicitly empty based on original logic
-      focus_directories: [],
-      focus_chunks: [],
-      // Uncomment and use focusFiles if needed:
-      // focus_files: focusFiles,
-      session_id: currentSessionId,
-      session_type: SESSION_TYPE,
-    });
+    try {
+      const result = await fetchRelevantChunks({
+        repo_path: repoPath,
+        query: query,
+        focus_files: [], // Explicitly empty based on original logic
+        focus_directories: [],
+        focus_chunks: [],
+        // Uncomment and use focusFiles if needed:
+        // focus_files: focusFiles,
+        session_id: currentSessionId,
+        session_type: SESSION_TYPE,
+      });
 
-    return result.relevant_chunks || []; // Return chunks or empty array
+      return result.relevant_chunks || []; // Return chunks or empty array
+    } catch (error: any) {
+      throw error;
+    }
   }
 
   private async _runFocusedSnippetsSearcher(repoPath: string, params: { search_terms?: SearchTerm[] }): Promise<any> {
@@ -917,7 +911,6 @@ export class ChatManager {
     this.outputChannel.info(
       `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
     );
-    // return this._fetchFilePathSearch(repoPath, directory || "", searchTerms);
     return this._fetchFilePathSearch(repoPath, directory || '', searchTerms);
   }
 
