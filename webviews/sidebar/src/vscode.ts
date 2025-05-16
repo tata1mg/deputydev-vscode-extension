@@ -373,6 +373,12 @@ addCommandEventListener('session-chats-history', ({ data }) => {
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
+addCommandEventListener('image-upload-progress', (event) => {
+  const { data } = event as { data: { progress: number } };
+  console.log('Image upload progress:', data.progress);
+  useChatStore.setState({ image_upload_progress: data.progress as number });
+});
+
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
     useChatStore.setState({
