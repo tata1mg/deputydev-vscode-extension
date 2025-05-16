@@ -95,6 +95,7 @@ export const useChatStore = create(
         webSearchInToolUse: false,
         activeModel: '',
         search_web: false,
+        image_upload_progress: 0,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.

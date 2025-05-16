@@ -56,6 +56,7 @@ export function ChatUI() {
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
+    image_upload_progress,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -86,6 +87,7 @@ export function ChatUI() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -476,34 +478,51 @@ export function ChatUI() {
                   url={chip.url}
                 />
               ))}
-              {/* {imagePreview && (
-                <div className="relative mb-2 max-w-[100px]">
-                  <img
-                    src={imagePreview}
-                    alt="preview"
-                    className="rounded border border-gray-300 shadow"
-                  />
-                  <button
-                    onClick={() => setImagePreview(null)}
-                    className="absolute -right-2 -top-2 rounded-full bg-gray-700 p-1 text-white hover:bg-red-600"
-                    title="Remove image"
-                  >
-                    &times;
-                  </button>
-                </div>
-              )} */}
 
               {imagePreview && (
                 <div className="group relative mb-2 h-12 w-12">
-                  <div className="h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                  <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
                     <img
                       src={imagePreview}
                       alt="Preview"
                       className="h-full w-full object-cover transition-opacity hover:opacity-90"
                     />
+
+                    {/* Circular loader overlay */}
+                    {image_upload_progress !== null && image_upload_progress < 100 && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                        <svg
+                          className="h-6 w-6 animate-spin text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          ></path>
+                        </svg>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Remove button */}
                   <button
-                    onClick={() => setImagePreview(null)}
+                    onClick={() => {
+                      setImagePreview(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''; // Clear file input value
+                      }
+                    }}
                     className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                     title="Remove image"
                     aria-label="Remove image"
@@ -604,6 +623,7 @@ export function ChatUI() {
                 type="file"
                 accept="image/*"
                 id="image-upload"
+                ref={fileInputRef}
                 style={{ display: 'none' }}
                 disabled={imagePreview !== null}
                 onChange={(e) => {
@@ -626,7 +646,9 @@ export function ChatUI() {
 
               <label
                 htmlFor="image-upload"
-                className="flex cursor-pointer items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
+                  imagePreview !== null ? 'cursor-not-allowed' : 'cursor-pointer'
+                }`}
                 data-tooltip-id="upload-tooltip"
                 data-tooltip-content={
                   imagePreview !== null ? 'Max 1 image allowed' : 'Upload Image'
