@@ -150,35 +150,44 @@ export class ReferenceService {
 
       const url_response = await api.post(
         API_ENDPOINTS.GET_PRESIGNED_URL,
-        { file_name: payload.name, file_size: payload.size, file_type: payload.type },
+        {
+          file_name: payload.name,
+          file_size: payload.size,
+          file_type: payload.type,
+        },
         { headers },
       );
-      const { url: presigned_url, fields } = url_response.data;
+
+      const { url: presigned_url, fields } = url_response.data.data;
 
       const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
 
-      formData.append('file', payload.content, {
-        filename: payload.name,
-        contentType: payload.type,
-      });
+      // Add all required S3 fields
+      for (const [key, value] of Object.entries(fields)) {
+        formData.append(key, value);
+      }
 
+      // IMPORTANT: Append file last, without custom headers
+      formData.append('file', payload.content, payload.name);
+
+      // Axios POST to S3
       await axios.post(presigned_url, formData, {
-        headers: { ...formData.getHeaders() },
+        headers: {
+          ...formData.getHeaders(),
+        },
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            if (onProgress) onProgress(percent); // Report progress
+            if (onProgress) onProgress(percent);
           }
         },
       });
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
-      throw error; // Re-throw to handle in the caller
+      console.log('Error uploading file to S3:', error);
+      throw error;
     }
   }
 }
