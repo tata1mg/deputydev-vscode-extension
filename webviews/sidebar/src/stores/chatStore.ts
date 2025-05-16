@@ -21,6 +21,7 @@ import {
   ChatTerminalNoShell,
   ChatMetaData,
   LLMModels,
+  S3Object
 } from '@/types';
 
 // =============================================================================
@@ -95,7 +96,8 @@ export const useChatStore = create(
         webSearchInToolUse: false,
         activeModel: '',
         search_web: false,
-        image_upload_progress: 0,
+        imageUploadProgress: 0,
+        s3Object: {} as S3Object,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -120,6 +122,7 @@ export const useChatStore = create(
             message: string,
             editorReferences: ChatReferenceItem[],
             chunkCallback: (data: { name: string; data: any }) => void,
+            s3Reference?: S3Object,
             retryChat?: boolean,
             retry_payload?: any,
             create_new_workspace_payload?: any
@@ -136,6 +139,7 @@ export const useChatStore = create(
                 type: 'TEXT_BLOCK',
                 content: { text: message },
                 referenceList: editorReferences,
+                s3Reference: s3Reference,
                 actor: 'USER',
               };
 
@@ -184,6 +188,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
+                s3_refrence: s3Reference
               };
 
               // If a tool response was stored, add it to the payload

@@ -105,6 +105,7 @@ export type ChatUserMessage = {
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
+  s3Reference?: S3Object;
   actor: 'USER';
 };
 
@@ -272,4 +273,9 @@ export interface LLMModels {
   id: number;
   display_name: string;
   name: string;
+}
+
+export interface S3Object {
+  key?: string;
+  get_url?: string;
 }
