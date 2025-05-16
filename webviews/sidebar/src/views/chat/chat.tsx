@@ -10,7 +10,7 @@ import {
   ImagePlus,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
@@ -56,7 +56,7 @@ export function ChatUI() {
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
-    image_upload_progress,
+    imageUploadProgress,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -87,7 +87,9 @@ export function ChatUI() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showBiggerImage, setShowBiggerImage] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -145,12 +147,17 @@ export function ChatUI() {
 
     const message = userInput.trim();
     const editorReferences = [...useChatStore.getState().currentEditorReference];
+    const s3Reference = useChatStore.getState().s3Object;
     setUserInput('');
+    setImagePreview(null);
+    fileInputRef.current!.value = '';
+    timeoutRef.current = null;
+    useChatStore.setState({ s3Object: undefined });
     useChatStore.setState({ currentEditorReference: [] });
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => {}, s3Reference);
     } catch (error) {
       // Handle error if needed
     }
@@ -385,7 +392,6 @@ export function ChatUI() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
-
   return (
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
@@ -480,16 +486,30 @@ export function ChatUI() {
               ))}
 
               {imagePreview && (
-                <div className="group relative mb-2 h-12 w-12">
+                <div
+                  className={`group relative mb-2 transition-all duration-500 ease-in-out ${
+                    showBiggerImage ? 'h-48 w-48' : 'h-12 w-12'
+                  }`}
+                >
                   <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
                     <img
+                      onClick={() => {
+                        if (!showBiggerImage) {
+                          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+                          timeoutRef.current = window.setTimeout(() => {
+                            setShowBiggerImage(false);
+                          }, 5000);
+                        }
+                        setShowBiggerImage(!showBiggerImage);
+                      }}
                       src={imagePreview}
                       alt="Preview"
                       className="h-full w-full object-cover transition-opacity hover:opacity-90"
                     />
 
                     {/* Circular loader overlay */}
-                    {image_upload_progress !== null && image_upload_progress < 100 && (
+                    {imageUploadProgress !== null && imageUploadProgress < 100 && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
                         <svg
                           className="h-6 w-6 animate-spin text-white"

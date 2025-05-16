@@ -120,6 +120,11 @@ export class ReferenceManager {
       ...payload,
       content: buffer,
     };
-    await this.referenceService.uploadFileToS3(newPayload, onProgress);
+    const response = await this.referenceService.uploadFileToS3(newPayload, onProgress);
+    sendMessage({
+      id: uuidv4(),
+      command: 'uploaded-image-key',
+      data: response,
+    });
   }
 }
