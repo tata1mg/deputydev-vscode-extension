@@ -173,7 +173,6 @@ export class ReferenceService {
       formData.append('file', payload.content, payload.name);
 
       // Axios POST to S3
-      console.log('Uploading file to S3:', post_url);
       await axios.post(post_url, formData, {
         headers: {
           ...formData.getHeaders(),
@@ -188,9 +187,8 @@ export class ReferenceService {
         },
       });
 
-      return {get_url, key: fields.key};
+      return { get_url, key: fields.key };
     } catch (error) {
-      console.log('Error uploading file to S3:', error);
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
