@@ -29,7 +29,6 @@ export function ChatArea() {
   return (
     <>
       {messages.map((msg, index) => {
-        console.log('msg', msg);
         switch (msg.type) {
           case 'RESPONSE_METADATA': {
             queryId = msg.content.query_id;
