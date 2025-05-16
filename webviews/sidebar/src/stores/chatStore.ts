@@ -21,7 +21,7 @@ import {
   ChatTerminalNoShell,
   ChatMetaData,
   LLMModels,
-  S3Object
+  S3Object,
 } from '@/types';
 
 // =============================================================================
@@ -188,7 +188,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                s3_refrence: s3Reference
+                s3_refrence: s3Reference,
               };
 
               // If a tool response was stored, add it to the payload
