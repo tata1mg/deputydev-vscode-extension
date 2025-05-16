@@ -267,10 +267,10 @@ export class InlineChatEditManager {
         //Getting active model value from chat type storage
         const chatTypeStorage = this.context.globalState.get('chat-type-storage') as string;
         const parsedChatTypeStorage = JSON.parse(chatTypeStorage);
-        // const llm_model = parsedChatTypeStorage?.state?.activeModel;
+        const llm_model = parsedChatTypeStorage?.state?.activeModel;
 
         const payloadForInlineEdit: InlineEditPayload = {
-          llm_model: 'CLAUDE_3_POINT_5_SONNET',
+          llm_model: llm_model,
           search_web: search_web ? search_web : false,
           query: reply.text,
           relevant_chunks: [],
