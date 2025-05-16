@@ -35,14 +35,14 @@ export class ChatManager {
   public onTerminalApprove = this._onTerminalApprove.event;
   private terminalExecutor: TerminalExecutor;
 
-  onStarted: () => void = () => { };
-  onError: (error: Error) => void = () => { };
+  onStarted: () => void = () => {};
+  onError: (error: Error) => void = () => {};
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
     private diffManager: DiffManager,
     private terminalManager: TerminalManager,
-    private apiErrorHandler: ApiErrorHandler
+    private apiErrorHandler: ApiErrorHandler,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
@@ -97,13 +97,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-              auth_token: await this.authService.loadAuthToken(),
-              repo_path: active_repo,
-              chunks: chunkDetails,
-              search_item_name: element.value,
-              search_item_type: element.type,
-              search_item_path: element.path,
-            })
+                auth_token: await this.authService.loadAuthToken(),
+                repo_path: active_repo,
+                chunks: chunkDetails,
+                search_item_name: element.value,
+                search_item_type: element.type,
+                search_item_path: element.path,
+              })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -204,9 +204,9 @@ export class ChatManager {
 
     let querySolverTask:
       | {
-        abortController: AbortController;
-        asyncIterator: AsyncIterableIterator<any>;
-      }
+          abortController: AbortController;
+          asyncIterator: AsyncIterableIterator<any>;
+        }
       | undefined;
 
     try {
@@ -493,7 +493,6 @@ export class ChatManager {
 
       this.outputChannel.info('Batch chunks search API call successful.');
       return response.data;
-
     } catch (error: any) {
       this.logger.error(`Error calling batch chunks search API: ${error}`);
       this.outputChannel.error(`Error calling batch chunks search API: ${error}`, error);
@@ -593,10 +592,9 @@ export class ChatManager {
       this.outputChannel.info('URL Read API call successful.');
       this.outputChannel.info(`URL Read result: ${JSON.stringify(response.data)}`);
       return response.data;
-
     } catch (error: any) {
-      this.logger.error("Error calling URL Read API");
-      this.outputChannel.error("Error calling URL Read API: ", error);
+      this.logger.error('Error calling URL Read API');
+      this.outputChannel.error('Error calling URL Read API: ', error);
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -620,13 +618,13 @@ export class ChatManager {
         return response.data;
       }
     } catch (error: any) {
-      this.logger.error("Error calling Web Search API");
-      this.outputChannel.error("Error calling Web Search API: ", error);
+      this.logger.error('Error calling Web Search API');
+      this.outputChannel.error('Error calling Web Search API: ', error);
       const errorResponse = error.response?.data;
       if (errorResponse) {
         throw new Error(errorResponse.error.message);
       }
-      throw new Error("Web Search failed due to unknow error.")
+      throw new Error('Web Search failed due to unknow error.');
     }
   }
 
@@ -791,9 +789,9 @@ export class ChatManager {
       if (!errorResponse) {
         errorResponse = {
           error_code: 500,
-          error_type: "SERVER_ERROR",
-          error_message: error.message
-        }
+          error_type: 'SERVER_ERROR',
+          error_message: error.message,
+        };
       }
       if (errorResponse && errorResponse.traceback) {
         delete errorResponse.traceback;
@@ -830,7 +828,7 @@ export class ChatManager {
         tool_use_response: {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
-          response: errorResponse
+          response: errorResponse,
         },
         os_name: await getOSName(),
         shell: getShell(),
@@ -888,6 +886,7 @@ export class ChatManager {
 
       return result.relevant_chunks || []; // Return chunks or empty array
     } catch (error: any) {
+      this.logger.error('Failed to run related code searcher: ', error);
       throw error;
     }
   }
