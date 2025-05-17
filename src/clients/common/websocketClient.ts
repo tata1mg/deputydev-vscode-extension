@@ -69,6 +69,9 @@ export class WebSocketClient {
           });
           this.rejectResponse(new Error('WebSocket request timed out'));
           this.close();
+        } else if (messageData.error_message) {
+          this.rejectResponse(new Error(messageData.error_message));
+          this.close();
         } else {
           // console.warn("Received unknown message format:", messageData);
         }

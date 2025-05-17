@@ -61,12 +61,16 @@ export function TerminalPanel({
     try {
       const parsed = parse(terminal_command, Allow.STR | Allow.OBJ);
       if (parsed && typeof parsed === 'object') {
-        setCommandState(parsed.command || '');
+        const parsedCommand = parsed.command || '';
+        if (parsedCommand !== commandState) {
+          setCommandState(parsedCommand);
+        }
         setIsStreaming(false);
       }
     } catch {
-      // still streaming, clear command
-      setCommandState('');
+      if (commandState !== '') {
+        setCommandState('');
+      }
     }
   }, [terminal_command]);
 

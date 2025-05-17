@@ -167,9 +167,12 @@ export function ChatUI() {
     if (enhancedUserQuery && enhancingUserQuery) {
       setUserInput(enhancedUserQuery);
       useChatStore.setState({ enhancingUserQuery: false });
-      setTimeout(autoResize, 0);
     }
   }, [enhancedUserQuery]);
+
+  useEffect(() => {
+    setTimeout(autoResize, 0);
+  }, [userInput]);
 
   useEffect(() => {
     if (messages.length > 0 && messages[messages.length - 1].type === 'TEXT_BLOCK') {
@@ -285,7 +288,6 @@ export function ChatUI() {
       setChipEditMode(true);
     }
     setUserInput(e.target.value);
-    autoResize();
   };
 
   const handleChipDelete = (index: number) => {
@@ -600,7 +602,6 @@ export function ChatUI() {
                   setTimeout(() => {
                     if (textareaRef.current) {
                       textareaRef.current.focus();
-                      autoResize();
 
                       // Set cursor position to the end
                       textareaRef.current.selectionStart = newValue.length;
