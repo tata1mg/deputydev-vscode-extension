@@ -54,6 +54,7 @@ export interface ChatPayload {
   is_inline?: boolean;
   os_name: string;
   shell: string;
+  is_from_runTool_response?: string;
 }
 
 export interface SearchTerm {
@@ -89,3 +90,13 @@ export interface Settings {
     command_deny_list: string[];
   };
 }
+
+export type ToolUseResult = {
+  name: string;
+  data: {
+    tool_name: string;
+    tool_use_id: string;
+    result_json: any;
+    status: 'completed' | 'pending' | 'error' | 'aborted';
+  };
+};

@@ -271,6 +271,10 @@ export const useChatStore = create(
                     set((state) => {
                       if (state.current) {
                         const newMessage = { ...state.current };
+                        newMessage.content.text = newMessage.content.text.replace(
+                          /(\r?\n\s*)+$/,
+                          ''
+                        ); //remove trailing new/empty lines
                         return {
                           history: [...state.history, newMessage],
                           current: undefined,

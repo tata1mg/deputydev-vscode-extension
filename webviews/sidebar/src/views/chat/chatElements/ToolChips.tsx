@@ -64,31 +64,48 @@ export function ToolUseStatusMessage({
   let displayText;
   switch (tool_name) {
     case 'public_url_content_reader':
-      displayText = 'Analyzed URL';
-      if (status === 'pending') {
-        displayText = 'Analysing URL...';
-      } else if (status === 'error') {
-        displayText = 'Error Analysing URL';
-      }
+      displayText =
+        status === 'pending'
+          ? 'Analysing URL...'
+          : status === 'error'
+            ? 'Error Analysing URL'
+            : 'Analyzed URL';
       break;
     case 'web_search':
-      displayText = 'Searched Web';
-      if (status === 'pending') {
-        displayText = 'Searching Web...';
-      } else if (status === 'error') {
-        displayText = 'Error Searching Web';
-      }
+      displayText =
+        status === 'pending'
+          ? 'Searching Web...'
+          : status === 'error'
+            ? 'Error Searching Web'
+            : 'Searched Web';
+      break;
+    case 'file_path_searcher':
+      displayText =
+        status === 'pending'
+          ? 'Scanning file paths...'
+          : status === 'error'
+            ? 'Error scanning file paths'
+            : 'Scanned file paths';
+      break;
+    case 'grep_search':
+      displayText =
+        status === 'pending'
+          ? 'Running grep...'
+          : status === 'error'
+            ? 'Error running grep'
+            : 'Grep search completed';
       break;
     default:
-      displayText = 'Searched codebase';
       if (status === 'pending') {
         displayText = 'Searching codebase...';
       } else if (status === 'error') {
         displayText = 'Error searching codebase';
       } else if (status === 'aborted') {
         displayText = 'Search aborted';
-        break;
+      } else {
+        displayText = 'Searched codebase';
       }
+      break;
   }
 
   return (
