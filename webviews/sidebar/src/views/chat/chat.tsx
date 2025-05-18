@@ -540,6 +540,7 @@ export function ChatUI() {
                   {/* Remove button */}
                   <button
                     onClick={() => {
+                      useChatStore.setState({ s3Object: undefined });
                       setImagePreview(null);
                       if (fileInputRef.current) {
                         fileInputRef.current.value = ''; // Clear file input value
