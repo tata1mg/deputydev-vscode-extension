@@ -23,7 +23,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     const filePath = uri.path;
 
     // Retrieve file state from the fileChangeStateManager
-    const fileState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
+    const fileState = await this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
 
     if (!fileState) {
       throw vscode.FileSystemError.FileNotFound(uri);
@@ -45,7 +45,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
   }
 
   async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-    const content = this.fileChangeStateManager.getFileChangeState(
+    const content = await this.fileChangeStateManager.getFileChangeState(
       uri.path,
       Buffer.from(uri.query, 'base64').toString('utf-8'), // decode the base64 query for repoPath
     );
@@ -69,7 +69,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     const repoPath = Buffer.from(uri.query, 'base64').toString('utf-8');
     const filePath = uri.path;
 
-    const fileChangeState = this.fileChangeStateManager.getFileChangeState(
+    const fileChangeState = await this.fileChangeStateManager.getFileChangeState(
       uri.path,
       Buffer.from(uri.query, 'base64').toString('utf-8'), // decode the base64 query for repoPath
     );
