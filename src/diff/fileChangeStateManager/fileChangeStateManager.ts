@@ -212,7 +212,12 @@ export class FileChangeStateManager {
     const newUri = path.join(repoPath, newFilePath);
     const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
     // get the udiff from the new file content. The udiff is always between the new file content and the original file content
-    const udiffPatch = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContent);
+    // ensure the line endings are consistent in new file content
+    const newFileContentWithEol = newFileContent.replace(
+      /\r?\n/g,
+      contentToViewDiffOn.includes('\r\n') ? '\r\n' : '\n',
+    );
+    const udiffPatch = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContentWithEol);
     this.outputChannel.debug(`Udiff patch: ${udiffPatch}`);
 
     const udiff = this.getUdiffDisplayFileFromUdiffPatch(udiffPatch, contentToViewDiffOn);
@@ -353,7 +358,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -418,7 +424,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -476,7 +483,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -533,7 +541,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
