@@ -3,6 +3,7 @@ import { createTwoFilesPatch } from 'diff';
 import * as path from 'path';
 import { UsageTrackingManager } from '../../usageTracking/UsageTrackingManager';
 import { UsageTrackingRequest } from '../../types';
+import { promises as fs } from 'fs';
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -20,13 +21,53 @@ type FileChangeState = {
 export class FileChangeStateManager {
   // This map keeps track of the state of each file being edited.
   private readonly fileChangeStateMap: Map<string, FileChangeState>;
+  private initialized = false; // Indicates if the manager is initialized
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly persistentStateFilePath: string,
   ) {
+    this.outputChannel.info('FileChangeStateManager initialized');
+    this.outputChannel.info('Persistent state file path:', this.persistentStateFilePath);
     this.fileChangeStateMap = new Map<string, FileChangeState>();
+    if (this.persistentStateFilePath) {
+      // Load the file change state from the persistent state file
+      this.loadFileChangeStateFromDisk();
+    }
   }
+
+  // This method loads the file change state from the persistent state file.
+  private loadFileChangeStateFromDisk = async (): Promise<void> => {
+    try {
+      const fileContent = await fs.readFile(this.persistentStateFilePath);
+      const fileChangeState = JSON.parse(fileContent.toString());
+      for (const [key, value] of Object.entries(fileChangeState)) {
+        this.fileChangeStateMap.set(key, value as FileChangeState);
+      }
+      this.outputChannel.info(`Loaded file change state from disk: ${this.persistentStateFilePath}`);
+    } catch (error) {
+      this.outputChannel.error(`Error loading file change state from disk: ${error}`);
+    } finally {
+      this.initialized = true;
+    }
+  };
+
+  // This method saves the file change state to the persistent state file.
+  private saveFileChangeStateToDisk = async (): Promise<void> => {
+    try {
+      const fileChangeState = Object.fromEntries(this.fileChangeStateMap);
+      await fs.writeFile(this.persistentStateFilePath, JSON.stringify(fileChangeState));
+      this.outputChannel.info(`Saved file change state to disk: ${this.persistentStateFilePath}`);
+    } catch (error) {
+      this.outputChannel.error(`Error saving file change state to disk: ${error}`);
+    }
+  };
+
+  private updateFileChangeState = async (stateUri: string, fileChangeState: FileChangeState): Promise<void> => {
+    this.fileChangeStateMap.set(stateUri, fileChangeState);
+    await this.saveFileChangeStateToDisk();
+  };
 
   // This method parses the udiff string to extract the original and modified content.
   private readonly getOriginalAndModifiedContentFromUdiff = (
@@ -187,7 +228,7 @@ export class FileChangeStateManager {
         throw new Error(`Initial file content is required for the first time setting the udiff for ${uri}`);
       }
       // Set the initial file content and udiff in the fileChangeStateMap
-      this.fileChangeStateMap.set(uri, {
+      await this.updateFileChangeState(uri, {
         initialFileContent: initialFileContent,
         originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
@@ -200,7 +241,7 @@ export class FileChangeStateManager {
       });
     } else {
       // update the udiff in the fileChangeStateMap
-      this.fileChangeStateMap.set(uri, {
+      await this.updateFileChangeState(uri, {
         ...this.fileChangeStateMap.get(uri)!,
         currentUdiff: udiff,
         originalContent: parsedUdiffContent.originalContent,
@@ -267,7 +308,11 @@ export class FileChangeStateManager {
     return fileChangeState.originalContent;
   };
 
-  public getFileChangeState = (filePath: string, repoPath: string): FileChangeState | undefined => {
+  public getFileChangeState = async (filePath: string, repoPath: string): Promise<FileChangeState | undefined> => {
+    // wait until the fileChangeStateMap is initialized by sleeping until it is initialized
+    while (!this.initialized) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     const uri = path.join(repoPath, filePath);
     return this.fileChangeStateMap.get(uri);
   };
@@ -345,7 +390,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -408,7 +453,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -462,7 +507,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -519,7 +564,7 @@ export class FileChangeStateManager {
     this.outputChannel.debug(`New udiff: ${newUdiff}`);
     this.outputChannel.debug(`Original content: ${originalAndModifiedContent.originalContent}`);
     this.outputChannel.debug(`Modified content: ${originalAndModifiedContent.modifiedContent}`);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -541,7 +586,7 @@ export class FileChangeStateManager {
     }
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -555,9 +600,11 @@ export class FileChangeStateManager {
   public removeFileChangeState = (filePath: string, repoPath: string): void => {
     const uri = path.join(repoPath, filePath);
     this.fileChangeStateMap.delete(uri);
+    this.saveFileChangeStateToDisk();
   };
 
   public clearAllFileChangeStates = (): void => {
     this.fileChangeStateMap.clear();
+    this.saveFileChangeStateToDisk();
   };
 }

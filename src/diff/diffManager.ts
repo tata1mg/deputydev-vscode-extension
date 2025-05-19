@@ -43,7 +43,11 @@ export class DiffManager {
 
   // initialize the diff manager
   public init = async () => {
-    this.fileChangeStateManager = new FileChangeStateManager(this.vscodeContext, this.outputChannel);
+    this.fileChangeStateManager = new FileChangeStateManager(
+      this.vscodeContext,
+      this.outputChannel,
+      this.changeStateStorePath,
+    );
 
     this.deputydevChangeProposer = new DeputydevChangeProposer(
       this.vscodeContext,
