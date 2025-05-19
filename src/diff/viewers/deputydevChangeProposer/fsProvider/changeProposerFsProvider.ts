@@ -87,7 +87,7 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
       await fs.writeFile(
         fullPath,
         fileChangeState.writeMode ? fileChangeState.modifiedContent : fileChangeState.originalContent,
-        'utf-8'
+        'utf-8',
       );
       console.log('File written successfully.');
     } catch (err) {
