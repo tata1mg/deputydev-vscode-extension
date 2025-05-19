@@ -84,7 +84,10 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
       const cancellationToken = new vscode.CancellationTokenSource();
       switch (message.command) {
         case 'get-latest-content': {
-          const initialContent = this.fileChangeStateManager.getFileChangeState(document.filePath, document.repoPath);
+          const initialContent = await this.fileChangeStateManager.getFileChangeState(
+            document.filePath,
+            document.repoPath,
+          );
           document.content = initialContent?.currentUdiff || document.content;
           this.outputChannel.info(`Sending initial content to webview: ${document.content}`);
 

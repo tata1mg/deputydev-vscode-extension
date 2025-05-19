@@ -44,7 +44,7 @@ export class DeputydevChangeProposer {
     try {
       this.outputChannel.info(`opening diff view for: ${filePath}`);
 
-      const fileChangeState = this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
+      const fileChangeState = await this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
       if (!fileChangeState) {
         throw new Error(`File change state not found for ${filePath}`);
       }
