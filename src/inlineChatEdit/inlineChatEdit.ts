@@ -270,8 +270,8 @@ export class InlineChatEditManager {
         let llm_model = parsedChatTypeStorage?.state?.activeModel;
 
         // Will remove this once gemini works fine with inline modify.
-        if (llm_model === "GEMINI_2_POINT_5_PRO") {
-          llm_model = "GPT_4_POINT_1";
+        if (llm_model === 'GEMINI_2_POINT_5_PRO') {
+          llm_model = 'GPT_4_POINT_1';
         }
 
         const payloadForInlineEdit: InlineEditPayload = {
