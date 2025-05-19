@@ -79,8 +79,13 @@ export class ChangeProposerFsProvider implements vscode.FileSystemProvider {
     }
     // write to file system using native node
     try {
+      const fullPath = path.join(repoPath, filePath);
+      const dirPath = path.dirname(fullPath);
+
+      await fs.mkdir(dirPath, { recursive: true });
+
       await fs.writeFile(
-        path.join(repoPath, filePath),
+        fullPath,
         fileChangeState.writeMode ? fileChangeState.modifiedContent : fileChangeState.originalContent,
         'utf-8',
       );
