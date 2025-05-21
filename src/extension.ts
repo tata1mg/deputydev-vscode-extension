@@ -164,6 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
     chatService,
     sidebarProvider,
     diffManager,
+    usageTrackingManager,
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();
