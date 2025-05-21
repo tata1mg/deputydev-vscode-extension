@@ -203,38 +203,33 @@ export class ChatManager {
     return null;
   }
 
-  private async getExtraTools(): Promise<{ clientTools: Array<ClientTool>; clientToolDataMap: Map<string, MCPTool> }> {
+  private async getExtraTools(): Promise<Array<ClientTool>> {
     // get all MCP tools. There can be scope to add non MCP tools later on, i.e. custom tools on client basis
 
     const currentMCPTools = this.mcpManager.getCurrentMCPTools();
 
+    const clientTools: Array<ClientTool> = [];
+
     // create a mapping mcpToolUniqueIds and mcpMetadata
     // the unique ID is the combination of serverId and tool name
-    const mcpToolUniqIdToMcpToolMap = new Map<string, MCPTool>();
     for (const server of currentMCPTools) {
       for (const tool of server.tools) {
         const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
-        mcpToolUniqIdToMcpToolMap.set(mcpToolUniqueId, tool);
+        clientTools.push({
+          name: mcpToolUniqueId,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          toolMetadata: {
+            type: 'MCP',
+            toolName: tool.name,
+            serverId: server.serverId
+          }
+        });
       }
     }
 
-    const clientTools: Array<ClientTool> = [];
-    // get all the tools from the mcpToolUniqIdToMcpToolMap and convert to clientTools Array
-    for (const [uniqueId, tool] of mcpToolUniqIdToMcpToolMap) {
-      clientTools.push({
-        name: uniqueId,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        toolMetadata: {
-          toolType: 'mcp',
-        },
-      });
-    }
 
-    return {
-      clientTools,
-      clientToolDataMap: mcpToolUniqIdToMcpToolMap,
-    };
+    return clientTools;
   }
 
   /**
@@ -291,7 +286,7 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
 
-      const { clientTools, clientToolDataMap } = await this.getExtraTools();
+      const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
@@ -437,7 +432,7 @@ export class ChatManager {
 
       // 3. Handle Tool Requests
       if (currentToolRequest) {
-        await this._runTool(currentToolRequest, messageId, chunkCallback, clientToolDataMap, clientTools);
+        await this._runTool(currentToolRequest, messageId, chunkCallback, clientTools);
       }
 
       // Signal end of stream.
@@ -696,7 +691,6 @@ export class ChatManager {
     toolRequest: ToolRequest,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
-    clientToolDataMap: Map<string, MCPTool>,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
@@ -727,12 +721,11 @@ export class ChatManager {
       }
 
       // check if tool request is for client tool
-      if (toolRequest.tool_name in clientToolDataMap) {
-        const clientTool = clientToolDataMap.get(toolRequest.tool_name);
-        if (clientTool) {
-          this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
-          rawResult = await this.mcpManager.runMCPTool(clientTool.name, clientTool.name, parsedContent);
-        }
+      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name)
+
+      if (detectedClientTool) {
+        this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
+        rawResult = await this.mcpManager.runMCPTool(detectedClientTool.toolMetadata.serverId, detectedClientTool.toolMetadata.toolName, parsedContent);
       } else {
         // Execute the specific tool function
         switch (toolRequest.tool_name) {
