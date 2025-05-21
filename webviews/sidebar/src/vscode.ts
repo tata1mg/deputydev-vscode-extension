@@ -586,9 +586,9 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   });
 });
 
-addCommandEventListener('fetched-mcp-servers', ({data}) => {
+addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
   if (servers && servers.length > 0) {
-    useMcpStore.setState({mcpServers: servers});
+    useMcpStore.setState({ mcpServers: servers });
   }
-})
+});

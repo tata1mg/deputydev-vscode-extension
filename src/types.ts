@@ -104,5 +104,5 @@ export type ToolUseResult = {
 export interface MCPServerToolInvokePayload {
   server_name: string;
   tool_name: string;
-  tool_arguments: Record<string,any>;
+  tool_arguments: Record<string, any>;
 }

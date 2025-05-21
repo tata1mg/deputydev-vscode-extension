@@ -275,6 +275,4 @@ export function syncServers() {
   return callCommand('sync-servers', {});
 }
 
-export function mcpServerEnableOrDisable() {
-
-}
+export function mcpServerEnableOrDisable() {}
