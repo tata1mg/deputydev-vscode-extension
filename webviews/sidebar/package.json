@@ -51,7 +51,6 @@
     "slate-react": "0.112.1",
     "sse": "^0.0.8",
     "tailwind-merge": "^3.0.2",
-    "tailwind-scrollbar": "^4.0.1",
     "tailwindcss-animate": "^1.0.7",
     "ts-import": "5.0.0-beta.1",
     "vscode": "^1.1.37",

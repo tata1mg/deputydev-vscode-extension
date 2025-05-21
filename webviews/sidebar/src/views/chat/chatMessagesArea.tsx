@@ -18,6 +18,7 @@ import { submitFeedback } from '@/commandApi';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
 import { ChatMessage } from '@/types';
+import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
@@ -159,6 +160,15 @@ export function ChatArea() {
                   />
                 );
                 break;
+              case 'iterative_file_reader':
+                contentComponent = (
+                  <IterativeFileReader
+                    status={msg.content.status}
+                    tool_name={msg.content.tool_name}
+                    toolInputJson={msg.content.input_params_json as string}
+                  />
+                );
+                break;
 
               default:
                 contentComponent = (
@@ -210,7 +220,7 @@ export function ChatArea() {
             queryIdMap.set(index, queryId);
             const feedback = msg.content.feedbackState;
             return (
-              <div key={index} className="mt-1 flex items-center justify-between font-medium">
+              <div key={index} className="mt-1.5 flex items-center justify-between font-medium">
                 <div className="flex items-center space-x-2 text-green-500">
                   <span>✓</span>
                   {timeElapsed !== null ? (
