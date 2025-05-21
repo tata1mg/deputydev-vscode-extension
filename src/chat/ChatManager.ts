@@ -222,12 +222,11 @@ export class ChatManager {
           toolMetadata: {
             type: 'MCP',
             toolName: tool.name,
-            serverId: server.serverId
-          }
+            serverId: server.serverId,
+          },
         });
       }
     }
-
 
     return clientTools;
   }
@@ -721,11 +720,15 @@ export class ChatManager {
       }
 
       // check if tool request is for client tool
-      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name)
+      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
 
       if (detectedClientTool) {
         this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
-        rawResult = await this.mcpManager.runMCPTool(detectedClientTool.toolMetadata.serverId, detectedClientTool.toolMetadata.toolName, parsedContent);
+        rawResult = await this.mcpManager.runMCPTool(
+          detectedClientTool.toolMetadata.serverId,
+          detectedClientTool.toolMetadata.toolName,
+          parsedContent,
+        );
       } else {
         // Execute the specific tool function
         switch (toolRequest.tool_name) {
