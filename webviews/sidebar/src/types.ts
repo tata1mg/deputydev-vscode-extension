@@ -277,16 +277,16 @@ export interface LLMModels {
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
 
 export interface ToolRequest {
-  requestData: {};
+  requestData: Record<string, any>;
   toolName: string;
-  toolMeta: {};
+  toolMeta: Record<string, any>;
 }
 
 export interface BaseToolProps {
-    toolRunStatus: ToolRunStatus;
-    toolDisplayName: string;
-    toolRequest?: ToolRequest | undefined;
-    toolResponse?: Record<string, any> | undefined;
+  toolRunStatus: ToolRunStatus;
+  toolDisplayName: string;
+  toolRequest?: ToolRequest | undefined;
+  toolResponse?: Record<string, any> | undefined;
 }
 
 export interface MCPServer {

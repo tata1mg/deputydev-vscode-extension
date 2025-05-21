@@ -40,5 +40,5 @@ export const API_ENDPOINTS = {
   WEB_SEARCH: '/end_user/v1/websearch',
   GET_ALL_MCP_SERVERS: '/v1/mcp/servers',
   INVOKE_MCP_SERVER_TOOL: '/v1/mcp/servers/tool/invoke',
-  SYNC_MCP_SERVERS: '/v1/mcp/servers/sync'
+  SYNC_MCP_SERVERS: '/v1/mcp/servers/sync',
 };

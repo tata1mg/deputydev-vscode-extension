@@ -9,7 +9,7 @@ export const useMcpStore = create<MCPStorage>()(
       mcpServerTools: [],
       mcpServers: [],
       selectedServer: undefined,
-      setMcpServers: (mcpServers) => set({ mcpServers: mcpServers })
+      setMcpServers: (mcpServers) => set({ mcpServers: mcpServers }),
     }),
     {
       name: 'mcp-storage',

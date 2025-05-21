@@ -66,7 +66,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
     private terminalManager: TerminalManager,
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -853,7 +853,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: 'fetched-mcp-servers',
-      data: servers
+      data: servers,
     });
   }
 
