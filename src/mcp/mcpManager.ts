@@ -26,7 +26,7 @@ interface ServerWiseMCPTool {
 class MCPManager {
   private static instance: MCPManager;
 
-  private constructor() {}
+  constructor() {}
 
   public static getInstance(): MCPManager {
     if (!MCPManager.instance) {
