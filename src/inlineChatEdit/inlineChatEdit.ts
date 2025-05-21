@@ -16,6 +16,9 @@ import { SearchTerm, UsageTrackingRequest } from '../types';
 import { AuthService } from '../services/auth/AuthService';
 import { DiffManager } from '../diff/diffManager';
 import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { SingletonLogger } from '../utilities/Singleton-logger';
+import { calculateDiffMetric } from '../utilities/calculateDiffLinesNo';
+
 interface InlineEditPayload {
   query: string;
   relevant_chunks: string[];
@@ -54,7 +57,7 @@ export class InlineChatEditManager {
   private endLineOfSelectedText: number | undefined;
   private context: vscode.ExtensionContext;
   private outputChannel: vscode.LogOutputChannel;
-  private logger: Logger;
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private selected_text: string | undefined;
   private focus_chunks: string[] | undefined;
   private file_path: string | undefined;
@@ -70,10 +73,12 @@ export class InlineChatEditManager {
     private readonly chatService: ChatManager,
     private readonly sidebarProvider: SidebarProvider,
     private readonly diffManager: DiffManager,
+    private readonly usageTrackingManager: UsageTrackingManager,
   ) {
     this.context = context;
     this.outputChannel = outputChannel;
-    this.logger = logger;
+    this.logger = SingletonLogger.getInstance();
+    this.usageTrackingManager = usageTrackingManager;
   }
 
   public async inlineChatEditQuickFixes() {
@@ -267,15 +272,14 @@ export class InlineChatEditManager {
         //Getting active model value from chat type storage
         const chatTypeStorage = this.context.globalState.get('chat-type-storage') as string;
         const parsedChatTypeStorage = JSON.parse(chatTypeStorage);
-        let llm_model = parsedChatTypeStorage?.state?.activeModel;
+        // let llm_model = parsedChatTypeStorage?.state?.activeModel;
 
-        // Will remove this once gemini works fine with inline modify.
-        if (llm_model === 'GEMINI_2_POINT_5_PRO') {
-          llm_model = 'GPT_4_POINT_1';
-        }
+        // if (llm_model === 'GEMINI_2_POINT_5_PRO') {
+        //   llm_model = 'GPT_4_POINT_1';
+        // }
 
         const payloadForInlineEdit: InlineEditPayload = {
-          llm_model: llm_model,
+          llm_model: 'GPT_4_POINT_1',
           search_web: search_web ? search_web : false,
           query: reply.text,
           relevant_chunks: [],
@@ -285,14 +289,17 @@ export class InlineChatEditManager {
           },
         };
         vscode.commands.executeCommand('deputydev.editThisCode', true);
+        const thread = reply.thread;
+        const docUri = thread.uri;
+        const fileName = path.basename(docUri.fsPath);
         vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
-            title: 'Editing...',
+            title: `Editing ${path.basename(fileName)}...`,
             cancellable: true,
           },
-          async () => {
-            return await this.fetchInlineEditResult(payloadForInlineEdit);
+          async (progress, token) => {
+            return await this.fetchInlineEditResult(payloadForInlineEdit, /* session_id */ undefined, token);
           },
         );
       }),
@@ -330,7 +337,7 @@ export class InlineChatEditManager {
         }
         break;
       }
-      case 'focused_snippets_searcher': {
+      case 'focused_snippets_searcher':
         this.outputChannel.info(`Calling batch chunks search API.`);
         try {
           const authToken = await this.authService.loadAuthToken();
@@ -359,17 +366,99 @@ export class InlineChatEditManager {
             batch_chunks_search: [],
           };
         }
+        break;
+      case 'task_completion': {
+        this.outputChannel.info(`task_completion with params: ${JSON.stringify(payload, null, 2)}`);
+        const status = payload.content.tool_input.status;
+        if (status === 'completed') {
+          this.outputChannel.info(`Inline Task completed successfully.`);
+          vscode.window.showInformationMessage('File modified successfully.');
+        }
+        if (status === 'failed') {
+          this.outputChannel.error(`Inline Task failed.`);
+          vscode.window.showErrorMessage('Failed to modify the file.');
+        }
+        setTimeout(() => {
+          vscode.commands.executeCommand('workbench.action.closeNotification');
+        }, 5000); // 5 seconds
+        break;
+      }
+      case 'iterative_file_reader':
+        try {
+          this.outputChannel.info(
+            `Running iterative_file_reader with params in inline editor: ${JSON.stringify(payload.content.tool_input)}`,
+          );
+          const iterativeFileReaderResult = await this.chatService._runIterativeFileReader(
+            this.active_repo,
+            payload.content.tool_input.file_path,
+            payload.content.tool_input.start_line,
+            payload.content.tool_input.end_line,
+          );
+          const toolResponse =
+            'Iterative file reader result: \n ' + JSON.stringify(iterativeFileReaderResult.data.chunk);
+          toolResult = {
+            iterative_file_reader_result: toolResponse,
+          };
+        } catch (error: any) {
+          this.outputChannel.info(`Iterative file reader result at failed: ${error?.message || error}`);
+
+          toolResult = {
+            iterative_file_reader_result: `Failed to read file: ${error?.message || error}. \n If repeated failures occur, invoke the "task_completion" tool with status "failed".  \n Otherwise, try reading the latest content with the "iterative_file_reader" tool before retrying your modification.`,
+          };
+        }
+
+        break;
+      case 'replace_in_file': {
+        const diffPayload = payload.content.tool_input.diff;
+        const diffFilePath = payload.content.tool_input.path;
+        this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(payload, null, 2)}`);
+        const usageTrackingData: UsageTrackingRequest = {
+          event: 'generated',
+          properties: {
+            file_path: diffFilePath,
+            lines: calculateDiffMetric(diffPayload),
+            source: 'inline-modify',
+            session_id: sessionId,
+          },
+        };
+        this.usageTrackingManager.trackUsage(usageTrackingData);
+        try {
+          this.outputChannel.info(`Applying diff to file: ${diffFilePath}`);
+          await this.diffManager.applyDiff(
+            {
+              path: diffFilePath,
+              search_and_replace_blocks: diffPayload,
+            },
+            this.active_repo,
+            true,
+            {
+              usageTrackingSessionId: sessionId ?? null,
+              usageTrackingSource: 'inline-modify',
+            },
+            true,
+          );
+          toolResult = {
+            FileEditResult:
+              'Successfully modified the file, please continue with the next steps, incase no more changes are needed,  call this **task_completion** with status as "completed". ',
+          };
+        } catch (error: any) {
+          this.outputChannel.error(`Failed to apply diff:\n${error?.message || error}`);
+          toolResult = { FileEditResult: `Failed to apply diff:\n ${error?.message || String(error)}` };
+        }
       }
     }
-    this.outputChannel.info(`Tool result: ${JSON.stringify(toolResult, null, 2)}`);
     return toolResult;
   }
 
-  public async fetchInlineEditResult(payload: InlineEditPayload, session_id?: number): Promise<any> {
+  public async fetchInlineEditResult(
+    payload: InlineEditPayload,
+    session_id?: number,
+    token?: vscode.CancellationToken,
+  ): Promise<any> {
     const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
     let inlineEditResponse;
     if (job.job_id) {
-      inlineEditResponse = await this.pollInlineDiffResult(job.job_id);
+      inlineEditResponse = await this.pollInlineDiffResult(job.job_id, token);
     }
     if (inlineEditResponse.code_snippets) {
       for (const codeSnippet of inlineEditResponse.code_snippets) {
@@ -392,10 +481,9 @@ export class InlineChatEditManager {
             session_id: job.session_id,
           },
         };
-        const usageTrackingManager = new UsageTrackingManager();
-        usageTrackingManager.trackUsage(usageTrackingData);
+        this.usageTrackingManager.trackUsage(usageTrackingData);
         this.diffManager.applyDiff(
-          { path: modified_file_path, incrementalUdiff: raw_diff },
+          { path: modified_file_path, search_and_replace_blocks: raw_diff },
           this.active_repo,
           true,
           {
@@ -407,8 +495,11 @@ export class InlineChatEditManager {
       }
     }
     if (inlineEditResponse.tool_use_request) {
-      this.outputChannel.info('**************getting tool use request*************');
       const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
+      if (inlineEditResponse.tool_use_request.tool_name === 'task_completion') {
+        this.outputChannel.info('**************task completion*************');
+        return;
+      }
       payload.tool_use_response = {
         tool_name: inlineEditResponse.tool_use_request.content.tool_name,
         tool_use_id: inlineEditResponse.tool_use_request.content.tool_use_id,
@@ -418,9 +509,15 @@ export class InlineChatEditManager {
     }
   }
 
-  public async pollInlineDiffResult(job_id: number) {
-    const maxAttempts: number = 30;
+  public async pollInlineDiffResult(job_id: number, token?: vscode.CancellationToken) {
+    const maxAttempts: number = 50;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Check for cancellation at the start of each loop
+      if (token && token.isCancellationRequested) {
+        // Optional: Do any cleanup here
+        this.outputChannel.info('Polling cancelled by user.');
+        return; // or throw new Error('Cancelled') if you want to propagate
+      }
       try {
         if (job_id) {
           const response = await this.inlineEditService.getInlineDiffResult(job_id);

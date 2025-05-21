@@ -1,131 +1,145 @@
 .markdown-body {
-    font-size: inherit;
-    line-height: inherit;
-  }
-  
-  .markdown-body h1 {
-    font-size: 1.5rem; /* Adjust as per your sidebar space */
-    font-weight: 700;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .markdown-body h2 {
-    font-size: 1.375rem;
-    font-weight: 600;
-    margin-top: 0.9rem;
-    margin-bottom: 0.45rem;
-  }
-  
-  .markdown-body h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 0.8rem;
-    margin-bottom: 0.4rem;
-  }
-  
-  .markdown-body h4 {
-    font-size: 1.125rem;
-    font-weight: 500;
-    margin-top: 0.7rem;
-    margin-bottom: 0.35rem;
-  }
-  
-  .markdown-body h5 {
-    font-size: 1rem;
-    font-weight: 500;
-    margin-top: 0.6rem;
-    margin-bottom: 0.3rem;
-  }
-  
-  .markdown-body h6 {
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-top: 0.5rem;
-    margin-bottom: 0.25rem;
-  }
-  
-  .markdown-body p {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  
-  .markdown-body p {
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .markdown-body ul,
-  .markdown-body ol {
-    padding-left: 1.5rem;
-    margin-top: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .markdown-body li {
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
-  }
-  
-  .markdown-body ol {
-    list-style-type: decimal;
-  }
-  
-  .markdown-body ul {
-    list-style-type: disc;
-  }
-  
-  .markdown-body hr {
-    border: none;
-    border-top: 1px solid #444;
-    margin: 1.5rem 0;
-  }
-  
-  .markdown-body strong {
-    font-weight: bold;
-  }
-  
-  .markdown-body em {
-    font-style: italic;
-  }
-  
-  .markdown-body blockquote {
-    border-left: 4px solid #555;
-    padding-left: 1rem;
-    color: #aaa;
-    font-style: italic;
-    margin: 1rem 0;
-  }
-  .markdown-body pre {
-    background-color: var(--deputydev-editor-background);
-    padding: 1rem;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    font-size: 0.875rem;
-    line-height: 1.5;
-  }
-  
-  .markdown-body pre code {
-    background: none;
-    padding: 0;
-    border-radius: 0;
-    font-family: monospace;
-    font-size: inherit;
-    color: inherit;
-  }
-  
-  .markdown-body code {
-    font-family: monospace;
-    padding: 0.2em 0.4em;
-    /* background: rgba(0, 0, 0, 0.1); */
-    border-radius: 4px;
-  }
-  
+  font-size: inherit;
+  line-height: inherit;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 
-  .markdown-body table {
+/* For chat layout: */
+.markdown-body,
+.markdown-body * {
+  /* This makes sure text in all child elements wraps nicely */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* For inline code and pre/code blocks */
+.markdown-body pre,
+.markdown-body code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.markdown-body h1 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.markdown-body h2 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 0.7rem;
+  margin-bottom: 0.35rem;
+}
+
+.markdown-body h3 {
+  font-size: 0.89rem;
+  font-weight: 600;
+  margin-top: 0.65rem;
+  margin-bottom: 0.3rem;
+}
+
+.markdown-body h4 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-top: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.markdown-body h5 {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-body h6 {
+  font-size: 0.825rem;
+  font-weight: 500;
+  margin-top: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.markdown-body p {
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-body li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid #444;
+  margin: 1.5rem 0;
+}
+
+.markdown-body strong {
+  font-weight: bold;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid #555;
+  padding-left: 1rem;
+  color: #aaa;
+  font-style: italic;
+  margin: 1rem 0;
+}
+.markdown-body pre {
+  background-color: var(--deputydev-editor-background);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-family: monospace;
+  font-size: inherit;
+  color: inherit;
+}
+
+.markdown-body code {
+  font-family: monospace;
+  padding: 0.2em 0.4em;
+  /* background: rgba(0, 0, 0, 0.1); */
+  border-radius: 4px;
+}
+
+.markdown-body table {
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
@@ -145,11 +159,10 @@
 }
 
 .markdown-body.high-contrast-light pre {
-  background-color: rgb(0, 0, 0,0.1) !important;
+  background-color: rgb(0, 0, 0, 0.1) !important;
 }
 
 .markdown-body.high-contrast pre {
-  background-color: rgba(255, 255, 255, 0.1) !important; 
+  background-color: rgba(255, 255, 255, 0.1) !important;
 }
-
 

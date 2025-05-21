@@ -86,6 +86,7 @@ export type ChatMessage =
   | ChatToolUseMessage
   | ChatThinkingMessage
   | ChatCodeBlockMessage
+  | ChatReplaceBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage
   | ChatTerminalNoShell;
@@ -131,11 +132,12 @@ export interface ChatToolUseMessage {
     tool_name: string;
     tool_use_id: string;
     input_params_json: { prompt: string } | string;
-    tool_input_json?: { prompt: string };
+    tool_input_json?: { prompt: string } | string;
     result_json: string;
     status: 'pending' | 'completed' | 'error' | 'aborted';
     write_mode?: boolean;
     terminal_approval_required?: boolean;
+    diff?: { addedLines: number; removedLines: number };
   };
 }
 
@@ -154,6 +156,21 @@ export interface ChatCodeBlockMessage {
     code: string;
     is_diff?: boolean;
     diff?: string | null;
+    added_lines?: number | null;
+    removed_lines?: number | null;
+    is_live_chat?: boolean;
+  };
+  completed: boolean;
+  actor: 'ASSISTANT';
+  write_mode: boolean;
+  status: 'pending' | 'completed' | 'error' | 'aborted';
+}
+
+export interface ChatReplaceBlockMessage {
+  type: 'REPLACE_IN_FILE_BLOCK' | 'REPLACE_IN_FILE_BLOCK_STREAMING';
+  content: {
+    filepath?: string;
+    diff: string;
     added_lines?: number | null;
     removed_lines?: number | null;
     is_live_chat?: boolean;
