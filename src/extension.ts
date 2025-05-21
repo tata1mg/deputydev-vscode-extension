@@ -33,6 +33,10 @@ import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQuery
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { binaryApi } from './services/api/axios';
 import { API_ENDPOINTS } from './services/api/endpoints';
+import { ApiErrorHandler } from './services/api/apiErrorHandler';
+import * as path from 'path';
+import * as os from 'os';
+
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
   if (isNotCompatibleCheck) {
@@ -70,13 +74,15 @@ export async function activate(context: vscode.ExtensionContext) {
   const feedBackService = new FeedbackService();
   const userQueryEnhancerService = new UserQueryEnhancerService();
   const terminalManager = new TerminalManager(context);
+  const apiErrorHandler = new ApiErrorHandler();
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
 
-  const diffManager = new DiffManager(context, '', outputChannel, authService);
+  const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
+  const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
   await diffManager.init();
-  const chatService = new ChatManager(context, outputChannel, diffManager, terminalManager);
+  const chatService = new ChatManager(context, outputChannel, diffManager, terminalManager, apiErrorHandler);
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();

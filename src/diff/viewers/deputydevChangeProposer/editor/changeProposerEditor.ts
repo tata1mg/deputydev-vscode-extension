@@ -84,7 +84,10 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
       const cancellationToken = new vscode.CancellationTokenSource();
       switch (message.command) {
         case 'get-latest-content': {
-          const initialContent = this.fileChangeStateManager.getFileChangeState(document.filePath, document.repoPath);
+          const initialContent = await this.fileChangeStateManager.getFileChangeState(
+            document.filePath,
+            document.repoPath,
+          );
           document.content = initialContent?.currentUdiff || document.content;
           this.outputChannel.info(`Sending initial content to webview: ${document.content}`);
 
@@ -129,7 +132,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           // });
           await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
-          const newContentLines = newContent.split('\n');
+          const newContentLineEol = newContent.includes('\r\n') ? '\r\n' : '\n';
+          const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
             selectedPanel.dispose();
@@ -164,7 +168,8 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           // });
           await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
-          const newContentLines = newContent.split('\n');
+          const newContentLineEol = newContent.includes('\r\n') ? '\r\n' : '\n';
+          const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
             selectedPanel.dispose();
