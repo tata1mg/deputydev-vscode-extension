@@ -36,6 +36,7 @@ import { API_ENDPOINTS } from './services/api/endpoints';
 import { ApiErrorHandler } from './services/api/apiErrorHandler';
 import * as path from 'path';
 import * as os from 'os';
+import { MCPService } from './services/mcp/mcpService';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();

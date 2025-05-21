@@ -104,6 +104,10 @@ export function createOrOpenFile(path: string) {
   return callCommand('open-or-create-file', { path });
 }
 
+export function openMcpSettings() {
+  return callCommand('open-mcp-settings', {});
+}
+
 // generate code
 export function cancelGenerateCode() {
   return callCommand('cancel-generate-code', null);
@@ -260,4 +264,17 @@ export function submitFeedback(feedback: string, queryId: number) {
 
 export function enhanceUserQuery(userQuery: string) {
   return callCommand('enhance-user-query', { userQuery });
+}
+
+// MCP Operations
+export function getAllMcpServers() {
+  return callCommand('get-all-mcp-servers', {});
+}
+
+export function syncServers() {
+  return callCommand('sync-servers', {});
+}
+
+export function mcpServerEnableOrDisable() {
+
 }

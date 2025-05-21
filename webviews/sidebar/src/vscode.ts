@@ -15,6 +15,7 @@ import {
   ChatToolUseMessage,
   Settings,
   URLListItem,
+  MCPServer,
 } from '@/types';
 import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
@@ -23,6 +24,7 @@ import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { url } from 'inspector';
 import { useSettingsStore } from './stores/settingsStore';
+import { useMcpStore } from './stores/mcpStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -583,3 +585,10 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
     userInput: currentUserInput + terminalOutput.terminalOutput,
   });
 });
+
+addCommandEventListener('fetched-mcp-servers', ({data}) => {
+  const servers = data as MCPServer[];
+  if (servers && servers.length > 0) {
+    useMcpStore.setState({mcpServers: servers});
+  }
+})
