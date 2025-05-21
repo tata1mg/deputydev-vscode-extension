@@ -426,6 +426,7 @@ const Setting = () => {
   const [id, setId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
+  const safeUrls = urls ?? [];
 
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
@@ -462,7 +463,7 @@ const Setting = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [urls]);
+  }, [safeUrls]);
   useEffect(() => {
     const settings: Settings = {
       default_mode: chatType,
@@ -499,7 +500,7 @@ const Setting = () => {
 
   useEffect(() => {
     setIsLoading(false);
-  }, [urls]);
+  }, [safeUrls]);
 
   useEffect(() => {
     searchInput.length
@@ -747,7 +748,7 @@ const Setting = () => {
             />
           )}
 
-          <div className={`${urls.length > 0 ? 'max-h-[300px]' : 'h-auto'} overflow-y-auto`}>
+          <div className={`${safeUrls.length > 0 ? 'max-h-[300px]' : 'h-auto'} overflow-y-auto`}>
             {showAddNewForm ? (
               <div
                 className="flex flex-col space-y-4 p-4"
@@ -907,10 +908,10 @@ const Setting = () => {
               </div>
             ) : (
               <ul className="space-y-1 p-1">
-                {urls.length === 0 && (
+                {safeUrls.length === 0 && (
                   <li className="py-2 text-center text-xs opacity-70">No Saved URL</li>
                 )}
-                {urls.map((url, index) => (
+                {safeUrls.map((url, index) => (
                   <li
                     key={index}
                     className="relative flex cursor-pointer items-start justify-between gap-3 rounded-sm px-3 py-2 transition-all duration-150 hover:bg-[var(--deputydev-active-selection-background)] hover:text-[--vscode-list-activeSelectionForeground]"
