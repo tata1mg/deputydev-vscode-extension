@@ -217,12 +217,12 @@ export class ChatManager {
         const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
         clientTools.push({
           name: mcpToolUniqueId,
-          description: tool.description,
-          inputSchema: tool.inputSchema,
-          toolMetadata: {
+          description: tool.description ?? '',
+          input_schema: tool.inputSchema,
+          tool_metadata: {
             type: 'MCP',
-            toolName: tool.name,
-            serverId: server.serverId,
+            tool_name: tool.name,
+            server_id: server.serverId,
           },
         });
       }
@@ -725,8 +725,8 @@ export class ChatManager {
       if (detectedClientTool) {
         this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
         rawResult = await this.mcpManager.runMCPTool(
-          detectedClientTool.toolMetadata.serverId,
-          detectedClientTool.toolMetadata.toolName,
+          detectedClientTool.tool_metadata.server_id,
+          detectedClientTool.tool_metadata.tool_name,
           parsedContent,
         );
       } else {

@@ -34,22 +34,22 @@ type ChatReferenceItem = {
 };
 
 export interface MCPToolMetadata {
-  toolName: string; // Unique identifier for the tool
-  serverId: string; // Name of the server where the tool is available
+  tool_name: string; // Unique identifier for the tool
+  server_id: string; // Name of the server where the tool is available
   type: 'MCP';
 }
 
 export interface ClientTool {
   name: string; // Unique identifier for the tool
-  description?: string; // Human-readable description
-  inputSchema: {
+  description: string; // Human-readable description
+  input_schema: {
     // JSON Schema for the tool's parameters
     type: 'object';
     properties: {
       [key: string]: string | number | boolean | object | null;
     };
   };
-  toolMetadata: MCPToolMetadata;
+  tool_metadata: MCPToolMetadata;
 }
 
 export interface ChatPayload {
