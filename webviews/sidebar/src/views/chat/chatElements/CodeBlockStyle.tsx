@@ -1,23 +1,29 @@
+import { useThemeStore } from '@/stores/useThemeStore';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export type ChatReferenceSnippetItem = {
   content: string;
   language?: string;
-  file_path?: string;
 };
 
 export function SnippetReference({ snippet }: { snippet: ChatReferenceSnippetItem }) {
+  const { themeKind } = useThemeStore();
+
+  const snippetStyle =
+    themeKind === 'light' || themeKind === 'high-contrast-light' ? duotoneLight : dracula;
   return (
     <SyntaxHighlighter
       language={snippet.language || 'code'}
-      style={dracula}
+      style={snippetStyle}
       customStyle={{
         padding: '16px',
-        borderRadius: '0 0 8px 8px',
         margin: 0,
-        fontSize: '12px',
+        fontSize: 'var(--vscode-font-size)',
+        fontWeight: 'var(--vscode-font-weight)',
         fontFamily: 'var(--vscode-editor-font-family)',
+        backgroundColor: 'var(--vscode-editor-background)',
       }}
     >
       {snippet.content}

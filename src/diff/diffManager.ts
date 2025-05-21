@@ -67,7 +67,7 @@ export class DiffManager {
   };
 
   private getOriginalAndModifiedContentAfterApplyingDiff = async (
-    data: { path: string; incrementalUdiff: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
     repoPath: string,
   ): Promise<{
     originalContent: string;
@@ -79,33 +79,48 @@ export class DiffManager {
       this.fileChangeStateManager as FileChangeStateManager
     ).getCurrentContentOnWhichChangesAreToBeApplied(data.path, repoPath);
     // then apply the diff to the original content
+    // Prepare the diff_data and type based on what's provided
+    let diffData;
+    if (data.search_and_replace_blocks) {
+      diffData = {
+        type: 'SEARCH_AND_REPLACE',
+        search_and_replace_blocks: data.search_and_replace_blocks,
+      };
+    } else {
+      diffData = {
+        type: 'UDIFF',
+        incremental_udiff: data.incrementalUdiff,
+      };
+    }
     let newContent = originalContent;
     try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        Authorization: `Bearer ${authToken}`,
+      const payload = {
+        diff_application_requests: [
+          {
+            file_path: data.path,
+            repo_path: repoPath,
+            current_content: originalContent,
+            diff_data: diffData,
+          },
+        ],
       };
-      const response = await binaryApi().post(
-        API_ENDPOINTS.DIFF_APPLIER,
-        {
-          diff_application_requests: [
-            {
-              file_path: data.path,
-              repo_path: repoPath,
-              current_content: originalContent,
-              diff_data: { type: 'UDIFF', incremental_udiff: data.incrementalUdiff },
-            },
-          ],
-        },
-        { headers },
-      );
+      const response = await binaryApi().post(API_ENDPOINTS.DIFF_APPLIER, payload);
+
+      this.outputChannel.debug(`Diff apply call result DEBUG: ${JSON.stringify(response.data)}`); // todo: remove this
       if (response.status !== 200) {
-        throw new Error(`Error applying diff: ${response.statusText}`);
+        throw new Error(`Error applying changes: ${response.statusText}`);
       }
       this.outputChannel.debug(`Diff apply call result from binary: ${JSON.stringify(response.data)}`);
       newContent = response.data['diff_application_results'][0]['new_content'];
-    } catch (error) {
-      this.outputChannel.error(`Error applying diff: ${error}`);
+    } catch (error: any) {
+      if (error.response && error.response.data) {
+        const serverError = error.response.data.error || JSON.stringify(error.response.data);
+        this.outputChannel.error(`Error applying changes: ${serverError}`);
+        throw new Error(`${serverError}`);
+      } else {
+        this.outputChannel.error(`Error applying changes: ${error}`);
+        throw new Error(`Failed to apply changes:\n${(error as Error).message}`);
+      }
     }
 
     // return the new content
@@ -114,25 +129,49 @@ export class DiffManager {
       newContent: newContent || originalContent,
     };
   };
-
   public checkIsDiffApplicable = async (
-    data: { path: string; incrementalUdiff: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
     repoPath: string,
-  ): Promise<boolean> => {
-    this.outputChannel.debug(
-      `Checking if diff is applicable for ${data.path} with repo path ${repoPath} and diff ${data.incrementalUdiff}`,
-    );
+  ): Promise<{ diffApplySuccess: boolean; addedLines: number; removedLines: number }> => {
+    this.outputChannel.debug(`Checking if diff is applicable for ${data.path} with repo path ${repoPath}`);
 
-    // get original and modified content after applying diff
+    this.checkInit();
+
     const { originalContent, newContent: modifiedContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(
       data,
       repoPath,
     );
+
     this.outputChannel.debug(`Original content: ${originalContent}`);
     this.outputChannel.debug(`Modified content: ${modifiedContent}`);
 
-    // return true if the original content is different from the modified content
-    return originalContent !== modifiedContent;
+    // If there's no difference, diff is not applicable
+    if (originalContent === modifiedContent) {
+      this.outputChannel.info(`Diff is not applicable for ${data.path}`);
+      return {
+        diffApplySuccess: false,
+        addedLines: 0,
+        removedLines: 0,
+      };
+    }
+
+    // Diff is applicable, compute line changes
+    const { addedLines, removedLines } = await this.fileChangeStateManager!.computeDiffLineChanges(
+      data.path,
+      repoPath,
+      modifiedContent,
+      data.path,
+    );
+
+    this.outputChannel.info(
+      `Diff is applicable for ${data.path} with ${addedLines} added lines and ${removedLines} removed lines`,
+    );
+
+    return {
+      diffApplySuccess: true,
+      addedLines,
+      removedLines,
+    };
   };
 
   public openDiffView = async (filePath: string, repoPath: string, writeMode: boolean) => {
@@ -143,7 +182,7 @@ export class DiffManager {
   };
 
   public applyDiff = async (
-    data: { path: string; incrementalUdiff: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
     repoPath: string,
     openViewer: boolean,
     applicationTrackingData: {
@@ -151,34 +190,46 @@ export class DiffManager {
       usageTrackingSessionId: number | null;
     },
     writeMode: boolean,
-  ): Promise<boolean> => {
+  ): Promise<{ diffApplySuccess: boolean; addedLines: number; removedLines: number }> => {
     this.checkInit();
-    // first get the original and modified content after applying diff
-    const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
-    if (originalContent === newContent && originalContent != '') {
-      this.outputChannel.info(`Diff is not applicable for ${data.path}`);
-      return false;
+    try {
+      // Get the original and modified content after applying the diff
+      const { originalContent, newContent } = await this.getOriginalAndModifiedContentAfterApplyingDiff(data, repoPath);
+      if (originalContent === newContent && originalContent != '') {
+        this.outputChannel.info(`Diff is not applicable for ${data.path}`);
+        return { diffApplySuccess: false, addedLines: 0, removedLines: 0 };
+      }
+      // update the fileChangeStateMap with the original and modified content from the udiff
+      const {
+        addedLines,
+        removedLines,
+        originalContent: updatedOriginalContent,
+        modifiedContent: updatedModifiedContent,
+      } = await this.fileChangeStateManager!.updateFileStateInFileChangeStateMapPostDiffApply(
+        data.path,
+        repoPath,
+        newContent,
+        data.path,
+        writeMode,
+        applicationTrackingData,
+        originalContent,
+      );
+
+      // Optionally open the diff viewer
+      if (openViewer) {
+        await this.openDiffView(data.path, repoPath, writeMode);
+      }
+
+      return {
+        diffApplySuccess: true,
+        addedLines,
+        removedLines,
+      };
+    } catch (error) {
+      this.outputChannel.error(`applyDiff failed:\n${(error as Error).message}`);
+      throw error; // Optional: return false if you want to silently fail
     }
-
-    // update the fileChangeStateMap with the original and modified content from the udiff
-    await (this.fileChangeStateManager as FileChangeStateManager).updateFileStateInFileChangeStateMapPostDiffApply(
-      data.path,
-      repoPath,
-      newContent,
-      data.path,
-      writeMode,
-      applicationTrackingData,
-      originalContent,
-    );
-
-    if (openViewer) {
-      // open the diff view
-      await this.openDiffView(data.path, repoPath, writeMode);
-    }
-
-    return true;
   };
-
   public acceptAllFiles = async () => {};
   public rejectAllFiles = async () => {};
   public acceptFile = async (path: string) => {};

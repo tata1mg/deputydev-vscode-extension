@@ -1,6 +1,6 @@
 import { CircleUserRound, TriangleAlert, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Markdown from 'react-markdown';
-import { useChatStore } from '../../stores/chatStore';
+import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
 import '../../styles/markdown-body.css';
 import {
   ToolUseStatusMessage,
@@ -101,25 +101,6 @@ export function ChatArea() {
           case 'CODE_BLOCK_STREAMING':
           case 'CODE_BLOCK': {
             const isStreaming = msg.type === 'CODE_BLOCK_STREAMING';
-            const isDiff = msg.content.is_diff;
-            const showFileEditedChip = isDiff && msg.write_mode;
-
-            if (showFileEditedChip) {
-              return (
-                <div key={index}>
-                  <FileEditedChip
-                    filepath={msg.content.file_path}
-                    language={msg.content.language}
-                    content={msg.content.code}
-                    added_lines={msg.content.added_lines}
-                    removed_lines={msg.content.removed_lines}
-                    status={isStreaming ? msg.status : 'idle'}
-                    past_session={!isStreaming}
-                  />
-                </div>
-              );
-            }
-
             return (
               <div key={index} className="text-white">
                 <CodeActionPanel
@@ -131,7 +112,7 @@ export function ChatArea() {
                   diff={msg.content.diff}
                   added_lines={msg.content.added_lines}
                   removed_lines={msg.content.removed_lines}
-                  is_live_chat={msg.content.is_live_chat}
+                  isStreaming={isStreaming}
                 />
               </div>
             );
@@ -169,6 +150,40 @@ export function ChatArea() {
                   />
                 );
                 break;
+              case 'replace_in_file': {
+                const isStreaming = true;
+                contentComponent = (
+                  <div key={index}>
+                    <FileEditedChip
+                      isToolUse={true}
+                      isWriteToFileTool={false}
+                      content={msg.content.input_params_json as string}
+                      status={isStreaming ? msg.content.status : 'idle'}
+                      addedLines={msg.content.diff?.addedLines}
+                      removedLines={msg.content.diff?.removedLines}
+                      isStreaming={isStreaming}
+                    />
+                  </div>
+                );
+                break;
+              }
+              case 'write_to_file': {
+                const isStreaming = true;
+                contentComponent = (
+                  <div key={index}>
+                    <FileEditedChip
+                      isToolUse={true}
+                      isWriteToFileTool={true}
+                      content={msg.content.input_params_json as string}
+                      status={isStreaming ? msg.content.status : 'idle'}
+                      addedLines={msg.content.diff?.addedLines}
+                      removedLines={msg.content.diff?.removedLines}
+                      isStreaming={isStreaming}
+                    />
+                  </div>
+                );
+                break;
+              }
 
               default:
                 contentComponent = (
@@ -182,17 +197,74 @@ export function ChatArea() {
 
             return <div key={index}>{contentComponent}</div>;
           }
-          case 'TOOL_USE_REQUEST_BLOCK':
-            return (
-              <div
-                key={index}
-                className={`markdown-body ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''}`}
-              >
-                {msg.content.tool_name === 'ask_user_input' ? (
-                  <Markdown>{msg.content.tool_input_json?.prompt}</Markdown>
-                ) : null}
-              </div>
-            );
+          case 'TOOL_USE_REQUEST_BLOCK': {
+            let contentComponent: JSX.Element | null = null;
+
+            switch (msg.content.tool_name) {
+              case 'ask_user_input':
+                contentComponent = (
+                  <div
+                    key={index}
+                    className={`markdown-body ${
+                      ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
+                    }`}
+                  >
+                    <Markdown>
+                      {typeof msg.content.tool_input_json === 'object' &&
+                      msg.content.tool_input_json?.prompt
+                        ? String(msg.content.tool_input_json.prompt)
+                        : typeof msg.content.tool_input_json === 'string'
+                          ? msg.content.tool_input_json
+                          : 'Awaiting input...'}
+                    </Markdown>
+                  </div>
+                );
+                break;
+
+              case 'replace_in_file': {
+                const isStreaming = false;
+                const inputParams = msg.content.tool_input_json as unknown as {
+                  path: string;
+                  diff: any;
+                };
+                contentComponent = (
+                  <FileEditedChip
+                    key={index}
+                    isToolUse={true}
+                    isWriteToFileTool={false}
+                    content={JSON.stringify(inputParams)}
+                    status={isStreaming ? msg.content.status : 'idle'}
+                    addedLines={msg.content.diff?.addedLines}
+                    removedLines={msg.content.diff?.removedLines}
+                    isStreaming={isStreaming}
+                  />
+                );
+                break;
+              }
+              case 'write_to_file': {
+                const isStreaming = false;
+                const inputParams = msg.content.tool_input_json as unknown as {
+                  path: string;
+                  diff: any;
+                };
+                contentComponent = (
+                  <FileEditedChip
+                    key={index}
+                    isToolUse={true}
+                    isWriteToFileTool={true}
+                    content={JSON.stringify(inputParams)}
+                    status={isStreaming ? msg.content.status : 'idle'}
+                    addedLines={msg.content.diff?.addedLines}
+                    removedLines={msg.content.diff?.removedLines}
+                    isStreaming={isStreaming}
+                  />
+                );
+                break;
+              }
+            }
+
+            return contentComponent;
+          }
 
           case 'QUERY_COMPLETE': {
             if (!queryCompleteTimestampsRef.current.has(index)) {
