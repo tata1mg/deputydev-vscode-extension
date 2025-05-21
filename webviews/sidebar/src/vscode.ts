@@ -473,6 +473,30 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     .find(
       (msg) => msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
     );
+
+  // Create the base message
+  let baseMessage = `
+    - Workspace Created Successfully, and now we are inside new Workspace.
+    - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
+    - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
+    - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
+    - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - Leverage other available tools as needed to complete scaffolding.
+  `;
+
+  // Add the conditional instructions based on chat type
+  if (useChatSettingStore.getState().chatType === 'write') {
+    baseMessage += `
+    - If file-creation steps are needed in a follow-up, use the "replace_in_file" tool to make changes to existing files or "write_in_file" tool to create new files.
+    - Do not use execute_command tool to create files, instead use "write_in_file" or "replace_in_file" tool.
+    `;
+  } else {
+    baseMessage += `
+    - If file-creation steps are needed in a follow-up, send code blocks with udiff inside and make sure you make that <is_diff> true.
+    - Do not use execute_command tool to create files, instead send code blocks with udiff MapPinPlusInside.
+    `;
+  }
   const continuationPayload = {
     write_mode: useChatSettingStore.getState().chatType === 'write',
     is_tool_response: true,
@@ -480,16 +504,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
       tool_name: lastMessage.content.tool_name,
       tool_use_id: lastMessage.content.tool_use_id,
       response: {
-        message: `
-        - Workspace Created Successfully, and now we are inside new Workspace.
-        - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
-        - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
-        - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
-        - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-        - If file-creation steps are needed in a follow-up, emit code-block diffs annotated with "<is_diff>true</is_diff>".
-        - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
-        - Leverage other available tools as needed to complete scaffolding.
-        `,
+        message: baseMessage,
       },
     },
   };
@@ -546,6 +561,29 @@ addCommandEventListener('update-workspace-dd', () => {
       return;
     }
 
+    // Create the base message
+    let baseMessage = `
+    - Workspace Created Successfully, and now we are inside new Workspace.
+    - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
+    - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
+    - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
+    - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - Leverage other available tools as needed to complete scaffolding.
+  `;
+
+    // Add the conditional instructions based on chat type
+    if (useChatSettingStore.getState().chatType === 'write') {
+      baseMessage += `
+    - If file-creation steps are needed in a follow-up, use the "replace_in_file" tool to make changes to existing files or "write_in_file" tool to create new files.
+    - Do not use execute_command tool to create files, instead use "write_in_file" or "replace_in_file" tool.
+    `;
+    } else {
+      baseMessage += `
+    - If file-creation steps are needed in a follow-up, send code blocks with udiff inside and make sure you make that <is_diff> true.
+    - Do not use execute_command tool to create files, instead send code blocks with udiff MapPinPlusInside.
+    `;
+    }
     const continuationPayload = {
       write_mode: useChatSettingStore.getState().chatType === 'write',
       is_tool_response: true,
@@ -553,16 +591,7 @@ addCommandEventListener('update-workspace-dd', () => {
         tool_name: lastToolMessage.content.tool_name,
         tool_use_id: lastToolMessage.content.tool_use_id,
         response: {
-          message: `
-          - Workspace Created Successfully, and now we are inside new Workspace.
-          - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
-          - If additional setup steps or library installations are required (eg. setting up nextjs, react, python env, tailwind, etc), invoke the "execute_command".
-          - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
-          - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool if you have any confusions.
-          - If file-creation steps are needed in a follow-up, emit code-block diffs annotated with "<is_diff>true</is_diff>".
-          - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
-          - Leverage other available tools as needed to complete scaffolding.
-          `,
+          message: baseMessage,
         },
       },
     };
