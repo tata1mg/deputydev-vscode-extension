@@ -33,6 +33,21 @@ type ChatReferenceItem = {
   url?: string;
 };
 
+export interface ClientTool {
+  name: string; // Unique identifier for the tool
+  description?: string; // Human-readable description
+  inputSchema: {
+    // JSON Schema for the tool's parameters
+    type: 'object';
+    properties: {
+      [key: string]: string | number | boolean | object | null;
+    };
+  };
+  toolMetadata?: {
+    [key: string]: string | number | boolean | object | null;
+  };
+}
+
 export interface ChatPayload {
   search_web: boolean;
   llm_model: string;
@@ -55,6 +70,7 @@ export interface ChatPayload {
   os_name: string;
   shell: string;
   is_from_runTool_response?: string;
+  client_tools: Array<ClientTool>;
 }
 
 export interface SearchTerm {
