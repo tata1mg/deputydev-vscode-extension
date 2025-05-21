@@ -35,6 +35,8 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import * as fs from 'fs';
 import { TerminalManager } from '../terminal/TerminalManager';
 import { getOSName } from '../utilities/osName';
+import * as os from 'os';
+import { MCPService } from '../services/mcp/mcpService';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -45,6 +47,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
   private apiErrorHandler = new ApiErrorHandler();
+  private mcpService = new MCPService();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -63,7 +66,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
     private terminalManager: TerminalManager,
-  ) {}
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -152,6 +155,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'usage-tracking':
           promise = this.trackingManager.trackUsage(data);
+          break;
+
+        // MCP operations
+        case 'get-all-mcp-servers':
+          promise = this.getAllMcpServers();
           break;
 
         // File Operations
@@ -313,6 +321,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         case 'open-or-create-file':
           this.openOrCreateFileByAbsolutePath(data.path);
+          break;
+
+        case 'open-mcp-settings':
+          this.openMcpSettings();
+          break;
+
+        case 'sync-servers':
+          this.mcpService.syncServers();
           break;
 
         case 'check-diff-applicable': {
@@ -541,6 +557,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await vscode.window.showTextDocument(document);
     } catch (error: any) {
       vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
+    }
+  }
+
+  private async openMcpSettings() {
+    const homeDir = os.homedir();
+    const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
+    const uri = vscode.Uri.file(filePath);
+    try {
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, '');
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Failed to open or create mcp settings file: ${error.message}`);
     }
   }
 
@@ -814,6 +845,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       data: {
         terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\``,
       },
+    });
+  }
+
+  async getAllMcpServers() {
+    const servers = await this.mcpService.getServers();
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'fetched-mcp-servers',
+      data: servers
     });
   }
 

@@ -38,4 +38,7 @@ export const API_ENDPOINTS = {
   SAVE_SETTINGS: '/end_user/v1/extension_settings/update_extension_settings',
   FETCH_SETTINGS: '/end_user/v1/extension_settings/get_extension_settings',
   WEB_SEARCH: '/end_user/v1/websearch',
+  GET_ALL_MCP_SERVERS: '/v1/mcp/servers',
+  INVOKE_MCP_SERVER_TOOL: '/v1/mcp/servers/tool/invoke',
+  SYNC_MCP_SERVERS: '/v1/mcp/servers/sync'
 };

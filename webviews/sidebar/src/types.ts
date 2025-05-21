@@ -273,3 +273,39 @@ export interface LLMModels {
   display_name: string;
   name: string;
 }
+
+export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
+
+export interface ToolRequest {
+  requestData: {};
+  toolName: string;
+  toolMeta: {};
+}
+
+export interface BaseToolProps {
+    toolRunStatus: ToolRunStatus;
+    toolDisplayName: string;
+    toolRequest?: ToolRequest | undefined;
+    toolResponse?: Record<string, any> | undefined;
+}
+
+export interface MCPServer {
+  name: string;
+  status: string;
+  tool_count: number;
+  tools: MCPServerTool[];
+  error: string;
+  disabled: boolean;
+}
+
+export interface MCPServerTool {
+  name: string;
+  description: string;
+}
+
+export interface MCPStorage {
+  mcpServerTools: MCPServerTool[];
+  mcpServers: MCPServer[];
+  selectedServer: MCPServer | undefined;
+  setMcpServers: (mcpServers: MCPServer[]) => void;
+}
