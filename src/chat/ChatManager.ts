@@ -722,10 +722,6 @@ export class ChatManager {
           rawResult = {
             message: `Tool '${toolRequest.tool_name}' is not implemented.`,
           };
-          // print tool accumulated content in json format also add space
-          this.outputChannel.info(
-            `Tool accumulated content: ${JSON.stringify(toolRequest.accumulatedContent, null, 2)}`,
-          );
           // We will still send TOOL_USE_RESULT, but won't recurse apiChat
           status = 'completed';
           resultForUI = rawResult; // Send the message back
