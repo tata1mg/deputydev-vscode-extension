@@ -13,6 +13,16 @@ export class MCPService {
   }
   private apiErrorHandler = new ApiErrorHandler();
 
+  public async getAllMcpServers(): Promise<any> {
+    try {
+      const response = await binaryApi().get(API_ENDPOINTS.GET_ALL_MCP_SERVERS);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while syncing servers');
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
   public async syncServers(): Promise<any> {
     try {
       console.log('**********syncing from method**********');
