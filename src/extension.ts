@@ -1,45 +1,43 @@
-import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { SidebarProvider } from './panels/SidebarProvider';
-import { WorkspaceManager } from './code_syncing/WorkspaceManager';
+import * as vscode from 'vscode';
 import { AuthenticationManager } from './auth/AuthenticationManager';
+import { BackgroundPinger } from './binaryUp/BackgroundPinger';
+import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
+import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
+import { WorkspaceManager } from './code_syncing/WorkspaceManager';
+import { getBinaryHost } from './config';
+import { DiffManager } from './diff/diffManager';
+import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
+import { SidebarProvider } from './panels/SidebarProvider';
 import { ReferenceManager } from './references/ReferenceManager';
+import { AuthService } from './services/auth/AuthService';
+import { HistoryService } from './services/history/HistoryService';
+import { ProfileUiService } from './services/profileUi/profileUiService';
+import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
+import { isNotCompatible } from './utilities/checkOsVersion';
 import { ConfigManager } from './utilities/ConfigManager';
 import {
-  setExtensionContext,
-  setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
+  setExtensionContext,
+  setSidebarProvider,
 } from './utilities/contextManager';
-import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
-import { HistoryService } from './services/history/HistoryService';
-import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
-import { AuthService } from './services/auth/AuthService';
-import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
-import { ServerManager } from './binaryUp/ServerManager';
-import { getBinaryHost } from './config';
-import { ProfileUiService } from './services/profileUi/profileUiService';
-import { BackgroundPinger } from './binaryUp/BackgroundPinger';
-import { createOutputChannel } from './utilities/outputChannelFlag';
 import { Logger } from './utilities/Logger';
+import { createOutputChannel } from './utilities/outputChannelFlag';
 import { ThemeManager } from './utilities/vscodeThemeManager';
-import { isNotCompatible } from './utilities/checkOsVersion';
-import { DiffManager } from './diff/diffManager';
 
-import { FeedbackService } from './services/feedback/feedbackService';
-import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
-import { TerminalManager } from './terminal/TerminalManager';
-import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
-import { updateTerminalSettings } from './utilities/setDefaultSettings';
-import { binaryApi } from './services/api/axios';
-import { API_ENDPOINTS } from './services/api/endpoints';
-import { ApiErrorHandler } from './services/api/apiErrorHandler';
-import * as path from 'path';
 import * as os from 'os';
-import { MCPService } from './services/mcp/mcpService';
-import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
+import * as path from 'path';
 import { TextDocument } from 'vscode';
+import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
+import { ApiErrorHandler } from './services/api/apiErrorHandler';
+import { FeedbackService } from './services/feedback/feedbackService';
+import { MCPService } from './services/mcp/mcpService';
+import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
+import { TerminalManager } from './terminal/TerminalManager';
+import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
+import { updateTerminalSettings } from './utilities/setDefaultSettings';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -305,6 +303,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }
