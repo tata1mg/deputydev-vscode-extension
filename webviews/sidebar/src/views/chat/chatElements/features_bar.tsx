@@ -15,7 +15,7 @@ const MCPCircleHelpTooltipContent =
 
 const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatus }) => {
   switch (mcpServerStatus) {
-    case 'pending':
+    case 'connecting':
       return (
         <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
       );

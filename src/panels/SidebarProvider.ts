@@ -167,7 +167,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'mcp-server-restart':
-          promise = this.mcpService.restartServer(data.serverName);
+          promise = this.restartServer(data.serverName);
           break;
 
         // File Operations
@@ -853,6 +853,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // MCP Operations
+  async getAllServers() {
+    const response = await this.mcpService.getAllMcpServers();
+    if (response && response.data && !response.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+    } else {
+      // handle the error
+    }
+  }
   async syncMcpServers() {
     const response = await this.mcpService.syncServers();
     console.log('************on syncing********', response);
@@ -872,6 +884,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await this.mcpService.enableServer(serverName);
     } else {
       await this.mcpService.disableServer(serverName);
+    }
+  }
+
+  async restartServer(serverName: string) {
+    const response = await this.mcpService.restartServer(serverName);
+    if (response && response.data && !response.is_error) {
+      this.getAllServers();
+    } else {
+      // handle the error
     }
   }
 
