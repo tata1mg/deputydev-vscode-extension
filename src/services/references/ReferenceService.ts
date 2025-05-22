@@ -5,6 +5,7 @@ import { AuthService } from '../auth/AuthService';
 import { SaveUrlRequest } from '../../types';
 import axios from 'axios';
 import FormData from 'form-data';
+import { getMainConfig } from '../../config/configSetGet';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
 
@@ -145,6 +146,19 @@ export class ReferenceService {
     onProgress?: (percent: number) => void,
   ): Promise<any> {
     try {
+      const mainConfig = getMainConfig();
+      if (!mainConfig) {  
+        throw new Error('Main config not found');
+      }
+      if (!payload.name || !payload.type || !payload.size || !payload.content) {
+        throw new Error('Invalid payload: missing required fields');
+      }
+      if (payload.size > mainConfig["IMAGE_MAX_SIZE"]) {
+        throw new Error('File size exceeds the maximum allowed limit');
+      }
+      if (!mainConfig["IMAGE_TYPES"].includes(payload.type)) {
+        throw new Error('Invalid file type');
+      }
       const authToken = await this.fetchAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };
 
@@ -157,8 +171,6 @@ export class ReferenceService {
         },
         { headers },
       );
-
-      console.log('Presigned URL response:', url_response.data);
 
       const { post_url, get_url, fields } = url_response.data.data;
 
