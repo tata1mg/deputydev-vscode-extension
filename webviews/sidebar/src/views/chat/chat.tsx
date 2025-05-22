@@ -1,6 +1,16 @@
 // file: webview-ui/src/components/Chat.tsx
-import { Check, Sparkles, CornerDownLeft, Loader2, CircleStop, Globe, AtSign } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Check,
+  Sparkles,
+  CornerDownLeft,
+  Loader2,
+  CircleStop,
+  Globe,
+  AtSign,
+  Image,
+  X,
+} from 'lucide-react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
@@ -18,6 +28,8 @@ import {
   getSavedUrls,
   urlSearch,
   enhanceUserQuery,
+  uploadFileToS3,
+  showVsCodeMessageBox,
 } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -44,6 +56,7 @@ export function ChatUI() {
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
+    imageUploadProgress,
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -73,6 +86,10 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showBiggerImage, setShowBiggerImage] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const timeoutRef = useRef<number | null>(null);
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -130,12 +147,17 @@ export function ChatUI() {
 
     const message = userInput.trim();
     const editorReferences = [...useChatStore.getState().currentEditorReference];
+    const s3Reference = useChatStore.getState().s3Object;
     setUserInput('');
+    setImagePreview(null);
+    fileInputRef.current!.value = '';
+    timeoutRef.current = null;
+    useChatStore.setState({ s3Object: undefined });
     useChatStore.setState({ currentEditorReference: [] });
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {});
+      await sendChatMessage(message, editorReferences, () => {}, s3Reference);
     } catch (error) {
       // Handle error if needed
     }
@@ -372,7 +394,6 @@ export function ChatUI() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
-
   return (
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
@@ -465,6 +486,75 @@ export function ChatUI() {
                   url={chip.url}
                 />
               ))}
+
+              {imagePreview && (
+                <div
+                  className={`group relative mb-2 transition-all duration-500 ease-in-out ${
+                    showBiggerImage ? 'h-48 w-48' : 'h-12 w-12'
+                  }`}
+                >
+                  <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                    <img
+                      onClick={() => {
+                        if (!showBiggerImage) {
+                          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+                          timeoutRef.current = window.setTimeout(() => {
+                            setShowBiggerImage(false);
+                          }, 5000);
+                        }
+                        setShowBiggerImage(!showBiggerImage);
+                      }}
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-full w-full object-cover transition-opacity hover:opacity-90"
+                    />
+
+                    {/* Circular loader overlay */}
+                    {imageUploadProgress !== null && imageUploadProgress < 100 && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                        <svg
+                          className="h-6 w-6 animate-spin text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                          ></path>
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Remove button */}
+                  <button
+                    onClick={() => {
+                      useChatStore.setState({ s3Object: undefined });
+                      setImagePreview(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = ''; // Clear file input value
+                      }
+                    }}
+                    className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                    title="Remove image"
+                    aria-label="Remove image"
+                  >
+                    <X className="h-3 w-3" strokeWidth={3} />
+                  </button>
+                </div>
+              )}
+
               <textarea
                 ref={textareaRef}
                 rows={1}
@@ -551,6 +641,44 @@ export function ChatUI() {
               >
                 <Image className="h-4 w-4" />
               </button> */}
+              <input
+                type="file"
+                accept="image/*"
+                id="image-upload"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                disabled={imagePreview !== null}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                    if (file.size > maxSize) {
+                      showVsCodeMessageBox(
+                        'error',
+                        'File size exceeds 5MB. Please upload a smaller file.'
+                      );
+                      return;
+                    }
+                    const previewUrl = URL.createObjectURL(file);
+                    setImagePreview(previewUrl);
+                    uploadFileToS3(file);
+                  }
+                }}
+              />
+
+              <label
+                htmlFor="image-upload"
+                className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
+                  imagePreview !== null ? 'cursor-not-allowed' : 'cursor-pointer'
+                }`}
+                data-tooltip-id="upload-tooltip"
+                data-tooltip-content={
+                  imagePreview !== null ? 'Max 1 image allowed' : 'Upload Image'
+                }
+                data-tooltip-place="top-start"
+              >
+                <Image className="h-4 w-4" />
+              </label>
 
               {enhancingUserQuery ? (
                 <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
@@ -594,6 +722,7 @@ export function ChatUI() {
             </div>
             <Tooltip id="repo-tooltip" />
             <Tooltip id="sparkles-tooltip" />
+            <Tooltip id="upload-tooltip" />
           </div>
         </div>
 
