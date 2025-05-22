@@ -130,6 +130,7 @@ export async function activate(context: vscode.ExtensionContext) {
     pinger.start();
 
     await mcpService.syncServers().then((response) => {
+      console.log("************on activating********", response)
       if (response && response.data && !response.is_error) {
         sidebarProvider.sendMessageToSidebar({
           id: uuidv4(),
@@ -174,6 +175,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   watchMcpFileSave(context, async (document: TextDocument) => {
     const response = await mcpService.syncServers();
+    console.log("************on saving file********", response)
     if (response && response.data && !response.is_error) {
       sidebarProvider.sendMessageToSidebar({
         id: uuidv4(),
