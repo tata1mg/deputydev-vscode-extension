@@ -129,12 +129,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await mcpService.syncServers().then((response) => {
       console.log('************on activating********', response);
+      if (response.is_error) {
+        vscode.window.showInformationMessage(response.data);
+      }
       if (response && response.data && !response.is_error) {
         sidebarProvider.sendMessageToSidebar({
           id: uuidv4(),
           command: 'fetched-mcp-servers',
           data: response.data,
         });
+        vscode.window.showInformationMessage('MCP servers synced successfully.');
       }
     });
 
@@ -181,7 +185,7 @@ export async function activate(context: vscode.ExtensionContext) {
         data: response.data,
       });
     }
-    vscode.window.showInformationMessage(`MCP SETTINGS SAVED: ${document.uri.fsPath}`);
+    vscode.window.showInformationMessage(`MCP settings saved and synced successfully: ${document.uri.fsPath}`);
   });
 
   const inlineChatEditManager = new InlineChatEditManager(

@@ -7,8 +7,9 @@ import {
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
 import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp, RotateCw } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Tooltip } from 'react-tooltip';
+import { useClickAway } from 'react-use';
 
 const MCPCircleHelpTooltipContent =
   'MCP grants DeputyDev to custom tools, click Configure icon to get started with setup.';
@@ -38,6 +39,13 @@ export default function FeaturesBar() {
   const [showAllMCPServers, setShowAllMCPServers] = useState(false);
   const [showMCPServerTools, setShowMCPServerTools] = useState(false);
   const { mcpServers, mcpServerTools, selectedServer } = useMcpStore();
+
+  const featuresBarRef = useRef<HTMLDivElement>(null);
+
+  useClickAway(featuresBarRef, () => {
+    setShowAllMCPServers(false);
+    setShowMCPServerTools(false);
+  });
 
   const handleShowMCPServers = () => {
     setShowAllMCPServers(!showAllMCPServers);
@@ -104,7 +112,10 @@ export default function FeaturesBar() {
 
   return (
     <div className="flex justify-center pl-3 pr-3">
-      <div className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700">
+      <div
+        ref={featuresBarRef}
+        className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
+      >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
           <div className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto bg-gray-500/20">
@@ -166,13 +177,20 @@ export default function FeaturesBar() {
                 </div>
               </div>
             </div>
-            <div className="h-full max-h-[150px] overflow-y-auto bg-transparent p-2">
-              {mcpServerTools.map((tool, index) => (
-                <div key={index} className="mb-2 flex flex-col">
-                  <div className="text-xs">{tool.name}</div>
-                  <p className="text-xs text-gray-500">{tool.description}</p>
-                </div>
-              ))}
+            <div className="h-full max-h-[150px] overflow-y-auto bg-transparent p-2 text-xs">
+              {mcpServerTools && (
+                <>
+                  {mcpServerTools.map((tool, index) => (
+                    <div key={index} className="mb-2 flex flex-col">
+                      <div>{tool.name}</div>
+                      <p className="text-gray-500">{tool.description}</p>
+                    </div>
+                  ))}
+                </>
+              )}
+              {selectedServer?.error && (
+                <div className="text-center text-red-600">{selectedServer.error}</div>
+              )}
             </div>
           </div>
         )}
@@ -193,7 +211,7 @@ export default function FeaturesBar() {
               {...(!showAllMCPServers &&
                 !showMCPServerTools && {
                   'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'MCP (1 Available MCP Servers)',
+                  'data-tooltip-content': `MCP (${mcpServers.length} Available MCP Servers)`,
                   'data-tooltip-place': 'top-start',
                 })}
             >
