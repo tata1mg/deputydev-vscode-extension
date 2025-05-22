@@ -30,6 +30,9 @@ import { DiffManager } from '../diff/diffManager';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { getOSName } from '../utilities/osName';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import { ReplaceInFile } from './tools/ReplaceInFileTool';
+import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
+import { WriteToFileTool } from './tools/WriteToFileTool';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -42,6 +45,8 @@ export class ChatManager {
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public onTerminalApprove = this._onTerminalApprove.event;
   private terminalExecutor: TerminalExecutor;
+  private replaceInFileTool!: ReplaceInFile;
+  private writeToFileTool!: WriteToFileTool;
 
   onStarted: () => void = () => {};
   onError: (error: Error) => void = () => {};
@@ -66,8 +71,24 @@ export class ChatManager {
   // Method to set the sidebar provider later
   setSidebarProvider(sidebarProvider: SidebarProvider) {
     this.sidebarProvider = sidebarProvider;
+    // Initialize ReplaceInFile after sidebarProvider is set
+    this.replaceInFileTool = new ReplaceInFile(
+      this.context,
+      this.logger,
+      this.outputChannel,
+      this.sidebarProvider,
+      this.authService,
+      this.diffManager,
+    );
+    this.writeToFileTool = new WriteToFileTool(
+      this.context,
+      this.logger,
+      this.outputChannel,
+      this.sidebarProvider,
+      this.authService,
+      this.diffManager,
+    );
   }
-
   async start() {
     // this.outputChannel.info("Starting deputydev binary service...");
   }
@@ -251,6 +272,7 @@ export class ChatManager {
       }
       payload.os_name = await getOSName();
       payload.shell = getShell();
+      payload.vscode_env = await getEnvironmentDetails(true);
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
       // console.log(payload)
@@ -276,7 +298,6 @@ export class ChatManager {
           chunkCallback(toolUseResult);
           toolResultSent = true;
         }
-        this.outputChannel.info(`Received event:`, JSON.stringify(event)); // Log event type
         switch (event.type) {
           case 'RESPONSE_METADATA':
             if (event.content?.session_id) {
@@ -292,7 +313,8 @@ export class ChatManager {
               tool_name: event.content.tool_name,
               tool_use_id: event.content.tool_use_id,
               accumulatedContent: '',
-              write_mode: payload.write_mode,
+              write_mode: payload.write_mode || false,
+              is_inline: payload.is_inline || false,
               llm_model: payload.llm_model,
               search_web: payload.search_web,
             };
@@ -328,7 +350,7 @@ export class ChatManager {
             break;
           }
           case 'CODE_BLOCK_START':
-            if (event.content?.is_diff) {
+            if (event.content?.is_diff && !(payload.write_mode && payload.llm_model === 'GPT_4_POINT_1')) {
               currentDiffRequest = {
                 filepath: event.content?.filepath,
                 // raw_diff will be populated at CODE_BLOCK_END
@@ -343,43 +365,58 @@ export class ChatManager {
             if (currentDiffRequest) {
               currentDiffRequest.raw_diff = event.content.diff;
               chunkCallback({ name: event.type, data: event.content });
-              const active_repo = getActiveRepo();
-              if (!active_repo) {
+
+              const activeRepo = getActiveRepo();
+              if (!activeRepo) {
                 throw new Error('Active repository is not defined. cannot apply diff');
               }
               if (payload.write_mode) {
-                // Usage tracking
-                const usageTrackingData: UsageTrackingRequest = {
-                  event: 'generated',
-                  properties: {
-                    file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(currentDiffRequest.filepath)),
-                    lines: Math.abs(event.content.added_lines) + Math.abs(event.content.removed_lines),
-                    source: payload.is_inline ? 'inline-chat-act' : 'act',
-                  },
-                };
-                const usageTrackingManager = new UsageTrackingManager();
-                usageTrackingManager.trackUsage(usageTrackingData);
-                const isDiffApplied = await this.diffManager.applyDiff(
-                  {
-                    path: currentDiffRequest.filepath,
-                    incrementalUdiff: currentDiffRequest.raw_diff,
-                  },
-                  active_repo,
-                  true,
-                  {
-                    usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
-                    usageTrackingSessionId: getSessionId() || null,
-                  },
-                  payload.write_mode,
-                );
-                this.sidebarProvider?.sendMessageToSidebar({
-                  id: messageId,
-                  command: 'chunk',
-                  data: {
-                    name: 'APPLY_DIFF_RESULT',
-                    data: isDiffApplied ? 'completed' : 'error',
-                  },
-                });
+                try {
+                  // Usage tracking
+                  const usageTrackingData: UsageTrackingRequest = {
+                    event: 'generated',
+                    properties: {
+                      file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(currentDiffRequest.filepath)),
+                      lines: Math.abs(event.content.added_lines) + Math.abs(event.content.removed_lines),
+                      source: payload.is_inline ? 'inline-chat-act' : 'act',
+                    },
+                  };
+                  const usageTrackingManager = new UsageTrackingManager();
+                  usageTrackingManager.trackUsage(usageTrackingData);
+
+                  const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiff(
+                    {
+                      path: currentDiffRequest.filepath,
+                      incrementalUdiff: currentDiffRequest.raw_diff,
+                    },
+                    activeRepo,
+                    true,
+                    {
+                      usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
+                      usageTrackingSessionId: getSessionId() || null,
+                    },
+                    payload.write_mode,
+                  );
+
+                  this.sidebarProvider?.sendMessageToSidebar({
+                    id: messageId,
+                    command: 'chunk',
+                    data: {
+                      name: 'APPLY_DIFF_RESULT',
+                      data: diffApplySuccess ? { status: 'completed', addedLines, removedLines } : 'error',
+                    },
+                  });
+                } catch (error: any) {
+                  this.outputChannel.error(`Error in udiff apply: ${error.message}`);
+                  this.sidebarProvider?.sendMessageToSidebar({
+                    id: messageId,
+                    command: 'chunk',
+                    data: {
+                      name: 'APPLY_DIFF_RESULT',
+                      data: { status: 'error', addedLines: 0, removedLines: 0 },
+                    },
+                  });
+                }
               }
               currentDiffRequest = null;
             } else {
@@ -387,6 +424,7 @@ export class ChatManager {
             }
             break;
           }
+
           default:
             chunkCallback({ name: event.type, data: event.content });
             break;
@@ -423,65 +461,6 @@ export class ChatManager {
       }
       this.currentAbortController = null;
       this.outputChannel.info('apiChat finished cleanup.');
-    }
-  }
-
-  public async getModifiedRequest(currentDiffRequest: CurrentDiffRequest): Promise<Record<string, string> | null> {
-    this.outputChannel.info(`Running diff tool for file ${currentDiffRequest.filepath}`);
-
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      throw new Error('Active repository is not defined.');
-    }
-
-    // Parse accumulated diff content to extract necessary params
-    const raw_udiff = currentDiffRequest.raw_diff;
-    const payload_key = currentDiffRequest.filepath;
-
-    this.outputChannel.info('getting modified file from binary');
-
-    // Call the external function to fetch the modified file
-    const result = await this.fetchModifiedFile(active_repo, {
-      [payload_key]: raw_udiff,
-    });
-
-    if (!result || Object.keys(result).length === 0) {
-      this.outputChannel.info(`no file update after search and replace`);
-      // vscode.window.showErrorMessage(
-      //   "No file updated after search and replace."
-      // );
-      return null;
-    }
-    this.outputChannel.info(`Modified file: ${JSON.stringify(result)}`);
-
-    return result;
-  }
-
-  public async fetchModifiedFile(repo_path: string, file_path_to_diff_map: Record<string, string>): Promise<any> {
-    try {
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        Authorization: `Bearer ${authToken}`,
-      };
-      const response = await binaryApi().post(
-        API_ENDPOINTS.DIFF_APPLIER,
-        {
-          repo_path: repo_path,
-          file_path_to_diff_map: file_path_to_diff_map,
-        },
-        { headers },
-      );
-      return response.status === 200 ? response.data : 'failed';
-    } catch (error) {
-      this.logger.error('Error while applying diff');
-
-      // console.log({
-      //     repo_path: repo_path,
-      //     file_path_to_diff_map: file_path_to_diff_map,
-      // });
-      // console.log(error)
-      // console.error("Error while applying diff:", error);
-      throw error;
     }
   }
 
@@ -728,6 +707,15 @@ export class ChatManager {
           this.outputChannel.info(`Running web_search with params: ${JSON.stringify(parsedContent)}`);
           rawResult = await this._runWebSearch(parsedContent);
           break;
+
+        case 'replace_in_file':
+          this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this.replaceInFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
+          break;
+        case 'write_to_file':
+          this.outputChannel.info(`Running write_to_file with params: ${JSON.stringify(parsedContent)}`);
+          rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
+          break;
         default:
           this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
           // Treat as completed but with a message indicating it's unknown
@@ -763,6 +751,7 @@ export class ChatManager {
 
       // Prepare payload to continue chat with the tool's response
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
+      const EnvironmentDetails = await getEnvironmentDetails(true);
       const continuationPayload: ChatPayload = {
         search_web: toolRequest.search_web,
         llm_model: toolRequest.llm_model,
@@ -776,6 +765,7 @@ export class ChatManager {
         },
         os_name: await getOSName(),
         shell: getShell(),
+        vscode_env: EnvironmentDetails,
         // TODO: Consider if previous_query_ids need to be passed down through tool calls
       };
 
@@ -829,7 +819,7 @@ export class ChatManager {
           status: status,
         },
       };
-      // chunkCallback(toolUseResult);
+      const EnvironmentDetails = await getEnvironmentDetails(true);
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
         search_web: toolRequest.search_web,
@@ -845,6 +835,7 @@ export class ChatManager {
         },
         os_name: await getOSName(),
         shell: getShell(),
+        vscode_env: EnvironmentDetails,
       };
       await this.apiChat(toolUseRetryPayload, chunkCallback, toolUseResult);
     }
@@ -863,9 +854,13 @@ export class ChatManager {
         return { file_path_search: rawResult };
       case 'execute_command':
         return { execute_command_result: rawResult };
+      case 'iterative_file_reader':
+        return rawResult; // Already structured
+      case 'grep_search':
+        return rawResult;
       default:
         // For unknown or simple tools, return the result directly (though handled earlier now)
-        return rawResult;
+        return { result: rawResult };
     }
   }
 

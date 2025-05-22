@@ -122,6 +122,23 @@ export class FileChangeStateManager {
     };
   };
 
+  private readonly countAddedAndRemovedLines = (udiff: string): { added: number; removed: number } => {
+    const lines = udiff.split(/\r?\n/);
+
+    let added = 0;
+    let removed = 0;
+
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        added++;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        removed++;
+      }
+    }
+
+    return { added, removed };
+  };
+
   private readonly getUdiffDisplayFileFromUdiffPatch = (udiffPatch: string, originalContent: string): string => {
     // first, get the line endings
     const lineEol = originalContent.includes('\r\n') ? '\r\n' : '\n';
@@ -188,6 +205,43 @@ export class FileChangeStateManager {
     return finalContentLines.join(lineEol);
   };
 
+  public async computeDiffLineChanges(
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+    newFileContent: string, // the updated file contents
+    newFilePath: string, // (optional) new filename if renamed; otherwise same as filePath
+  ): Promise<{
+    addedLines: number;
+    removedLines: number;
+  }> {
+    const uri = path.join(repoPath, filePath);
+    const newUri = path.join(repoPath, newFilePath);
+
+    // Determine base content: use on-disk or original saved version
+    let baseContent: string;
+    if (this.fileChangeStateMap.has(uri)) {
+      // Always diff against the last applied version
+      baseContent = this.fileChangeStateMap.get(uri)!.initialFileContent;
+      this.outputChannel.debug(`found base content in fileChangeStateMap for ${uri}`);
+    } else {
+      // Fallback to reading original content from disk or version control
+      this.outputChannel.debug(`reading base content from disk for ${uri}`);
+      baseContent = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
+    }
+
+    // Create diff between saved (base) and new content
+    const udiffPatch = createTwoFilesPatch(uri, newUri, baseContent, newFileContent);
+    const { added, removed } = this.countAddedAndRemovedLines(udiffPatch);
+
+    this.outputChannel.info(`Lines added: ${added}, Lines removed: ${removed}`);
+    this.outputChannel.debug(`Udiff patch:\n${udiffPatch}`);
+
+    return {
+      addedLines: added,
+      removedLines: removed,
+    };
+  }
+
   // This method updates the fileChangeStateMap with the original and modified content from the udiff.
   // It checks if the fileChangeStateMap already has the URI. If not, it sets the initial file content and udiff in the fileChangeStateMap.
   // If it does, it updates the udiff in the fileChangeStateMap.
@@ -205,12 +259,21 @@ export class FileChangeStateManager {
     },
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
   ): Promise<{
+    addedLines: number;
+    removedLines: number;
     originalContent: string;
     modifiedContent: string;
   }> => {
     const uri = path.join(repoPath, filePath);
     const newUri = path.join(repoPath, newFilePath);
     const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
+    // Determine  added/removed lines
+    const { addedLines: added, removedLines: removed } = await this.computeDiffLineChanges(
+      filePath,
+      repoPath,
+      newFileContent,
+      filePath,
+    );
     // get the udiff from the new file content. The udiff is always between the new file content and the original file content
     // ensure the line endings are consistent in new file content
     const newFileContentWithEol = newFileContent.replace(
@@ -218,6 +281,7 @@ export class FileChangeStateManager {
       contentToViewDiffOn.includes('\r\n') ? '\r\n' : '\n',
     );
     const udiffPatch = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContentWithEol);
+    this.outputChannel.info(`Lines added: ${added}, Lines removed: ${removed}`);
     this.outputChannel.debug(`Udiff patch: ${udiffPatch}`);
 
     const udiff = this.getUdiffDisplayFileFromUdiffPatch(udiffPatch, contentToViewDiffOn);
@@ -257,6 +321,8 @@ export class FileChangeStateManager {
 
     // return the original and modified content
     return {
+      addedLines: added,
+      removedLines: removed,
       originalContent: parsedUdiffContent.originalContent,
       modifiedContent: parsedUdiffContent.modifiedContent,
     };
