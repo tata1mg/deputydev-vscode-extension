@@ -177,7 +177,6 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-              const copyS3Reference = s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [];
               // delete copyS3Reference.get_url
               // Build the payload
               const payload: any = {
@@ -190,7 +189,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                s3_reference: copyS3Reference,
+                attachments: s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [],
               };
 
               // If a tool response was stored, add it to the payload

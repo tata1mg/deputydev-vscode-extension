@@ -7,7 +7,7 @@ import {
   CircleStop,
   Globe,
   AtSign,
-  ImagePlus,
+  Image,
   X,
 } from 'lucide-react';
 import { use, useEffect, useMemo, useRef, useState } from 'react';
@@ -677,7 +677,7 @@ export function ChatUI() {
                 }
                 data-tooltip-place="top-start"
               >
-                <ImagePlus className="h-4 w-4" />
+                <Image className="h-4 w-4" />
               </label>
 
               {enhancingUserQuery ? (
