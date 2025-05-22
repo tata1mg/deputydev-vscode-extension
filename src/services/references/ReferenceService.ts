@@ -153,10 +153,10 @@ export class ReferenceService {
       if (!payload.name || !payload.type || !payload.size || !payload.content) {
         throw new Error('Invalid payload: missing required fields');
       }
-      if (payload.size > mainConfig["IMAGE_MAX_SIZE"]) {
+      if (payload.size > mainConfig['IMAGE_MAX_SIZE']) {
         throw new Error('File size exceeds the maximum allowed limit');
       }
-      if (!mainConfig["IMAGE_TYPES"].includes(payload.type)) {
+      if (!mainConfig['IMAGE_TYPES'].includes(payload.type)) {
         throw new Error('Invalid file type');
       }
       const authToken = await this.fetchAuthToken();
