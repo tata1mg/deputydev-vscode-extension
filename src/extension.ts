@@ -137,7 +137,7 @@ export async function activate(context: vscode.ExtensionContext) {
           data: response.data,
         });
       }
-    })
+    });
 
     authenticationManager
       .validateCurrentSession()
