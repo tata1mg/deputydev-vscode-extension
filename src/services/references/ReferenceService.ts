@@ -153,10 +153,10 @@ export class ReferenceService {
       if (!payload.name || !payload.type || !payload.size || !payload.content) {
         throw new Error('Invalid payload: missing required fields');
       }
-      if (payload.size > mainConfig['IMAGE_MAX_SIZE']) {
+      if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
         throw new Error('File size exceeds the maximum allowed limit');
       }
-      if (!mainConfig['IMAGE_TYPES'].includes(payload.type)) {
+      if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
         throw new Error('Invalid file type');
       }
       const authToken = await this.fetchAuthToken();
@@ -172,12 +172,12 @@ export class ReferenceService {
         { headers },
       );
 
-      const { post_url, get_url, fields } = url_response.data.data;
+      const { download_url, upload_url, attachment_id } = url_response.data.data;
 
       const formData = new FormData();
 
       // Add all required S3 fields
-      for (const [key, value] of Object.entries(fields)) {
+      for (const [key, value] of Object.entries(upload_url.fields)) {
         formData.append(key, value);
       }
 
@@ -185,7 +185,7 @@ export class ReferenceService {
       formData.append('file', payload.content, payload.name);
 
       // Axios POST to S3
-      await axios.post(post_url, formData, {
+      await axios.post(upload_url.url, formData, {
         headers: {
           ...formData.getHeaders(),
         },
@@ -199,7 +199,7 @@ export class ReferenceService {
         },
       });
 
-      return { get_url, key: fields.key };
+      return { get_url: download_url, key: attachment_id };
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
       throw error;
