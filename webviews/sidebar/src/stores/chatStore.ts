@@ -22,6 +22,7 @@ import {
   ChatMetaData,
   LLMModels,
   S3Object,
+  ChatReplaceBlockMessage,
 } from '@/types';
 
 // =============================================================================
@@ -289,6 +290,7 @@ export const useChatStore = create(
                   }
 
                   case 'THINKING_BLOCK_START': {
+                    useChatStore.setState({ showSkeleton: false });
                     const thinkingContent = (event.data as any)?.content || {
                       text: '',
                     };
@@ -319,13 +321,13 @@ export const useChatStore = create(
 
                     set((state) => {
                       const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
-                      if (lastMsg?.type === 'THINKING') {
-                        lastMsg.text += thinkingDelta;
-                        lastMsg.text += thinkingDelta; // Ensure content.text is updated as well
+                      for (let i = newHistory.length - 1; i >= 0; i--) {
+                        const msg = newHistory[i];
+                        if (msg.type === 'THINKING') {
+                          (msg as ChatThinkingMessage).text += thinkingDelta;
+                          break;
+                        }
                       }
-
                       return { history: newHistory };
                     });
 
@@ -339,18 +341,15 @@ export const useChatStore = create(
                   case 'THINKING_BLOCK_END': {
                     set((state) => {
                       const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
-                      if (lastMsg?.type === 'THINKING') {
-                        lastMsg.completed = true;
+                      // Find the last 'THINKING' message from the end
+                      for (let i = newHistory.length - 1; i >= 0; i--) {
+                        const msg = newHistory[i];
+                        if (msg.type === 'THINKING') {
+                          (msg as ChatThinkingMessage).completed = true;
+                          break;
+                        }
                       }
-
                       return { history: newHistory };
-                    });
-
-                    chunkCallback({
-                      name: 'THINKING_BLOCK_END',
-                      data: event.data,
                     });
                     break;
                   }
@@ -425,7 +424,6 @@ export const useChatStore = create(
 
                       if (lastMsg?.type === 'CODE_BLOCK_STREAMING') {
                         lastMsg.completed = true;
-
                         // ✅ Update diff info
                         lastMsg.content.diff = endData.diff;
                         lastMsg.content.added_lines = endData.added_lines;
@@ -436,6 +434,71 @@ export const useChatStore = create(
                     });
 
                     chunkCallback({ name: 'CODE_BLOCK_END', data: event.data });
+                    break;
+                  }
+
+                  case 'REPLACE_IN_FILE_BLOCK_START': {
+                    const replaceInFileData = event.data as {
+                      filepath?: string;
+                    };
+
+                    const replaceInFileMsg: ChatReplaceBlockMessage = {
+                      type: 'REPLACE_IN_FILE_BLOCK_STREAMING',
+                      content: {
+                        filepath: replaceInFileData.filepath,
+                        diff: '',
+                        is_live_chat: true,
+                      },
+                      completed: false,
+                      actor: 'ASSISTANT',
+                      write_mode: useChatSettingStore.getState().chatType === 'write',
+                      status: 'pending',
+                    };
+
+                    set((state) => ({
+                      history: [...state.history, replaceInFileMsg],
+                    }));
+
+                    break;
+                  }
+
+                  case 'REPLACE_IN_FILE_BLOCK_DELTA': {
+                    useChatStore.setState({ showSkeleton: false });
+                    const replaceInFileData = event.data as { replace_delta?: string };
+                    const replaceDelta = replaceInFileData.replace_delta || '';
+                    set((state) => {
+                      const newHistory = [...state.history];
+                      const lastMsg = newHistory[newHistory.length - 1];
+
+                      if (lastMsg?.type === 'REPLACE_IN_FILE_BLOCK_STREAMING') {
+                        lastMsg.content.diff += replaceDelta; // Update the code inside content
+                      }
+
+                      return { history: newHistory };
+                    });
+                    break;
+                  }
+
+                  case 'REPLACE_IN_FILE_BLOCK_END': {
+                    const replaceInFileData = event.data as {
+                      diff: string;
+                      filepath: string | null;
+                    };
+                    logToOutput('info', `code end data ${replaceInFileData.diff}`);
+
+                    set((state) => {
+                      const newHistory = [...state.history];
+                      const lastMsg = newHistory[newHistory.length - 1];
+
+                      if (lastMsg?.type === 'REPLACE_IN_FILE_BLOCK_STREAMING') {
+                        // ✅ Update diff info
+                        lastMsg.content.diff = replaceInFileData.diff;
+                        lastMsg.completed = true;
+                      }
+
+                      return { history: newHistory };
+                    });
+
                     break;
                   }
 
@@ -479,27 +542,38 @@ export const useChatStore = create(
                   }
 
                   case 'APPLY_DIFF_RESULT': {
-                    const diffResultData = event.data as 'completed' | 'error';
+                    const diffResultData = event.data as {
+                      status: 'completed' | 'error';
+                      addedLines: number;
+                      removedLines: number;
+                    };
                     set((state) => {
-                      const newHistory = [...state.history]; // Copy the history array
-                      const lastMsg = newHistory[newHistory.length - 1]; // Get the last message
-                      logToOutput('info', `ui got the applied diff}`);
-                      // log modified files
+                      const newHistory = [...state.history];
+                      const lastMsg = newHistory[newHistory.length - 1];
+
                       if (lastMsg?.type === 'CODE_BLOCK_STREAMING') {
-                        // Determine the correct status type
-                        logToOutput('info', `ui got the applied dif part 2} ${lastMsg}`);
-                        const status = diffResultData;
-                        logToOutput('info', `status at the ui  ${status}`);
-                        // Update only the last CODE_BLOCK message
+                        const status = diffResultData.status;
                         newHistory[newHistory.length - 1] = {
                           ...lastMsg,
-                          status, // ✅ Update status only for the last CODE_BLOCK
+                          status,
                         };
-
-                        logToOutput('info', `status ${status}`);
+                        return { history: newHistory };
+                      } else if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                        const toolMsg = lastMsg as ChatToolUseMessage;
+                        newHistory[newHistory.length - 1] = {
+                          ...toolMsg,
+                          content: {
+                            ...toolMsg.content,
+                            diff: {
+                              addedLines: diffResultData.addedLines,
+                              removedLines: diffResultData.removedLines,
+                            },
+                          },
+                        };
+                        return { history: newHistory };
                       }
 
-                      return { history: newHistory }; // Update state
+                      return {}; // ✅ Return an empty object if no condition matches
                     });
 
                     chunkCallback({ name: event.name, data: event.data });
@@ -508,8 +582,9 @@ export const useChatStore = create(
 
                   case 'TOOL_USE_REQUEST_START': {
                     const toolData = event.data as {
-                      tool_name?: string;
-                      tool_use_id?: string;
+                      tool_name: string;
+                      tool_use_id: string;
+                      write_mode: boolean;
                     };
                     if (toolData.tool_name === 'ask_user_input') {
                       // For ask_user_input, create an assistant message.
@@ -530,6 +605,7 @@ export const useChatStore = create(
                           input_params_json: '',
                           result_json: '',
                           status: 'pending',
+                          write_mode: toolData.write_mode,
                         },
                       };
                       set((state) => ({
@@ -694,35 +770,72 @@ export const useChatStore = create(
                     break;
                   }
                   case 'error': {
-                    //       chunkCallback({ name: "error", data: { payload_to_retry: payload, error_msg: String(error) ,  retry: true}  });
                     useChatStore.setState({ showSkeleton: false });
+
                     const errorData = event.data as {
                       payload_to_retry: unknown;
                       error_msg: string;
                       retry: boolean;
                     };
+
                     const err = errorData.error_msg || 'Unknown error';
+
                     logToOutput(
                       'info',
                       `payload data: ${JSON.stringify(errorData.payload_to_retry, null, 2)}`
                     );
                     logToOutput('error', `Streaming error: ${err}`);
-                    set((state) => ({
-                      history: [
-                        ...state.history,
-                        {
-                          type: 'ERROR',
-                          error_msg: err,
-                          retry: errorData.retry,
-                          payload_to_retry: errorData.payload_to_retry,
-                          actor: 'ASSISTANT',
-                        } as ChatErrorMessage,
-                      ],
-                    }));
+
+                    set((state) => {
+                      const newHistory = [...state.history];
+                      const lastMsg = newHistory[newHistory.length - 1];
+
+                      // Update TOOL_USE_REQUEST
+                      if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                        const toolMsg = lastMsg as ChatToolUseMessage;
+                        newHistory[newHistory.length - 1] = {
+                          ...toolMsg,
+                          content: {
+                            ...toolMsg.content,
+                            status: 'error',
+                            terminal_approval_required:
+                              toolMsg.content.tool_name === 'execute_command'
+                                ? false
+                                : toolMsg.content.terminal_approval_required,
+                          },
+                        };
+                      }
+
+                      // Update CODE_BLOCK_STREAMING
+                      if (
+                        lastMsg?.type === 'CODE_BLOCK_STREAMING' &&
+                        lastMsg.status === 'pending'
+                      ) {
+                        newHistory[newHistory.length - 1] = {
+                          ...lastMsg,
+                          status: 'error',
+                        };
+                      }
+
+                      // Append the new error message
+                      newHistory.push({
+                        type: 'ERROR',
+                        error_msg: err,
+                        retry: errorData.retry,
+                        payload_to_retry: errorData.payload_to_retry,
+                        actor: 'ASSISTANT',
+                      } as ChatErrorMessage);
+
+                      return {
+                        history: newHistory,
+                      };
+                    });
+
                     set({ isLoading: false, currentChatRequest: undefined });
                     chunkCallback({ name: 'error', data: { error: err } });
                     break;
                   }
+
                   case 'end': {
                     set({ isLoading: false, currentChatRequest: undefined });
                     logToOutput('info', 'Chat stream ended');
@@ -758,7 +871,7 @@ export const useChatStore = create(
             apiStopChat();
             useChatStore.setState((state) => {
               const newHistory = [...state.history];
-              if (state.current) {
+              if (state.current && state.current.content.text) {
                 newHistory.push(state.current);
               }
               const lastMsg = newHistory[newHistory.length - 1];
@@ -768,7 +881,7 @@ export const useChatStore = create(
                   ...toolMsg,
                   content: {
                     ...toolMsg.content,
-                    status: 'aborted' as const,
+                    status: 'aborted',
                     terminal_approval_required:
                       toolMsg.content.tool_name === 'execute_command'
                         ? false

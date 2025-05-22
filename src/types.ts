@@ -52,6 +52,7 @@ export interface ChatPayload {
   focus_items?: Array<any>;
   deputy_dev_rules?: string;
   is_inline?: boolean;
+  vscode_env?: string;
   os_name: string;
   shell: string;
   is_from_runTool_response?: string;
@@ -66,9 +67,15 @@ export interface ToolRequest {
   tool_name: string;
   tool_use_id: string;
   accumulatedContent: string;
-  write_mode?: boolean;
+  write_mode: boolean;
+  is_inline: boolean;
   llm_model: string;
   search_web: boolean;
+}
+
+export interface CurrentDiffRequest {
+  filepath: string;
+  raw_diff: string;
 }
 
 export interface CurrentDiffRequest {

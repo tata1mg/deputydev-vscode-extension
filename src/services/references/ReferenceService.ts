@@ -147,7 +147,7 @@ export class ReferenceService {
   ): Promise<any> {
     try {
       const mainConfig = getMainConfig();
-      if (!mainConfig) {  
+      if (!mainConfig) {
         throw new Error('Main config not found');
       }
       if (!payload.name || !payload.type || !payload.size || !payload.content) {
