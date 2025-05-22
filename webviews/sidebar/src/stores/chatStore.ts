@@ -177,7 +177,7 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-              const copyS3Reference = s3Reference?.key ? [{ s3_key: s3Reference.key }] : [];
+              const copyS3Reference = s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [];
               // delete copyS3Reference.get_url
               // Build the payload
               const payload: any = {
