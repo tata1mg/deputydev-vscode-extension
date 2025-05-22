@@ -1,10 +1,10 @@
-import { binaryApi } from '../api/axios';
-import { API_ENDPOINTS } from '../api/endpoints';
-import { ApiErrorHandler } from '../api/apiErrorHandler';
-import { SingletonLogger } from '../../utilities/Singleton-logger';
-import { MCPServerToolInvokePayload } from '../../types';
 import * as os from 'os';
 import * as path from 'path';
+import { MCPServerToolInvokePayload } from '../../types';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { ApiErrorHandler } from '../api/apiErrorHandler';
+import { binaryApi } from '../api/axios';
+import { API_ENDPOINTS } from '../api/endpoints';
 
 export class MCPService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -23,7 +23,7 @@ export class MCPService {
       };
       const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS, data);
       console.log(response.data);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       this.logger.error('Error while syncing servers');
       this.apiErrorHandler.handleApiError(error);
