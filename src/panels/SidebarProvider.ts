@@ -66,7 +66,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
     private terminalManager: TerminalManager,
-  ) {}
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -158,8 +158,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
 
         // MCP operations
-        case 'get-all-mcp-servers':
-          promise = this.getAllMcpServers();
+        case 'sync-servers':
+          promise = this.syncMcpServers();
+          break;
+
+        case 'mcp-server-enable-or-disable':
+          promise = this.mcpServerEnableOrDisable(data.action, data.serverName);
+          break;
+
+        case 'mcp-server-restart':
+          promise = this.mcpService.restartServer(data.serverName);
           break;
 
         // File Operations
@@ -325,10 +333,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         case 'open-mcp-settings':
           this.openMcpSettings();
-          break;
-
-        case 'sync-servers':
-          this.mcpService.syncServers();
           break;
 
         case 'check-diff-applicable': {
@@ -848,13 +852,26 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  async getAllMcpServers() {
-    const servers = await this.mcpService.getServers();
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: 'fetched-mcp-servers',
-      data: servers,
-    });
+  // MCP Operations
+  async syncMcpServers() {
+    const response = await this.mcpService.syncServers();
+    if (response && response.data && !response.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+    } else {
+      // handle the error
+    }
+  }
+
+  async mcpServerEnableOrDisable(action: 'enable' | 'disable', serverName: string) {
+    if (action === 'enable') {
+      await this.mcpService.enableServer(serverName);
+    } else {
+      await this.mcpService.disableServer(serverName);
+    }
   }
 
   /**

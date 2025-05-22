@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
@@ -37,6 +38,8 @@ import { ApiErrorHandler } from './services/api/apiErrorHandler';
 import * as path from 'path';
 import * as os from 'os';
 import { MCPService } from './services/mcp/mcpService';
+import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
+import { TextDocument } from 'vscode';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -76,6 +79,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const userQueryEnhancerService = new UserQueryEnhancerService();
   const terminalManager = new TerminalManager(context);
   const apiErrorHandler = new ApiErrorHandler();
+  const mcpService = new MCPService();
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
@@ -125,6 +129,16 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
 
+    await mcpService.syncServers().then((response) => {
+      if (response && response.data && !response.is_error) {
+        sidebarProvider.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'fetched-mcp-servers',
+          data: response.data,
+        });
+      }
+    })
+
     authenticationManager
       .validateCurrentSession()
       .then((status) => {
@@ -157,6 +171,18 @@ export async function activate(context: vscode.ExtensionContext) {
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
   // authenticationManager.setSidebarProvider(sidebarProvider);
+
+  watchMcpFileSave(context, async (document: TextDocument) => {
+    const response = await mcpService.syncServers();
+    if (response && response.data && !response.is_error) {
+      sidebarProvider.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+    }
+    vscode.window.showInformationMessage(`MCP SETTINGS SAVED: ${document.uri.fsPath}`);
+  });
 
   const inlineChatEditManager = new InlineChatEditManager(
     context,

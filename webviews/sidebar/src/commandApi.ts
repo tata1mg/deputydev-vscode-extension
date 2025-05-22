@@ -267,12 +267,15 @@ export function enhanceUserQuery(userQuery: string) {
 }
 
 // MCP Operations
-export function getAllMcpServers() {
-  return callCommand('get-all-mcp-servers', {});
-}
-
 export function syncServers() {
   return callCommand('sync-servers', {});
 }
 
-export function mcpServerEnableOrDisable() {}
+export function mcpServerEnableOrDisable(action: 'enable' | 'disable', serverName: string) {
+  return callCommand('mcp-server-enable-or-disable', { action, serverName });
+}
+
+export function mcpServerRestart(serverName: string) {
+  return callCommand('mcp-server-restart', { serverName });
+}
+

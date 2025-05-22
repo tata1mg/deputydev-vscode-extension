@@ -3,6 +3,8 @@ import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { MCPServerToolInvokePayload } from '../../types';
+import * as os from 'os';
+import * as path from 'path';
 
 export class MCPService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -10,22 +12,16 @@ export class MCPService {
     this.logger = SingletonLogger.getInstance();
   }
   private apiErrorHandler = new ApiErrorHandler();
-  public async getServers(): Promise<any> {
-    try {
-      const response = await binaryApi().get(API_ENDPOINTS.GET_ALL_MCP_SERVERS);
-      console.log(response);
-      return response.data.servers;
-    } catch (error) {
-      this.logger.error('Error while getting servers');
-      this.apiErrorHandler.handleApiError(error);
-    }
-  }
 
   public async syncServers(): Promise<any> {
     try {
-      const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS);
-      console.log('***********syncing servers************', response);
-      return response;
+      const homeDir = os.homedir();
+      const config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
+      const data = {
+        config_path: config_path
+      }
+      const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS, data);
+      return response.data.data;
     } catch (error) {
       this.logger.error('Error while syncing servers');
       this.apiErrorHandler.handleApiError(error);
@@ -36,12 +32,12 @@ export class MCPService {
     try {
       let endpoint;
       if (serverName) {
-        endpoint = `v1/servers/${serverName}/enable`;
+        endpoint = `/v1/mcp/servers/${serverName}/enable`;
       } else {
         throw new Error('Server name not provided');
       }
       const response = await binaryApi().patch(endpoint);
-      return response;
+      return response.data;
     } catch (error) {
       this.logger.error('Error while enabling server');
       this.apiErrorHandler.handleApiError(error);
@@ -52,12 +48,12 @@ export class MCPService {
     try {
       let endpoint;
       if (serverName) {
-        endpoint = `v1/servers/${serverName}/disable`;
+        endpoint = `/v1/mcp/servers/${serverName}/disable`;
       } else {
         throw new Error('Server name not provided');
       }
       const response = await binaryApi().patch(endpoint);
-      return response;
+      return response.data;
     } catch (error) {
       this.logger.error('Error while disabling server');
       this.apiErrorHandler.handleApiError(error);
@@ -68,14 +64,15 @@ export class MCPService {
     try {
       let endpoint;
       if (serverName) {
-        endpoint = `v1/servers/${serverName}/restart`;
+        endpoint = `/v1/mcp/servers/${serverName}/restart`;
       } else {
         throw new Error('Server name not provided');
       }
       const response = await binaryApi().patch(endpoint);
-      return response;
+      console.log(response.data);
+      return response.data;
     } catch (error) {
-      this.logger.error('Error while disabling server');
+      this.logger.error('Error while restarting server');
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -83,7 +80,7 @@ export class MCPService {
   public async invokeServerTool(payload: MCPServerToolInvokePayload) {
     try {
       const response = await binaryApi().post(API_ENDPOINTS.INVOKE_MCP_SERVER_TOOL, payload);
-      return response;
+      return response.data;
     } catch (error) {
       this.logger.error('Error while invoking server tool');
       this.apiErrorHandler.handleApiError(error);
