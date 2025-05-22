@@ -855,6 +855,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // MCP Operations
   async syncMcpServers() {
     const response = await this.mcpService.syncServers();
+    console.log("************on syncing********", response)
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),

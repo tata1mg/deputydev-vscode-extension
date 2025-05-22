@@ -483,7 +483,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
     - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
     - Leverage other available tools as needed to complete scaffolding.
   `;
 
@@ -570,7 +570,7 @@ addCommandEventListener('update-workspace-dd', () => {
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
     - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
     - Leverage other available tools as needed to complete scaffolding.
   `;
 
@@ -617,7 +617,9 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
+  console.log("***********servers***********",servers);
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
   }
+  console.log(useMcpStore.getState().mcpServers);
 });
