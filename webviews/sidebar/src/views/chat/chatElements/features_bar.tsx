@@ -1,8 +1,8 @@
-import { getAllMcpServers, openMcpSettings, syncServers } from '@/commandApi';
+import { mcpServerEnableOrDisable, mcpServerRestart, openMcpSettings, syncServers } from '@/commandApi';
 import { useMcpStore } from '@/stores/mcpStore';
-import { MCPServer, MCPServerTool } from '@/types';
+import { MCPServer } from '@/types';
 import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp, RotateCw } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 
 const MCPCircleHelpTooltipContent =
@@ -34,11 +34,6 @@ export default function FeaturesBar() {
   const [showMCPServerTools, setShowMCPServerTools] = useState(false);
   const { mcpServers, mcpServerTools, selectedServer } = useMcpStore();
 
-  useEffect(() => {
-    console.log('***********getting mcp servers');
-    getAllMcpServers();
-  }, []);
-
   const handleShowMCPServers = () => {
     setShowAllMCPServers(!showAllMCPServers);
     setShowMCPServerTools(false);
@@ -51,19 +46,44 @@ export default function FeaturesBar() {
   };
 
   const handleRefreshMCPServers = () => {
-    console.log('***********Refersh MCP Servers*************');
     setRefreshSpinning(true);
     syncServers();
     setTimeout(() => setRefreshSpinning(false), 1000);
   };
 
   const handleRetry = () => {
+    if (!selectedServer) return;
     console.log('************Retrying server***********');
     setRetrying(true);
+    mcpServerRestart(selectedServer.name);
     setTimeout(() => setRetrying(false), 1000);
   };
 
-  const handleEnablingOrDisablingOfTool = () => {};
+  const handleEnablingOrDisablingOfTool = (action: 'enable' | 'disable') => {
+    if (!selectedServer) return;
+
+    const newDisableState = action === 'enable' ? false : true;
+
+    mcpServerEnableOrDisable(action, selectedServer.name);
+
+    const serverIndex = mcpServers.findIndex((server) => server.name === selectedServer.name);
+
+    if (serverIndex !== -1) {
+      const updatedServers = [...mcpServers];
+      updatedServers[serverIndex] = {
+        ...mcpServers[serverIndex],
+        disabled: newDisableState,
+      };
+
+      useMcpStore.setState({
+        mcpServers: updatedServers,
+        selectedServer: {
+          ...selectedServer,
+          disabled: newDisableState,
+        },
+      });
+    }
+  };
 
   const handleBack = () => {
     if (showMCPServerTools) {
@@ -123,14 +143,19 @@ export default function FeaturesBar() {
                 </div>
                 <div className="mr-2 flex items-center space-x-2">
                   <button
-                    onClick={() => handleEnablingOrDisablingOfTool()}
-                    className={`flex h-4 w-8 items-center rounded-full p-1 transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'}`}
+                    onClick={() =>
+                      handleEnablingOrDisablingOfTool(!selectedServer?.disabled ? 'disable' : 'enable')
+                    }
+                    className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`h-3 w-3 transform rounded-full bg-white shadow-md duration-300 ${!selectedServer?.disabled ? 'translate-x-3' : 'translate-x-0'}`}
+                      className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
+
               </div>
             </div>
             <div className="h-full max-h-[150px] overflow-y-auto bg-transparent p-2">
@@ -159,10 +184,10 @@ export default function FeaturesBar() {
               onClick={() => handleShowMCPServers()}
               {...(!showAllMCPServers &&
                 !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'MCP (1 Available MCP Servers)',
-                  'data-tooltip-place': 'top-start',
-                })}
+                'data-tooltip-id': 'mcp-tooltips',
+                'data-tooltip-content': 'MCP (1 Available MCP Servers)',
+                'data-tooltip-place': 'top-start',
+              })}
             >
               <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
               <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
@@ -172,11 +197,11 @@ export default function FeaturesBar() {
             <div
               {...(!showAllMCPServers &&
                 !showMCPServerTools &&
-                {
-                  // "data-tooltip-id": "mcp-tooltips",
-                  // "data-tooltip-content": MCPCircleHelpTooltipContent,
-                  // "data-tooltip-place": "top-start"
-                })}
+              {
+                // "data-tooltip-id": "mcp-tooltips",
+                // "data-tooltip-content": MCPCircleHelpTooltipContent,
+                // "data-tooltip-place": "top-start"
+              })}
             >
               <CircleHelp className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </div>
@@ -186,10 +211,10 @@ export default function FeaturesBar() {
               onClick={() => handleRefreshMCPServers()}
               {...(!showAllMCPServers &&
                 !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'Refresh MCP Servers',
-                  'data-tooltip-place': 'top-start',
-                })}
+                'data-tooltip-id': 'mcp-tooltips',
+                'data-tooltip-content': 'Refresh MCP Servers',
+                'data-tooltip-place': 'top-start',
+              })}
             >
               <RefreshCw
                 className={`h-4 w-4 hover:cursor-pointer hover:bg-slate-400 hover:bg-opacity-10 ${refreshSpinning && 'animate-spin'}`}
@@ -199,10 +224,10 @@ export default function FeaturesBar() {
               onClick={() => openMcpSettings()}
               {...(!showAllMCPServers &&
                 !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'Configure MCP Servers',
-                  'data-tooltip-place': 'top-start',
-                })}
+                'data-tooltip-id': 'mcp-tooltips',
+                'data-tooltip-content': 'Configure MCP Servers',
+                'data-tooltip-place': 'top-start',
+              })}
             >
               <FilePenLine className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </button>
