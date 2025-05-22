@@ -71,6 +71,19 @@ export function ChatArea() {
                           url={reference.url}
                         />
                       ))}
+
+                      {/* Embed image inside message bubble */}
+                      {msg.s3Reference && msg.s3Reference.get_url && (
+                        <img
+                          src={msg.s3Reference.get_url}
+                          alt="Attached content"
+                          className="my-2 max-w-full rounded-md border"
+                          style={{
+                            borderColor: 'var(--vscode-editorWidget-border)',
+                          }}
+                        />
+                      )}
+
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
                         {msg.content.text}
                       </span>

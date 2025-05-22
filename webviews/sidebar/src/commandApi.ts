@@ -261,3 +261,24 @@ export function submitFeedback(feedback: string, queryId: number) {
 export function enhanceUserQuery(userQuery: string) {
   return callCommand('enhance-user-query', { userQuery });
 }
+
+export function uploadFileToS3(data: File) {
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    const arrayBuffer = reader.result as ArrayBuffer;
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const fileData = {
+      name: data.name,
+      type: data.type,
+      size: data.size,
+      content: Array.from(uint8Array),
+    };
+    callCommand('upload-file-to-s3', fileData);
+  };
+  reader.readAsArrayBuffer(data);
+}
+
+export function showVsCodeMessageBox(type: 'info' | 'error' | 'warning', message: string) {
+  return callCommand('show-vscode-message-box', { type, message });
+}

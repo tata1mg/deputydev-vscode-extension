@@ -38,4 +38,5 @@ export const API_ENDPOINTS = {
   SAVE_SETTINGS: '/end_user/v1/extension_settings/update_extension_settings',
   FETCH_SETTINGS: '/end_user/v1/extension_settings/get_extension_settings',
   WEB_SEARCH: '/end_user/v1/websearch',
+  GET_PRESIGNED_URL: '/end_user/v1/file-upload/get-presigned-post-url',
 };
