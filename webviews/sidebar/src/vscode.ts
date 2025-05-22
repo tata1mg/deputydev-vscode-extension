@@ -617,7 +617,7 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
-  console.log("***********servers***********",servers);
+  console.log('***********servers***********', servers);
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
   }
