@@ -9,16 +9,16 @@ import * as os from 'os';
  * @param onSave - Callback for when the file is saved
  */
 export function watchMcpFileSave(
-    context: vscode.ExtensionContext,
-    onSave: (document: vscode.TextDocument) => void
+  context: vscode.ExtensionContext,
+  onSave: (document: vscode.TextDocument) => void,
 ): void {
-    const homeDir = os.homedir();
-    const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
-    context.subscriptions.push(
-        vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
-            if (document.uri.fsPath === filePath) {
-                onSave(document);
-            }
-        })
-    );
+  const homeDir = os.homedir();
+  const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
+      if (document.uri.fsPath === filePath) {
+        onSave(document);
+      }
+    }),
+  );
 }

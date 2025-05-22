@@ -18,8 +18,8 @@ export class MCPService {
       const homeDir = os.homedir();
       const config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
       const data = {
-        config_path: config_path
-      }
+        config_path: config_path,
+      };
       const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS, data);
       return response.data.data;
     } catch (error) {

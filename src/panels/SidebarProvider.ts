@@ -66,7 +66,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
     private terminalManager: TerminalManager,
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
