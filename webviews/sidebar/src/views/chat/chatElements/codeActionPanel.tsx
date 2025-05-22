@@ -15,7 +15,7 @@ export interface CodeActionPanelProps {
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
   write_mode?: boolean;
-  is_live_chat?: boolean;
+  isStreaming: boolean;
 }
 
 export function CodeActionPanel({
@@ -27,7 +27,7 @@ export function CodeActionPanel({
   diff,
   added_lines,
   removed_lines,
-  is_live_chat,
+  isStreaming,
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
@@ -39,11 +39,11 @@ export function CodeActionPanel({
   useEffect(() => {
     const checkApplicability = async () => {
       if (is_diff && filepath && diff) {
-        const applicable = await checkDiffApplicable({
+        const { diffApplySuccess, addedLines, removedLines } = await checkDiffApplicable({
           filePath: filepath,
           raw_diff: diff,
         });
-        setIsApplicable(applicable);
+        setIsApplicable(diffApplySuccess);
       }
     };
 
@@ -51,7 +51,7 @@ export function CodeActionPanel({
   }, [is_diff, filepath, diff]);
 
   useEffect(() => {
-    if (isApplicable && is_live_chat) {
+    if (isApplicable && isStreaming) {
       const usageTrackingData: UsageTrackingRequest = {
         event: 'generated',
         properties: {
@@ -94,7 +94,7 @@ export function CodeActionPanel({
 
   const handleCopy = () => {
     if (!copyCooldown) {
-      if (!showApplyButton && is_live_chat) {
+      if (!showApplyButton && isStreaming) {
         const usageTrackingData: UsageTrackingRequest = {
           event: 'generated',
           properties: {

@@ -92,7 +92,7 @@ export function ToolUseStatusMessage({
         status === 'pending'
           ? 'Running grep...'
           : status === 'error'
-            ? 'Error running grep'
+            ? 'Error running grep search'
             : 'Grep search completed';
       break;
     default:
@@ -225,49 +225,76 @@ export function RetryChip({
  * Component for file edited
  * Displays file name and and lines changed
  */
-// import { useState } from "react";
 import { ChevronRight, ChevronDown } from 'lucide-react';
+import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
+import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
 
 export function FileEditedChip({
-  filepath,
-  language,
+  isToolUse,
+  isWriteToFileTool,
   content,
-  added_lines,
-  removed_lines,
   status,
-  past_session,
+  addedLines = 0,
+  removedLines = 0,
+  isStreaming,
+  filepath = '',
 }: {
-  filepath?: string;
-  language?: string;
+  isToolUse: boolean;
   content: string;
-  added_lines?: number | null;
-  removed_lines?: number | null;
   status: Status;
-  past_session?: boolean | false;
+  isStreaming: boolean | true;
+  isWriteToFileTool: boolean;
+  addedLines?: number | null;
+  removedLines?: number | null;
+  filepath?: string;
 }) {
-  const filename = filepath ? filepath.split('/').pop() : '';
-  const combined = { language, filepath, content };
-  const [showSnippet, setShowSnippet] = useState(false);
+  let path: string | undefined;
+  let diff: string | undefined;
+  let complete: boolean | undefined;
 
+  // parse out path/diff/complete from the partial JSON
+  if (isToolUse) {
+    ({ path, diff, complete } = usePartialFileDiff(content));
+  } else {
+    path = filepath;
+    diff = content;
+    complete = true;
+  }
+  // just the filename for display
+  const filename = path?.split('/').pop() ?? '';
+  const ext = filename.split('.').pop() ?? '';
+  const { p: language } = getLanguageInfoByExtension(ext);
+  const [showSnippet, setShowSnippet] = useState(false);
   let statusText;
   let statusColor = '';
 
-  switch (status) {
-    case 'pending':
-      statusText = 'Editing';
-      break;
-    case 'completed':
-    case 'idle':
-      statusText = 'Edited';
-      break;
-    case 'aborted':
-      statusText = 'Edit aborted';
-      break;
-    case 'error':
-    default:
-      statusText = 'Error editing';
-      statusColor = 'text-red-400';
-      break;
+  // Define alternate status text if isWriteToFileTool is true
+  const writeToFileStatusText: Record<string, string> = {
+    pending: 'Writing',
+    completed: 'Saved',
+    idle: 'Saved',
+    aborted: 'Write aborted',
+    error: 'Error writing',
+  };
+
+  const defaultStatusText: Record<string, string> = {
+    pending: 'Editing',
+    completed: 'Edited',
+    idle: 'Edited',
+    aborted: 'Edit aborted',
+    error: 'Error editing',
+  };
+
+  const statusKey = status in writeToFileStatusText ? status : 'error';
+
+  if (isWriteToFileTool) {
+    statusText = writeToFileStatusText[statusKey];
+  } else {
+    statusText = defaultStatusText[statusKey];
+  }
+
+  if (status === 'error') {
+    statusColor = 'text-red-400';
   }
 
   return (
@@ -276,7 +303,7 @@ export function FileEditedChip({
       <div className="flex w-full items-center justify-between gap-2" title="File Edited">
         {/* Left side: expand only as needed */}
         <div className="flex items-center gap-2">
-          {past_session && (
+          {!isStreaming && (
             <button
               className="text-xs text-gray-300 transition hover:text-white"
               onClick={() => setShowSnippet((prev) => !prev)}
@@ -291,13 +318,13 @@ export function FileEditedChip({
           )}
           <StatusIcon status={status} />
           <span className={statusColor}>{statusText}</span>
-          {filepath && (
+          {path && (
             <div>
               <button
-                className="overflow-hidden truncate text-ellipsis rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
-                onClick={() => openFile(filepath)}
+                className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
+                onClick={() => openFile(path)}
                 data-tooltip-id="filepath-tooltip"
-                data-tooltip-content={filepath}
+                data-tooltip-content={path}
               >
                 {filename}
               </button>
@@ -309,20 +336,20 @@ export function FileEditedChip({
         {/* Right side: lines added/removed */}
         {status !== 'error' && (
           <div className="flex items-center gap-2 text-xs">
-            {added_lines != null && added_lines > 0 && (
-              <span className="text-green-400">+{added_lines}</span>
+            {addedLines != null && addedLines > 0 && (
+              <span className="text-green-400">+{addedLines}</span>
             )}
-            {removed_lines != null && removed_lines > 0 && (
-              <span className="text-red-400">-{removed_lines}</span>
+            {removedLines != null && removedLines > 0 && (
+              <span className="text-red-400">-{removedLines}</span>
             )}
           </div>
         )}
       </div>
 
       {/* Collapsible code snippet */}
-      {past_session && showSnippet && (
+      {!isStreaming && showSnippet && diff && (
         <div className="mt-2 border-t border-gray-700 pt-2">
-          <SnippetReference snippet={combined} />
+          <SnippetReference snippet={{ content: diff, language }} />
         </div>
       )}
     </div>
