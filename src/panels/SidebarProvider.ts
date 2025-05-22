@@ -855,44 +855,54 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // MCP Operations
   async getAllServers() {
     const response = await this.mcpService.getAllMcpServers();
+    if (response.is_error) {
+      vscode.window.showInformationMessage(response.data);
+    }
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'fetched-mcp-servers',
         data: response.data,
       });
-    } else {
-      // handle the error
     }
   }
   async syncMcpServers() {
     const response = await this.mcpService.syncServers();
     console.log('************on syncing********', response);
+    if (response.is_error) {
+      vscode.window.showInformationMessage(response.data);
+    }
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'fetched-mcp-servers',
         data: response.data,
       });
-    } else {
-      // handle the error
+      vscode.window.showInformationMessage('MCP servers synced successfully.');
     }
   }
 
   async mcpServerEnableOrDisable(action: 'enable' | 'disable', serverName: string) {
+    let response;
     if (action === 'enable') {
-      await this.mcpService.enableServer(serverName);
+      response = await this.mcpService.enableServer(serverName);
     } else {
-      await this.mcpService.disableServer(serverName);
+      response = await this.mcpService.disableServer(serverName);
+    }
+
+    if (response.is_error) {
+      vscode.window.showInformationMessage(response.data);
     }
   }
 
   async restartServer(serverName: string) {
     const response = await this.mcpService.restartServer(serverName);
+    if (response.is_error) {
+      vscode.window.showInformationMessage(response.data);
+    }
     if (response && response.data && !response.is_error) {
       this.getAllServers();
-    } else {
-      // handle the error
+      vscode.window.showInformationMessage(`${serverName} server restarted successfully.`);
     }
   }
 
