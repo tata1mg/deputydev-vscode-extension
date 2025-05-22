@@ -3,6 +3,7 @@ import { createTwoFilesPatch } from 'diff';
 import * as path from 'path';
 import { UsageTrackingManager } from '../../usageTracking/UsageTrackingManager';
 import { UsageTrackingRequest } from '../../types';
+import { promises as fs } from 'fs';
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -20,13 +21,53 @@ type FileChangeState = {
 export class FileChangeStateManager {
   // This map keeps track of the state of each file being edited.
   private readonly fileChangeStateMap: Map<string, FileChangeState>;
+  private initialized = false; // Indicates if the manager is initialized
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly persistentStateFilePath: string,
   ) {
+    this.outputChannel.info('FileChangeStateManager initialized');
+    this.outputChannel.info('Persistent state file path:', this.persistentStateFilePath);
     this.fileChangeStateMap = new Map<string, FileChangeState>();
+    if (this.persistentStateFilePath) {
+      // Load the file change state from the persistent state file
+      this.loadFileChangeStateFromDisk();
+    }
   }
+
+  // This method loads the file change state from the persistent state file.
+  private loadFileChangeStateFromDisk = async (): Promise<void> => {
+    try {
+      const fileContent = await fs.readFile(this.persistentStateFilePath);
+      const fileChangeState = JSON.parse(fileContent.toString());
+      for (const [key, value] of Object.entries(fileChangeState)) {
+        this.fileChangeStateMap.set(key, value as FileChangeState);
+      }
+      this.outputChannel.info(`Loaded file change state from disk: ${this.persistentStateFilePath}`);
+    } catch (error) {
+      this.outputChannel.error(`Error loading file change state from disk: ${error}`);
+    } finally {
+      this.initialized = true;
+    }
+  };
+
+  // This method saves the file change state to the persistent state file.
+  private saveFileChangeStateToDisk = async (): Promise<void> => {
+    try {
+      const fileChangeState = Object.fromEntries(this.fileChangeStateMap);
+      await fs.writeFile(this.persistentStateFilePath, JSON.stringify(fileChangeState));
+      this.outputChannel.info(`Saved file change state to disk: ${this.persistentStateFilePath}`);
+    } catch (error) {
+      this.outputChannel.error(`Error saving file change state to disk: ${error}`);
+    }
+  };
+
+  private updateFileChangeState = async (stateUri: string, fileChangeState: FileChangeState): Promise<void> => {
+    this.fileChangeStateMap.set(stateUri, fileChangeState);
+    await this.saveFileChangeStateToDisk();
+  };
 
   // This method parses the udiff string to extract the original and modified content.
   private readonly getOriginalAndModifiedContentFromUdiff = (
@@ -79,6 +120,23 @@ export class FileChangeStateManager {
       originalContent: originalContent,
       modifiedContent: modifiedContent,
     };
+  };
+
+  private readonly countAddedAndRemovedLines = (udiff: string): { added: number; removed: number } => {
+    const lines = udiff.split(/\r?\n/);
+
+    let added = 0;
+    let removed = 0;
+
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        added++;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        removed++;
+      }
+    }
+
+    return { added, removed };
   };
 
   private readonly getUdiffDisplayFileFromUdiffPatch = (udiffPatch: string, originalContent: string): string => {
@@ -147,6 +205,43 @@ export class FileChangeStateManager {
     return finalContentLines.join(lineEol);
   };
 
+  public async computeDiffLineChanges(
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+    newFileContent: string, // the updated file contents
+    newFilePath: string, // (optional) new filename if renamed; otherwise same as filePath
+  ): Promise<{
+    addedLines: number;
+    removedLines: number;
+  }> {
+    const uri = path.join(repoPath, filePath);
+    const newUri = path.join(repoPath, newFilePath);
+
+    // Determine base content: use on-disk or original saved version
+    let baseContent: string;
+    if (this.fileChangeStateMap.has(uri)) {
+      // Always diff against the last applied version
+      baseContent = this.fileChangeStateMap.get(uri)!.initialFileContent;
+      this.outputChannel.debug(`found base content in fileChangeStateMap for ${uri}`);
+    } else {
+      // Fallback to reading original content from disk or version control
+      this.outputChannel.debug(`reading base content from disk for ${uri}`);
+      baseContent = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
+    }
+
+    // Create diff between saved (base) and new content
+    const udiffPatch = createTwoFilesPatch(uri, newUri, baseContent, newFileContent);
+    const { added, removed } = this.countAddedAndRemovedLines(udiffPatch);
+
+    this.outputChannel.info(`Lines added: ${added}, Lines removed: ${removed}`);
+    this.outputChannel.debug(`Udiff patch:\n${udiffPatch}`);
+
+    return {
+      addedLines: added,
+      removedLines: removed,
+    };
+  }
+
   // This method updates the fileChangeStateMap with the original and modified content from the udiff.
   // It checks if the fileChangeStateMap already has the URI. If not, it sets the initial file content and udiff in the fileChangeStateMap.
   // If it does, it updates the udiff in the fileChangeStateMap.
@@ -164,14 +259,29 @@ export class FileChangeStateManager {
     },
     initialFileContent?: string, // initial file content is only provided when the file is opened for the first time
   ): Promise<{
+    addedLines: number;
+    removedLines: number;
     originalContent: string;
     modifiedContent: string;
   }> => {
     const uri = path.join(repoPath, filePath);
     const newUri = path.join(repoPath, newFilePath);
     const contentToViewDiffOn = await this.getOriginalContentToShowDiffOn(filePath, repoPath);
+    // Determine  added/removed lines
+    const { addedLines: added, removedLines: removed } = await this.computeDiffLineChanges(
+      filePath,
+      repoPath,
+      newFileContent,
+      filePath,
+    );
     // get the udiff from the new file content. The udiff is always between the new file content and the original file content
-    const udiffPatch = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContent);
+    // ensure the line endings are consistent in new file content
+    const newFileContentWithEol = newFileContent.replace(
+      /\r?\n/g,
+      contentToViewDiffOn.includes('\r\n') ? '\r\n' : '\n',
+    );
+    const udiffPatch = createTwoFilesPatch(uri, newUri, contentToViewDiffOn, newFileContentWithEol);
+    this.outputChannel.info(`Lines added: ${added}, Lines removed: ${removed}`);
     this.outputChannel.debug(`Udiff patch: ${udiffPatch}`);
 
     const udiff = this.getUdiffDisplayFileFromUdiffPatch(udiffPatch, contentToViewDiffOn);
@@ -187,7 +297,7 @@ export class FileChangeStateManager {
         throw new Error(`Initial file content is required for the first time setting the udiff for ${uri}`);
       }
       // Set the initial file content and udiff in the fileChangeStateMap
-      this.fileChangeStateMap.set(uri, {
+      await this.updateFileChangeState(uri, {
         initialFileContent: initialFileContent,
         originalContent: parsedUdiffContent.originalContent,
         modifiedContent: parsedUdiffContent.modifiedContent,
@@ -200,7 +310,7 @@ export class FileChangeStateManager {
       });
     } else {
       // update the udiff in the fileChangeStateMap
-      this.fileChangeStateMap.set(uri, {
+      await this.updateFileChangeState(uri, {
         ...this.fileChangeStateMap.get(uri)!,
         currentUdiff: udiff,
         originalContent: parsedUdiffContent.originalContent,
@@ -211,6 +321,8 @@ export class FileChangeStateManager {
 
     // return the original and modified content
     return {
+      addedLines: added,
+      removedLines: removed,
       originalContent: parsedUdiffContent.originalContent,
       modifiedContent: parsedUdiffContent.modifiedContent,
     };
@@ -267,7 +379,11 @@ export class FileChangeStateManager {
     return fileChangeState.originalContent;
   };
 
-  public getFileChangeState = (filePath: string, repoPath: string): FileChangeState | undefined => {
+  public getFileChangeState = async (filePath: string, repoPath: string): Promise<FileChangeState | undefined> => {
+    // wait until the fileChangeStateMap is initialized by sleeping until it is initialized
+    while (!this.initialized) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     const uri = path.join(repoPath, filePath);
     return this.fileChangeStateMap.get(uri);
   };
@@ -308,7 +424,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -345,7 +462,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -373,7 +490,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -408,7 +526,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -431,7 +549,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -462,7 +581,7 @@ export class FileChangeStateManager {
 
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -488,7 +607,8 @@ export class FileChangeStateManager {
       throw new Error(`File change state not found for ${filePath}`);
     }
     const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
-    const currentUdiffLines = currentUdiff.split('\n');
+    const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
+    const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
     const lineNumber = 0;
     let udiffLineNumber = 0;
@@ -519,7 +639,7 @@ export class FileChangeStateManager {
     this.outputChannel.debug(`New udiff: ${newUdiff}`);
     this.outputChannel.debug(`Original content: ${originalAndModifiedContent.originalContent}`);
     this.outputChannel.debug(`Modified content: ${originalAndModifiedContent.modifiedContent}`);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -541,7 +661,7 @@ export class FileChangeStateManager {
     }
     // now, set the new udiff in the fileChangeStateMap
     const originalAndModifiedContent = this.getOriginalAndModifiedContentFromUdiff(newUdiff);
-    this.fileChangeStateMap.set(path.join(repoPath, filePath), {
+    await this.updateFileChangeState(path.join(repoPath, filePath), {
       ...fileChangeState,
       currentUdiff: newUdiff,
       originalContent: originalAndModifiedContent.originalContent,
@@ -555,9 +675,11 @@ export class FileChangeStateManager {
   public removeFileChangeState = (filePath: string, repoPath: string): void => {
     const uri = path.join(repoPath, filePath);
     this.fileChangeStateMap.delete(uri);
+    this.saveFileChangeStateToDisk();
   };
 
   public clearAllFileChangeStates = (): void => {
     this.fileChangeStateMap.clear();
+    this.saveFileChangeStateToDisk();
   };
 }

@@ -15,7 +15,7 @@ export interface CodeActionPanelProps {
   added_lines?: number | null; // ✅ updated to match payload
   removed_lines?: number | null; // ✅ added
   write_mode?: boolean;
-  is_live_chat?: boolean;
+  isStreaming: boolean;
 }
 
 export function CodeActionPanel({
@@ -27,7 +27,7 @@ export function CodeActionPanel({
   diff,
   added_lines,
   removed_lines,
-  is_live_chat,
+  isStreaming,
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
@@ -39,11 +39,11 @@ export function CodeActionPanel({
   useEffect(() => {
     const checkApplicability = async () => {
       if (is_diff && filepath && diff) {
-        const applicable = await checkDiffApplicable({
+        const { diffApplySuccess, addedLines, removedLines } = await checkDiffApplicable({
           filePath: filepath,
           raw_diff: diff,
         });
-        setIsApplicable(applicable);
+        setIsApplicable(diffApplySuccess);
       }
     };
 
@@ -51,7 +51,7 @@ export function CodeActionPanel({
   }, [is_diff, filepath, diff]);
 
   useEffect(() => {
-    if (isApplicable && is_live_chat) {
+    if (isApplicable && isStreaming) {
       const usageTrackingData: UsageTrackingRequest = {
         event: 'generated',
         properties: {
@@ -94,7 +94,7 @@ export function CodeActionPanel({
 
   const handleCopy = () => {
     if (!copyCooldown) {
-      if (!showApplyButton && is_live_chat) {
+      if (!showApplyButton && isStreaming) {
         const usageTrackingData: UsageTrackingRequest = {
           event: 'generated',
           properties: {
@@ -129,15 +129,27 @@ export function CodeActionPanel({
   };
 
   const handleApply = (filePath: string, diff: string) => {
+    // Set the applying state to true, likely to indicate that an action is in progress
     setIsApplying(true);
+
+    // Create a usage tracking data object to log the application event
     const usageTrackingData: UsageTrackingRequest = {
+      // Specify the event type as 'applied'
       event: 'applied',
       properties: {
+        // Get the source of the application (probably a function that returns the source)
         source: getSource(),
+        // Set the file path, using the provided filepath or an empty string if not available
         file_path: filepath || '',
+        // Calculate the total number of lines changed
+        // This is done by adding the absolute values of added and removed lines
+        // The `|| 0` ensures that if either value is undefined, it defaults to 0
         lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
       },
     };
+
+    // Note: This usage tracking data is likely sent to an analytics service
+    // to monitor how the application is being used.
     usageTracking(usageTrackingData);
     writeFile({
       filePath: filePath,

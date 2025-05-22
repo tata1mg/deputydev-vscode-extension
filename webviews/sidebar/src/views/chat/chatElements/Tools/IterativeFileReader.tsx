@@ -60,12 +60,14 @@ export function IterativeFileReader({
       title="Analyzing Files"
     >
       <div className="flex w-full items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <StatusIcon status={status} />
-          <span>{displayText}</span>
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <div className="flex h-4 min-h-4 w-4 min-w-4 items-center justify-center">
+            <StatusIcon status={status} />
+          </div>
+          <span className="whitespace-nowrap">File analyzed</span>
           {filePath && fileName && (
             <button
-              className="overflow-hidden truncate text-ellipsis rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
+              className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
               onClick={() => openFile(filePath)}
               title={filePath}
             >
