@@ -38,6 +38,7 @@ import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQuery
 import { TerminalManager } from './terminal/TerminalManager';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
+import { MCPManager } from './mcp/mcpManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -85,7 +86,16 @@ export async function activate(context: vscode.ExtensionContext) {
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
   await diffManager.init();
-  const chatService = new ChatManager(context, outputChannel, diffManager, terminalManager, apiErrorHandler);
+
+  const mcpManager = new MCPManager();
+  const chatService = new ChatManager(
+    context,
+    outputChannel,
+    diffManager,
+    terminalManager,
+    apiErrorHandler,
+    mcpManager,
+  );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
