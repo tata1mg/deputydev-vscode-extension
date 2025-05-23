@@ -38,6 +38,7 @@ import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQuery
 import { TerminalManager } from './terminal/TerminalManager';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
+import { MCPManager } from './mcp/mcpManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();

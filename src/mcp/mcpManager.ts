@@ -23,7 +23,7 @@ interface ServerWiseMCPTool {
   tools: MCPTool[]; // List of tools available for this server
 }
 
-class MCPManager {
+export class MCPManager {
   private static instance: MCPManager;
 
   constructor() {}
