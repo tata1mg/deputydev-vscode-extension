@@ -139,8 +139,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
     await mcpService.syncServers().then((response) => {
       console.log('************on activating********', response);
-      if (response.is_error) {
-        vscode.window.showInformationMessage(response.data);
+      if (response.is_error && response.meta && response.meta.message) {
+        vscode.window.showInformationMessage(response.meta.message);
       }
       if (response && response.data && !response.is_error) {
         sidebarProvider.sendMessageToSidebar({
