@@ -732,6 +732,12 @@ export const useChatStore = create(
                     break;
                   }
 
+                  case 'TOOL_CHIP_UPSERT': {
+                    console.log(event);
+                    break;
+
+                  }
+
                   case 'TOOL_USE_RESULT': {
                     const toolResultData = event.data as {
                       tool_name: string;

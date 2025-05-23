@@ -101,12 +101,12 @@ export class MCPService {
     }
   }
 
-  public async invokeServerTool(payload: MCPServerToolInvokePayload) {
+  public async invokeMcpTool(payload: MCPServerToolInvokePayload) {
     try {
       const response = await binaryApi().post(API_ENDPOINTS.INVOKE_MCP_SERVER_TOOL, payload);
       return response.data;
     } catch (error) {
-      this.logger.error('Error while invoking server tool');
+      this.logger.error('Error while invoking MCP tool');
       this.apiErrorHandler.handleApiError(error);
     }
   }

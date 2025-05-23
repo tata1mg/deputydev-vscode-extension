@@ -358,6 +358,19 @@ export class ChatManager {
             };
             // Immediately forward the start event.
             chunkCallback({ name: event.type, data: event.content });
+            chunkCallback({
+              name: 'TOOL_CHIP_UPSERT',
+              data: {
+                toolRequest: {
+                  requestData: null,
+                  toolName: event.content.tool_name,
+                  toolMeta: {},
+                },
+                toolResponse: null,
+                toolRunStatus: 'PENDING',
+                toolUseId: event.content.tool_use_id,
+              },
+            });
             break;
           }
           case 'TOOL_USE_REQUEST_DELTA': {
@@ -372,6 +385,19 @@ export class ChatManager {
                   delta: event.content?.input_params_json_delta || '',
                 },
               });
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    requestData: currentToolRequest.accumulatedContent,
+                    toolName: currentToolRequest.tool_name,
+                    toolMeta: {},
+                  },
+                  toolResponse: null,
+                  toolRunStatus: 'PENDING',
+                  toolUseId: currentToolRequest.tool_use_id,
+                },
+              });
             }
             break;
           }
@@ -382,6 +408,19 @@ export class ChatManager {
                 data: {
                   tool_name: currentToolRequest.tool_name,
                   tool_use_id: currentToolRequest.tool_use_id,
+                },
+              });
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    requestData: currentToolRequest.accumulatedContent,
+                    toolName: currentToolRequest.tool_name,
+                    toolMeta: {},
+                  },
+                  toolResponse: null,
+                  toolRunStatus: 'PENDING',
+                  toolUseId: currentToolRequest.tool_use_id,
                 },
               });
             }
@@ -704,12 +743,13 @@ export class ChatManager {
       const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
 
       if (detectedClientTool) {
-        this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
+        this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
         rawResult = await this.mcpManager.runMCPTool(
           detectedClientTool.tool_metadata.server_id,
           detectedClientTool.tool_metadata.tool_name,
           parsedContent,
         );
+        this.outputChannel.debug(`Client tool result: ${JSON.stringify(rawResult)}`);
       } else {
         // Execute the specific tool function
         switch (toolRequest.tool_name) {
@@ -794,6 +834,19 @@ export class ChatManager {
                 status: status,
               },
             });
+            chunkCallback({
+              name: 'TOOL_CHIP_UPSERT',
+              data: {
+                toolRequest: {
+                  requestData: parsedContent,
+                  toolName: toolRequest.tool_name,
+                  toolMeta: {},
+                },
+                toolResponse: resultForUI,
+                toolRunStatus: 'COMPLETED',
+                toolUseId: toolRequest.tool_use_id,
+              },
+            });
             return; // Exit _runTool early for unknown tools
         }
       }
@@ -842,6 +895,19 @@ export class ChatManager {
           status: status,
         },
       };
+      chunkCallback({
+        name: 'TOOL_CHIP_UPSERT',
+        data: {
+          toolRequest: {
+            requestData: parsedContent,
+            toolName: toolRequest.tool_name,
+            toolMeta: {},
+          },
+          toolResponse: resultForUI,
+          toolRunStatus: 'COMPLETED',
+          toolUseId: toolRequest.tool_use_id,
+        },
+      });
       // chunkCallback(toolUseResult);
 
       // Now, continue the chat flow with the tool response
@@ -880,6 +946,19 @@ export class ChatManager {
           status: status,
         },
       };
+      chunkCallback({
+        name: 'TOOL_CHIP_UPSERT',
+        data: {
+          toolRequest: {
+            requestData: toolRequest.accumulatedContent,
+            toolName: toolRequest.tool_name,
+            toolMeta: {},
+          },
+          toolResponse: resultForUI,
+          toolRunStatus: 'ERROR',
+          toolUseId: toolRequest.tool_use_id,
+        },
+      });
       const EnvironmentDetails = await getEnvironmentDetails(true);
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
