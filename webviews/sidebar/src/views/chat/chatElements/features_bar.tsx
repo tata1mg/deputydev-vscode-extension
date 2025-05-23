@@ -178,7 +178,7 @@ export default function FeaturesBar() {
               </div>
             </div>
             <div className="h-full max-h-[150px] overflow-y-auto bg-transparent p-2 text-xs">
-              {mcpServerTools && (
+              {mcpServerTools && !selectedServer?.error && (
                 <>
                   {mcpServerTools.map((tool, index) => (
                     <div key={index} className="mb-2 flex flex-col">
