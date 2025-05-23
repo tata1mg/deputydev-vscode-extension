@@ -18,6 +18,7 @@ import {
   CurrentDiffRequest,
   SearchTerm,
   ToolUseResult,
+  ClientTool,
 } from '../types';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import * as fs from 'fs';
@@ -33,6 +34,7 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { WriteToFileTool } from './tools/WriteToFileTool';
+import { clear } from 'console';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -47,6 +49,7 @@ export class ChatManager {
   private terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
+  private mcpManager: MCPManager;
 
   onStarted: () => void = () => {};
   onError: (error: Error) => void = () => {};
@@ -56,6 +59,7 @@ export class ChatManager {
     private diffManager: DiffManager,
     private terminalManager: TerminalManager,
     private apiErrorHandler: ApiErrorHandler,
+    private mcpManager: MCPManager,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
@@ -66,6 +70,7 @@ export class ChatManager {
       this.onTerminalApprove,
       this.outputChannel,
     );
+    this.mcpManager = mcpManager;
   }
 
   // Method to set the sidebar provider later
@@ -219,6 +224,34 @@ export class ChatManager {
     return null;
   }
 
+  private async getExtraTools(): Promise<Array<ClientTool>> {
+    // get all MCP tools. There can be scope to add non MCP tools later on, i.e. custom tools on client basis
+
+    const currentMCPTools = this.mcpManager.getCurrentMCPTools();
+
+    const clientTools: Array<ClientTool> = [];
+
+    // create a mapping mcpToolUniqueIds and mcpMetadata
+    // the unique ID is the combination of serverId and tool name
+    for (const server of currentMCPTools) {
+      for (const tool of server.tools) {
+        const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
+        clientTools.push({
+          name: mcpToolUniqueId,
+          description: tool.description ?? '',
+          input_schema: tool.inputSchema,
+          tool_metadata: {
+            type: 'MCP',
+            tool_name: tool.name,
+            server_id: server.serverId,
+          },
+        });
+      }
+    }
+
+    return clientTools;
+  }
+
   /**
    * apiChat:
    * Expects a payload that includes message_id along with the query with other parameters,
@@ -273,6 +306,9 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
       payload.vscode_env = await getEnvironmentDetails(true);
+
+      const clientTools = await this.getExtraTools();
+      payload.client_tools = clientTools;
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
       // console.log(payload)
@@ -433,7 +469,7 @@ export class ChatManager {
 
       // 3. Handle Tool Requests
       if (currentToolRequest) {
-        await this._runTool(currentToolRequest, messageId, chunkCallback);
+        await this._runTool(currentToolRequest, messageId, chunkCallback, clientTools);
       }
 
       // Signal end of stream.
@@ -633,6 +669,7 @@ export class ChatManager {
     toolRequest: ToolRequest,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
   ): Promise<void> {
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
@@ -661,81 +698,102 @@ export class ChatManager {
         throw new Error(`Failed to parse tool parameters JSON: ${parseError.message}`);
       }
 
-      // Execute the specific tool function
-      switch (toolRequest.tool_name) {
-        case 'related_code_searcher':
-          rawResult = await this._runRelatedCodeSearcher(active_repo, parsedContent);
-          break;
-        case 'focused_snippets_searcher':
-          rawResult = await this._runFocusedSnippetsSearcher(active_repo, parsedContent);
-          break;
-        case 'file_path_searcher':
-          this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runFilePathSearcher(active_repo, parsedContent);
-          break;
-        case 'iterative_file_reader':
-          this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runIterativeFileReader(
-            active_repo,
-            parsedContent.file_path,
-            parsedContent.start_line,
-            parsedContent.end_line,
-          );
-          break;
-        case 'grep_search':
-          this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runGrepSearch(parsedContent.directory_path, active_repo, parsedContent.search_terms);
-          break;
-        case 'public_url_content_reader':
-          this.outputChannel.info(`Running public_url_content_reader with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runPublicUrlContentReader(parsedContent);
-          break;
-        case 'execute_command': {
-          this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
+      // check if tool request is for client tool
+      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
 
-          rawResult = await this.terminalExecutor.runCommand({
-            original: parsedContent.command,
-            requiresApproval: parsedContent.requires_approval,
-            isLongRunning: !!parsedContent.is_long_running,
-            chunkCallback,
-            toolRequest,
-          });
+      if (detectedClientTool) {
+        this.outputChannel.info(`Running client tool: ${toolRequest.tool_name}`);
+        rawResult = await this.mcpManager.runMCPTool(
+          detectedClientTool.tool_metadata.server_id,
+          detectedClientTool.tool_metadata.tool_name,
+          parsedContent,
+        );
+      } else {
+        // Execute the specific tool function
+        switch (toolRequest.tool_name) {
+          case 'related_code_searcher':
+            rawResult = await this._runRelatedCodeSearcher(active_repo, parsedContent);
+            break;
+          case 'focused_snippets_searcher':
+            rawResult = await this._runFocusedSnippetsSearcher(active_repo, parsedContent);
+            break;
+          case 'file_path_searcher':
+            this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this._runFilePathSearcher(active_repo, parsedContent);
+            break;
+          case 'iterative_file_reader':
+            this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this._runIterativeFileReader(
+              active_repo,
+              parsedContent.file_path,
+              parsedContent.start_line,
+              parsedContent.end_line,
+            );
+            break;
+          case 'grep_search':
+            this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this._runGrepSearch(
+              parsedContent.directory_path,
+              active_repo,
+              parsedContent.search_terms,
+            );
+            break;
+          case 'public_url_content_reader':
+            this.outputChannel.info(`Running public_url_content_reader with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this._runPublicUrlContentReader(parsedContent);
+            break;
+          case 'execute_command': {
+            this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
 
-          break;
+            rawResult = await this.terminalExecutor.runCommand({
+              original: parsedContent.command,
+              requiresApproval: parsedContent.requires_approval,
+              isLongRunning: !!parsedContent.is_long_running,
+              chunkCallback,
+              toolRequest,
+            });
+
+            break;
+          }
+          case 'web_search':
+            this.outputChannel.info(`Running web_search with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this._runWebSearch(parsedContent);
+            break;
+
+          case 'replace_in_file':
+            this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this.replaceInFileTool.applyDiff({
+              parsedContent,
+              chunkCallback,
+              toolRequest,
+              messageId,
+            });
+            break;
+          case 'write_to_file':
+            this.outputChannel.info(`Running write_to_file with params: ${JSON.stringify(parsedContent)}`);
+            rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
+            break;
+          default:
+            this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
+            // Treat as completed but with a message indicating it's unknown
+            rawResult = {
+              message: `Tool '${toolRequest.tool_name}' is not implemented.`,
+            };
+            // We will still send TOOL_USE_RESULT, but won't recurse apiChat
+            status = 'completed';
+            resultForUI = rawResult; // Send the message back
+            // Send TOOL_USE_RESULT immediately as no continuation payload needed
+            chunkCallback({
+              name: 'TOOL_USE_RESULT',
+              data: {
+                tool_name: toolRequest.tool_name,
+                tool_use_id: toolRequest.tool_use_id,
+                result_json: resultForUI,
+                status: status,
+              },
+            });
+            return; // Exit _runTool early for unknown tools
         }
-        case 'web_search':
-          this.outputChannel.info(`Running web_search with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this._runWebSearch(parsedContent);
-          break;
-
-        case 'replace_in_file':
-          this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this.replaceInFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
-          break;
-        case 'write_to_file':
-          this.outputChannel.info(`Running write_to_file with params: ${JSON.stringify(parsedContent)}`);
-          rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
-          break;
-        default:
-          this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
-          // Treat as completed but with a message indicating it's unknown
-          rawResult = {
-            message: `Tool '${toolRequest.tool_name}' is not implemented.`,
-          };
-          // We will still send TOOL_USE_RESULT, but won't recurse apiChat
-          status = 'completed';
-          resultForUI = rawResult; // Send the message back
-          // Send TOOL_USE_RESULT immediately as no continuation payload needed
-          chunkCallback({
-            name: 'TOOL_USE_RESULT',
-            data: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              result_json: resultForUI,
-              status: status,
-            },
-          });
-          return; // Exit _runTool early for unknown tools
       }
 
       if (this.currentAbortController?.signal.aborted) {
@@ -766,6 +824,7 @@ export class ChatManager {
         os_name: await getOSName(),
         shell: getShell(),
         vscode_env: EnvironmentDetails,
+        client_tools: clientTools,
         // TODO: Consider if previous_query_ids need to be passed down through tool calls
       };
 

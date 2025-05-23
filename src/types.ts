@@ -33,6 +33,25 @@ type ChatReferenceItem = {
   url?: string;
 };
 
+export interface MCPToolMetadata {
+  tool_name: string; // Unique identifier for the tool
+  server_id: string; // Name of the server where the tool is available
+  type: 'MCP';
+}
+
+export interface ClientTool {
+  name: string; // Unique identifier for the tool
+  description: string; // Human-readable description
+  input_schema: {
+    // JSON Schema for the tool's parameters
+    type: 'object';
+    properties: {
+      [key: string]: string | number | boolean | object | null;
+    };
+  };
+  tool_metadata: MCPToolMetadata;
+}
+
 export interface ChatPayload {
   search_web: boolean;
   llm_model: string;
@@ -56,6 +75,7 @@ export interface ChatPayload {
   os_name: string;
   shell: string;
   is_from_runTool_response?: string;
+  client_tools: Array<ClientTool>;
 }
 
 export interface SearchTerm {
