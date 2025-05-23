@@ -855,8 +855,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   // MCP Operations
   async getAllServers() {
     const response = await this.mcpService.getAllMcpServers();
-    if (response.is_error) {
-      vscode.window.showInformationMessage(response.data);
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
     }
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
@@ -869,8 +869,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async syncMcpServers() {
     const response = await this.mcpService.syncServers();
     console.log('************on syncing********', response);
-    if (response.is_error) {
-      vscode.window.showInformationMessage(response.data);
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
     }
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
@@ -890,15 +890,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       response = await this.mcpService.disableServer(serverName);
     }
 
-    if (response.is_error) {
-      vscode.window.showInformationMessage(response.data);
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
     }
   }
 
   async restartServer(serverName: string) {
     const response = await this.mcpService.restartServer(serverName);
-    if (response.is_error) {
-      vscode.window.showInformationMessage(response.data);
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
     }
     if (response && response.data && !response.is_error) {
       this.getAllServers();
