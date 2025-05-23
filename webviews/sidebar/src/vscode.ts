@@ -617,9 +617,18 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
+  const selectedServer = useMcpStore.getState().selectedServer;
   console.log('***********servers***********', servers);
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
+    if (selectedServer) {
+      // Find the new state of the selected server from the fetched servers
+      const newSelectedServer = servers.find((server) => server.name === selectedServer.name);
+      if (newSelectedServer) {
+        // Update the selected server with the new state
+        useMcpStore.setState({ selectedServer: newSelectedServer });
+      }
+    }
   }
   console.log(useMcpStore.getState().mcpServers);
 });
