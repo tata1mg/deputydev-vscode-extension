@@ -496,7 +496,7 @@ export class InlineChatEditManager {
     }
     if (inlineEditResponse.tool_use_request) {
       const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
-      if (inlineEditResponse.tool_use_request.tool_name === 'task_completion') {
+      if (inlineEditResponse.tool_use_request.content.tool_name === 'task_completion') {
         this.outputChannel.info('**************task completion*************');
         return;
       }
