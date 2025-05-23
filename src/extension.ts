@@ -87,9 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
   await diffManager.init();
 
-  const mcpManager = new MCPManager(
-    outputChannel
-  );
+  const mcpManager = new MCPManager(outputChannel);
   const chatService = new ChatManager(
     context,
     outputChannel,

@@ -1,5 +1,5 @@
-import { MCPService } from "../services/mcp/mcpService";
-import * as vscode from "vscode";
+import { MCPService } from '../services/mcp/mcpService';
+import * as vscode from 'vscode';
 
 interface MCPTool {
   name: string; // Unique identifier for the tool
@@ -34,13 +34,12 @@ export class MCPManager {
   constructor(outputChannel: vscode.LogOutputChannel) {
     this.mcpService = new MCPService();
     this.outputChannel = outputChannel;
-
   }
 
   public async getCurrentMCPTools(): Promise<ServerWiseMCPTool[]> {
     const allMcpServers = await this.mcpService.getActiveServerTools();
     if (!allMcpServers.data || allMcpServers.data.length === 0) {
-      this.outputChannel.error("No MCP servers found");
+      this.outputChannel.error('No MCP servers found');
       return [];
     }
 
@@ -49,7 +48,7 @@ export class MCPManager {
       serverId: server.server_name,
       tools: server.tools,
     }));
-    this.outputChannel.info("MCP Servers: ", allMcpServers);
+    this.outputChannel.info('MCP Servers: ', allMcpServers);
     return serverWiseTools;
   }
 
