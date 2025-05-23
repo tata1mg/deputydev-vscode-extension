@@ -35,6 +35,7 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { clear } from 'console';
+import { MCPManager } from '../mcp/mcpManager';
 
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
@@ -227,7 +228,7 @@ export class ChatManager {
   private async getExtraTools(): Promise<Array<ClientTool>> {
     // get all MCP tools. There can be scope to add non MCP tools later on, i.e. custom tools on client basis
 
-    const currentMCPTools = this.mcpManager.getCurrentMCPTools();
+    const currentMCPTools = await this.mcpManager.getCurrentMCPTools();
 
     const clientTools: Array<ClientTool> = [];
 
@@ -235,6 +236,7 @@ export class ChatManager {
     // the unique ID is the combination of serverId and tool name
     for (const server of currentMCPTools) {
       for (const tool of server.tools) {
+        
         const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
         clientTools.push({
           name: mcpToolUniqueId,
@@ -249,6 +251,7 @@ export class ChatManager {
       }
     }
 
+    this.outputChannel.info(`Client tools: ${JSON.stringify(clientTools)}`);
     return clientTools;
   }
 

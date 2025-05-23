@@ -5,6 +5,7 @@ import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { binaryApi } from '../api/axios';
 import { API_ENDPOINTS } from '../api/endpoints';
+import { cp } from 'fs';
 
 export class MCPService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -23,6 +24,18 @@ export class MCPService {
     }
   }
 
+
+  public async getActiveServerTools(): Promise<any> {
+    try {
+      const response = await binaryApi().get(API_ENDPOINTS.GET_ACTIVE_SERVER_TOOLS);
+      console.log('Active Server Tools:', response.data);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while syncing servers');
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+  
   public async syncServers(): Promise<any> {
     try {
       console.log('**********syncing from method**********');

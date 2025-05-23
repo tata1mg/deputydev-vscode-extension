@@ -1,3 +1,6 @@
+import { MCPService } from "../services/mcp/mcpService";
+import * as vscode from "vscode";
+
 interface MCPTool {
   name: string; // Unique identifier for the tool
   description?: string; // Human-readable description
@@ -25,21 +28,32 @@ interface ServerWiseMCPTool {
 
 export class MCPManager {
   private static instance: MCPManager;
+  private readonly mcpService: MCPService;
+  private readonly outputChannel: vscode.LogOutputChannel;
 
-  constructor() {}
+  constructor(outputChannel: vscode.LogOutputChannel) {
+    this.mcpService = new MCPService();
+    this.outputChannel = outputChannel;
 
-  public static getInstance(): MCPManager {
-    if (!MCPManager.instance) {
-      MCPManager.instance = new MCPManager();
+  }
+
+  public async getCurrentMCPTools(): Promise<ServerWiseMCPTool[]> {
+    const allMcpServers = await this.mcpService.getActiveServerTools();
+    if (!allMcpServers.data || allMcpServers.data.length === 0) {
+      this.outputChannel.error("No MCP servers found");
+      return [];
     }
-    return MCPManager.instance;
+
+    // create server wise tools
+    const serverWiseTools: ServerWiseMCPTool[] = allMcpServers.data.map((server) => ({
+      serverId: server.server_name,
+      tools: server.tools,
+    }));
+    this.outputChannel.info("MCP Servers: ", allMcpServers);
+    return serverWiseTools;
   }
 
-  public getCurrentMCPTools(): ServerWiseMCPTool[] {
-    return this.mcp.getTools();
-  }
-
-  public runMCPTool(
+  public async runMCPTool(
     mcpServerId: string,
     toolName: string,
     toolArgs: {
@@ -48,7 +62,7 @@ export class MCPManager {
   ): Promise<{
     [key: string]: string | number | boolean | object | null; // Parameter types
   }> {
-    const serverTools = this.getCurrentMCPTools().find((server) => server.serverId === mcpServerId);
+    const serverTools = (await this.getCurrentMCPTools()).find((server) => server.serverId === mcpServerId);
     if (!serverTools) {
       return Promise.reject(new Error(`No tools found for server ${mcpServerId}`));
     }
