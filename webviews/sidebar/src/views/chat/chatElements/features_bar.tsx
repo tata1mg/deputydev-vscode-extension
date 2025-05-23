@@ -140,7 +140,7 @@ export default function FeaturesBar() {
 
         {/* SINGLE MCP SERVER WITH ITS TOOLS */}
         {showMCPServerTools && (
-          <div className={`${selectedServer?.disabled ? "opacity-50" : ""}`}>
+          <div className={`${selectedServer?.disabled ? 'opacity-50' : ''}`}>
             <div className="flex justify-between bg-gray-500/20">
               <button className="flex w-full items-center gap-2 overflow-hidden px-2 py-1 hover:text-gray-400">
                 <MCPServerStatus mcpServerStatus={selectedServer?.status || ''} />
