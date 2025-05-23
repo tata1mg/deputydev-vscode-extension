@@ -236,7 +236,6 @@ export class ChatManager {
     // the unique ID is the combination of serverId and tool name
     for (const server of currentMCPTools) {
       for (const tool of server.tools) {
-        
         const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
         clientTools.push({
           name: mcpToolUniqueId,

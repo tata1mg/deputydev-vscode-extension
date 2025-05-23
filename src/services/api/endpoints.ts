@@ -41,5 +41,5 @@ export const API_ENDPOINTS = {
   GET_ALL_MCP_SERVERS: '/v1/mcp/servers',
   INVOKE_MCP_SERVER_TOOL: '/v1/mcp/servers/tool/invoke',
   SYNC_MCP_SERVERS: '/v1/mcp/servers/sync',
-  GET_ACTIVE_SERVER_TOOLS: '/v1/mcp/servers/tools'
+  GET_ACTIVE_SERVER_TOOLS: '/v1/mcp/servers/tools',
 };

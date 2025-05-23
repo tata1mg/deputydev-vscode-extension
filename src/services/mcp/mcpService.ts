@@ -24,7 +24,6 @@ export class MCPService {
     }
   }
 
-
   public async getActiveServerTools(): Promise<any> {
     try {
       const response = await binaryApi().get(API_ENDPOINTS.GET_ACTIVE_SERVER_TOOLS);
@@ -35,7 +34,7 @@ export class MCPService {
       this.apiErrorHandler.handleApiError(error);
     }
   }
-  
+
   public async syncServers(): Promise<any> {
     try {
       console.log('**********syncing from method**********');
