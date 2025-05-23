@@ -511,7 +511,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     },
   };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage('create new workspace payload', [], () => { }, false, {}, continuationPayload);
+  sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
@@ -598,7 +598,7 @@ addCommandEventListener('update-workspace-dd', () => {
       },
     };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage('create new workspace payload', [], () => { }, false, {}, continuationPayload);
+    sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
   } else {
     logToOutput(
       'error',
@@ -623,7 +623,7 @@ addCommandEventListener('fetched-mcp-servers', ({ data }) => {
     useMcpStore.setState({ mcpServers: servers });
     if (selectedServer) {
       // Find the new state of the selected server from the fetched servers
-      const newSelectedServer = servers.find(server => server.name === selectedServer.name);
+      const newSelectedServer = servers.find((server) => server.name === selectedServer.name);
       if (newSelectedServer) {
         // Update the selected server with the new state
         useMcpStore.setState({ selectedServer: newSelectedServer });
