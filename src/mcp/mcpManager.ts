@@ -70,6 +70,10 @@ export class MCPManager {
       return Promise.reject(new Error(`Tool ${toolName} not found for server ${mcpServerId}`));
     }
     // Run the desired tool for the server
-    return this.runTool(tool, toolArgs);
+    return await this.mcpService.invokeMcpTool({
+      server_name: mcpServerId,
+      tool_name: toolName,
+      tool_arguments: toolArgs,
+    });
   }
 }
