@@ -29,6 +29,7 @@ import ProgressBar from './chatElements/progressBar';
 import ReferenceChip from './referencechip';
 import ModelSelector from './chatElements/modelSelector';
 import FeaturesBar from './chatElements/features_bar';
+import { useMcpStore } from '@/stores/mcpStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -49,6 +50,7 @@ export function ChatUI() {
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
+  const { showAllMCPServers, showMCPServerTools } = useMcpStore();
 
   const deputyDevLogo =
     themeKind === 'light' || themeKind === 'high-contrast-light'
@@ -408,7 +410,7 @@ export function ChatUI() {
         )}
       </div>
 
-      <div className="mb-[150px] h-full overflow-auto px-4">
+      <div className="mb-[160px] h-full overflow-auto px-4">
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
@@ -426,7 +428,7 @@ export function ChatUI() {
             </div>
           )}
 
-          {messages.length === 0 && !showAutocomplete && (
+          {messages.length === 0 && !showAutocomplete && (!showAllMCPServers && !showMCPServerTools) && (
             <div className="px-4">
               <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                 DeputyDev is powered by AI. It can make mistakes. Please double check all output.
