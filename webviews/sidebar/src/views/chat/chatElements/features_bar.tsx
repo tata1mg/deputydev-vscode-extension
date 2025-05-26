@@ -7,7 +7,7 @@ import {
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
 import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp, RotateCw } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { useClickAway } from 'react-use';
 
@@ -40,6 +40,10 @@ export default function FeaturesBar() {
     useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    syncServers();
+  }, []);
 
   useClickAway(featuresBarRef, () => {
     useMcpStore.setState({ showAllMCPServers: false });
