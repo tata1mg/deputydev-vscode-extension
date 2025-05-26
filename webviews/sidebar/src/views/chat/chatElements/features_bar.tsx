@@ -66,10 +66,10 @@ export default function FeaturesBar() {
   const handleRetry = (serverName: string) => {
     if (!serverName) return;
     console.log('************Retrying server***********');
-    setRetryingServers(prev => ({ ...prev, [serverName]: true }));
+    setRetryingServers((prev) => ({ ...prev, [serverName]: true }));
     mcpServerRestart(serverName);
     setTimeout(() => {
-      setRetryingServers(prev => ({ ...prev, [serverName]: false }));
+      setRetryingServers((prev) => ({ ...prev, [serverName]: false }));
     }, 1000);
   };
 
@@ -124,10 +124,12 @@ export default function FeaturesBar() {
       >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
-          <div className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto"
+          <div
+            className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto"
             style={{
-              backgroundColor: 'var(--vscode-editor-background)'
-            }}>
+              backgroundColor: 'var(--vscode-editor-background)',
+            }}
+          >
             {mcpServers.map((server, index) => (
               <div key={index} className="flex justify-between">
                 <button
@@ -156,12 +158,14 @@ export default function FeaturesBar() {
                           server.name
                         )
                       }
-                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-4' : 'translate-x-0'
-                          }`}
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                       />
                     </button>
                   </div>
@@ -174,9 +178,10 @@ export default function FeaturesBar() {
         {/* SINGLE MCP SERVER WITH ITS TOOLS */}
         {showMCPServerTools && (
           <div>
-            <div className="flex justify-between"
+            <div
+              className="flex justify-between"
               style={{
-                backgroundColor: 'var(--vscode-editor-background)'
+                backgroundColor: 'var(--vscode-editor-background)',
               }}
             >
               <button className="flex w-full items-center gap-2 overflow-hidden px-2 py-1 hover:text-gray-400">
@@ -202,20 +207,23 @@ export default function FeaturesBar() {
                         selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
                     />
                   </button>
                 </div>
               </div>
             </div>
-            <div className="h-full max-h-[150px] overflow-y-auto p-2 text-xs"
+            <div
+              className="h-full max-h-[150px] overflow-y-auto p-2 text-xs"
               style={{
-                backgroundColor: 'var(--vscode-editor-background)'
+                backgroundColor: 'var(--vscode-editor-background)',
               }}
             >
               {mcpServerTools && !selectedServer?.error && (
@@ -245,13 +253,13 @@ export default function FeaturesBar() {
                 />
               </button>
             )}
-            <div className='flex gap-2 max-w-[90%]'>
+            <div className="flex max-w-[90%] gap-2">
               <button
                 className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
                 onClick={() => handleShowMCPServers()}
-                data-tooltip-id='mcp-tooltips'
+                data-tooltip-id="mcp-tooltips"
                 data-tooltip-content={`MCP (${mcpServers.length} Available MCP Servers)`}
-                data-tooltip-place='top-start'
+                data-tooltip-place="top-start"
               >
                 <div>
                   <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
@@ -264,18 +272,18 @@ export default function FeaturesBar() {
                 data-tooltip-id="mcp-tooltips"
                 data-tooltip-content={MCPCircleHelpTooltipContent}
                 data-tooltip-place="top-start"
-                data-tooltip-class-name='max-w-[80%]'
+                data-tooltip-class-name="max-w-[80%]"
               >
-                <CircleHelp className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5 opacity-50" />
+                <CircleHelp className="h-4 w-4 opacity-50 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleRefreshMCPServers()}
-              data-tooltip-id='mcp-tooltips'
-              data-tooltip-content='Refresh MCP Servers'
-              data-tooltip-place='top-start'
+              data-tooltip-id="mcp-tooltips"
+              data-tooltip-content="Refresh MCP Servers"
+              data-tooltip-place="top-start"
             >
               <RefreshCw
                 className={`h-4 w-4 hover:cursor-pointer hover:bg-slate-400 hover:bg-opacity-10 ${refreshSpinning && 'animate-spin'}`}
@@ -283,9 +291,9 @@ export default function FeaturesBar() {
             </button>
             <button
               onClick={() => openMcpSettings()}
-              data-tooltip-id='mcp-tooltips'
-              data-tooltip-content='Configure MCP Servers'
-              data-tooltip-place='top-start'
+              data-tooltip-id="mcp-tooltips"
+              data-tooltip-content="Configure MCP Servers"
+              data-tooltip-place="top-start"
             >
               <FilePenLine className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </button>

@@ -39,16 +39,16 @@ const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolRes
         </div>
         {showDropDown && toolRequest && (
           <div className="space-y-4">
-            <div className="rounded bg-gray-500/10 p-2 overflow-x-hidden">
+            <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
               <div className="mb-2 font-semibold">Ran with these arguments:</div>
-              <div className="whitespace-pre-wrap text-xs max-h-[200px] overflow-y-auto w-full word-break: break-all">
+              <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
                 {JSON.stringify(toolRequest.requestData, null, 2)}
               </div>
             </div>
             {toolResponse && (
-              <div className="rounded bg-gray-500/10 p-2 overflow-x-hidden">
+              <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
                 <div className="mb-2 font-semibold">Output</div>
-                <div className="whitespace-pre-wrap text-xs max-h-[200px] overflow-y-auto w-full word-break: break-all">
+                <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
                   {JSON.stringify(toolResponse, null, 2)}
                 </div>
               </div>
