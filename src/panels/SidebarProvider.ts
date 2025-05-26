@@ -457,9 +457,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       config: {
         DEPUTY_DEV: {
           HOST: DD_HOST,
-        }
+        },
       },
-      mcp_config_path: mcp_config_path
+      mcp_config_path: mcp_config_path,
     };
 
     const headers = {
