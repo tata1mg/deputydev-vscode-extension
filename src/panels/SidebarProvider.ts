@@ -862,7 +862,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // MCP Operations
   async startPollingMcpServers() {
-    console.log("polling servers started");
+    console.log('polling servers started');
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
