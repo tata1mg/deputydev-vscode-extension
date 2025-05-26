@@ -860,7 +860,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
     this.pollingInterval = setInterval(async () => {
       try {
-        console.log("polling servers")
+        console.log('polling servers');
         await this.getAllServers();
       } catch (error) {
         this.logger.error('Error while polling MCP servers:', error);
