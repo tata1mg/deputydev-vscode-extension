@@ -127,7 +127,7 @@ export interface TerminalPanelProps {
 }
 
 export interface ChatToolUseMessage {
-  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK';
+  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK' | 'TOOL_CHIP_UPSERT';
   content: {
     tool_name: string;
     tool_use_id: string;
@@ -138,6 +138,8 @@ export interface ChatToolUseMessage {
     write_mode?: boolean;
     terminal_approval_required?: boolean;
     diff?: { addedLines: number; removedLines: number };
+    toolRequest?: any;
+    toolResponse?: any;
   };
 }
 
@@ -146,6 +148,7 @@ export interface ChatThinkingMessage {
   text: string;
   completed: boolean;
   actor?: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatCodeBlockMessage {
@@ -187,6 +190,7 @@ export interface ChatErrorMessage {
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatCompleteMessage {
@@ -201,6 +205,7 @@ export interface ChatCompleteMessage {
 export interface ChatTerminalNoShell {
   type: 'TERMINAL_NO_SHELL_INTEGRATION';
   actor: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatSessionHistory {
@@ -294,16 +299,16 @@ export interface LLMModels {
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
 
 export interface ToolRequest {
-  requestData: Record<string, any>;
+  requestData: any;
   toolName: string;
   toolMeta: Record<string, any>;
 }
 
 export interface BaseToolProps {
   toolRunStatus: ToolRunStatus;
-  toolDisplayName: string;
-  toolRequest?: ToolRequest | undefined;
-  toolResponse?: Record<string, any> | undefined;
+  toolRequest?: ToolRequest | null;
+  toolResponse?: any;
+  toolUseId: string;
 }
 
 export interface MCPServer {
@@ -324,5 +329,7 @@ export interface MCPStorage {
   mcpServerTools: MCPServerTool[];
   mcpServers: MCPServer[];
   selectedServer: MCPServer | undefined;
+  showAllMCPServers: Boolean
+  showMCPServerTools: Boolean
   setMcpServers: (mcpServers: MCPServer[]) => void;
 }
