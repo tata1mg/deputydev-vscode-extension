@@ -448,6 +448,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    const homeDir = os.homedir();
+    const mcp_config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
 
     this.logger.info('Initiating binary...');
     this.outputChannel.info('🚀 Initiating binary...');
@@ -455,8 +457,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       config: {
         DEPUTY_DEV: {
           HOST: DD_HOST,
-        },
+        }
       },
+      mcp_config_path: mcp_config_path
     };
 
     const headers = {
