@@ -251,11 +251,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                          ...state.current,
-                          content: {
-                            text: state.current.content.text + textChunk,
-                          },
-                        }
+                            ...state.current,
+                            content: {
+                              text: state.current.content.text + textChunk,
+                            },
+                          }
                         : state.current,
                     }));
 
@@ -621,13 +621,13 @@ export const useChatStore = create(
                         set((state) => ({
                           current: state.current
                             ? {
-                              ...state.current,
-                              content: {
-                                text: (state.current.content.text + delta)
-                                  .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                  .replace(/"}$/, ''), // Remove trailing `"}`
-                              },
-                            }
+                                ...state.current,
+                                content: {
+                                  text: (state.current.content.text + delta)
+                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
+                                    .replace(/"}$/, ''), // Remove trailing `"}`
+                                },
+                              }
                             : state.current,
                         }));
                         break;
@@ -735,7 +735,7 @@ export const useChatStore = create(
 
                   case 'TOOL_CHIP_UPSERT': {
                     useChatStore.setState({ showSkeleton: false });
-                    console.log("***********mcp tool**********", event);
+                    console.log('***********mcp tool**********', event);
                     const baseToolProps = event.data as BaseToolProps;
                     if (baseToolProps) {
                       const newToolMsg: ChatToolUseMessage = {
@@ -746,7 +746,7 @@ export const useChatStore = create(
                           input_params_json: '',
                           result_json: '',
                           status: 'pending',
-                          toolRequest: baseToolProps.toolRequest
+                          toolRequest: baseToolProps.toolRequest,
                         },
                       };
 
@@ -766,15 +766,17 @@ export const useChatStore = create(
                             content: {
                               ...newHistory[existingToolMsgIndex].content,
                               toolRequest: baseToolProps.toolRequest,
-                              ...(baseToolProps.toolResponse && { toolResponse: baseToolProps.toolResponse }),
-                              status: baseToolProps.toolRunStatus
+                              ...(baseToolProps.toolResponse && {
+                                toolResponse: baseToolProps.toolResponse,
+                              }),
+                              status: baseToolProps.toolRunStatus,
                             },
                           };
                           return { history: newHistory };
                         } else {
                           // If it doesn't exist, add it
                           return {
-                            history: [...state.history, newToolMsg]
+                            history: [...state.history, newToolMsg],
                           };
                         }
                       });

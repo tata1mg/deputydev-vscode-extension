@@ -44,7 +44,7 @@ export class MCPManager {
     }
 
     // create server wise tools
-    const serverWiseTools: ServerWiseMCPTool[] = allMcpServers.data.map((server : any) => ({
+    const serverWiseTools: ServerWiseMCPTool[] = allMcpServers.data.map((server: any) => ({
       serverId: server.server_name,
       tools: server.tools,
     }));
