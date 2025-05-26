@@ -48,6 +48,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onWebviewFocused = this._onWebviewFocused.event;
   private apiErrorHandler = new ApiErrorHandler();
   private mcpService = new MCPService();
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -853,6 +854,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // MCP Operations
+  async startPollingMcpServers() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+    this.pollingInterval = setInterval(async () => {
+      try {
+        console.log("polling servers")
+        await this.getAllServers();
+      } catch (error) {
+        this.logger.error('Error while polling MCP servers:', error);
+      }
+    }, 2000);
+  }
+
   async getAllServers() {
     const response = await this.mcpService.getAllMcpServers();
     if (response.is_error && response.meta && response.meta.message) {
@@ -879,6 +894,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data: response.data,
       });
       vscode.window.showInformationMessage('MCP servers synced successfully.');
+      this.startPollingMcpServers();
     }
   }
 

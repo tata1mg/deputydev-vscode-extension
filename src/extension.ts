@@ -137,20 +137,6 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
 
-    await mcpService.syncServers().then((response) => {
-      console.log('************on activating********', response);
-      if (response.is_error && response.meta && response.meta.message) {
-        vscode.window.showInformationMessage(response.meta.message);
-      }
-      if (response && response.data && !response.is_error) {
-        sidebarProvider.sendMessageToSidebar({
-          id: uuidv4(),
-          command: 'fetched-mcp-servers',
-          data: response.data,
-        });
-        vscode.window.showInformationMessage('MCP servers synced successfully.');
-      }
-    });
 
     authenticationManager
       .validateCurrentSession()
