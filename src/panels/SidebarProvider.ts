@@ -160,6 +160,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // MCP operations
         case 'sync-servers':
+          // Start polling asynchronously first
+          setTimeout(() => {
+            this.startPollingMcpServers();
+          }, 0);
           promise = this.syncMcpServers();
           break;
 
@@ -858,6 +862,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // MCP Operations
   async startPollingMcpServers() {
+    console.log("polling servers started");
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
@@ -897,7 +902,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         data: response.data,
       });
       vscode.window.showInformationMessage('MCP servers synced successfully.');
-      this.startPollingMcpServers();
     }
   }
 
