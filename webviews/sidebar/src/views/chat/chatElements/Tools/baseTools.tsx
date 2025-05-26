@@ -20,7 +20,6 @@ const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
 };
 
 const BaseTool: React.FC<BaseToolProps> = ({
-  toolDisplayName,
   toolRunStatus,
   toolRequest,
   toolResponse,
@@ -36,13 +35,13 @@ const BaseTool: React.FC<BaseToolProps> = ({
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <StatusIcon status={toolRunStatus} />
-            <span>{toolDisplayName}</span>
+            <span>{toolRequest?.toolName}</span>
           </div>
           <div className="cursor-pointer" onClick={() => handleDropDown()}>
             {!showDropDown ? <ChevronDown /> : <ChevronUp />}
           </div>
         </div>
-        {showDropDown && (
+        {showDropDown && toolRequest && (
           <div className="space-y-4">
             <div className="rounded bg-gray-500/10 p-2">
               <div className="mb-2 font-semibold">Request</div>
@@ -50,12 +49,14 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 {JSON.stringify(toolRequest, null, 2)}
               </div>
             </div>
-            {/* <div className="bg-gray-500/10 p-2 rounded">
-              <div className="font-semibold mb-2">Response</div>
-              <div className="text-xs whitespace-pre-wrap">
-                {JSON.stringify(toolResponse, null, 2)}
+            {toolResponse &&
+              <div className="bg-gray-500/10 p-2 rounded">
+                <div className="font-semibold mb-2">Response</div>
+                <div className="text-xs whitespace-pre-wrap">
+                  {JSON.stringify(toolResponse, null, 2)}
+                </div>
               </div>
-            </div> */}
+            }
           </div>
         )}
       </div>

@@ -50,10 +50,10 @@ export class ChatManager {
   private terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
-  private mcpManager: MCPManager;
+  // private mcpManager: MCPManager;
 
-  onStarted: () => void = () => {};
-  onError: (error: Error) => void = () => {};
+  onStarted: () => void = () => { };
+  onError: (error: Error) => void = () => { };
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
@@ -71,7 +71,7 @@ export class ChatManager {
       this.onTerminalApprove,
       this.outputChannel,
     );
-    this.mcpManager = mcpManager;
+    this.mcpManager = this.mcpManager;
   }
 
   // Method to set the sidebar provider later
@@ -132,13 +132,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-                auth_token: await this.authService.loadAuthToken(),
-                repo_path: active_repo,
-                chunks: chunkDetails,
-                search_item_name: element.value,
-                search_item_type: element.type,
-                search_item_path: element.path,
-              })
+              auth_token: await this.authService.loadAuthToken(),
+              repo_path: active_repo,
+              chunks: chunkDetails,
+              search_item_name: element.value,
+              search_item_type: element.type,
+              search_item_path: element.path,
+            })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -268,9 +268,9 @@ export class ChatManager {
     let toolResultSent = false;
     let querySolverTask:
       | {
-          abortController: AbortController;
-          asyncIterator: AsyncIterableIterator<any>;
-        }
+        abortController: AbortController;
+        asyncIterator: AsyncIterableIterator<any>;
+      }
       | undefined;
 
     try {
@@ -331,7 +331,7 @@ export class ChatManager {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
           break; // Exit loop if cancelled
         }
-        if (!toolResultSent && event.type !== 'STREAM_START' && event.type !== 'RESPONSE_METADATA' && toolUseResult) {
+        if (!toolResultSent && event.type !== 'STREAM_START' && event.type !== 'RESPONSE_METADATA' && toolUseResult && !(clientTools.find((x) => x.name === toolUseResult.data.tool_name))) {
           this.outputChannel.info(`Event: ${event.type} , updating tool result`);
           chunkCallback(toolUseResult);
           toolResultSent = true;
@@ -357,72 +357,81 @@ export class ChatManager {
               search_web: payload.search_web,
             };
             // Immediately forward the start event.
-            chunkCallback({ name: event.type, data: event.content });
-            chunkCallback({
-              name: 'TOOL_CHIP_UPSERT',
-              data: {
-                toolRequest: {
-                  requestData: null,
-                  toolName: event.content.tool_name,
-                  toolMeta: {},
+            if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    requestData: null,
+                    toolName: event.content.tool_name,
+                    toolMeta: {},
+                  },
+                  toolResponse: null,
+                  toolRunStatus: 'pending',
+                  toolUseId: event.content.tool_use_id
                 },
-                toolResponse: null,
-                toolRunStatus: 'PENDING',
-                toolUseId: event.content.tool_use_id,
-              },
-            });
+              });
+            } else {
+              chunkCallback({ name: event.type, data: event.content });
+            }
             break;
           }
           case 'TOOL_USE_REQUEST_DELTA': {
             if (currentToolRequest) {
               currentToolRequest.accumulatedContent += event.content?.input_params_json_delta || '';
               // Forward the delta along with the tool_use_id.
-              chunkCallback({
-                name: event.type,
-                data: {
-                  tool_name: currentToolRequest.tool_name,
-                  tool_use_id: currentToolRequest.tool_use_id,
-                  delta: event.content?.input_params_json_delta || '',
-                },
-              });
-              chunkCallback({
-                name: 'TOOL_CHIP_UPSERT',
-                data: {
-                  toolRequest: {
-                    requestData: currentToolRequest.accumulatedContent,
-                    toolName: currentToolRequest.tool_name,
-                    toolMeta: {},
+              if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+                chunkCallback({
+                  name: 'TOOL_CHIP_UPSERT',
+                  data: {
+                    toolRequest: {
+                      requestData: currentToolRequest.accumulatedContent,
+                      toolName: currentToolRequest.tool_name,
+                      toolMeta: {},
+                    },
+                    toolResponse: null,
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id
                   },
-                  toolResponse: null,
-                  toolRunStatus: 'PENDING',
-                  toolUseId: currentToolRequest.tool_use_id,
-                },
-              });
+                });
+              } else {
+                chunkCallback({
+                  name: event.type,
+                  data: {
+                    tool_name: currentToolRequest.tool_name,
+                    tool_use_id: currentToolRequest.tool_use_id,
+                    delta: event.content?.input_params_json_delta || '',
+                  },
+                });
+              }
             }
             break;
           }
           case 'TOOL_USE_REQUEST_END': {
             if (currentToolRequest) {
-              chunkCallback({
-                name: event.type,
-                data: {
-                  tool_name: currentToolRequest.tool_name,
-                  tool_use_id: currentToolRequest.tool_use_id,
-                },
-              });
-              chunkCallback({
-                name: 'TOOL_CHIP_UPSERT',
-                data: {
-                  toolRequest: {
-                    requestData: currentToolRequest.accumulatedContent,
-                    toolName: currentToolRequest.tool_name,
-                    toolMeta: {},
+              if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+                chunkCallback({
+                  name: 'TOOL_CHIP_UPSERT',
+                  data: {
+                    toolRequest: {
+                      requestData: currentToolRequest.accumulatedContent,
+                      toolName: currentToolRequest.tool_name,
+                      toolMeta: {},
+                    },
+                    toolResponse: null,
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
-                  toolResponse: null,
-                  toolRunStatus: 'PENDING',
-                  toolUseId: currentToolRequest.tool_use_id,
-                },
-              });
+                });
+              } else {
+                chunkCallback({
+                  name: event.type,
+                  data: {
+                    tool_name: currentToolRequest.tool_name,
+                    tool_use_id: currentToolRequest.tool_use_id,
+                  },
+                });
+              }
             }
             break;
           }
@@ -825,28 +834,31 @@ export class ChatManager {
             status = 'completed';
             resultForUI = rawResult; // Send the message back
             // Send TOOL_USE_RESULT immediately as no continuation payload needed
-            chunkCallback({
-              name: 'TOOL_USE_RESULT',
-              data: {
-                tool_name: toolRequest.tool_name,
-                tool_use_id: toolRequest.tool_use_id,
-                result_json: resultForUI,
-                status: status,
-              },
-            });
-            chunkCallback({
-              name: 'TOOL_CHIP_UPSERT',
-              data: {
-                toolRequest: {
-                  requestData: parsedContent,
-                  toolName: toolRequest.tool_name,
-                  toolMeta: {},
+            if (clientTools.find((x) => x.name === toolRequest.tool_name)) {
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    requestData: parsedContent,
+                    toolName: toolRequest.tool_name,
+                    toolMeta: {},
+                  },
+                  toolResponse: resultForUI,
+                  toolRunStatus: 'completed',
+                  toolUseId: toolRequest.tool_use_id
                 },
-                toolResponse: resultForUI,
-                toolRunStatus: 'COMPLETED',
-                toolUseId: toolRequest.tool_use_id,
-              },
-            });
+              });
+            } else {
+              chunkCallback({
+                name: 'TOOL_USE_RESULT',
+                data: {
+                  tool_name: toolRequest.tool_name,
+                  tool_use_id: toolRequest.tool_use_id,
+                  result_json: resultForUI,
+                  status: status,
+                },
+              });
+            }
             return; // Exit _runTool early for unknown tools
         }
       }
@@ -895,20 +907,21 @@ export class ChatManager {
           status: status,
         },
       };
-      chunkCallback({
-        name: 'TOOL_CHIP_UPSERT',
-        data: {
-          toolRequest: {
-            requestData: parsedContent,
-            toolName: toolRequest.tool_name,
-            toolMeta: {},
+      if (clientTools.find((x) => x.name === toolRequest.tool_name)) {
+        chunkCallback({
+          name: 'TOOL_CHIP_UPSERT',
+          data: {
+            toolRequest: {
+              requestData: parsedContent,
+              toolName: toolRequest.tool_name,
+              toolMeta: {},
+            },
+            toolResponse: resultForUI,
+            toolRunStatus: 'completed',
+            toolUseId: toolRequest.tool_use_id,
           },
-          toolResponse: resultForUI,
-          toolRunStatus: 'COMPLETED',
-          toolUseId: toolRequest.tool_use_id,
-        },
-      });
-      // chunkCallback(toolUseResult);
+        });
+      }
 
       // Now, continue the chat flow with the tool response
       this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
@@ -955,7 +968,7 @@ export class ChatManager {
             toolMeta: {},
           },
           toolResponse: resultForUI,
-          toolRunStatus: 'ERROR',
+          toolRunStatus: 'error',
           toolUseId: toolRequest.tool_use_id,
         },
       });
@@ -976,6 +989,7 @@ export class ChatManager {
         os_name: await getOSName(),
         shell: getShell(),
         vscode_env: EnvironmentDetails,
+        client_tools: clientTools
       };
       await this.apiChat(toolUseRetryPayload, chunkCallback, toolUseResult);
     }
