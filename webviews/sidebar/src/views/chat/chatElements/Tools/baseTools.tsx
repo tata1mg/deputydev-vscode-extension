@@ -19,11 +19,7 @@ const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   }
 };
 
-const BaseTool: React.FC<BaseToolProps> = ({
-  toolRunStatus,
-  toolRequest,
-  toolResponse,
-}) => {
+const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolResponse }) => {
   const [showDropDown, setShowDropDown] = useState(false);
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -49,14 +45,14 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 {JSON.stringify(toolRequest, null, 2)}
               </div>
             </div>
-            {toolResponse &&
-              <div className="bg-gray-500/10 p-2 rounded">
-                <div className="font-semibold mb-2">Response</div>
-                <div className="text-xs whitespace-pre-wrap">
+            {toolResponse && (
+              <div className="rounded bg-gray-500/10 p-2">
+                <div className="mb-2 font-semibold">Response</div>
+                <div className="whitespace-pre-wrap text-xs">
                   {JSON.stringify(toolResponse, null, 2)}
                 </div>
               </div>
-            }
+            )}
           </div>
         )}
       </div>

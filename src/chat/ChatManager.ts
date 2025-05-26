@@ -52,8 +52,8 @@ export class ChatManager {
   private writeToFileTool!: WriteToFileTool;
   // private mcpManager: MCPManager;
 
-  onStarted: () => void = () => { };
-  onError: (error: Error) => void = () => { };
+  onStarted: () => void = () => {};
+  onError: (error: Error) => void = () => {};
   constructor(
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
@@ -71,7 +71,6 @@ export class ChatManager {
       this.onTerminalApprove,
       this.outputChannel,
     );
-    this.mcpManager = this.mcpManager;
   }
 
   // Method to set the sidebar provider later
@@ -132,13 +131,13 @@ export class ChatManager {
           // Call the external function to fetch relevant chunks.
           const result = chunkDetails.length
             ? await this.focusChunksService.getFocusChunks({
-              auth_token: await this.authService.loadAuthToken(),
-              repo_path: active_repo,
-              chunks: chunkDetails,
-              search_item_name: element.value,
-              search_item_type: element.type,
-              search_item_path: element.path,
-            })
+                auth_token: await this.authService.loadAuthToken(),
+                repo_path: active_repo,
+                chunks: chunkDetails,
+                search_item_name: element.value,
+                search_item_type: element.type,
+                search_item_path: element.path,
+              })
             : [];
 
           const finalChunkInfos: Array<any> = [];
@@ -268,9 +267,9 @@ export class ChatManager {
     let toolResultSent = false;
     let querySolverTask:
       | {
-        abortController: AbortController;
-        asyncIterator: AsyncIterableIterator<any>;
-      }
+          abortController: AbortController;
+          asyncIterator: AsyncIterableIterator<any>;
+        }
       | undefined;
 
     try {
@@ -331,7 +330,13 @@ export class ChatManager {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
           break; // Exit loop if cancelled
         }
-        if (!toolResultSent && event.type !== 'STREAM_START' && event.type !== 'RESPONSE_METADATA' && toolUseResult && !(clientTools.find((x) => x.name === toolUseResult.data.tool_name))) {
+        if (
+          !toolResultSent &&
+          event.type !== 'STREAM_START' &&
+          event.type !== 'RESPONSE_METADATA' &&
+          toolUseResult &&
+          !clientTools.find((x) => x.name === toolUseResult.data.tool_name)
+        ) {
           this.outputChannel.info(`Event: ${event.type} , updating tool result`);
           chunkCallback(toolUseResult);
           toolResultSent = true;
@@ -368,7 +373,7 @@ export class ChatManager {
                   },
                   toolResponse: null,
                   toolRunStatus: 'pending',
-                  toolUseId: event.content.tool_use_id
+                  toolUseId: event.content.tool_use_id,
                 },
               });
             } else {
@@ -391,7 +396,7 @@ export class ChatManager {
                     },
                     toolResponse: null,
                     toolRunStatus: 'pending',
-                    toolUseId: currentToolRequest.tool_use_id
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
                 });
               } else {
@@ -845,7 +850,7 @@ export class ChatManager {
                   },
                   toolResponse: resultForUI,
                   toolRunStatus: 'completed',
-                  toolUseId: toolRequest.tool_use_id
+                  toolUseId: toolRequest.tool_use_id,
                 },
               });
             } else {
@@ -989,7 +994,7 @@ export class ChatManager {
         os_name: await getOSName(),
         shell: getShell(),
         vscode_env: EnvironmentDetails,
-        client_tools: clientTools
+        client_tools: clientTools,
       };
       await this.apiChat(toolUseRetryPayload, chunkCallback, toolUseResult);
     }

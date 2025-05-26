@@ -36,7 +36,8 @@ const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatu
 export default function FeaturesBar() {
   const [refreshSpinning, setRefreshSpinning] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  const { mcpServers, mcpServerTools, selectedServer, showAllMCPServers, showMCPServerTools } = useMcpStore();
+  const { mcpServers, mcpServerTools, selectedServer, showAllMCPServers, showMCPServerTools } =
+    useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
@@ -87,7 +88,7 @@ export default function FeaturesBar() {
       };
 
       useMcpStore.setState({
-        mcpServers: updatedServers
+        mcpServers: updatedServers,
       });
 
       if (selectedServer) {
@@ -96,7 +97,7 @@ export default function FeaturesBar() {
             ...selectedServer,
             disabled: newDisableState,
           },
-        })
+        });
       }
     }
   };
@@ -130,7 +131,7 @@ export default function FeaturesBar() {
                 >
                   <MCPServerStatus mcpServerStatus={server.status} />
                   <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[50%]">
+                    <span className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
                       {server.name}
                     </span>
                     <span className="text-gray-500">{server.tool_count} Tools</span>
@@ -146,15 +147,18 @@ export default function FeaturesBar() {
                     <button
                       onClick={() =>
                         handleEnablingOrDisablingOfTool(
-                          !server.disabled ? 'disable' : 'enable', server.name
+                          !server.disabled ? 'disable' : 'enable',
+                          server.name
                         )
                       }
-                      className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
+                      className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${
+                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-5' : 'translate-x-0'
-                          }`}
+                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          !server.disabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
                       />
                     </button>
                   </div>
@@ -171,14 +175,14 @@ export default function FeaturesBar() {
               <button className="flex w-full items-center gap-2 overflow-hidden px-2 py-1 hover:text-gray-400">
                 <MCPServerStatus mcpServerStatus={selectedServer?.status || ''} />
                 <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                  <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[50%]">
+                  <span className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
                     {selectedServer?.name}
                   </span>
                   <span className="text-gray-500">{selectedServer?.tool_count} Tools</span>
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <div onClick={() => handleRetry(selectedServer?.name || "")}>
+                <div onClick={() => handleRetry(selectedServer?.name || '')}>
                   <RotateCw
                     className={`h-4 w-4 hover:cursor-pointer ${retrying && 'animate-spin'}`}
                   />
@@ -187,15 +191,18 @@ export default function FeaturesBar() {
                   <button
                     onClick={() =>
                       handleEnablingOrDisablingOfTool(
-                        !selectedServer?.disabled ? 'disable' : 'enable', selectedServer?.name || ""
+                        !selectedServer?.disabled ? 'disable' : 'enable',
+                        selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                    className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${
+                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}
+                      className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        !selectedServer?.disabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                     />
                   </button>
                 </div>
@@ -232,12 +239,12 @@ export default function FeaturesBar() {
             <button
               className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
               onClick={() => handleShowMCPServers()}
-            // {...(!showAllMCPServers &&
-            //   !showMCPServerTools && {
-            //     'data-tooltip-id': 'mcp-tooltips',
-            //     'data-tooltip-content': `MCP (${mcpServers.length} Available MCP Servers)`,
-            //     'data-tooltip-place': 'top-start',
-            //   })}
+              // {...(!showAllMCPServers &&
+              //   !showMCPServerTools && {
+              //     'data-tooltip-id': 'mcp-tooltips',
+              //     'data-tooltip-content': `MCP (${mcpServers.length} Available MCP Servers)`,
+              //     'data-tooltip-place': 'top-start',
+              //   })}
             >
               <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
               <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
@@ -259,12 +266,12 @@ export default function FeaturesBar() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleRefreshMCPServers()}
-            // {...(!showAllMCPServers &&
-            //   !showMCPServerTools && {
-            //     'data-tooltip-id': 'mcp-tooltips',
-            //     'data-tooltip-content': 'Refresh MCP Servers',
-            //     'data-tooltip-place': 'top-start',
-            //   })}
+              // {...(!showAllMCPServers &&
+              //   !showMCPServerTools && {
+              //     'data-tooltip-id': 'mcp-tooltips',
+              //     'data-tooltip-content': 'Refresh MCP Servers',
+              //     'data-tooltip-place': 'top-start',
+              //   })}
             >
               <RefreshCw
                 className={`h-4 w-4 hover:cursor-pointer hover:bg-slate-400 hover:bg-opacity-10 ${refreshSpinning && 'animate-spin'}`}
@@ -272,12 +279,12 @@ export default function FeaturesBar() {
             </button>
             <button
               onClick={() => openMcpSettings()}
-            // {...(!showAllMCPServers &&
-            //   !showMCPServerTools && {
-            //     'data-tooltip-id': 'mcp-tooltips',
-            //     'data-tooltip-content': 'Configure MCP Servers',
-            //     'data-tooltip-place': 'top-start',
-            //   })}
+              // {...(!showAllMCPServers &&
+              //   !showMCPServerTools && {
+              //     'data-tooltip-id': 'mcp-tooltips',
+              //     'data-tooltip-content': 'Configure MCP Servers',
+              //     'data-tooltip-place': 'top-start',
+              //   })}
             >
               <FilePenLine className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </button>

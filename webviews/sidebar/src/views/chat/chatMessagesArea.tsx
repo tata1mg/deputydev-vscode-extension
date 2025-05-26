@@ -64,8 +64,8 @@ export function ChatArea() {
                           key={chipIndex}
                           chipIndex={chipIndex}
                           initialText={reference.keyword}
-                          onDelete={() => { }}
-                          setShowAutoComplete={() => { }}
+                          onDelete={() => {}}
+                          setShowAutoComplete={() => {}}
                           displayOnly={true}
                           path={reference.path}
                           chunks={reference.chunks}
@@ -120,9 +120,8 @@ export function ChatArea() {
           }
 
           case 'TOOL_CHIP_UPSERT': {
-            console.log("comes here in tool chip upsert", msg.content.status);
-            let contentComponent: JSX.Element;
-            contentComponent = (
+            console.log('comes here in tool chip upsert', msg.content.status);
+            const contentComponent = (
               <MCPTool
                 toolRequest={msg.content.toolRequest}
                 toolResponse={msg.content.toolResponse}
@@ -220,12 +219,13 @@ export function ChatArea() {
                 contentComponent = (
                   <div
                     key={index}
-                    className={`markdown-body ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
-                      }`}
+                    className={`markdown-body ${
+                      ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
+                    }`}
                   >
                     <Markdown>
                       {typeof msg.content.tool_input_json === 'object' &&
-                        msg.content.tool_input_json?.prompt
+                      msg.content.tool_input_json?.prompt
                         ? String(msg.content.tool_input_json.prompt)
                         : typeof msg.content.tool_input_json === 'string'
                           ? msg.content.tool_input_json
@@ -322,10 +322,11 @@ export function ChatArea() {
                       <Tooltip.Trigger>
                         <div className={`${feedback === 'UPVOTE' && 'animate-thumbs-up'}`}>
                           <ThumbsUp
-                            className={`h-4 w-4 cursor-pointer ${feedback === 'UPVOTE'
+                            className={`h-4 w-4 cursor-pointer ${
+                              feedback === 'UPVOTE'
                                 ? 'fill-green-500 text-green-500'
                                 : 'hover:fill-green-500 hover:text-green-500'
-                              }`}
+                            }`}
                             onClick={() => {
                               if (feedback !== 'UPVOTE') {
                                 const updatedMessages = useChatStore
@@ -379,10 +380,11 @@ export function ChatArea() {
                       <Tooltip.Trigger>
                         <div className={`${feedback === 'DOWNVOTE' && 'animate-thumbs-down'}`}>
                           <ThumbsDown
-                            className={`h-4 w-4 cursor-pointer ${feedback === 'DOWNVOTE'
+                            className={`h-4 w-4 cursor-pointer ${
+                              feedback === 'DOWNVOTE'
                                 ? 'fill-red-500 text-red-500'
                                 : 'hover:fill-red-500 hover:text-red-500'
-                              }`}
+                            }`}
                             onClick={() => {
                               if (feedback !== 'DOWNVOTE') {
                                 const updatedMessages = useChatStore
