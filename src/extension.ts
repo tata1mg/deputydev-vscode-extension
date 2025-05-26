@@ -137,7 +137,6 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
 
-
     authenticationManager
       .validateCurrentSession()
       .then((status) => {
