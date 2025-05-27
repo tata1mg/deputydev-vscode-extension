@@ -310,6 +310,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
           break;
+
+        case 'tool-use-approval-update':
+          this.chatService._onToolUseApprove.fire({
+            toolUseId: data.toolUseId,
+            autoAcceptNextTime: data.autoAcceptNextTime,
+            approved: data.approved,
+          });
+          break;
+
         case 'set-shell-integration-timeout':
           this.terminalManager.setShellIntegrationTimeout(data.value);
           this.setGlobalState(data);
