@@ -95,6 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
     terminalManager,
     apiErrorHandler,
     mcpManager,
+    usageTrackingManager
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
