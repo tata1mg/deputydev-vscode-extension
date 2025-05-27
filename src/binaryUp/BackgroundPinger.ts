@@ -32,7 +32,6 @@ export class BackgroundPinger {
     this.configManager = configManager;
   }
 
-
   public start(): void {
     if (this.interval) {
       this.outputChannel.appendLine('🟡 Background pinger already running.');
