@@ -516,6 +516,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
       if (response.data.status === 'Completed' && activeRepo) {
         this.continueWorkspace.triggerAuthChange(true);
+        this.startPollingMcpServers();
+        this.syncMcpServers();
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
