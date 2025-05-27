@@ -1,16 +1,6 @@
 import { UsageTrackingRequest, SaveUrlRequest, Settings } from './types';
 import { callCommand } from './vscode';
 
-// export function webviewReady() {
-//   return callCommand('webview-ready', null);
-// }
-
-// export function searchFile(query: string, limit: number = 20) {
-//   return callCommand('search-file', { query, limit }) as Promise<
-//     ChatReferenceFileItem[]
-//   >;
-// }
-
 export function writeFile(params: {
   filePath: string;
   raw_diff: string;
@@ -132,12 +122,6 @@ export function showErrorMessage(message: string) {
 export function showInfoMessage(message: string) {
   return callCommand('show-info-message', { message });
 }
-
-// export function getOpenedFiles() {
-//   return callCommand('get-opened-files', null) as Promise<
-//     Omit<ChatReferenceFileItem, 'type'>[]
-//   >;
-// }
 
 export function setGlobalState(data: { key: string; value: unknown }) {
   return callCommand('set-global-state', data);
@@ -277,4 +261,24 @@ export function mcpServerEnableOrDisable(action: 'enable' | 'disable', serverNam
 
 export function mcpServerRestart(serverName: string) {
   return callCommand('mcp-server-restart', { serverName });
+}
+export function uploadFileToS3(data: File) {
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    const arrayBuffer = reader.result as ArrayBuffer;
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const fileData = {
+      name: data.name,
+      type: data.type,
+      size: data.size,
+      content: Array.from(uint8Array),
+    };
+    callCommand('upload-file-to-s3', fileData);
+  };
+  reader.readAsArrayBuffer(data);
+}
+
+export function showVsCodeMessageBox(type: 'info' | 'error' | 'warning', message: string) {
+  return callCommand('show-vscode-message-box', { type, message });
 }
