@@ -7,7 +7,7 @@ import {
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
 import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp, RotateCw } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { useClickAway } from 'react-use';
 
@@ -35,27 +35,30 @@ const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatu
 
 export default function FeaturesBar() {
   const [refreshSpinning, setRefreshSpinning] = useState(false);
-  const [retrying, setRetrying] = useState(false);
-  const [showAllMCPServers, setShowAllMCPServers] = useState(false);
-  const [showMCPServerTools, setShowMCPServerTools] = useState(false);
-  const { mcpServers, mcpServerTools, selectedServer } = useMcpStore();
+  const [retryingServers, setRetryingServers] = useState<Record<string, boolean>>({});
+  const { mcpServers, mcpServerTools, selectedServer, showAllMCPServers, showMCPServerTools } =
+    useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    syncServers();
+  }, []);
+
   useClickAway(featuresBarRef, () => {
-    setShowAllMCPServers(false);
-    setShowMCPServerTools(false);
+    useMcpStore.setState({ showAllMCPServers: false });
+    useMcpStore.setState({ showMCPServerTools: false });
   });
 
   const handleShowMCPServers = () => {
-    setShowAllMCPServers(!showAllMCPServers);
-    setShowMCPServerTools(false);
+    useMcpStore.setState({ showAllMCPServers: !showAllMCPServers });
+    useMcpStore.setState({ showMCPServerTools: false });
   };
 
   const handleShowMCPTools = (server: MCPServer) => {
     useMcpStore.setState({ mcpServerTools: server.tools });
     useMcpStore.setState({ selectedServer: server });
-    setShowMCPServerTools(true);
+    useMcpStore.setState({ showMCPServerTools: true });
   };
 
   const handleRefreshMCPServers = () => {
@@ -64,22 +67,24 @@ export default function FeaturesBar() {
     setTimeout(() => setRefreshSpinning(false), 1000);
   };
 
-  const handleRetry = () => {
-    if (!selectedServer) return;
+  const handleRetry = (serverName: string) => {
+    if (!serverName) return;
     console.log('************Retrying server***********');
-    setRetrying(true);
-    mcpServerRestart(selectedServer.name);
-    setTimeout(() => setRetrying(false), 1000);
+    setRetryingServers((prev) => ({ ...prev, [serverName]: true }));
+    mcpServerRestart(serverName);
+    setTimeout(() => {
+      setRetryingServers((prev) => ({ ...prev, [serverName]: false }));
+    }, 1000);
   };
 
-  const handleEnablingOrDisablingOfTool = (action: 'enable' | 'disable') => {
-    if (!selectedServer) return;
+  const handleEnablingOrDisablingOfTool = (action: 'enable' | 'disable', serverName: string) => {
+    if (!serverName) return;
 
     const newDisableState = action === 'enable' ? false : true;
 
-    mcpServerEnableOrDisable(action, selectedServer.name);
+    mcpServerEnableOrDisable(action, serverName);
 
-    const serverIndex = mcpServers.findIndex((server) => server.name === selectedServer.name);
+    const serverIndex = mcpServers.findIndex((server) => server.name === serverName);
 
     if (serverIndex !== -1) {
       const updatedServers = [...mcpServers];
@@ -90,22 +95,27 @@ export default function FeaturesBar() {
 
       useMcpStore.setState({
         mcpServers: updatedServers,
-        selectedServer: {
-          ...selectedServer,
-          disabled: newDisableState,
-        },
       });
+
+      if (selectedServer) {
+        useMcpStore.setState({
+          selectedServer: {
+            ...selectedServer,
+            disabled: newDisableState,
+          },
+        });
+      }
     }
   };
 
   const handleBack = () => {
     if (showMCPServerTools) {
-      setShowMCPServerTools(false);
+      useMcpStore.setState({ showMCPServerTools: false });
       return;
     }
 
     if (showAllMCPServers) {
-      setShowAllMCPServers(false);
+      useMcpStore.setState({ showAllMCPServers: false });
       return;
     }
   };
@@ -118,7 +128,12 @@ export default function FeaturesBar() {
       >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
-          <div className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto bg-gray-500/20">
+          <div
+            className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto"
+            style={{
+              backgroundColor: 'var(--vscode-editor-background)',
+            }}
+          >
             {mcpServers.map((server, index) => (
               <div key={index} className="flex justify-between">
                 <button
@@ -126,13 +141,39 @@ export default function FeaturesBar() {
                   onClick={() => handleShowMCPTools(server)}
                 >
                   <MCPServerStatus mcpServerStatus={server.status} />
-                  <div className="flex items-center gap-1">
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+                    <span className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
                       {server.name}
                     </span>
                     <span className="text-gray-500">{server.tool_count} Tools</span>
                   </div>
                 </button>
+                <div className="flex items-center gap-2">
+                  <div onClick={() => handleRetry(server.name)}>
+                    <RotateCw
+                      className={`h-4 w-4 hover:cursor-pointer ${retryingServers[server.name] && 'animate-spin'}`}
+                    />
+                  </div>
+                  <div className="mr-2 flex items-center space-x-2">
+                    <button
+                      onClick={() =>
+                        handleEnablingOrDisablingOfTool(
+                          !server.disabled ? 'disable' : 'enable',
+                          server.name
+                        )
+                      }
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -140,44 +181,55 @@ export default function FeaturesBar() {
 
         {/* SINGLE MCP SERVER WITH ITS TOOLS */}
         {showMCPServerTools && (
-          <div className={`${selectedServer?.disabled ? 'opacity-50' : ''}`}>
-            <div className="flex justify-between bg-gray-500/20">
+          <div>
+            <div
+              className="flex justify-between"
+              style={{
+                backgroundColor: 'var(--vscode-editor-background)',
+              }}
+            >
               <button className="flex w-full items-center gap-2 overflow-hidden px-2 py-1 hover:text-gray-400">
                 <MCPServerStatus mcpServerStatus={selectedServer?.status || ''} />
                 <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                  <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                  <span className="max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap">
                     {selectedServer?.name}
                   </span>
                   <span className="text-gray-500">{selectedServer?.tool_count} Tools</span>
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <div onClick={() => handleRetry()}>
+                <div onClick={() => handleRetry(selectedServer?.name || '')}>
                   <RotateCw
-                    className={`h-4 w-4 hover:cursor-pointer ${retrying && 'animate-spin'}`}
+                    className={`h-4 w-4 hover:cursor-pointer ${retryingServers[selectedServer?.name || ''] && 'animate-spin'}`}
                   />
                 </div>
                 <div className="mr-2 flex items-center space-x-2">
                   <button
                     onClick={() =>
                       handleEnablingOrDisablingOfTool(
-                        !selectedServer?.disabled ? 'disable' : 'enable'
+                        !selectedServer?.disabled ? 'disable' : 'enable',
+                        selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
                       !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
                     }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                        !selectedServer?.disabled ? 'translate-x-5' : 'translate-x-0'
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
                       }`}
                     />
                   </button>
                 </div>
               </div>
             </div>
-            <div className="h-full max-h-[150px] overflow-y-auto bg-transparent p-2 text-xs">
+            <div
+              className="h-full max-h-[150px] overflow-y-auto p-2 text-xs"
+              style={{
+                backgroundColor: 'var(--vscode-editor-background)',
+              }}
+            >
               {mcpServerTools && !selectedServer?.error && (
                 <>
                   {mcpServerTools.map((tool, index) => (
@@ -205,42 +257,37 @@ export default function FeaturesBar() {
                 />
               </button>
             )}
-            <button
-              className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
-              onClick={() => handleShowMCPServers()}
-              {...(!showAllMCPServers &&
-                !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': `MCP (${mcpServers.length} Available MCP Servers)`,
-                  'data-tooltip-place': 'top-start',
-                })}
-            >
-              <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
-              <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
-                {mcpServers.length} Available MCP Servers
+            <div className="flex max-w-[85%] gap-2">
+              <button
+                className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+                onClick={() => handleShowMCPServers()}
+                data-tooltip-id="mcp-tooltips"
+                data-tooltip-content={`MCP (${mcpServers.length} Available MCP Servers)`}
+                data-tooltip-place="top-start"
+              >
+                <div>
+                  <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
+                </div>
+                <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
+                  {mcpServers.length} Available MCP Servers
+                </div>
+              </button>
+              <div
+                data-tooltip-id="mcp-tooltips"
+                data-tooltip-content={MCPCircleHelpTooltipContent}
+                data-tooltip-place="top-start"
+                data-tooltip-class-name="max-w-[80%]"
+              >
+                <CircleHelp className="h-4 w-4 opacity-50 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
               </div>
-            </button>
-            <div
-              {...(!showAllMCPServers &&
-                !showMCPServerTools &&
-                {
-                  // "data-tooltip-id": "mcp-tooltips",
-                  // "data-tooltip-content": MCPCircleHelpTooltipContent,
-                  // "data-tooltip-place": "top-start"
-                })}
-            >
-              <CircleHelp className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleRefreshMCPServers()}
-              {...(!showAllMCPServers &&
-                !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'Refresh MCP Servers',
-                  'data-tooltip-place': 'top-start',
-                })}
+              data-tooltip-id="mcp-tooltips"
+              data-tooltip-content="Refresh MCP Servers"
+              data-tooltip-place="top-start"
             >
               <RefreshCw
                 className={`h-4 w-4 hover:cursor-pointer hover:bg-slate-400 hover:bg-opacity-10 ${refreshSpinning && 'animate-spin'}`}
@@ -248,12 +295,9 @@ export default function FeaturesBar() {
             </button>
             <button
               onClick={() => openMcpSettings()}
-              {...(!showAllMCPServers &&
-                !showMCPServerTools && {
-                  'data-tooltip-id': 'mcp-tooltips',
-                  'data-tooltip-content': 'Configure MCP Servers',
-                  'data-tooltip-place': 'top-start',
-                })}
+              data-tooltip-id="mcp-tooltips"
+              data-tooltip-content="Configure MCP Servers"
+              data-tooltip-place="top-start"
             >
               <FilePenLine className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
             </button>

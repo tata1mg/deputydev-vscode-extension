@@ -48,6 +48,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onWebviewFocused = this._onWebviewFocused.event;
   private apiErrorHandler = new ApiErrorHandler();
   private mcpService = new MCPService();
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -159,6 +160,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // MCP operations
         case 'sync-servers':
+          // Start polling asynchronously first
+          setTimeout(() => {
+            this.startPollingMcpServers();
+          }, 0);
           promise = this.syncMcpServers();
           break;
 
@@ -447,6 +452,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    const homeDir = os.homedir();
+    const mcp_config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
 
     this.logger.info('Initiating binary...');
     this.outputChannel.info('🚀 Initiating binary...');
@@ -456,6 +463,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           HOST: DD_HOST,
         },
       },
+      mcp_config_path: mcp_config_path,
     };
 
     const headers = {
@@ -853,6 +861,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   // MCP Operations
+  async startPollingMcpServers() {
+    console.log('polling servers started');
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+    this.pollingInterval = setInterval(async () => {
+      try {
+        console.log('polling servers');
+        await this.getAllServers();
+      } catch (error) {
+        this.logger.error('Error while polling MCP servers:', error);
+      }
+    }, 2000);
+  }
+
   async getAllServers() {
     const response = await this.mcpService.getAllMcpServers();
     if (response.is_error && response.meta && response.meta.message) {

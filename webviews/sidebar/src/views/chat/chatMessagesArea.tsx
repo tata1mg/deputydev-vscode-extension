@@ -19,6 +19,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
 import { ChatMessage } from '@/types';
 import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
+import MCPTool from './chatElements/Tools/mcpTool';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
@@ -116,6 +117,19 @@ export function ChatArea() {
                 />
               </div>
             );
+          }
+
+          case 'TOOL_CHIP_UPSERT': {
+            console.log('comes here in tool chip upsert', msg.content.status);
+            const contentComponent = (
+              <MCPTool
+                toolRequest={msg.content.toolRequest}
+                toolResponse={msg.content.toolResponse}
+                toolUseId={msg.content.tool_use_id}
+                toolRunStatus={msg.content.status}
+              />
+            );
+            return contentComponent;
           }
 
           case 'TOOL_USE_REQUEST': {
