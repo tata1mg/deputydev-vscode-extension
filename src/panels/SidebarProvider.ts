@@ -315,7 +315,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           this.chatService._onToolUseApprove.fire({
             toolUseId: data.toolUseId,
             autoAcceptNextTime: data.autoAcceptNextTime,
-            approved: data.approved
+            approved: data.approved,
           });
           break;
 
