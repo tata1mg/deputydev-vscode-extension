@@ -248,7 +248,7 @@ export class ChatManager {
             tool_name: tool.name,
             server_id: server.serverId,
           },
-          auto_approve: tool.autoApprove ?? false, // Default to false if not specified
+          auto_approve: tool.auto_approve ?? false, // Default to false if not specified
         });
       }
     }
@@ -826,6 +826,40 @@ export class ChatManager {
               toolUseId: toolRequest.tool_use_id,
             },
           });
+          // Send TOOL_USE_RESULT with error response
+          const resultStatus: 'completed' | 'error' = 'error';
+          const toolUseResult = {
+            name: 'TOOL_USE_RESULT',
+            data: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              result_json: {
+                message: `Tool use was rejected by user.`,
+              },
+              status: resultStatus,
+            },
+          };
+          const EnvironmentDetails = await getEnvironmentDetails(true);
+          const toolUseRejectedPayload = {
+            search_web: toolRequest.search_web,
+            llm_model: toolRequest.llm_model,
+            message_id: messageId, // Pass original message ID for context if needed by UI later
+            write_mode: toolRequest.write_mode,
+            is_tool_response: true,
+            tool_use_failed: true,
+            tool_use_response: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              response: {
+                message: `Tool use was rejected by user.`,
+              },
+            },
+            os_name: await getOSName(),
+            shell: getShell(),
+            vscode_env: EnvironmentDetails,
+            client_tools: clientTools,
+          };
+          await this.apiChat(toolUseRejectedPayload, chunkCallback, toolUseResult);
           return; // Exit early if tool use was rejected
         }
         rawResult = await this.mcpManager.runMCPTool(
