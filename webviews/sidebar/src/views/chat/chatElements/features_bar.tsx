@@ -41,9 +41,9 @@ export default function FeaturesBar() {
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    syncServers();
-  }, []);
+  // useEffect(() => {
+  //   syncServers();
+  // }, []);
 
   useClickAway(featuresBarRef, () => {
     useMcpStore.setState({ showAllMCPServers: false });
