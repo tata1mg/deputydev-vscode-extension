@@ -10,15 +10,7 @@ import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { AuthService } from '../services/auth/AuthService';
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from '../constants';
-import {
-  ChatPayload,
-  ChunkCallback,
-  Chunk,
-  ToolRequest,
-  SearchTerm,
-  ToolUseResult,
-  ClientTool,
-} from '../types';
+import { ChatPayload, ChunkCallback, Chunk, ToolRequest, SearchTerm, ToolUseResult, ClientTool } from '../types';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import * as fs from 'fs';
 import * as path from 'path';
