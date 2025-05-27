@@ -50,7 +50,7 @@ export class ChatManager {
   private currentAbortController: AbortController | null = null;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
-  public _onToolUseApprove = new vscode.EventEmitter<{
+  public _onToolUseAccept = new vscode.EventEmitter<{
     toolUseId: string;
     autoAcceptNextTime: boolean;
   }>();
@@ -58,7 +58,7 @@ export class ChatManager {
     toolUseId: string;
   }>();
   public onTerminalApprove = this._onTerminalApprove.event;
-  public onToolUseApprove = this._onToolUseApprove.event;
+  public onToolUseAccept = this._onToolUseAccept.event;
   public onToolUseReject = this._onToolUseReject.event;
   private terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
@@ -738,9 +738,9 @@ export class ChatManager {
     }
   }
 
-  private async _getToolUseApprovalOrRejection(toolUseId: string): Promise<ToolUseApprovalStatus> {
+  private async _getToolUseApprovalStatus(toolUseId: string): Promise<ToolUseApprovalStatus> {
     return new Promise((resolve) => {
-      const disposableApprove = this.onToolUseApprove((event) => {
+      const disposableApprove = this.onToolUseAccept((event) => {
         if (event.toolUseId === toolUseId) {
           disposableApprove.dispose();
           resolve({ approved: true, autoAcceptNextTime: event.autoAcceptNextTime });
@@ -814,7 +814,7 @@ export class ChatManager {
 
         if (!detectedClientTool.auto_approve) {
           this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
-          approvalStatus = await this._getToolUseApprovalOrRejection(toolRequest.tool_use_id);
+          approvalStatus = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
         }
 
         if (!approvalStatus.approved) {
