@@ -308,7 +308,7 @@ export interface ToolRequest {
   requestData: any;
   toolName: string;
   toolMeta: ToolMeta;
-  requiresApproval: Boolean;
+  requiresApproval: boolean;
 }
 
 export interface BaseToolProps {

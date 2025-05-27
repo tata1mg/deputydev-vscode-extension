@@ -21,7 +21,12 @@ const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   }
 };
 
-const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolResponse, toolUseId }) => {
+const BaseTool: React.FC<BaseToolProps> = ({
+  toolRunStatus,
+  toolRequest,
+  toolResponse,
+  toolUseId,
+}) => {
   const { themeKind } = useThemeStore();
   const borderClass =
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
@@ -47,17 +52,17 @@ const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolRes
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       <div className="flex w-full flex-col gap-2">
         <div className="flex w-full items-center justify-between gap-2">
-          <div className="flex justify-between items-center">
-            <div className='flex gap-2 items-center'>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <StatusIcon status={toolRunStatus} />
-              <div className='flex flex-col'>
+              <div className="flex flex-col">
                 <span className="text-md">{toolRequest?.toolMeta.serverName}</span>
                 <span className="text-xs text-gray-400">{toolRequest?.toolMeta.toolName}</span>
               </div>
             </div>
           </div>
-          <div className='flex gap-2'>
-            {toolRequest?.requiresApproval &&
+          <div className="flex gap-2">
+            {toolRequest?.requiresApproval && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400">Auto approve</span>
                 <input
@@ -67,7 +72,7 @@ const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolRes
                   className="h-4 w-4 rounded border-gray-500/40 bg-gray-500/10 text-blue-500 focus:ring-0"
                 />
               </div>
-            }
+            )}
             <div className="cursor-pointer" onClick={() => handleDropDown()}>
               {!showDropDown ? <ChevronDown /> : <ChevronUp />}
             </div>
@@ -89,7 +94,7 @@ const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolRes
                 </div>
               </div>
             )}
-            {toolRequest.requiresApproval &&
+            {toolRequest.requiresApproval && (
               <>
                 <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
                   This tool requires your approval before it can be executed.
@@ -103,13 +108,13 @@ const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolRes
                   </button>
                   <button
                     onClick={() => toolUseApprovalUpdate(toolUseId, false, false)}
-                    className={`text-red-500 flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
+                    className={`flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] text-red-500 hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
                   >
                     Reject
                   </button>
                 </div>
               </>
-            }
+            )}
           </div>
         )}
       </div>
