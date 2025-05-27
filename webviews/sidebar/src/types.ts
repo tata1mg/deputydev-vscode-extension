@@ -106,6 +106,7 @@ export type ChatUserMessage = {
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
+  s3Reference?: S3Object;
   actor: 'USER';
 };
 
@@ -332,4 +333,8 @@ export interface MCPStorage {
   showAllMCPServers: boolean;
   showMCPServerTools: boolean;
   setMcpServers: (mcpServers: MCPServer[]) => void;
+}
+export interface S3Object {
+  key?: string;
+  get_url?: string;
 }
