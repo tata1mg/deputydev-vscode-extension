@@ -735,7 +735,6 @@ export const useChatStore = create(
                   case 'TOOL_CHIP_UPSERT': {
                     console.log(event);
                     break;
-
                   }
 
                   case 'TOOL_USE_RESULT': {
