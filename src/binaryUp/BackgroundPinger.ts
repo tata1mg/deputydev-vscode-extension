@@ -71,6 +71,8 @@ export class BackgroundPinger {
             try {
               await this.sideBarProvider.initiateBinary();
               this.sideBarProvider.setViewType('chat'); //TODO: return to last view type
+              this.sideBarProvider.syncMcpServers();
+              this.sideBarProvider.startPollingMcpServers();
             } catch (error) {
               this.logger.error('Error initiating binary:', error);
               this.outputChannel.appendLine('❌ Error initiating binary.');
