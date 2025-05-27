@@ -40,16 +40,13 @@ export class ChatManager {
   private currentAbortController: AbortController | null = null;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
-  public _onToolUseAccept = new vscode.EventEmitter<{
+  public _onToolUseApprove = new vscode.EventEmitter<{
     toolUseId: string;
     autoAcceptNextTime: boolean;
-  }>();
-  public _onToolUseReject = new vscode.EventEmitter<{
-    toolUseId: string;
+    approved: boolean;
   }>();
   public onTerminalApprove = this._onTerminalApprove.event;
-  public onToolUseAccept = this._onToolUseAccept.event;
-  public onToolUseReject = this._onToolUseReject.event;
+  public onToolUseApprovalEvent = this._onToolUseApprove.event;
   private terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
@@ -730,17 +727,10 @@ export class ChatManager {
 
   private async _getToolUseApprovalStatus(toolUseId: string): Promise<ToolUseApprovalStatus> {
     return new Promise((resolve) => {
-      const disposableApprove = this.onToolUseAccept((event) => {
+      const disposableApprove = this.onToolUseApprovalEvent((event) => {
         if (event.toolUseId === toolUseId) {
           disposableApprove.dispose();
-          resolve({ approved: true, autoAcceptNextTime: event.autoAcceptNextTime });
-        }
-      });
-
-      const disposableReject = this.onToolUseReject((event) => {
-        if (event.toolUseId === toolUseId) {
-          disposableReject.dispose();
-          resolve({ approved: false, autoAcceptNextTime: false });
+          resolve({ approved: event.approved, autoAcceptNextTime: event.autoAcceptNextTime });
         }
       });
     });
