@@ -299,10 +299,16 @@ export interface LLMModels {
 
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
 
+export interface ToolMeta {
+  toolName: string;
+  serverName: string;
+}
+
 export interface ToolRequest {
   requestData: any;
   toolName: string;
-  toolMeta: Record<string, any>;
+  toolMeta: ToolMeta;
+  requiresApproval: Boolean;
 }
 
 export interface BaseToolProps {
