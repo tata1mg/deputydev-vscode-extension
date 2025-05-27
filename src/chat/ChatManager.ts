@@ -15,7 +15,6 @@ import {
   ChunkCallback,
   Chunk,
   ToolRequest,
-  CurrentDiffRequest,
   SearchTerm,
   ToolUseResult,
   ClientTool,
@@ -34,7 +33,6 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { WriteToFileTool } from './tools/WriteToFileTool';
-import { clear } from 'console';
 import { MCPManager } from '../mcp/mcpManager';
 
 interface ToolUseApprovalStatus {
