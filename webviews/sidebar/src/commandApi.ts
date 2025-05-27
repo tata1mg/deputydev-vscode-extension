@@ -263,8 +263,12 @@ export function mcpServerRestart(serverName: string) {
   return callCommand('mcp-server-restart', { serverName });
 }
 
-export function toolUseApprovalUpdate(toolUseId: string, autoAcceptNextTime: Boolean, approved: Boolean) {
-  return callCommand('tool-use-approval-update', {toolUseId, autoAcceptNextTime, approved});
+export function toolUseApprovalUpdate(
+  toolUseId: string,
+  autoAcceptNextTime: boolean,
+  approved: boolean
+) {
+  return callCommand('tool-use-approval-update', { toolUseId, autoAcceptNextTime, approved });
 }
 
 export function uploadFileToS3(data: File) {
