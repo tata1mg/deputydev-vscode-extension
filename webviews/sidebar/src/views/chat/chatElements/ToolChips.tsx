@@ -194,7 +194,7 @@ export function RetryChip({
       const payload = errorData.payload_to_retry;
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
-      sendChatMessage('retry', [], () => {}, true, payload);
+      sendChatMessage('retry', [], () => {}, undefined, true, payload);
     } else {
       // console.log("No error found to retry.");
     }
