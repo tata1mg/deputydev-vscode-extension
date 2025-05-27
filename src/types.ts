@@ -50,6 +50,7 @@ export interface ClientTool {
     };
   };
   tool_metadata: MCPToolMetadata;
+  auto_approve: boolean; // Whether the tool can be used without explicit approval
 }
 
 export interface ChatPayload {

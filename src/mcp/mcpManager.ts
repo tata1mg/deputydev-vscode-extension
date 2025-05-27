@@ -19,6 +19,7 @@ interface MCPTool {
     idempotentHint?: boolean; // If true, repeated calls with same args have no additional effect
     openWorldHint?: boolean; // If true, tool interacts with external entities
   };
+  autoApprove: boolean; // Whether the tool can be used without explicit approval
 }
 
 interface ServerWiseMCPTool {
