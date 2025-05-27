@@ -48,6 +48,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
     }
   };
 
+  // base tool chip
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       <div className="flex w-full flex-col gap-2">
