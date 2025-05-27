@@ -9,6 +9,8 @@ export const useMcpStore = create<MCPStorage>()(
       mcpServerTools: [],
       mcpServers: [],
       selectedServer: undefined,
+      showAllMCPServers: false,
+      showMCPServerTools: false,
       setMcpServers: (mcpServers) => set({ mcpServers: mcpServers }),
     }),
     {

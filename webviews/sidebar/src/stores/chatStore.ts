@@ -22,6 +22,7 @@ import {
   ChatMetaData,
   LLMModels,
   ChatReplaceBlockMessage,
+  BaseToolProps,
 } from '@/types';
 
 // =============================================================================
@@ -733,7 +734,53 @@ export const useChatStore = create(
                   }
 
                   case 'TOOL_CHIP_UPSERT': {
-                    console.log(event);
+                    useChatStore.setState({ showSkeleton: false });
+                    console.log('***********mcp tool**********', event);
+                    const baseToolProps = event.data as BaseToolProps;
+                    if (baseToolProps) {
+                      const newToolMsg: ChatToolUseMessage = {
+                        type: 'TOOL_CHIP_UPSERT',
+                        content: {
+                          tool_name: baseToolProps.toolRequest?.toolName || '',
+                          tool_use_id: baseToolProps.toolUseId,
+                          input_params_json: '',
+                          result_json: '',
+                          status: 'pending',
+                          toolRequest: baseToolProps.toolRequest,
+                        },
+                      };
+
+                      set((state) => {
+                        // First check if we already have this tool message
+                        const existingToolMsgIndex = state.history.findIndex(
+                          (msg) =>
+                            msg.type === 'TOOL_CHIP_UPSERT' &&
+                            msg.content.tool_use_id === baseToolProps.toolUseId
+                        );
+
+                        if (existingToolMsgIndex !== -1) {
+                          // If it exists, update it
+                          const newHistory = [...state.history];
+                          newHistory[existingToolMsgIndex] = {
+                            ...newHistory[existingToolMsgIndex],
+                            content: {
+                              ...newHistory[existingToolMsgIndex].content,
+                              toolRequest: baseToolProps.toolRequest,
+                              ...(baseToolProps.toolResponse && {
+                                toolResponse: baseToolProps.toolResponse,
+                              }),
+                              status: baseToolProps.toolRunStatus,
+                            },
+                          };
+                          return { history: newHistory };
+                        } else {
+                          // If it doesn't exist, add it
+                          return {
+                            history: [...state.history, newToolMsg],
+                          };
+                        }
+                      });
+                    }
                     break;
                   }
 

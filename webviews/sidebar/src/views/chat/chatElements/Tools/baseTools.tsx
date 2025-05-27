@@ -19,12 +19,7 @@ const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   }
 };
 
-const BaseTool: React.FC<BaseToolProps> = ({
-  toolDisplayName,
-  toolRunStatus,
-  toolRequest,
-  toolResponse,
-}) => {
+const BaseTool: React.FC<BaseToolProps> = ({ toolRunStatus, toolRequest, toolResponse }) => {
   const [showDropDown, setShowDropDown] = useState(false);
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -36,26 +31,28 @@ const BaseTool: React.FC<BaseToolProps> = ({
         <div className="flex w-full items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <StatusIcon status={toolRunStatus} />
-            <span>{toolDisplayName}</span>
+            <span>{toolRequest?.toolName}</span>
           </div>
           <div className="cursor-pointer" onClick={() => handleDropDown()}>
             {!showDropDown ? <ChevronDown /> : <ChevronUp />}
           </div>
         </div>
-        {showDropDown && (
+        {showDropDown && toolRequest && (
           <div className="space-y-4">
-            <div className="rounded bg-gray-500/10 p-2">
-              <div className="mb-2 font-semibold">Request</div>
-              <div className="whitespace-pre-wrap text-xs">
-                {JSON.stringify(toolRequest, null, 2)}
+            <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
+              <div className="mb-2 font-semibold">Ran with these arguments:</div>
+              <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
+                {JSON.stringify(toolRequest.requestData, null, 2)}
               </div>
             </div>
-            {/* <div className="bg-gray-500/10 p-2 rounded">
-              <div className="font-semibold mb-2">Response</div>
-              <div className="text-xs whitespace-pre-wrap">
-                {JSON.stringify(toolResponse, null, 2)}
+            {toolResponse && (
+              <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
+                <div className="mb-2 font-semibold">Output</div>
+                <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
+                  {JSON.stringify(toolResponse, null, 2)}
+                </div>
               </div>
-            </div> */}
+            )}
           </div>
         )}
       </div>
