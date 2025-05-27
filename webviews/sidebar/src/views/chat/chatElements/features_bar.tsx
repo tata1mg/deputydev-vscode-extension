@@ -149,12 +149,24 @@ export default function FeaturesBar() {
                   </div>
                 </button>
                 <div className="flex items-center gap-2">
-                  <div onClick={() => handleRetry(server.name)}>
-                    <RotateCw
-                      className={`h-4 w-4 hover:cursor-pointer ${retryingServers[server.name] && 'animate-spin'}`}
-                    />
-                  </div>
-                  <div className="mr-2 flex items-center space-x-2">
+                  {!server.disabled &&
+                    <div
+                      onClick={() => handleRetry(server.name)}
+                      data-tooltip-id="mcp-tooltips"
+                      data-tooltip-content="Restart Server"
+                      data-tooltip-place="top-start"
+                    >
+                      <RotateCw
+                        className={`h-4 w-4 hover:cursor-pointer ${retryingServers[server.name] && 'animate-spin'}`}
+                      />
+                    </div>
+                  }
+                  <div
+                    className="mr-2 flex items-center space-x-2"
+                    data-tooltip-id="mcp-tooltips"
+                    data-tooltip-content="Enable/Disable Server"
+                    data-tooltip-place="top-start"
+                  >
                     <button
                       onClick={() =>
                         handleEnablingOrDisablingOfTool(
@@ -162,14 +174,12 @@ export default function FeaturesBar() {
                           server.name
                         )
                       }
-                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                   </div>
@@ -198,12 +208,24 @@ export default function FeaturesBar() {
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <div onClick={() => handleRetry(selectedServer?.name || '')}>
-                  <RotateCw
-                    className={`h-4 w-4 hover:cursor-pointer ${retryingServers[selectedServer?.name || ''] && 'animate-spin'}`}
-                  />
-                </div>
-                <div className="mr-2 flex items-center space-x-2">
+                {!selectedServer?.disabled &&
+                  <div
+                    onClick={() => handleRetry(selectedServer?.name || '')}
+                    data-tooltip-id="mcp-tooltips"
+                    data-tooltip-content="Restart Server"
+                    data-tooltip-place="top-start"
+                  >
+                    <RotateCw
+                      className={`h-4 w-4 hover:cursor-pointer ${retryingServers[selectedServer?.name || ''] && 'animate-spin'}`}
+                    />
+                  </div>
+                }
+                <div
+                  className="mr-2 flex items-center space-x-2"
+                  data-tooltip-id="mcp-tooltips"
+                  data-tooltip-content="Enable/Disable Server"
+                  data-tooltip-place="top-start"
+                >
                   <button
                     onClick={() =>
                       handleEnablingOrDisablingOfTool(
@@ -211,14 +233,12 @@ export default function FeaturesBar() {
                         selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
-                      }`}
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
