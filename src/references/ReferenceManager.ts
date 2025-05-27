@@ -103,4 +103,28 @@ export class ReferenceManager {
       data: response.urls,
     });
   }
+
+  async uploadFileToS3(
+    payload: { name: string; type: string; size: number; content: number[] },
+    sendMessage: (message: object) => void,
+  ) {
+    const onProgress = (percent: number) => {
+      sendMessage({
+        id: uuidv4(),
+        command: 'image-upload-progress',
+        data: { progress: percent },
+      });
+    };
+    const buffer = Buffer.from(payload.content);
+    const newPayload = {
+      ...payload,
+      content: buffer,
+    };
+    const response = await this.referenceService.uploadFileToS3(newPayload, onProgress);
+    sendMessage({
+      id: uuidv4(),
+      command: 'uploaded-image-key',
+      data: response,
+    });
+  }
 }

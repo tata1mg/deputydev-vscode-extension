@@ -42,4 +42,5 @@ export const API_ENDPOINTS = {
   INVOKE_MCP_SERVER_TOOL: '/v1/mcp/servers/tool/invoke',
   SYNC_MCP_SERVERS: '/v1/mcp/servers/sync',
   GET_ACTIVE_SERVER_TOOLS: '/v1/mcp/servers/tools',
+  GET_PRESIGNED_URL: '/end_user/v1/file-upload/get-presigned-post-url',
 };

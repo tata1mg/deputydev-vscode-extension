@@ -3,7 +3,9 @@ import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { AuthService } from '../auth/AuthService';
 import { SaveUrlRequest } from '../../types';
-
+import axios from 'axios';
+import FormData from 'form-data';
+import { getMainConfig } from '../../config/configSetGet';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
 
@@ -136,6 +138,71 @@ export class ReferenceService {
       return searchResponse.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
+  public async uploadFileToS3(
+    payload: { name: string; type: string; size: number; content: Buffer },
+    onProgress?: (percent: number) => void,
+  ): Promise<any> {
+    try {
+      const mainConfig = getMainConfig();
+      if (!mainConfig) {
+        throw new Error('Main config not found');
+      }
+      if (!payload.name || !payload.type || !payload.size || !payload.content) {
+        throw new Error('Invalid payload: missing required fields');
+      }
+      if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
+        throw new Error('File size exceeds the maximum allowed limit');
+      }
+      if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
+        throw new Error('Invalid file type');
+      }
+      const authToken = await this.fetchAuthToken();
+      const headers = { Authorization: `Bearer ${authToken}` };
+
+      const url_response = await api.post(
+        API_ENDPOINTS.GET_PRESIGNED_URL,
+        {
+          file_name: payload.name,
+          file_size: payload.size,
+          file_type: payload.type,
+        },
+        { headers },
+      );
+
+      const { download_url, upload_url, attachment_id } = url_response.data.data;
+
+      const formData = new FormData();
+
+      // Add all required S3 fields
+      for (const [key, value] of Object.entries(upload_url.fields)) {
+        formData.append(key, value);
+      }
+
+      // IMPORTANT: Append file last, without custom headers
+      formData.append('file', payload.content, payload.name);
+
+      // Axios POST to S3
+      await axios.post(upload_url.url, formData, {
+        headers: {
+          ...formData.getHeaders(),
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            if (onProgress) onProgress(percent);
+          }
+        },
+      });
+
+      return { get_url: download_url, key: attachment_id };
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
     }
   }
 }

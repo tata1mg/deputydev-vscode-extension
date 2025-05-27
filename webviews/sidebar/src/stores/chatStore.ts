@@ -21,6 +21,7 @@ import {
   ChatTerminalNoShell,
   ChatMetaData,
   LLMModels,
+  S3Object,
   ChatReplaceBlockMessage,
   BaseToolProps,
 } from '@/types';
@@ -97,6 +98,8 @@ export const useChatStore = create(
         webSearchInToolUse: false,
         activeModel: '',
         search_web: false,
+        imageUploadProgress: 0,
+        s3Object: {} as S3Object,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -121,6 +124,7 @@ export const useChatStore = create(
             message: string,
             editorReferences: ChatReferenceItem[],
             chunkCallback: (data: { name: string; data: any }) => void,
+            s3Reference?: S3Object,
             retryChat?: boolean,
             retry_payload?: any,
             create_new_workspace_payload?: any
@@ -137,6 +141,7 @@ export const useChatStore = create(
                 type: 'TEXT_BLOCK',
                 content: { text: message },
                 referenceList: editorReferences,
+                s3Reference: s3Reference,
                 actor: 'USER',
               };
 
@@ -173,7 +178,7 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-
+              // delete copyS3Reference.get_url
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
@@ -185,6 +190,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
+                attachments: s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [],
               };
 
               // If a tool response was stored, add it to the payload

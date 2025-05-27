@@ -22,7 +22,6 @@ import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
-import { url } from 'inspector';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
 
@@ -375,6 +374,17 @@ addCommandEventListener('session-chats-history', ({ data }) => {
   useChatStore.setState({ history: data as ChatMessage[] });
 });
 
+addCommandEventListener('image-upload-progress', (event) => {
+  const { data } = event as { data: { progress: number } };
+  console.log('Image upload progress:', data.progress);
+  useChatStore.setState({ imageUploadProgress: data.progress as number });
+});
+
+addCommandEventListener('uploaded-image-key', (event) => {
+  const { data } = event as { data: { key: string; get_url: string } };
+  useChatStore.setState({ s3Object: data });
+});
+
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
     useChatStore.setState({
@@ -511,7 +521,15 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     },
   };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
+  sendChatMessage(
+    'create new workspace payload',
+    [],
+    () => {},
+    undefined,
+    false,
+    {},
+    continuationPayload
+  );
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
@@ -598,7 +616,15 @@ addCommandEventListener('update-workspace-dd', () => {
       },
     };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage('create new workspace payload', [], () => {}, false, {}, continuationPayload);
+    sendChatMessage(
+      'create new workspace payload',
+      [],
+      () => {},
+      undefined,
+      false,
+      {},
+      continuationPayload
+    );
   } else {
     logToOutput(
       'error',
