@@ -37,11 +37,11 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const [showConsent, setShowConsent] = useState(true);
 
   useEffect(() => {
-    console.log("***************", toolRequest?.requiresApproval)
+    console.log('***************', toolRequest?.requiresApproval);
     if (toolRequest?.requiresApproval) {
       setShowDropDown(true);
     }
-  }, [])
+  }, []);
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -69,7 +69,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
           <div className="flex gap-2">
             {toolRequest?.requiresApproval && (
               <div>
-                {showConsent &&
+                {showConsent && (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400">Auto approve</span>
                     <input
@@ -79,7 +79,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                       className="h-4 w-4 rounded border-gray-500/40 bg-gray-500/10 text-blue-500 focus:ring-0"
                     />
                   </div>
-                }
+                )}
               </div>
             )}
             <div className="cursor-pointer" onClick={() => handleDropDown()}>
@@ -105,7 +105,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
             )}
             {toolRequest.requiresApproval && (
               <div>
-                {showConsent &&
+                {showConsent && (
                   <div>
                     <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
                       This tool requires your approval before it can be executed.
@@ -133,7 +133,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                       </button>
                     </div>
                   </div>
-                }
+                )}
               </div>
             )}
           </div>
