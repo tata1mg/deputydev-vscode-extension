@@ -42,7 +42,6 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const [requestRejected, setRequestRejected] = useState(false);
 
   useEffect(() => {
-    console.log('***************', toolRequest?.requiresApproval);
     if (toolRequest?.requiresApproval) {
       setShowDropDown(true);
     }
@@ -53,7 +52,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
       setShowConsent(false);
       setShowDropDown(false);
     }
-  }, [toolRunStatus])
+  }, [toolRunStatus]);
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -76,7 +75,9 @@ const BaseTool: React.FC<BaseToolProps> = ({
             <div className="flex items-center gap-2">
               <StatusIcon status={toolRunStatus} />
               <div className="flex flex-col">
-                <span className="text-md">{requestRejected ? "Tool Use Request Rejected" : displayText}</span>
+                <span className="text-md">
+                  {requestRejected ? 'Tool Use Request Rejected' : displayText}
+                </span>
                 <span className="text-xs text-gray-400">
                   {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
                 </span>

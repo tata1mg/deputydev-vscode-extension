@@ -39,6 +39,8 @@ import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQuery
 import { TerminalManager } from './terminal/TerminalManager';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
+import { API_ENDPOINTS } from './services/api/endpoints';
+import { binaryApi } from './services/api/axios';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -49,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -173,7 +175,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   watchMcpFileSave(context, async (document: TextDocument) => {
     const response = await mcpService.syncServers();
-    console.log('************on saving file********', response);
     if (response && response.data && !response.is_error) {
       sidebarProvider.sendMessageToSidebar({
         id: uuidv4(),
@@ -303,6 +304,6 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   deleteSessionId();
 }

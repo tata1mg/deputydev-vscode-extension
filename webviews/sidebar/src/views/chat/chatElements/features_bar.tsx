@@ -1,13 +1,12 @@
 import {
   mcpServerEnableOrDisable,
-  mcpServerRestart,
   openMcpSettings,
   syncServers,
 } from '@/commandApi';
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
-import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp, RotateCw } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { useClickAway } from 'react-use';
 
@@ -35,15 +34,11 @@ const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatu
 
 export default function FeaturesBar() {
   const [refreshSpinning, setRefreshSpinning] = useState(false);
-  const [retryingServers, setRetryingServers] = useState<Record<string, boolean>>({});
   const { mcpServers, mcpServerTools, selectedServer, showAllMCPServers, showMCPServerTools } =
     useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
-  // useEffect(() => {
-  //   syncServers();
-  // }, []);
 
   useClickAway(featuresBarRef, () => {
     useMcpStore.setState({ showAllMCPServers: false });
@@ -67,15 +62,6 @@ export default function FeaturesBar() {
     setTimeout(() => setRefreshSpinning(false), 1000);
   };
 
-  const handleRetry = (serverName: string) => {
-    if (!serverName) return;
-    console.log('************Retrying server***********');
-    setRetryingServers((prev) => ({ ...prev, [serverName]: true }));
-    mcpServerRestart(serverName);
-    setTimeout(() => {
-      setRetryingServers((prev) => ({ ...prev, [serverName]: false }));
-    }, 1000);
-  };
 
   const handleEnablingOrDisablingOfTool = (action: 'enable' | 'disable', serverName: string) => {
     if (!serverName) return;

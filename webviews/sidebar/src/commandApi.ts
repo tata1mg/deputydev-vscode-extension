@@ -259,9 +259,6 @@ export function mcpServerEnableOrDisable(action: 'enable' | 'disable', serverNam
   return callCommand('mcp-server-enable-or-disable', { action, serverName });
 }
 
-export function mcpServerRestart(serverName: string) {
-  return callCommand('mcp-server-restart', { serverName });
-}
 
 export function toolUseApprovalUpdate(
   toolUseId: string,

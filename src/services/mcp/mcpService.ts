@@ -27,7 +27,6 @@ export class MCPService {
   public async getActiveServerTools(): Promise<any> {
     try {
       const response = await binaryApi().get(API_ENDPOINTS.GET_ACTIVE_SERVER_TOOLS);
-      console.log('Active Server Tools:', response.data);
       return response.data;
     } catch (error) {
       this.logger.error('Error while syncing servers');
@@ -37,14 +36,12 @@ export class MCPService {
 
   public async syncServers(): Promise<any> {
     try {
-      console.log('**********syncing from method**********');
       const homeDir = os.homedir();
       const config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
       const data = {
         config_path: config_path,
       };
       const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS, data);
-      console.log(response.data);
       return response.data;
     } catch (error) {
       this.logger.error('Error while syncing servers');
@@ -84,22 +81,6 @@ export class MCPService {
     }
   }
 
-  public async restartServer(serverName: string): Promise<any> {
-    try {
-      let endpoint;
-      if (serverName) {
-        endpoint = `/v1/mcp/servers/${serverName}/restart`;
-      } else {
-        throw new Error('Server name not provided');
-      }
-      const response = await binaryApi().patch(endpoint);
-      console.log(response.data);
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error while restarting server');
-      this.apiErrorHandler.handleApiError(error);
-    }
-  }
 
   public async invokeMcpTool(payload: MCPServerToolInvokePayload) {
     try {
