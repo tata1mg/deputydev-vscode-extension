@@ -35,6 +35,8 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import * as fs from 'fs';
 import { TerminalManager } from '../terminal/TerminalManager';
 import { getOSName } from '../utilities/osName';
+import * as os from 'os';
+import { MCPService } from '../services/mcp/mcpService';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -45,6 +47,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
   private apiErrorHandler = new ApiErrorHandler();
+  private mcpService = new MCPService();
+  private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -153,9 +157,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'upload-file-to-s3':
           promise = this.codeReferenceService.uploadFileToS3(data, sendMessage);
           break;
-        case 'usage-tracking':
-          promise = this.trackingManager.trackUsage(data);
+        case 'usage-tracking': {
+          const sessionId = getSessionId();
+          if (sessionId) {
+            promise = this.trackingManager.trackUsage({
+              ...data,
+              sessionId: sessionId,
+            });
+          }
           break;
+        }
         case 'show-vscode-message-box':
           if (data.type === 'info') {
             vscode.window.showInformationMessage(data.message);
@@ -164,6 +175,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           } else if (data.type === 'warning') {
             vscode.window.showWarningMessage(data.message);
           }
+          break;
+
+        // MCP operations
+        case 'sync-servers':
+          // Start polling asynchronously first
+          setTimeout(() => {
+            this.startPollingMcpServers();
+          }, 0);
+          promise = this.syncMcpServers();
+          break;
+
+        case 'mcp-server-enable-or-disable':
+          promise = this.mcpServerEnableOrDisable(data.action, data.serverName);
           break;
 
         // File Operations
@@ -289,6 +313,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
           break;
+
+        case 'tool-use-approval-update':
+          this.chatService._onToolUseApprove.fire({
+            toolUseId: data.toolUseId,
+            autoAcceptNextTime: data.autoAcceptNextTime,
+            approved: data.approved,
+          });
+          break;
+
         case 'set-shell-integration-timeout':
           this.terminalManager.setShellIntegrationTimeout(data.value);
           this.setGlobalState(data);
@@ -325,6 +358,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         case 'open-or-create-file':
           this.openOrCreateFileByAbsolutePath(data.path);
+          break;
+
+        case 'open-mcp-settings':
+          this.openMcpSettings();
           break;
 
         case 'check-diff-applicable': {
@@ -439,6 +476,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    const homeDir = os.homedir();
+    const mcp_config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
 
     this.logger.info('Initiating binary...');
     this.outputChannel.info('🚀 Initiating binary...');
@@ -448,6 +487,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           HOST: DD_HOST,
         },
       },
+      mcp_config_path: mcp_config_path,
     };
 
     const headers = {
@@ -488,6 +528,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
       if (response.data.status === 'Completed' && activeRepo) {
         this.continueWorkspace.triggerAuthChange(true);
+        this.startPollingMcpServers();
+        this.syncMcpServers();
         this.logger.info(`Creating embedding for repository: ${activeRepo}`);
         this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
 
@@ -553,6 +595,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       await vscode.window.showTextDocument(document);
     } catch (error: any) {
       vscode.window.showErrorMessage(`Failed to open or create file: ${error.message}`);
+    }
+  }
+
+  private async openMcpSettings() {
+    const homeDir = os.homedir();
+    const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
+    const uri = vscode.Uri.file(filePath);
+    try {
+      if (!fs.existsSync(filePath)) {
+        fs.writeFileSync(filePath, '');
+      }
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+    } catch (error: any) {
+      vscode.window.showErrorMessage(`Failed to open or create mcp settings file: ${error.message}`);
     }
   }
 
@@ -827,6 +884,61 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         terminalOutput: `Terminal output:\n\`\`\`\n${output}\n\`\`\``,
       },
     });
+  }
+
+  // MCP Operations
+  async startPollingMcpServers() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+    }
+    this.pollingInterval = setInterval(async () => {
+      try {
+        await this.getAllServers();
+      } catch (error) {
+        this.logger.error('Error while polling MCP servers:', error);
+      }
+    }, 2000);
+  }
+
+  async getAllServers() {
+    const response = await this.mcpService.getAllMcpServers();
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
+    }
+    if (response && response.data && !response.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+    }
+  }
+  async syncMcpServers() {
+    const response = await this.mcpService.syncServers();
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
+    }
+    if (response && response.data && !response.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+      vscode.window.showInformationMessage('MCP servers synced successfully.');
+    }
+  }
+
+  async mcpServerEnableOrDisable(action: 'enable' | 'disable', serverName: string) {
+    let response;
+    if (action === 'enable') {
+      response = await this.mcpService.enableServer(serverName);
+    } else {
+      response = await this.mcpService.disableServer(serverName);
+    }
+
+    if (response.is_error && response.meta && response.meta.message) {
+      vscode.window.showInformationMessage(response.meta.message);
+    }
   }
 
   /**

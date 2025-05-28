@@ -397,17 +397,19 @@ export class FileChangeStateManager {
     // track usage for the event
     const uri = path.join(repoPath, filePath);
     const fileChangeState = this.fileChangeStateMap.get(uri);
-    const usageTrackingData: UsageTrackingRequest = {
-      event: eventName,
-      properties: {
-        ...eventData,
-        source: fileChangeState?.stateMetadata.usageTrackingSource || 'unknown',
-        session_id: fileChangeState?.stateMetadata.usageTrackingSessionId || undefined,
-        file_path: filePath,
-      },
-    };
     const usageTrackingManager = new UsageTrackingManager();
-    await usageTrackingManager.trackUsage(usageTrackingData);
+
+    if (fileChangeState?.stateMetadata.usageTrackingSessionId) {
+      await usageTrackingManager.trackUsage({
+        eventType: eventName,
+        eventData: {
+          ...eventData,
+          source: fileChangeState?.stateMetadata.usageTrackingSource || 'unknown',
+          file_path: filePath,
+        },
+        sessionId: fileChangeState?.stateMetadata.usageTrackingSessionId,
+      });
+    }
   };
 
   public acceptChangeAtLine = async (
@@ -470,7 +472,7 @@ export class FileChangeStateManager {
     });
 
     // track usage for the event
-    await this.trackUsage('accepted', { lines: acceptedLinesCount }, filePath, repoPath);
+    await this.trackUsage('ACCEPTED', { lines: acceptedLinesCount }, filePath, repoPath);
 
     // return the new udiff
     return newUdiff;
@@ -589,7 +591,7 @@ export class FileChangeStateManager {
     });
 
     // track usage for the event
-    await this.trackUsage('accepted', { lines: acceptedLinesCount }, filePath, repoPath);
+    await this.trackUsage('ACCEPTED', { lines: acceptedLinesCount }, filePath, repoPath);
 
     // return the new udiff
     return newUdiff;

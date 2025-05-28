@@ -15,6 +15,7 @@ import {
   ChatToolUseMessage,
   Settings,
   URLListItem,
+  MCPServer,
 } from '@/types';
 import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
@@ -22,6 +23,7 @@ import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
+import { useMcpStore } from './stores/mcpStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -374,7 +376,6 @@ addCommandEventListener('session-chats-history', ({ data }) => {
 
 addCommandEventListener('image-upload-progress', (event) => {
   const { data } = event as { data: { progress: number } };
-  console.log('Image upload progress:', data.progress);
   useChatStore.setState({ imageUploadProgress: data.progress as number });
 });
 
@@ -491,7 +492,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
     - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
     - Leverage other available tools as needed to complete scaffolding.
   `;
 
@@ -586,7 +587,7 @@ addCommandEventListener('update-workspace-dd', () => {
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
     - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool. 
+    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
     - Leverage other available tools as needed to complete scaffolding.
   `;
 
@@ -637,4 +638,20 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   useChatStore.setState({
     userInput: currentUserInput + terminalOutput.terminalOutput,
   });
+});
+
+addCommandEventListener('fetched-mcp-servers', ({ data }) => {
+  const servers = data as MCPServer[];
+  const selectedServer = useMcpStore.getState().selectedServer;
+  if (servers && servers.length > 0) {
+    useMcpStore.setState({ mcpServers: servers });
+    if (selectedServer) {
+      // Find the new state of the selected server from the fetched servers
+      const newSelectedServer = servers.find((server) => server.name === selectedServer.name);
+      if (newSelectedServer) {
+        // Update the selected server with the new state
+        useMcpStore.setState({ selectedServer: newSelectedServer });
+      }
+    }
+  }
 });

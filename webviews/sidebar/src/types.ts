@@ -128,7 +128,7 @@ export interface TerminalPanelProps {
 }
 
 export interface ChatToolUseMessage {
-  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK';
+  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK' | 'TOOL_CHIP_UPSERT';
   content: {
     tool_name: string;
     tool_use_id: string;
@@ -139,6 +139,8 @@ export interface ChatToolUseMessage {
     write_mode?: boolean;
     terminal_approval_required?: boolean;
     diff?: { addedLines: number; removedLines: number };
+    toolRequest?: any;
+    toolResponse?: any;
   };
 }
 
@@ -147,6 +149,7 @@ export interface ChatThinkingMessage {
   text: string;
   completed: boolean;
   actor?: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatCodeBlockMessage {
@@ -188,6 +191,7 @@ export interface ChatErrorMessage {
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatCompleteMessage {
@@ -202,6 +206,7 @@ export interface ChatCompleteMessage {
 export interface ChatTerminalNoShell {
   type: 'TERMINAL_NO_SHELL_INTEGRATION';
   actor: 'ASSISTANT';
+  content?: any;
 }
 
 export interface ChatSessionHistory {
@@ -250,18 +255,9 @@ export interface WorkspaceStore {
   setActiveRepo: (repoPath: string) => void;
 }
 
-export interface UsageTrackingProperties {
-  session_id?: number;
-  lines: number;
-  file_path: string;
-  timestamp?: string;
-  source?: 'inline-modify' | 'inline-chat' | 'chat' | 'act' | 'inline-chat-act';
-}
-
-export type UsageTrackingRequest = {
-  anonymous_id?: string;
-  event: 'accepted' | 'generated' | 'copied' | 'applied';
-  properties: UsageTrackingProperties;
+export type UsageTrackingRequestFromSidebar = {
+  eventType: string;
+  eventData: Record<string, any>;
 };
 
 export interface SaveUrlRequest {
@@ -292,6 +288,57 @@ export interface LLMModels {
   name: string;
 }
 
+export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
+
+export interface ToolMeta {
+  toolName: string;
+  serverName: string;
+}
+
+export interface ToolRequest {
+  requestData: any;
+  toolName: string;
+  toolMeta: ToolMeta;
+  requiresApproval: boolean;
+}
+
+export interface BaseToolProps {
+  toolRunStatus: ToolRunStatus;
+  toolRequest?: ToolRequest | null;
+  toolResponse?: any;
+  toolUseId: string;
+  displayText: string;
+}
+
+export interface MCPToolProps {
+  toolRunStatus: ToolRunStatus;
+  toolRequest?: ToolRequest | null;
+  toolResponse?: any;
+  toolUseId: string;
+}
+
+export interface MCPServer {
+  name: string;
+  status: string;
+  tool_count: number;
+  tools: MCPServerTool[];
+  error: string;
+  disabled: boolean;
+}
+
+export interface MCPServerTool {
+  name: string;
+  description: string;
+}
+
+export interface MCPStorage {
+  mcpServerTools: MCPServerTool[];
+  mcpServers: MCPServer[];
+  selectedServer: MCPServer | undefined;
+  showAllMCPServers: boolean;
+  showMCPServerTools: boolean;
+  setMcpServers: (mcpServers: MCPServer[]) => void;
+}
 export interface S3Object {
   key?: string;
   get_url?: string;

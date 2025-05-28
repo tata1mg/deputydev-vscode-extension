@@ -1,4 +1,4 @@
-import { UsageTrackingRequest } from '@/types';
+import { UsageTrackingRequestFromSidebar } from '@/types';
 import { SnippetReference } from './CodeBlockStyle';
 
 import { checkDiffApplicable, usageTracking, openFile, writeFile } from '@/commandApi';
@@ -52,9 +52,9 @@ export function CodeActionPanel({
 
   useEffect(() => {
     if (isApplicable && isStreaming) {
-      const usageTrackingData: UsageTrackingRequest = {
-        event: 'generated',
-        properties: {
+      const usageTrackingData: UsageTrackingRequestFromSidebar = {
+        eventType: 'GENERATED',
+        eventData: {
           source: getSource(),
           file_path: filepath || '',
           lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
@@ -95,9 +95,9 @@ export function CodeActionPanel({
   const handleCopy = () => {
     if (!copyCooldown) {
       if (!showApplyButton && isStreaming) {
-        const usageTrackingData: UsageTrackingRequest = {
-          event: 'generated',
-          properties: {
+        const usageTrackingData: UsageTrackingRequestFromSidebar = {
+          eventType: 'GENERATED',
+          eventData: {
             file_path: filepath || '',
             lines: getLineCountFromContent(content),
             source: getSource(),
@@ -106,9 +106,9 @@ export function CodeActionPanel({
         usageTracking(usageTrackingData);
       }
 
-      const usageTrackingData: UsageTrackingRequest = {
-        event: 'copied',
-        properties: {
+      const usageTrackingData: UsageTrackingRequestFromSidebar = {
+        eventType: 'COPIED',
+        eventData: {
           file_path: filepath || '',
           source: getSource(),
           lines: showApplyButton
@@ -133,10 +133,10 @@ export function CodeActionPanel({
     setIsApplying(true);
 
     // Create a usage tracking data object to log the application event
-    const usageTrackingData: UsageTrackingRequest = {
+    const usageTrackingData: UsageTrackingRequestFromSidebar = {
       // Specify the event type as 'applied'
-      event: 'applied',
-      properties: {
+      eventType: 'APPLIED',
+      eventData: {
         // Get the source of the application (probably a function that returns the source)
         source: getSource(),
         // Set the file path, using the provided filepath or an empty string if not available
