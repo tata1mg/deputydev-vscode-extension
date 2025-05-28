@@ -40,16 +40,19 @@ export class WriteToFileTool {
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
     const diff = wrapContentInDiffBlock(parsedContent.diff);
-    const usageTrackingData: UsageTrackingRequest = {
-      event: 'generated',
-      properties: {
-        file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
-        lines: parsedContent.diff.split('\n').length,
-        source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
-      },
-    };
 
-    this.usageTrackingManager.trackUsage(usageTrackingData);
+    if (sessionId) {
+      this.usageTrackingManager.trackUsage({
+        eventType: 'GENERATED',
+        eventData: {
+          file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
+          lines: parsedContent.diff.split('\n').length,
+          source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
+        },
+        sessionId: sessionId,
+      });
+    }
+
     try {
       const { addedLines, removedLines } = await this.diffManager.applyDiff(
         {

@@ -1,4 +1,4 @@
-import { UsageTrackingRequest } from '@/types';
+import { UsageTrackingRequestFromSidebar } from '@/types';
 import { SnippetReference } from './CodeBlockStyle';
 
 import { checkDiffApplicable, usageTracking, openFile, writeFile } from '@/commandApi';
@@ -89,8 +89,8 @@ export function CodeActionPanelFileEdit({
     if (!ready) return;
 
     usageTracking({
-      event: 'generated',
-      properties: {
+      eventType: 'GENERATED',
+      eventData: {
         source: getSource(),
         file_path: path || '',
         lines: Math.abs(localAdded) + Math.abs(localRemoved),
@@ -112,8 +112,8 @@ export function CodeActionPanelFileEdit({
   // 6) copy-to-clipboard + tracking + cooldown todo
   const handleCopy = () => {
     usageTracking({
-      event: 'copied',
-      properties: {
+      eventType: 'COPIED',
+      eventData: {
         file_path: path || '',
         source: getSource(),
         lines: showApplyButton ? Math.abs(localAdded) + Math.abs(localRemoved) : 0,
@@ -135,8 +135,8 @@ export function CodeActionPanelFileEdit({
     setIsApplying(true);
 
     usageTracking({
-      event: 'applied',
-      properties: {
+      eventType: 'APPLIED',
+      eventData: {
         source: getSource(),
         file_path: path,
         lines: Math.abs(localAdded) + Math.abs(localRemoved),

@@ -21,8 +21,8 @@ export class UsageTrackingManager {
       client: CLIENT,
       client_version: CLIENT_VERSION,
       timestamp: new Date().toISOString(),
-      user_team_id: 1
-    }
+      user_team_id: 1,
+    };
     this.outputChannel?.info(`Usage Tracking Payload: ${JSON.stringify(usageTrackingPayload)}`);
     this.usageTrackingService.trackUsage(usageTrackingPayload);
   }

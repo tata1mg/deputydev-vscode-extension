@@ -230,20 +230,6 @@ export interface WorkspaceStore {
   setActiveRepo: (repoPath: string) => void;
 }
 
-export interface UsageTrackingProperties {
-  session_id?: number;
-  lines: number;
-  file_path: string;
-  timestamp?: string;
-  source?: 'inline-modify' | 'inline-chat' | 'chat' | 'act' | 'inline-chat-act';
-}
-
-export type UsageTrackingRequest = {
-  anonymous_id?: string;
-  event: 'accepted' | 'generated' | 'copied' | 'applied';
-  properties: UsageTrackingProperties;
-};
-
 export interface SaveUrlRequest {
   id?: string;
   name: string;
