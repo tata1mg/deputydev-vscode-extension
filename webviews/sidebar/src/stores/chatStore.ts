@@ -257,11 +257,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                            ...state.current,
-                            content: {
-                              text: state.current.content.text + textChunk,
-                            },
-                          }
+                          ...state.current,
+                          content: {
+                            text: state.current.content.text + textChunk,
+                          },
+                        }
                         : state.current,
                     }));
 
@@ -627,13 +627,13 @@ export const useChatStore = create(
                         set((state) => ({
                           current: state.current
                             ? {
-                                ...state.current,
-                                content: {
-                                  text: (state.current.content.text + delta)
-                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                    .replace(/"}$/, ''), // Remove trailing `"}`
-                                },
-                              }
+                              ...state.current,
+                              content: {
+                                text: (state.current.content.text + delta)
+                                  .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
+                                  .replace(/"}$/, ''), // Remove trailing `"}`
+                              },
+                            }
                             : state.current,
                         }));
                         break;
@@ -926,6 +926,16 @@ export const useChatStore = create(
                 newHistory.push(state.current);
               }
               const lastMsg = newHistory[newHistory.length - 1];
+              if (lastMsg?.type === "TOOL_CHIP_UPSERT") {
+                const toolMsg = lastMsg as ChatToolUseMessage;
+                newHistory[newHistory.length - 1] = {
+                  ...toolMsg,
+                  content: {
+                    ...toolMsg.content,
+                    status: 'aborted'
+                  },
+                };
+              }
               if (lastMsg?.type === 'TOOL_USE_REQUEST') {
                 const toolMsg = lastMsg as ChatToolUseMessage;
                 newHistory[newHistory.length - 1] = {
