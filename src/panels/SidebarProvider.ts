@@ -154,8 +154,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'update-saved-url':
           promise = this.codeReferenceService.updateSavedUrl(data, sendMessage);
           break;
+        case 'upload-file-to-s3':
+          promise = this.codeReferenceService.uploadFileToS3(data, sendMessage);
+          break;
         case 'usage-tracking':
           promise = this.trackingManager.trackUsage(data);
+          break;
+        case 'show-vscode-message-box':
+          if (data.type === 'info') {
+            vscode.window.showInformationMessage(data.message);
+          } else if (data.type === 'error') {
+            vscode.window.showErrorMessage(data.message);
+          } else if (data.type === 'warning') {
+            vscode.window.showWarningMessage(data.message);
+          }
           break;
 
         // MCP operations
@@ -298,6 +310,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'edit-terminal-command':
           promise = this.editTerminalCommand(data);
           break;
+
+        case 'tool-use-approval-update':
+          this.chatService._onToolUseApprove.fire({
+            toolUseId: data.toolUseId,
+            autoAcceptNextTime: data.autoAcceptNextTime,
+            approved: data.approved,
+          });
+          break;
+
         case 'set-shell-integration-timeout':
           this.terminalManager.setShellIntegrationTimeout(data.value);
           this.setGlobalState(data);

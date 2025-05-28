@@ -10,16 +10,7 @@ import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { AuthService } from '../services/auth/AuthService';
 import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { SESSION_TYPE } from '../constants';
-import {
-  ChatPayload,
-  ChunkCallback,
-  Chunk,
-  ToolRequest,
-  CurrentDiffRequest,
-  SearchTerm,
-  ToolUseResult,
-  ClientTool,
-} from '../types';
+import { ChatPayload, ChunkCallback, Chunk, ToolRequest, SearchTerm, ToolUseResult, ClientTool } from '../types';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -34,9 +25,12 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { WriteToFileTool } from './tools/WriteToFileTool';
-import { clear } from 'console';
 import { MCPManager } from '../mcp/mcpManager';
 
+interface ToolUseApprovalStatus {
+  approved: boolean;
+  autoAcceptNextTime: boolean;
+}
 export class ChatManager {
   private querySolverService = new QuerySolverService(this.context);
   private sidebarProvider?: SidebarProvider; // Optional at first
@@ -46,7 +40,13 @@ export class ChatManager {
   private currentAbortController: AbortController | null = null;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
+  public _onToolUseApprove = new vscode.EventEmitter<{
+    toolUseId: string;
+    autoAcceptNextTime: boolean;
+    approved: boolean;
+  }>();
   public onTerminalApprove = this._onTerminalApprove.event;
+  public onToolUseApprovalEvent = this._onToolUseApprove.event;
   private terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
@@ -245,6 +245,7 @@ export class ChatManager {
             tool_name: tool.name,
             server_id: server.serverId,
           },
+          auto_approve: tool.auto_approve ?? false, // Default to false if not specified
         });
       }
     }
@@ -362,14 +363,19 @@ export class ChatManager {
               search_web: payload.search_web,
             };
             // Immediately forward the start event.
-            if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+            const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+            if (detectedClientTool) {
               chunkCallback({
                 name: 'TOOL_CHIP_UPSERT',
                 data: {
                   toolRequest: {
                     requestData: null,
                     toolName: event.content.tool_name,
-                    toolMeta: {},
+                    toolMeta: {
+                      toolName: detectedClientTool.tool_metadata.tool_name,
+                      serverName: detectedClientTool.tool_metadata.server_id,
+                    },
+                    requiresApproval: detectedClientTool.auto_approve,
                   },
                   toolResponse: null,
                   toolRunStatus: 'pending',
@@ -385,14 +391,19 @@ export class ChatManager {
             if (currentToolRequest) {
               currentToolRequest.accumulatedContent += event.content?.input_params_json_delta || '';
               // Forward the delta along with the tool_use_id.
-              if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+              if (detectedClientTool) {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
                     toolRequest: {
                       requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
-                      toolMeta: {},
+                      toolMeta: {
+                        toolName: detectedClientTool.tool_metadata.tool_name,
+                        serverName: detectedClientTool.tool_metadata.server_id,
+                      },
+                      requiresApproval: detectedClientTool.auto_approve,
                     },
                     toolResponse: null,
                     toolRunStatus: 'pending',
@@ -414,14 +425,19 @@ export class ChatManager {
           }
           case 'TOOL_USE_REQUEST_END': {
             if (currentToolRequest) {
-              if (clientTools.find((x) => x.name === currentToolRequest?.tool_name)) {
+              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+              if (detectedClientTool) {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
                     toolRequest: {
                       requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
-                      toolMeta: {},
+                      toolMeta: {
+                        toolName: detectedClientTool.tool_metadata.tool_name,
+                        serverName: detectedClientTool.tool_metadata.server_id,
+                      },
+                      requiresApproval: detectedClientTool.auto_approve,
                     },
                     toolResponse: null,
                     toolRunStatus: 'pending',
@@ -709,6 +725,17 @@ export class ChatManager {
     }
   }
 
+  private async _getToolUseApprovalStatus(toolUseId: string): Promise<ToolUseApprovalStatus> {
+    return new Promise((resolve) => {
+      const disposableApprove = this.onToolUseApprovalEvent((event) => {
+        if (event.toolUseId === toolUseId) {
+          disposableApprove.dispose();
+          resolve({ approved: event.approved, autoAcceptNextTime: event.autoAcceptNextTime });
+        }
+      });
+    });
+  }
+
   /**
    * Routes a tool request to the appropriate handler based on the tool name.
    * Executes the tool, sends the TOOL_USE_RESULT to the UI, and then, if successful,
@@ -758,6 +785,73 @@ export class ChatManager {
 
       if (detectedClientTool) {
         this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
+        // if approval is needed, wait for it
+
+        let approvalStatus: ToolUseApprovalStatus = {
+          approved: true, // Default to true, will be updated if approval is needed
+          autoAcceptNextTime: false, // Default to false
+        };
+
+        if (!detectedClientTool.auto_approve) {
+          this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
+          approvalStatus = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
+        }
+
+        if (!approvalStatus.approved) {
+          this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
+          chunkCallback({
+            name: 'TOOL_CHIP_UPSERT',
+            data: {
+              toolRequest: {
+                requestData: parsedContent,
+                toolName: toolRequest.tool_name,
+                toolMeta: {
+                  toolName: detectedClientTool.tool_metadata.tool_name,
+                  serverName: detectedClientTool.tool_metadata.server_id,
+                },
+                requiresApproval: detectedClientTool.auto_approve,
+              },
+              toolResponse: null,
+              toolRunStatus: 'error',
+              toolUseId: toolRequest.tool_use_id,
+            },
+          });
+          // Send TOOL_USE_RESULT with error response
+          const resultStatus: 'completed' | 'error' = 'error';
+          const toolUseResult = {
+            name: 'TOOL_USE_RESULT',
+            data: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              result_json: {
+                message: `Tool use was rejected by user.`,
+              },
+              status: resultStatus,
+            },
+          };
+          const EnvironmentDetails = await getEnvironmentDetails(true);
+          const toolUseRejectedPayload = {
+            search_web: toolRequest.search_web,
+            llm_model: toolRequest.llm_model,
+            message_id: messageId, // Pass original message ID for context if needed by UI later
+            write_mode: toolRequest.write_mode,
+            is_tool_response: true,
+            tool_use_failed: true,
+            tool_use_response: {
+              tool_name: toolRequest.tool_name,
+              tool_use_id: toolRequest.tool_use_id,
+              response: {
+                message: `Tool use was rejected by user.`,
+              },
+            },
+            os_name: await getOSName(),
+            shell: getShell(),
+            vscode_env: EnvironmentDetails,
+            client_tools: clientTools,
+          };
+          await this.apiChat(toolUseRejectedPayload, chunkCallback, toolUseResult);
+          return; // Exit early if tool use was rejected
+        }
         rawResult = await this.mcpManager.runMCPTool(
           detectedClientTool.tool_metadata.server_id,
           detectedClientTool.tool_metadata.tool_name,
@@ -829,7 +923,7 @@ export class ChatManager {
             this.outputChannel.info(`Running write_to_file with params: ${JSON.stringify(parsedContent)}`);
             rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
             break;
-          default:
+          default: {
             this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
             // Treat as completed but with a message indicating it's unknown
             rawResult = {
@@ -839,14 +933,19 @@ export class ChatManager {
             status = 'completed';
             resultForUI = rawResult; // Send the message back
             // Send TOOL_USE_RESULT immediately as no continuation payload needed
-            if (clientTools.find((x) => x.name === toolRequest.tool_name)) {
+            const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
+            if (detectedClientTool) {
               chunkCallback({
                 name: 'TOOL_CHIP_UPSERT',
                 data: {
                   toolRequest: {
                     requestData: parsedContent,
                     toolName: toolRequest.tool_name,
-                    toolMeta: {},
+                    toolMeta: {
+                      serverName: detectedClientTool.tool_metadata.server_id,
+                      toolName: detectedClientTool.tool_metadata.tool_name,
+                    },
+                    requiresApproval: detectedClientTool.auto_approve,
                   },
                   toolResponse: resultForUI,
                   toolRunStatus: 'completed',
@@ -865,6 +964,7 @@ export class ChatManager {
               });
             }
             return; // Exit _runTool early for unknown tools
+          }
         }
       }
 
@@ -912,14 +1012,18 @@ export class ChatManager {
           status: status,
         },
       };
-      if (clientTools.find((x) => x.name === toolRequest.tool_name)) {
+      if (detectedClientTool) {
         chunkCallback({
           name: 'TOOL_CHIP_UPSERT',
           data: {
             toolRequest: {
               requestData: parsedContent,
               toolName: toolRequest.tool_name,
-              toolMeta: {},
+              toolMeta: {
+                toolName: detectedClientTool.tool_metadata.tool_name,
+                serverName: detectedClientTool.tool_metadata.server_id,
+              },
+              requiresApproval: detectedClientTool.auto_approve,
             },
             toolResponse: resultForUI,
             toolRunStatus: 'completed',
@@ -964,19 +1068,27 @@ export class ChatManager {
           status: status,
         },
       };
-      chunkCallback({
-        name: 'TOOL_CHIP_UPSERT',
-        data: {
-          toolRequest: {
-            requestData: toolRequest.accumulatedContent,
-            toolName: toolRequest.tool_name,
-            toolMeta: {},
+
+      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
+      if (detectedClientTool) {
+        chunkCallback({
+          name: 'TOOL_CHIP_UPSERT',
+          data: {
+            toolRequest: {
+              requestData: toolRequest.accumulatedContent,
+              toolName: toolRequest.tool_name,
+              toolMeta: {
+                toolName: detectedClientTool.tool_metadata.tool_name,
+                serverName: detectedClientTool.tool_metadata.server_id,
+              },
+              requiresApproval: detectedClientTool.auto_approve,
+            },
+            toolResponse: resultForUI,
+            toolRunStatus: 'error',
+            toolUseId: toolRequest.tool_use_id,
           },
-          toolResponse: resultForUI,
-          toolRunStatus: 'error',
-          toolUseId: toolRequest.tool_use_id,
-        },
-      });
+        });
+      }
       const EnvironmentDetails = await getEnvironmentDetails(true);
       // Do NOT continue chat if the tool itself failed critically
       const toolUseRetryPayload = {
