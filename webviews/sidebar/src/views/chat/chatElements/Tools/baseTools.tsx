@@ -39,6 +39,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const [showDropDown, setShowDropDown] = useState(false);
   const [autoApproval, setAutoApproval] = useState(false);
   const [showConsent, setShowConsent] = useState(true);
+  const [requestRejected, setRequestRejected] = useState(false);
 
   useEffect(() => {
     console.log('***************', toolRequest?.requiresApproval);
@@ -46,6 +47,13 @@ const BaseTool: React.FC<BaseToolProps> = ({
       setShowDropDown(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (toolRunStatus === 'aborted') {
+      setShowConsent(false);
+      setShowDropDown(false);
+    }
+  }, [toolRunStatus])
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -68,7 +76,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
             <div className="flex items-center gap-2">
               <StatusIcon status={toolRunStatus} />
               <div className="flex flex-col">
-                <span className="text-md">{displayText}</span>
+                <span className="text-md">{requestRejected ? "Tool Use Request Rejected" : displayText}</span>
                 <span className="text-xs text-gray-400">
                   {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
                 </span>
@@ -187,6 +195,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                           toolUseApprovalUpdate(toolUseId, false, false);
                           setShowDropDown(false);
                           setShowConsent(false);
+                          setRequestRejected(true);
                         }}
                         className={`flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] text-red-500 hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
                       >
