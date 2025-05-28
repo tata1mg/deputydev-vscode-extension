@@ -29,7 +29,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
-  displayText
+  displayText,
 }) => {
   const { themeKind } = useThemeStore();
   const borderClass =
@@ -69,7 +69,9 @@ const BaseTool: React.FC<BaseToolProps> = ({
               <StatusIcon status={toolRunStatus} />
               <div className="flex flex-col">
                 <span className="text-md">{displayText}</span>
-                <span className="text-xs text-gray-400">{toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}</span>
+                <span className="text-xs text-gray-400">
+                  {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
+                </span>
               </div>
             </div>
           </div>
@@ -118,7 +120,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                     overflowY: 'auto',
                     overflowWrap: 'break-word',
                     width: '100%',
-                    boxSizing: 'border-box'
+                    boxSizing: 'border-box',
                   }}
                   wrapLines={true}
                   wrapLongLines={true}
@@ -151,7 +153,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                       overflowY: 'auto',
                       overflowWrap: 'break-word',
                       width: '100%',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                     wrapLines={true}
                     wrapLongLines={true}
