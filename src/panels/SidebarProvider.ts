@@ -183,7 +183,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.mcpServerEnableOrDisable(data.action, data.serverName);
           break;
 
-
         // File Operations
         case 'accept-file':
           promise = this.diffManager.acceptFile(data.path);
@@ -934,7 +933,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       vscode.window.showInformationMessage(response.meta.message);
     }
   }
-
 
   /**
    * Renders the HTML/JS/CSS for the webview.

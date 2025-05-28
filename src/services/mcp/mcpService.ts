@@ -81,7 +81,6 @@ export class MCPService {
     }
   }
 
-
   public async invokeMcpTool(payload: MCPServerToolInvokePayload) {
     try {
       const response = await binaryApi().post(API_ENDPOINTS.INVOKE_MCP_SERVER_TOOL, payload);
