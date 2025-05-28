@@ -246,7 +246,7 @@ export class ChatManager {
             tool_name: tool.name,
             server_id: server.serverId,
           },
-          auto_approve: tool.auto_approve
+          auto_approve: tool.auto_approve,
         });
       }
     }
