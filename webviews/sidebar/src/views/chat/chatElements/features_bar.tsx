@@ -1,8 +1,4 @@
-import {
-  mcpServerEnableOrDisable,
-  openMcpSettings,
-  syncServers,
-} from '@/commandApi';
+import { mcpServerEnableOrDisable, openMcpSettings, syncServers } from '@/commandApi';
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
 import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp } from 'lucide-react';
@@ -39,7 +35,6 @@ export default function FeaturesBar() {
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
-
   useClickAway(featuresBarRef, () => {
     useMcpStore.setState({ showAllMCPServers: false });
     useMcpStore.setState({ showMCPServerTools: false });
@@ -61,7 +56,6 @@ export default function FeaturesBar() {
     syncServers();
     setTimeout(() => setRefreshSpinning(false), 1000);
   };
-
 
   const handleEnablingOrDisablingOfTool = (action: 'enable' | 'disable', serverName: string) => {
     if (!serverName) return;
