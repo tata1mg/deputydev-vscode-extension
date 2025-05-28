@@ -126,3 +126,8 @@ export interface MCPServerToolInvokePayload {
   tool_name: string;
   tool_arguments: Record<string, any>;
 }
+
+export interface MCPServerToolApprovePayload {
+  tool_name: string;
+  server_name: string;
+}
