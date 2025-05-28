@@ -41,9 +41,9 @@ export default function FeaturesBar() {
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    syncServers();
-  }, []);
+  // useEffect(() => {
+  //   syncServers();
+  // }, []);
 
   useClickAway(featuresBarRef, () => {
     useMcpStore.setState({ showAllMCPServers: false });
@@ -149,12 +149,24 @@ export default function FeaturesBar() {
                   </div>
                 </button>
                 <div className="flex items-center gap-2">
-                  <div onClick={() => handleRetry(server.name)}>
-                    <RotateCw
-                      className={`h-4 w-4 hover:cursor-pointer ${retryingServers[server.name] && 'animate-spin'}`}
-                    />
-                  </div>
-                  <div className="mr-2 flex items-center space-x-2">
+                  {!server.disabled && (
+                    <div
+                      onClick={() => handleRetry(server.name)}
+                      data-tooltip-id="mcp-tooltips"
+                      data-tooltip-content="Restart Server"
+                      data-tooltip-place="top-start"
+                    >
+                      <RotateCw
+                        className={`h-4 w-4 hover:cursor-pointer ${retryingServers[server.name] && 'animate-spin'}`}
+                      />
+                    </div>
+                  )}
+                  <div
+                    className="mr-2 flex items-center space-x-2"
+                    data-tooltip-id="mcp-tooltips"
+                    data-tooltip-content="Enable/Disable Server"
+                    data-tooltip-place="top-start"
+                  >
                     <button
                       onClick={() =>
                         handleEnablingOrDisablingOfTool(
@@ -198,12 +210,24 @@ export default function FeaturesBar() {
                 </div>
               </button>
               <div className="flex items-center gap-2">
-                <div onClick={() => handleRetry(selectedServer?.name || '')}>
-                  <RotateCw
-                    className={`h-4 w-4 hover:cursor-pointer ${retryingServers[selectedServer?.name || ''] && 'animate-spin'}`}
-                  />
-                </div>
-                <div className="mr-2 flex items-center space-x-2">
+                {!selectedServer?.disabled && (
+                  <div
+                    onClick={() => handleRetry(selectedServer?.name || '')}
+                    data-tooltip-id="mcp-tooltips"
+                    data-tooltip-content="Restart Server"
+                    data-tooltip-place="top-start"
+                  >
+                    <RotateCw
+                      className={`h-4 w-4 hover:cursor-pointer ${retryingServers[selectedServer?.name || ''] && 'animate-spin'}`}
+                    />
+                  </div>
+                )}
+                <div
+                  className="mr-2 flex items-center space-x-2"
+                  data-tooltip-id="mcp-tooltips"
+                  data-tooltip-content="Enable/Disable Server"
+                  data-tooltip-place="top-start"
+                >
                   <button
                     onClick={() =>
                       handleEnablingOrDisablingOfTool(

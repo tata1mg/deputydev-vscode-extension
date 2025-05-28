@@ -31,6 +31,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { TextDocument } from 'vscode';
 import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
+import { MCPManager } from './mcp/mcpManager';
 import { ApiErrorHandler } from './services/api/apiErrorHandler';
 import { FeedbackService } from './services/feedback/feedbackService';
 import { MCPService } from './services/mcp/mcpService';
@@ -38,7 +39,6 @@ import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQuery
 import { TerminalManager } from './terminal/TerminalManager';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
-import { MCPManager } from './mcp/mcpManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -95,6 +95,7 @@ export async function activate(context: vscode.ExtensionContext) {
     terminalManager,
     apiErrorHandler,
     mcpManager,
+    usageTrackingManager,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
@@ -180,7 +181,7 @@ export async function activate(context: vscode.ExtensionContext) {
         data: response.data,
       });
     }
-    vscode.window.showInformationMessage(`MCP settings saved and synced successfully: ${document.uri.fsPath}`);
+    vscode.window.showInformationMessage(`MCP settings saved and synced successfully`);
   });
 
   const inlineChatEditManager = new InlineChatEditManager(
