@@ -376,7 +376,6 @@ addCommandEventListener('session-chats-history', ({ data }) => {
 
 addCommandEventListener('image-upload-progress', (event) => {
   const { data } = event as { data: { progress: number } };
-  console.log('Image upload progress:', data.progress);
   useChatStore.setState({ imageUploadProgress: data.progress as number });
 });
 
@@ -644,7 +643,6 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
   const selectedServer = useMcpStore.getState().selectedServer;
-  console.log('***********servers***********', servers);
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
     if (selectedServer) {
@@ -656,5 +654,4 @@ addCommandEventListener('fetched-mcp-servers', ({ data }) => {
       }
     }
   }
-  console.log(useMcpStore.getState().mcpServers);
 });

@@ -183,9 +183,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.mcpServerEnableOrDisable(data.action, data.serverName);
           break;
 
-        case 'mcp-server-restart':
-          promise = this.restartServer(data.serverName);
-          break;
 
         // File Operations
         case 'accept-file':
@@ -885,13 +882,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // MCP Operations
   async startPollingMcpServers() {
-    console.log('polling servers started');
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
     this.pollingInterval = setInterval(async () => {
       try {
-        console.log('polling servers');
         await this.getAllServers();
       } catch (error) {
         this.logger.error('Error while polling MCP servers:', error);
@@ -914,7 +909,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
   async syncMcpServers() {
     const response = await this.mcpService.syncServers();
-    console.log('************on syncing********', response);
     if (response.is_error && response.meta && response.meta.message) {
       vscode.window.showInformationMessage(response.meta.message);
     }
@@ -941,16 +935,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  async restartServer(serverName: string) {
-    const response = await this.mcpService.restartServer(serverName);
-    if (response.is_error && response.meta && response.meta.message) {
-      vscode.window.showInformationMessage(response.meta.message);
-    }
-    if (response && response.data && !response.is_error) {
-      this.getAllServers();
-      vscode.window.showInformationMessage(`${serverName} server restarted successfully.`);
-    }
-  }
 
   /**
    * Renders the HTML/JS/CSS for the webview.
