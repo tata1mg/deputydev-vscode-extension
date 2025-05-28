@@ -2,14 +2,12 @@ import { MCPToolProps } from '@/types';
 import BaseTool from './baseTools';
 import React from 'react';
 
-
 const MCPTool: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
   toolRunStatus,
 }) => {
-
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
