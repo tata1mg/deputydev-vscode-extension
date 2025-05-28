@@ -1,7 +1,7 @@
 export type UsageTrackingRequest = {
-  anonymous_id?: string;
-  event: string;
-  properties: Record<string, any>;
+  eventType: string;
+  eventData: Record<string, any>;
+  sessionId: number;
 };
 
 export type ChunkCallback = (data: { name: string; data: unknown }) => void;
