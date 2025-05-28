@@ -316,6 +316,14 @@ export interface BaseToolProps {
   toolRequest?: ToolRequest | null;
   toolResponse?: any;
   toolUseId: string;
+  displayText: string;
+}
+
+export interface MCPToolProps {
+  toolRunStatus: ToolRunStatus;
+  toolRequest?: ToolRequest | null;
+  toolResponse?: any;
+  toolUseId: string;
 }
 
 export interface MCPServer {

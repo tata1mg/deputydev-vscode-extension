@@ -5,6 +5,9 @@ import { ToolRunStatus } from '@/types';
 import { useState } from 'react';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { toolUseApprovalUpdate } from '@/commandApi';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   switch (status) {
@@ -26,6 +29,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
+  displayText
 }) => {
   const { themeKind } = useThemeStore();
   const borderClass =
@@ -52,6 +56,9 @@ const BaseTool: React.FC<BaseToolProps> = ({
     setAutoApproval(newValue);
   };
 
+  const highlighterStyle =
+    themeKind === 'light' || themeKind === 'high-contrast-light' ? duotoneLight : dracula;
+
   // base tool chip
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
@@ -61,8 +68,8 @@ const BaseTool: React.FC<BaseToolProps> = ({
             <div className="flex items-center gap-2">
               <StatusIcon status={toolRunStatus} />
               <div className="flex flex-col">
-                <span className="text-md">{toolRequest?.toolMeta.serverName}</span>
-                <span className="text-xs text-gray-400">{toolRequest?.toolMeta.toolName}</span>
+                <span className="text-md">{displayText}</span>
+                <span className="text-xs text-gray-400">{toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}</span>
               </div>
             </div>
           </div>
@@ -91,15 +98,67 @@ const BaseTool: React.FC<BaseToolProps> = ({
           <div className="space-y-4">
             <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
               <div className="mb-2 font-semibold">Ran with these arguments:</div>
-              <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
-                {JSON.stringify(toolRequest.requestData, null, 2)}
+              <div className="word-break: max-h-[200px] w-full overflow-y-auto">
+                <SyntaxHighlighter
+                  language="json"
+                  style={highlighterStyle}
+                  customStyle={{
+                    fontSize: 'var(--vscode-font-size)',
+                    fontWeight: 'var(--vscode-font-weight)',
+                    fontFamily: 'var(--vscode-editor-font-family)',
+                    backgroundColor: 'var(--vscode-editor-background)',
+                    margin: 0,
+                    padding: '1rem',
+                    maxHeight: '200px',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    wordWrap: 'break-word',
+                    maxWidth: '100%',
+                    overflowX: 'hidden',
+                    overflowY: 'auto',
+                    overflowWrap: 'break-word',
+                    width: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                  wrapLines={true}
+                  wrapLongLines={true}
+                  lineProps={{ style: { wordBreak: 'break-word', whiteSpace: 'pre-wrap' } }}
+                >
+                  {JSON.stringify(toolRequest.requestData, null, 2)}
+                </SyntaxHighlighter>
               </div>
             </div>
             {toolResponse && (
               <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
                 <div className="mb-2 font-semibold">Output</div>
-                <div className="word-break: max-h-[200px] w-full overflow-y-auto whitespace-pre-wrap break-all text-xs">
-                  {JSON.stringify(toolResponse, null, 2)}
+                <div className="word-break: max-h-[200px] w-full overflow-y-auto">
+                  <SyntaxHighlighter
+                    language="json"
+                    style={highlighterStyle}
+                    customStyle={{
+                      fontSize: 'var(--vscode-font-size)',
+                      fontWeight: 'var(--vscode-font-weight)',
+                      fontFamily: 'var(--vscode-editor-font-family)',
+                      backgroundColor: 'var(--vscode-editor-background)',
+                      margin: 0,
+                      padding: '1rem',
+                      maxHeight: '200px',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      wordWrap: 'break-word',
+                      maxWidth: '100%',
+                      overflowX: 'hidden',
+                      overflowY: 'auto',
+                      overflowWrap: 'break-word',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                    wrapLines={true}
+                    wrapLongLines={true}
+                    lineProps={{ style: { wordBreak: 'break-word', whiteSpace: 'pre-wrap' } }}
+                  >
+                    {JSON.stringify(toolResponse, null, 2)}
+                  </SyntaxHighlighter>
                 </div>
               </div>
             )}
