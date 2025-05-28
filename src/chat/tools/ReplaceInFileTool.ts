@@ -40,16 +40,17 @@ export class ReplaceInFile {
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
 
-    const usageTrackingData: UsageTrackingRequest = {
-      event: 'generated',
-      properties: {
-        file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
-        lines: calculateDiffMetric(parsedContent.diff),
-        source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
-      },
-    };
-
-    this.usageTrackingManager.trackUsage(usageTrackingData);
+    if (sessionId) {
+      this.usageTrackingManager.trackUsage({
+        eventType: 'GENERATED',
+        eventData: {
+          file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
+          lines: calculateDiffMetric(parsedContent.diff),
+          source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
+        },
+        sessionId: sessionId,
+      });
+    }
     try {
       const { addedLines, removedLines } = await this.diffManager.applyDiff(
         {

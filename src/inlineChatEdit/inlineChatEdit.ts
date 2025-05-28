@@ -412,16 +412,17 @@ export class InlineChatEditManager {
         const diffPayload = payload.content.tool_input.diff;
         const diffFilePath = payload.content.tool_input.path;
         this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(payload, null, 2)}`);
-        const usageTrackingData: UsageTrackingRequest = {
-          event: 'generated',
-          properties: {
-            file_path: diffFilePath,
-            lines: calculateDiffMetric(diffPayload),
-            source: 'inline-modify',
-            session_id: sessionId,
-          },
-        };
-        this.usageTrackingManager.trackUsage(usageTrackingData);
+        if (sessionId) {
+          this.usageTrackingManager.trackUsage({
+            eventType: 'GENERATED',
+            eventData: {
+              file_path: diffFilePath,
+              lines: calculateDiffMetric(diffPayload),
+              source: 'inline-modify',
+            },
+            sessionId: sessionId,
+          });
+        }
         try {
           this.outputChannel.info(`Applying diff to file: ${diffFilePath}`);
           await this.diffManager.applyDiff(
@@ -472,16 +473,15 @@ export class InlineChatEditManager {
         const modifiedLinesCount = rawUdiffLines.filter(
           (line: string) => line.startsWith('+') || line.startsWith('-'),
         ).length;
-        const usageTrackingData: UsageTrackingRequest = {
-          event: 'generated',
-          properties: {
+        this.usageTrackingManager.trackUsage({
+          eventType: 'GENERATED',
+          eventData: {
             file_path: modified_file_path,
             lines: modifiedLinesCount,
             source: 'inline-modify',
-            session_id: job.session_id,
           },
-        };
-        this.usageTrackingManager.trackUsage(usageTrackingData);
+          sessionId: job.session_id,
+        });
         this.diffManager.applyDiff(
           { path: modified_file_path, search_and_replace_blocks: raw_diff },
           this.active_repo,

@@ -1,41 +1,46 @@
+import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
-import { SidebarProvider } from './panels/SidebarProvider';
-import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { AuthenticationManager } from './auth/AuthenticationManager';
+import { BackgroundPinger } from './binaryUp/BackgroundPinger';
+import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
+import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
+import { WorkspaceManager } from './code_syncing/WorkspaceManager';
+import { getBinaryHost } from './config';
+import { DiffManager } from './diff/diffManager';
+import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
+import { SidebarProvider } from './panels/SidebarProvider';
 import { ReferenceManager } from './references/ReferenceManager';
+import { AuthService } from './services/auth/AuthService';
+import { HistoryService } from './services/history/HistoryService';
+import { ProfileUiService } from './services/profileUi/profileUiService';
+import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
+import { isNotCompatible } from './utilities/checkOsVersion';
 import { ConfigManager } from './utilities/ConfigManager';
 import {
-  setExtensionContext,
-  setSidebarProvider,
   clearWorkspaceStorage,
   deleteSessionId,
+  setExtensionContext,
+  setSidebarProvider,
 } from './utilities/contextManager';
-import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
-import { HistoryService } from './services/history/HistoryService';
-import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
-import { AuthService } from './services/auth/AuthService';
-import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
-import { ServerManager } from './binaryUp/ServerManager';
-import { getBinaryHost } from './config';
-import { ProfileUiService } from './services/profileUi/profileUiService';
-import { BackgroundPinger } from './binaryUp/BackgroundPinger';
-import { createOutputChannel } from './utilities/outputChannelFlag';
 import { Logger } from './utilities/Logger';
+import { createOutputChannel } from './utilities/outputChannelFlag';
 import { ThemeManager } from './utilities/vscodeThemeManager';
-import { isNotCompatible } from './utilities/checkOsVersion';
-import { DiffManager } from './diff/diffManager';
 
-import { FeedbackService } from './services/feedback/feedbackService';
-import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
-import { TerminalManager } from './terminal/TerminalManager';
-import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
-import { updateTerminalSettings } from './utilities/setDefaultSettings';
-import { binaryApi } from './services/api/axios';
-import { API_ENDPOINTS } from './services/api/endpoints';
-import { ApiErrorHandler } from './services/api/apiErrorHandler';
-import * as path from 'path';
 import * as os from 'os';
+import * as path from 'path';
+import { TextDocument } from 'vscode';
+import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
+import { MCPManager } from './mcp/mcpManager';
+import { ApiErrorHandler } from './services/api/apiErrorHandler';
+import { FeedbackService } from './services/feedback/feedbackService';
+import { MCPService } from './services/mcp/mcpService';
+import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
+import { TerminalManager } from './terminal/TerminalManager';
+import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
+import { updateTerminalSettings } from './utilities/setDefaultSettings';
+import { API_ENDPOINTS } from './services/api/endpoints';
+import { binaryApi } from './services/api/axios';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -75,6 +80,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const userQueryEnhancerService = new UserQueryEnhancerService();
   const terminalManager = new TerminalManager(context);
   const apiErrorHandler = new ApiErrorHandler();
+  const mcpService = new MCPService();
 
   // 4. Diff View Manager Initialization
   const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
@@ -82,7 +88,17 @@ export async function activate(context: vscode.ExtensionContext) {
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
   await diffManager.init();
-  const chatService = new ChatManager(context, outputChannel, diffManager, terminalManager, apiErrorHandler);
+
+  const mcpManager = new MCPManager(outputChannel);
+  const chatService = new ChatManager(
+    context,
+    outputChannel,
+    diffManager,
+    terminalManager,
+    apiErrorHandler,
+    mcpManager,
+    usageTrackingManager,
+  );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
@@ -156,6 +172,18 @@ export async function activate(context: vscode.ExtensionContext) {
   chatService.setSidebarProvider(sidebarProvider);
   setSidebarProvider(sidebarProvider);
   // authenticationManager.setSidebarProvider(sidebarProvider);
+
+  watchMcpFileSave(context, async (document: TextDocument) => {
+    const response = await mcpService.syncServers();
+    if (response && response.data && !response.is_error) {
+      sidebarProvider.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'fetched-mcp-servers',
+        data: response.data,
+      });
+    }
+    vscode.window.showInformationMessage(`MCP settings saved and synced successfully`);
+  });
 
   const inlineChatEditManager = new InlineChatEditManager(
     context,

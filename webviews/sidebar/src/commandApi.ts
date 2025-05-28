@@ -1,15 +1,5 @@
-import { UsageTrackingRequest, SaveUrlRequest, Settings } from './types';
+import { UsageTrackingRequestFromSidebar, SaveUrlRequest, Settings } from './types';
 import { callCommand } from './vscode';
-
-// export function webviewReady() {
-//   return callCommand('webview-ready', null);
-// }
-
-// export function searchFile(query: string, limit: number = 20) {
-//   return callCommand('search-file', { query, limit }) as Promise<
-//     ChatReferenceFileItem[]
-//   >;
-// }
 
 export function writeFile(params: {
   filePath: string;
@@ -52,7 +42,7 @@ export function keywordSearch(payload: unknown) {
   return callCommand('keyword-search', payload);
 }
 
-export function usageTracking(payload: UsageTrackingRequest) {
+export function usageTracking(payload: UsageTrackingRequestFromSidebar) {
   return callCommand('usage-tracking', payload);
 }
 
@@ -104,6 +94,10 @@ export function createOrOpenFile(path: string) {
   return callCommand('open-or-create-file', { path });
 }
 
+export function openMcpSettings() {
+  return callCommand('open-mcp-settings', {});
+}
+
 // generate code
 export function cancelGenerateCode() {
   return callCommand('cancel-generate-code', null);
@@ -128,12 +122,6 @@ export function showErrorMessage(message: string) {
 export function showInfoMessage(message: string) {
   return callCommand('show-info-message', { message });
 }
-
-// export function getOpenedFiles() {
-//   return callCommand('get-opened-files', null) as Promise<
-//     Omit<ChatReferenceFileItem, 'type'>[]
-//   >;
-// }
 
 export function setGlobalState(data: { key: string; value: unknown }) {
   return callCommand('set-global-state', data);
@@ -260,6 +248,23 @@ export function submitFeedback(feedback: string, queryId: number) {
 
 export function enhanceUserQuery(userQuery: string) {
   return callCommand('enhance-user-query', { userQuery });
+}
+
+// MCP Operations
+export function syncServers() {
+  return callCommand('sync-servers', {});
+}
+
+export function mcpServerEnableOrDisable(action: 'enable' | 'disable', serverName: string) {
+  return callCommand('mcp-server-enable-or-disable', { action, serverName });
+}
+
+export function toolUseApprovalUpdate(
+  toolUseId: string,
+  autoAcceptNextTime: boolean,
+  approved: boolean
+) {
+  return callCommand('tool-use-approval-update', { toolUseId, autoAcceptNextTime, approved });
 }
 
 export function uploadFileToS3(data: File) {

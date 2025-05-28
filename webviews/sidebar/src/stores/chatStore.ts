@@ -23,6 +23,7 @@ import {
   LLMModels,
   S3Object,
   ChatReplaceBlockMessage,
+  BaseToolProps,
 } from '@/types';
 
 // =============================================================================
@@ -738,6 +739,56 @@ export const useChatStore = create(
                     break;
                   }
 
+                  case 'TOOL_CHIP_UPSERT': {
+                    useChatStore.setState({ showSkeleton: false });
+                    const baseToolProps = event.data as BaseToolProps;
+                    if (baseToolProps) {
+                      const newToolMsg: ChatToolUseMessage = {
+                        type: 'TOOL_CHIP_UPSERT',
+                        content: {
+                          tool_name: baseToolProps.toolRequest?.toolName || '',
+                          tool_use_id: baseToolProps.toolUseId,
+                          input_params_json: '',
+                          result_json: '',
+                          status: 'pending',
+                          toolRequest: baseToolProps.toolRequest,
+                        },
+                      };
+
+                      set((state) => {
+                        // First check if we already have this tool message
+                        const existingToolMsgIndex = state.history.findIndex(
+                          (msg) =>
+                            msg.type === 'TOOL_CHIP_UPSERT' &&
+                            msg.content.tool_use_id === baseToolProps.toolUseId
+                        );
+
+                        if (existingToolMsgIndex !== -1) {
+                          // If it exists, update it
+                          const newHistory = [...state.history];
+                          newHistory[existingToolMsgIndex] = {
+                            ...newHistory[existingToolMsgIndex],
+                            content: {
+                              ...newHistory[existingToolMsgIndex].content,
+                              toolRequest: baseToolProps.toolRequest,
+                              ...(baseToolProps.toolResponse && {
+                                toolResponse: baseToolProps.toolResponse,
+                              }),
+                              status: baseToolProps.toolRunStatus,
+                            },
+                          };
+                          return { history: newHistory };
+                        } else {
+                          // If it doesn't exist, add it
+                          return {
+                            history: [...state.history, newToolMsg],
+                          };
+                        }
+                      });
+                    }
+                    break;
+                  }
+
                   case 'TOOL_USE_RESULT': {
                     const toolResultData = event.data as {
                       tool_name: string;
@@ -874,6 +925,16 @@ export const useChatStore = create(
                 newHistory.push(state.current);
               }
               const lastMsg = newHistory[newHistory.length - 1];
+              if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
+                const toolMsg = lastMsg as ChatToolUseMessage;
+                newHistory[newHistory.length - 1] = {
+                  ...toolMsg,
+                  content: {
+                    ...toolMsg.content,
+                    status: 'aborted',
+                  },
+                };
+              }
               if (lastMsg?.type === 'TOOL_USE_REQUEST') {
                 const toolMsg = lastMsg as ChatToolUseMessage;
                 newHistory[newHistory.length - 1] = {
