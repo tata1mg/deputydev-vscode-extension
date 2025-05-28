@@ -376,7 +376,7 @@ export class ChatManager {
                       toolName: detectedClientTool.tool_metadata.tool_name,
                       serverName: detectedClientTool.tool_metadata.server_id,
                     },
-                    requiresApproval: detectedClientTool.auto_approve,
+                    requiresApproval: !detectedClientTool.auto_approve,
                   },
                   toolResponse: null,
                   toolRunStatus: 'pending',
