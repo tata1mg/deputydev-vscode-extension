@@ -1,5 +1,5 @@
 import { BaseToolProps } from '@/types';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { ToolRunStatus } from '@/types';
 import { useState } from 'react';
@@ -32,8 +32,16 @@ const BaseTool: React.FC<BaseToolProps> = ({
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
       ? 'border border-[--deputydev-button-border]'
       : '';
-  const [showDropDown, setShowDropDown] = useState(toolRequest?.requiresApproval);
+  const [showDropDown, setShowDropDown] = useState(false);
   const [autoApproval, setAutoApproval] = useState(false);
+  const [showConsent, setShowConsent] = useState(true);
+
+  useEffect(() => {
+    console.log("***************", toolRequest?.requiresApproval)
+    if (toolRequest?.requiresApproval) {
+      setShowDropDown(true);
+    }
+  }, [])
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -42,10 +50,6 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const handleAutoApprovalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.checked;
     setAutoApproval(newValue);
-    // Update the backend with the auto approval preference
-    if (toolUseId) {
-      toolUseApprovalUpdate(toolUseId, newValue, true);
-    }
   };
 
   // base tool chip
@@ -64,14 +68,18 @@ const BaseTool: React.FC<BaseToolProps> = ({
           </div>
           <div className="flex gap-2">
             {toolRequest?.requiresApproval && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Auto approve</span>
-                <input
-                  type="checkbox"
-                  checked={autoApproval}
-                  onChange={handleAutoApprovalChange}
-                  className="h-4 w-4 rounded border-gray-500/40 bg-gray-500/10 text-blue-500 focus:ring-0"
-                />
+              <div>
+                {showConsent &&
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-400">Auto approve</span>
+                    <input
+                      type="checkbox"
+                      checked={autoApproval}
+                      onChange={handleAutoApprovalChange}
+                      className="h-4 w-4 rounded border-gray-500/40 bg-gray-500/10 text-blue-500 focus:ring-0"
+                    />
+                  </div>
+                }
               </div>
             )}
             <div className="cursor-pointer" onClick={() => handleDropDown()}>
@@ -96,25 +104,37 @@ const BaseTool: React.FC<BaseToolProps> = ({
               </div>
             )}
             {toolRequest.requiresApproval && (
-              <>
-                <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
-                  This tool requires your approval before it can be executed.
-                </div>
-                <div className="flex space-x-2 px-2 pb-2">
-                  <button
-                    onClick={() => toolUseApprovalUpdate(toolUseId, false, true)}
-                    className={`flex-1 rounded bg-green-600 px-2 py-2 font-semibold text-[--deputydev-button-foreground] hover:opacity-40 ${borderClass} disabled:cursor-progress disabled:opacity-80`}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => toolUseApprovalUpdate(toolUseId, false, false)}
-                    className={`flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] text-red-500 hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
-                  >
-                    Reject
-                  </button>
-                </div>
-              </>
+              <div>
+                {showConsent &&
+                  <div>
+                    <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
+                      This tool requires your approval before it can be executed.
+                    </div>
+                    <div className="flex space-x-2 px-2 pb-2">
+                      <button
+                        onClick={() => {
+                          toolUseApprovalUpdate(toolUseId, autoApproval, true);
+                          setShowDropDown(false);
+                          setShowConsent(false);
+                        }}
+                        className={`flex-1 rounded bg-green-600 px-2 py-2 font-semibold text-[--deputydev-button-foreground] hover:opacity-40 ${borderClass} disabled:cursor-progress disabled:opacity-80`}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => {
+                          toolUseApprovalUpdate(toolUseId, false, false);
+                          setShowDropDown(false);
+                          setShowConsent(false);
+                        }}
+                        className={`flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] text-red-500 hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
             )}
           </div>
         )}
