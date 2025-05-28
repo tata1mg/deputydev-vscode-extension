@@ -1,6 +1,6 @@
 import * as os from 'os';
 import * as path from 'path';
-import { MCPServerToolInvokePayload } from '../../types';
+import { MCPServerToolApprovePayload, MCPServerToolInvokePayload } from '../../types';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { binaryApi } from '../api/axios';
@@ -107,6 +107,16 @@ export class MCPService {
       return response.data;
     } catch (error) {
       this.logger.error('Error while invoking MCP tool');
+      this.apiErrorHandler.handleApiError(error);
+    }
+  }
+
+  public async approveMcpTool(payload: MCPServerToolApprovePayload) {
+    try {
+      const response = await binaryApi().post(API_ENDPOINTS.APPROVE_MCP_TOOL, payload);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while approving MCP tool');
       this.apiErrorHandler.handleApiError(error);
     }
   }

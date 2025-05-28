@@ -77,4 +77,16 @@ export class MCPManager {
       tool_arguments: toolArgs,
     });
   }
+
+  public async approveMcpTool(
+    mcpServerId: string,
+    toolName: string,
+  ): Promise<{
+    [key: string]: string | number | boolean | object | null; // Parameter types
+  }> {
+    return this.mcpService.approveMcpTool({
+      server_name: mcpServerId,
+      tool_name: toolName,
+    });
+  }
 }

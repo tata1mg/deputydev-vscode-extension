@@ -810,6 +810,13 @@ export class ChatManager {
         if (!detectedClientTool.auto_approve) {
           this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
           approvalStatus = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
+          if (approvalStatus.autoAcceptNextTime) {
+            this.outputChannel.info(`User opted to auto-approve future uses of tool ${toolRequest.tool_name}.`);
+            this.mcpManager.approveMcpTool(
+              detectedClientTool.tool_metadata.server_id,
+              detectedClientTool.tool_metadata.tool_name,
+            );
+          }
         } else {
           // tool use auto approve (user tracking)
           this.usageTrackingManager.trackUsage({
@@ -870,7 +877,7 @@ export class ChatManager {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               result_json: {
-                error_message: `Tool use was rejected by user.`,
+                error_message: `This tool required user approval but the user did not approve it. Please clarify this with the user.`,
               },
               status: resultStatus,
             },
@@ -887,7 +894,7 @@ export class ChatManager {
               tool_name: toolRequest.tool_name,
               tool_use_id: toolRequest.tool_use_id,
               response: {
-                error_message: `Tool use was rejected by user.`,
+                error_message: `This tool required user approval but the user did not approve it. Please clarify this with the user.`,
               },
             },
             os_name: await getOSName(),
