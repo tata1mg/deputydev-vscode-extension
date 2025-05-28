@@ -1,1 +1,1 @@
-yarn lint:all
+yarn lint:fix:all

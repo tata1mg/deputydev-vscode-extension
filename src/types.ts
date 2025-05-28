@@ -1,15 +1,7 @@
-export interface UsageTrackingProperties {
-  session_id?: number;
-  lines: number;
-  file_path: string;
-  timestamp?: string;
-  source?: string;
-}
-
 export type UsageTrackingRequest = {
   anonymous_id?: string;
   event: string;
-  properties: UsageTrackingProperties;
+  properties: Record<string, any>;
 };
 
 export type ChunkCallback = (data: { name: string; data: unknown }) => void;

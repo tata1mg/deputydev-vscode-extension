@@ -61,6 +61,7 @@ export class ChatManager {
     private terminalManager: TerminalManager,
     private apiErrorHandler: ApiErrorHandler,
     private mcpManager: MCPManager,
+    private usageTrackingManager: UsageTrackingManager,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
@@ -363,7 +364,7 @@ export class ChatManager {
               search_web: payload.search_web,
             };
             // Immediately forward the start event.
-            const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+            const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest?.tool_name);
             if (detectedClientTool) {
               chunkCallback({
                 name: 'TOOL_CHIP_UPSERT',
@@ -391,7 +392,7 @@ export class ChatManager {
             if (currentToolRequest) {
               currentToolRequest.accumulatedContent += event.content?.input_params_json_delta || '';
               // Forward the delta along with the tool_use_id.
-              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest?.tool_name);
               if (detectedClientTool) {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
@@ -425,7 +426,7 @@ export class ChatManager {
           }
           case 'TOOL_USE_REQUEST_END': {
             if (currentToolRequest) {
-              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest.tool_name);
+              const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest?.tool_name);
               if (detectedClientTool) {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
@@ -488,8 +489,7 @@ export class ChatManager {
                       source: payload.is_inline ? 'inline-chat-act' : 'act',
                     },
                   };
-                  const usageTrackingManager = new UsageTrackingManager();
-                  usageTrackingManager.trackUsage(usageTrackingData);
+                  this.usageTrackingManager.trackUsage(usageTrackingData);
 
                   const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiff(
                     {
@@ -785,6 +785,21 @@ export class ChatManager {
 
       if (detectedClientTool) {
         this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
+        // tool use request for mcp (user tracking)
+        this.usageTrackingManager.trackUsage({
+          event: 'TOOL_USE_REQUEST_INITIATED',
+          properties: {
+            toolRequest: {
+              toolName: toolRequest.tool_name,
+              toolMeta: {
+                toolName: detectedClientTool.tool_metadata.tool_name,
+                serverName: detectedClientTool.tool_metadata.server_id,
+              },
+              requiresApproval: detectedClientTool.auto_approve,
+            },
+            toolUseId: toolRequest.tool_use_id,
+          },
+        });
         // if approval is needed, wait for it
 
         let approvalStatus: ToolUseApprovalStatus = {
@@ -795,9 +810,40 @@ export class ChatManager {
         if (!detectedClientTool.auto_approve) {
           this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
           approvalStatus = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
+        } else {
+          // tool use auto approve (user tracking)
+          this.usageTrackingManager.trackUsage({
+            event: 'TOOL_USE_REQUEST_AUTO_APPROVED',
+            properties: {
+              toolRequest: {
+                toolName: toolRequest.tool_name,
+                toolMeta: {
+                  toolName: detectedClientTool.tool_metadata.tool_name,
+                  serverName: detectedClientTool.tool_metadata.server_id,
+                },
+                requiresApproval: detectedClientTool.auto_approve,
+              },
+              toolUseId: toolRequest.tool_use_id,
+            },
+          });
         }
 
         if (!approvalStatus.approved) {
+          // tool use rejected (user tracking)
+          this.usageTrackingManager.trackUsage({
+            event: 'TOOL_USE_REQUEST_REJECTED',
+            properties: {
+              toolRequest: {
+                toolName: toolRequest.tool_name,
+                toolMeta: {
+                  toolName: detectedClientTool.tool_metadata.tool_name,
+                  serverName: detectedClientTool.tool_metadata.server_id,
+                },
+                requiresApproval: detectedClientTool.auto_approve,
+              },
+              toolUseId: toolRequest.tool_use_id,
+            },
+          });
           this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
           chunkCallback({
             name: 'TOOL_CHIP_UPSERT',
@@ -852,11 +898,43 @@ export class ChatManager {
           await this.apiChat(toolUseRejectedPayload, chunkCallback, toolUseResult);
           return; // Exit early if tool use was rejected
         }
+        if (!detectedClientTool.auto_approve) {
+          // manualy approved tool use for user tracking
+          this.usageTrackingManager.trackUsage({
+            event: 'TOOL_USE_REQUEST_APPROVED',
+            properties: {
+              toolRequest: {
+                toolName: toolRequest.tool_name,
+                toolMeta: {
+                  toolName: detectedClientTool.tool_metadata.tool_name,
+                  serverName: detectedClientTool.tool_metadata.server_id,
+                },
+                requiresApproval: detectedClientTool.auto_approve,
+              },
+              toolUseId: toolRequest.tool_use_id,
+            },
+          });
+        }
         rawResult = await this.mcpManager.runMCPTool(
           detectedClientTool.tool_metadata.server_id,
           detectedClientTool.tool_metadata.tool_name,
           parsedContent,
         );
+        // tool use completed user tracking
+        this.usageTrackingManager.trackUsage({
+          event: 'TOOL_USE_REQUEST_COMPLETED',
+          properties: {
+            toolRequest: {
+              toolName: toolRequest.tool_name,
+              toolMeta: {
+                toolName: detectedClientTool.tool_metadata.tool_name,
+                serverName: detectedClientTool.tool_metadata.server_id,
+              },
+              requiresApproval: detectedClientTool.auto_approve,
+            },
+            toolUseId: toolRequest.tool_use_id,
+          },
+        });
         this.outputChannel.debug(`Client tool result: ${JSON.stringify(rawResult)}`);
       } else {
         // Execute the specific tool function
@@ -1071,6 +1149,22 @@ export class ChatManager {
 
       const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
       if (detectedClientTool) {
+        // user tracking for error tool use
+        this.usageTrackingManager.trackUsage({
+          event: 'TOOL_USE_REQUEST_FAILED',
+          properties: {
+            toolRequest: {
+              toolName: toolRequest.tool_name,
+              toolMeta: {
+                toolName: detectedClientTool.tool_metadata.tool_name,
+                serverName: detectedClientTool.tool_metadata.server_id,
+              },
+              requiresApproval: detectedClientTool.auto_approve,
+            },
+            toolUseId: toolRequest.tool_use_id,
+            error: error,
+          },
+        });
         chunkCallback({
           name: 'TOOL_CHIP_UPSERT',
           data: {
