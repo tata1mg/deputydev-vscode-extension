@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { getMainConfig } from '../../config/configSetGet';
 
-
 interface UsageTrackingRequestForBackend {
   event_type: string;
   event_data: Record<string, any>;

@@ -1,4 +1,4 @@
-import { UsageTrackingRequest, SaveUrlRequest, Settings } from './types';
+import { UsageTrackingRequestFromSidebar, SaveUrlRequest, Settings } from './types';
 import { callCommand } from './vscode';
 
 export function writeFile(params: {
@@ -42,7 +42,7 @@ export function keywordSearch(payload: unknown) {
   return callCommand('keyword-search', payload);
 }
 
-export function usageTracking(payload: UsageTrackingRequest) {
+export function usageTracking(payload: UsageTrackingRequestFromSidebar) {
   return callCommand('usage-tracking', payload);
 }
 
