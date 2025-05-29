@@ -332,7 +332,6 @@ export interface MCPServerTool {
 }
 
 export interface MCPStorage {
-  mcpServerTools: MCPServerTool[];
   mcpServers: MCPServer[];
   selectedServer: MCPServer | undefined;
   showAllMCPServers: boolean;
