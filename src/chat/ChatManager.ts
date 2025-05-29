@@ -1,31 +1,29 @@
-import * as vscode from 'vscode';
-import { SidebarProvider } from '../panels/SidebarProvider';
-import { binaryApi, api } from '../services/api/axios';
-import { API_ENDPOINTS } from '../services/api/endpoints';
-import { QuerySolverService } from '../services/chat/ChatService';
-import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
-import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
-import { HistoryService } from '../services/history/HistoryService';
-import { FocusChunksService } from '../services/focusChunks/focusChunksService';
-import { AuthService } from '../services/auth/AuthService';
-import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
-import { SESSION_TYPE } from '../constants';
-import { ChatPayload, ChunkCallback, Chunk, ToolRequest, SearchTerm, ToolUseResult, ClientTool } from '../types';
-import { SingletonLogger } from '../utilities/Singleton-logger';
 import * as fs from 'fs';
 import * as path from 'path';
-import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
-import { UsageTrackingRequest } from '../types';
-import { getShell } from '../terminal/utils/shell';
-import { TerminalManager } from '../terminal/TerminalManager';
-import { DiffManager } from '../diff/diffManager';
-import { TerminalExecutor } from './tools/TerminalTool';
-import { getOSName } from '../utilities/osName';
-import { ApiErrorHandler } from '../services/api/apiErrorHandler';
-import { ReplaceInFile } from './tools/ReplaceInFileTool';
+import * as vscode from 'vscode';
+import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
-import { WriteToFileTool } from './tools/WriteToFileTool';
+import { SESSION_TYPE } from '../constants';
+import { DiffManager } from '../diff/diffManager';
 import { MCPManager } from '../mcp/mcpManager';
+import { SidebarProvider } from '../panels/SidebarProvider';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import { api, binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { AuthService } from '../services/auth/AuthService';
+import { QuerySolverService } from '../services/chat/ChatService';
+import { FocusChunksService } from '../services/focusChunks/focusChunksService';
+import { HistoryService } from '../services/history/HistoryService';
+import { getShell } from '../terminal/utils/shell';
+import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest, ToolUseResult } from '../types';
+import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
+import { getOSName } from '../utilities/osName';
+import { SingletonLogger } from '../utilities/Singleton-logger';
+import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
+import { ReplaceInFile } from './tools/ReplaceInFileTool';
+import { TerminalExecutor } from './tools/TerminalTool';
+import { WriteToFileTool } from './tools/WriteToFileTool';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -58,20 +56,13 @@ export class ChatManager {
     private context: vscode.ExtensionContext,
     private outputChannel: vscode.LogOutputChannel,
     private diffManager: DiffManager,
-    private terminalManager: TerminalManager,
     private apiErrorHandler: ApiErrorHandler,
     private mcpManager: MCPManager,
     private usageTrackingManager: UsageTrackingManager,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
-    this.terminalExecutor = new TerminalExecutor(
-      this.context,
-      this.terminalManager,
-      this.logger,
-      this.onTerminalApprove,
-      this.outputChannel,
-    );
+    this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
   }
 
   // Method to set the sidebar provider later
@@ -1340,5 +1331,11 @@ export class ChatManager {
 
   async apiChatSetting() {
     // Implementation for updating chat settings.
+  }
+  public async killAllProcesses() {
+    await this.terminalExecutor.abortAllCommands();
+  }
+  public async killProcessById(tool_use_id: string) {
+    await this.terminalExecutor.abortCommand(tool_use_id);
   }
 }
