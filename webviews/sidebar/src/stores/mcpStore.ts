@@ -6,7 +6,6 @@ import { MCPStorage } from '@/types';
 export const useMcpStore = create<MCPStorage>()(
   persist(
     (set) => ({
-      mcpServerTools: [],
       mcpServers: [],
       selectedServer: undefined,
       showAllMCPServers: false,
