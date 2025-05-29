@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
-    "vscode": "^1.84.0"
+    "vscode": "^1.93.0"
   },
   "icon": "assets/dd_logo_light.png",
   "categories": [
