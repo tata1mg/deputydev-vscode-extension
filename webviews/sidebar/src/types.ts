@@ -125,6 +125,9 @@ export interface TerminalPanelProps {
   terminal_output?: string;
   status?: 'pending' | 'completed' | 'error' | 'aborted';
   show_approval_options?: boolean;
+  is_execa_process?: boolean;
+  process_id?: number;
+  exit_code?: number;
 }
 
 export interface ChatToolUseMessage {
@@ -137,11 +140,18 @@ export interface ChatToolUseMessage {
     result_json: string;
     status: 'pending' | 'completed' | 'error' | 'aborted';
     write_mode?: boolean;
-    terminal_approval_required?: boolean;
+    terminal?: TerminalProcess;
     diff?: { addedLines: number; removedLines: number };
     toolRequest?: any;
     toolResponse?: any;
   };
+}
+export interface TerminalProcess {
+  terminal_approval_required?: boolean;
+  terminal_output?: string;
+  process_id?: number;
+  exit_code?: number;
+  is_execa_process?: boolean;
 }
 
 export interface ChatThinkingMessage {
