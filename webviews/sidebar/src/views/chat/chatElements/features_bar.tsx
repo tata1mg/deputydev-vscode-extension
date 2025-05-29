@@ -30,7 +30,7 @@ const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatu
 
 export default function FeaturesBar() {
   const [refreshSpinning, setRefreshSpinning] = useState(false);
-  const { mcpServers, mcpServerTools, selectedServer, showAllMCPServers, showMCPServerTools } =
+  const { mcpServers, selectedServer, showAllMCPServers, showMCPServerTools } =
     useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
@@ -46,7 +46,6 @@ export default function FeaturesBar() {
   };
 
   const handleShowMCPTools = (server: MCPServer) => {
-    useMcpStore.setState({ mcpServerTools: server.tools });
     useMcpStore.setState({ selectedServer: server });
     useMcpStore.setState({ showMCPServerTools: true });
   };
@@ -210,9 +209,9 @@ export default function FeaturesBar() {
                 backgroundColor: 'var(--vscode-editor-background)',
               }}
             >
-              {mcpServerTools && !selectedServer?.error && (
+              {selectedServer?.tools && !selectedServer?.error && (
                 <>
-                  {mcpServerTools.map((tool, index) => (
+                  {selectedServer.tools.map((tool, index) => (
                     <div key={index} className="mb-2 flex flex-col">
                       <div>{tool.name}</div>
                       <p className="text-gray-500">{tool.description}</p>
