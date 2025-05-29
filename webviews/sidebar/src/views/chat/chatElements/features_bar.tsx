@@ -30,8 +30,7 @@ const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatu
 
 export default function FeaturesBar() {
   const [refreshSpinning, setRefreshSpinning] = useState(false);
-  const { mcpServers, selectedServer, showAllMCPServers, showMCPServerTools } =
-    useMcpStore();
+  const { mcpServers, selectedServer, showAllMCPServers, showMCPServerTools } = useMcpStore();
 
   const featuresBarRef = useRef<HTMLDivElement>(null);
 
