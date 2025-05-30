@@ -1,7 +1,7 @@
 import { mcpServerEnableOrDisable, openMcpSettings, syncServers } from '@/commandApi';
 import { useMcpStore } from '@/stores/mcpStore';
 import { MCPServer } from '@/types';
-import { Hammer, RefreshCw, FilePenLine, ArrowLeft, CircleHelp } from 'lucide-react';
+import { RefreshCw, FilePenLine, ArrowLeft, CircleHelp, Server } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { useClickAway } from 'react-use';
@@ -251,14 +251,14 @@ export default function FeaturesBar() {
                 data-tooltip-place="top-start"
               >
                 <div>
-                  <Hammer className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
+                  <Server className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
                 </div>
                 <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
                   {mcpServers.length} Available MCP Servers
                 </div>
               </button>
               <a
-                href="https://onedoc.ekdosis.com/space/52766277-7bce-49f4-b18a-6f9fa97cd4c1/page/3c6529a4-8ddf-49c3-aef0-51b3b5664b4c/28e92fd8-b867-435d-ab55-5b023d2c27b1#%F0%9F%98%9F--Limitations"
+                href="https://onedoc.ekdosis.com/docs/deputydev/content/DeputyDev%20-%20VSCode%20plugin/mcp_server_guide"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center"
