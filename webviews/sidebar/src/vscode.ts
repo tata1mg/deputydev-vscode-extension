@@ -326,6 +326,9 @@ addCommandEventListener('initialize-settings-response', async ({ data }) => {
     shellCommandTimeout: await getGlobalState({
       key: 'terminal-command-timeout',
     }),
+    disableShellIntegration: await getGlobalState({
+      key: 'disable-shell-integration',
+    }),
   });
   useChatSettingStore.setState({
     chatType: settings.default_mode,
@@ -654,4 +657,32 @@ addCommandEventListener('fetched-mcp-servers', ({ data }) => {
       }
     }
   }
+});
+
+addCommandEventListener('terminal-process-completed', ({ data }) => {
+  const { toolUseId, exitCode } = data as { toolUseId: string; exitCode: number };
+
+  const history = useChatStore.getState().history;
+
+  const updatedHistory = history.map((msg) => {
+    if (
+      (msg.type === 'TOOL_USE_REQUEST' || msg.type === 'TOOL_USE_REQUEST_BLOCK') &&
+      msg.content.tool_use_id === toolUseId
+    ) {
+      return {
+        ...msg,
+        content: {
+          ...msg.content,
+          terminal: {
+            ...msg.content.terminal,
+            exit_code: exitCode,
+          },
+        },
+      };
+    }
+
+    return msg;
+  });
+
+  useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });

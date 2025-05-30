@@ -93,8 +93,27 @@ export function updateCurrentWorkspaceDD() {
   });
 }
 
+export function terminalProcessCompleted(data: { toolUseId: string; exitCode: number }) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'terminal-process-completed',
+    data: data,
+  });
+}
+
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
+}
+
+export function getIconPathObject(): vscode.Uri | { light: vscode.Uri; dark: vscode.Uri } | vscode.ThemeIcon {
+  if (!extensionContext) {
+    // Fallback: use a single ThemeIcon (not in an object)
+    return new vscode.ThemeIcon('terminal');
+  }
+  return {
+    light: vscode.Uri.joinPath(extensionContext.extensionUri, 'assets', 'DD_logo_light.png'),
+    dark: vscode.Uri.joinPath(extensionContext.extensionUri, 'assets', 'DD_logo_dark.png'),
+  };
 }
 
 export async function clearWorkspaceStorage(isLogout: boolean = false) {

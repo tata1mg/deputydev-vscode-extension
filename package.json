@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
-    "vscode": "^1.84.0"
+    "vscode": "^1.93.0"
   },
   "icon": "assets/dd_logo_light.png",
   "categories": [
@@ -17,15 +17,7 @@
     "url": "https://github.com/tata1mg/"
   },
   "activationEvents": [
-    "onCommand:deputydev.editThisCode",
-    "onCommand:deputydev.acceptChanges",
-    "onCommand:deputydev.rejectChanges",
-    "onCommand:deputydev.AcceptAllChanges",
-    "onCommand:deputydev.RejectAllChanges",
-    "onCommand:deputydev.AcceptChange",
-    "onCommand:deputydev.RejectChange",
-    "onStartupFinished",
-    "onCustomEditor:deputydev.changeProposer"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -303,7 +295,8 @@
     "@types/lodash": "^4.17.16",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.13.14",
-    "@types/vscode": "1.84.0",
+    "@types/ps-tree": "^1.1.6",
+    "@types/vscode": "1.93.0",
     "@types/ws": "^8.18.0",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
@@ -325,6 +318,7 @@
     "deepmerge": "^4.3.1",
     "diff": "^7.0.0",
     "eventsource-parser": "^3.0.1",
+    "execa": "^9.5.3",
     "fuse.js": "^7.1.0",
     "globby": "14.1.0",
     "lodash": "^4.17.21",
@@ -333,6 +327,7 @@
     "os-name": "^6.0.0",
     "p-wait-for": "^5.0.2",
     "path": "^0.12.7",
+    "ps-tree": "^1.2.0",
     "sse.js": "^2.6.0",
     "tar": "^7.4.3",
     "uuid": "^11.0.5",

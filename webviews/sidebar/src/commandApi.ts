@@ -233,9 +233,19 @@ export function createNewWorkspace(tool_use_id: string) {
 export function editTerminalCommand(data: { user_query: string; old_command: string }) {
   return callCommand('edit-terminal-command', data);
 }
+export function killProcessById(tool_use_id: string) {
+  return callCommand('kill-terminal-process', { tool_use_id });
+}
+export function killAllProcesses() {
+  return callCommand('kill-all-terminal-processes', null);
+}
 
 export function setShellIntegrationTimeoutMessage(data: { key: string; value: unknown }) {
   return callCommand('set-shell-integration-timeout', data);
+}
+
+export function setDisableShellIntegrationMessage(data: { key: string; value: unknown }) {
+  return callCommand('set-disable-shell-integration', data);
 }
 
 export function webviewInitialized() {

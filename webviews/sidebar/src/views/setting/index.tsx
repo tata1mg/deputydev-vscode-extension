@@ -26,6 +26,7 @@ import {
   setGlobalState,
   getGlobalState,
   setShellIntegrationTimeoutMessage,
+  setDisableShellIntegrationMessage,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -233,29 +234,28 @@ const EditIgnoreButton: React.FC = () => {
     </div>
   );
 };
-
-interface YoloModeToggleProps {
-  isYoloModeOn: boolean;
-  onToggle: (valur: boolean) => void;
+interface ToggleProps {
+  checked: boolean;
+  onChange: (value: boolean) => void;
 }
 
-const YoloModeToggle: React.FC<YoloModeToggleProps> = ({ isYoloModeOn, onToggle }) => {
+const Toggle: React.FC<ToggleProps> = ({ checked, onChange }) => {
   const handleToggle = () => {
-    onToggle(!isYoloModeOn);
+    onChange(!checked);
   };
 
   return (
     <label className="flex cursor-pointer items-center gap-1">
       <div className="relative inline-block h-5 w-10">
-        <input type="checkbox" checked={isYoloModeOn} onChange={handleToggle} className="sr-only" />
+        <input type="checkbox" checked={checked} onChange={handleToggle} className="sr-only" />
         <div
           className={`block h-full w-full rounded-full transition-colors ${
-            isYoloModeOn ? 'bg-[--deputydev-button-background]' : 'bg-gray-400'
+            checked ? 'bg-[--deputydev-button-background]' : 'bg-gray-400'
           }`}
         ></div>
         <div
           className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-            isYoloModeOn ? 'translate-x-5' : 'translate-x-0'
+            checked ? 'translate-x-5' : 'translate-x-0'
           }`}
         ></div>
       </div>
@@ -413,6 +413,8 @@ const Setting = () => {
     setIsYoloModeOn,
     setCommandsToDeny,
     setChatType,
+    disableShellIntegration,
+    setDisableShellIntegration,
   } = useSettingsStore();
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
   const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<string | null>(null);
@@ -481,6 +483,10 @@ const Setting = () => {
       key: 'terminal-command-timeout',
       value: shellCommandTimeout,
     });
+    setDisableShellIntegrationMessage({
+      key: 'disable-shell-integration',
+      value: disableShellIntegration,
+    });
     setShellIntegrationTimeoutMessage({
       key: 'terminal-shell-limit',
       value: shellIntegrationTimeout,
@@ -492,6 +498,7 @@ const Setting = () => {
     shellCommandTimeout,
     isYoloModeOn,
     commandsToDeny,
+    disableShellIntegration,
   ]);
 
   useEffect(() => {
@@ -639,7 +646,7 @@ const Setting = () => {
             'Allow DeputyDev to execute commands in the terminal without asking for confirmation.'
           }
         >
-          <YoloModeToggle isYoloModeOn={isYoloModeOn} onToggle={setIsYoloModeOn} />
+          <Toggle checked={isYoloModeOn} onChange={setIsYoloModeOn} />
         </SettingsCard>
         <SettingsCard
           title="Command Deny List"
@@ -664,20 +671,32 @@ const Setting = () => {
           />
         </SettingsCard>
         <SettingsCard
-          title="Shell Integration Initialization Timeout"
+          title="Disable Terminal Shell Integration"
           description={
-            'Set the max wait time (in seconds) for terminal shell setup. Increase for large projects or slower machines to avoid timeout errors.'
+            "Enable this if terminal commands aren't working correctly or you see 'Shell Integration Unavailable errors. "
           }
-          bottom
         >
-          <Slider
-            min={1}
-            max={60}
-            value={shellIntegrationTimeout}
-            onChange={setShellIntegrationTimeout}
-            postfix="s"
-          />
+          <Toggle checked={disableShellIntegration} onChange={setDisableShellIntegration} />
         </SettingsCard>
+        {!disableShellIntegration && (
+          <>
+            <SettingsCard
+              title="Shell Integration Initialization Timeout"
+              description={
+                'Set the max wait time (in seconds) for terminal shell setup. Increase for large projects or slower machines to avoid timeout errors.'
+              }
+              bottom
+            >
+              <Slider
+                min={1}
+                max={60}
+                value={shellIntegrationTimeout}
+                onChange={setShellIntegrationTimeout}
+                postfix="s"
+              />
+            </SettingsCard>
+          </>
+        )}
         <SettingsCard
           title="Shell Command Execution Timeout"
           description={

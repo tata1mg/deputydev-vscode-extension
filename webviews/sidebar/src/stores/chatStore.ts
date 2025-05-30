@@ -3,28 +3,29 @@ import { combine, persist } from 'zustand/middleware';
 
 import { apiChat, apiStopChat, logToOutput, showErrorMessage } from '@/commandApi';
 
-import { persistGlobalStorage, persistStorage } from './lib';
-import pick from 'lodash/pick';
 import {
   AutocompleteOption,
-  ChatReferenceItem,
-  ChatType,
-  ChatAssistantMessage,
-  ChatUserMessage,
-  ChatToolUseMessage,
-  ChatThinkingMessage,
-  ChatCodeBlockMessage,
-  ChatMessage,
-  ChatErrorMessage,
-  ChatCompleteMessage,
-  ProgressBarData,
-  ChatTerminalNoShell,
-  ChatMetaData,
-  LLMModels,
-  S3Object,
-  ChatReplaceBlockMessage,
   BaseToolProps,
+  ChatAssistantMessage,
+  ChatCodeBlockMessage,
+  ChatCompleteMessage,
+  ChatErrorMessage,
+  ChatMessage,
+  ChatMetaData,
+  ChatReferenceItem,
+  ChatReplaceBlockMessage,
+  ChatTerminalNoShell,
+  ChatThinkingMessage,
+  ChatToolUseMessage,
+  ChatType,
+  ChatUserMessage,
+  LLMModels,
+  ProgressBarData,
+  S3Object,
 } from '@/types';
+import pick from 'lodash/pick';
+import { persistGlobalStorage, persistStorage } from './lib';
+import { useSettingsStore } from './settingsStore';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -552,6 +553,9 @@ export const useChatStore = create(
                         } as ChatTerminalNoShell,
                       ],
                     }));
+                    useSettingsStore.setState({
+                      disableShellIntegration: true,
+                    });
 
                     chunkCallback({ name: 'TERMINAL_NO_SHELL_INTEGRATION', data: event.data });
                     break;
@@ -741,8 +745,12 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                terminal_approval_required:
-                                  terminalApprovalData.terminal_approval_required,
+                                // Correct: update terminal.terminal_approval_required here
+                                terminal: {
+                                  ...toolMsg.content.terminal,
+                                  terminal_approval_required:
+                                    terminalApprovalData.terminal_approval_required,
+                                },
                               },
                             };
                           }
@@ -805,6 +813,98 @@ export const useChatStore = create(
                     break;
                   }
 
+                  case 'EXECA_TERMINAL_PROCESS_STARTED': {
+                    const terminalData = event.data as {
+                      tool_use_id: string;
+                      process_id: number;
+                    };
+                    logToOutput(
+                      'info',
+                      `EXECA_TERMINAL_PROCESS_STARTED: tool_use_id=${terminalData.tool_use_id}, process_id=${terminalData.process_id}`
+                    );
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === 'TOOL_USE_REQUEST') {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                terminal: {
+                                  ...toolMsg.content.terminal,
+                                  process_id: terminalData.process_id,
+                                  is_execa_process: true,
+                                },
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                    break;
+                  }
+                  case 'EXECA_TERMINAL_PROCESS_OUTPUT': {
+                    const terminalData = event.data as {
+                      tool_use_id: string;
+                      output_lines: string;
+                    };
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === 'TOOL_USE_REQUEST') {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                terminal: {
+                                  ...toolMsg.content.terminal,
+                                  terminal_output:
+                                    (toolMsg.content.terminal?.terminal_output || '') +
+                                    terminalData.output_lines,
+                                },
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                    break;
+                  }
+
+                  case 'EXECA_TERMINAL_PROCESS_COMPLETED': {
+                    const terminalData = event.data as {
+                      tool_use_id: string;
+                      exit_code: number;
+                    };
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === 'TOOL_USE_REQUEST') {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                terminal: {
+                                  ...toolMsg.content.terminal,
+                                  exit_code: terminalData.exit_code,
+                                },
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                    break;
+                  }
                   case 'TOOL_USE_RESULT': {
                     const toolResultData = event.data as {
                       tool_name: string;
@@ -864,10 +964,13 @@ export const useChatStore = create(
                           content: {
                             ...toolMsg.content,
                             status: 'error',
-                            terminal_approval_required:
-                              toolMsg.content.tool_name === 'execute_command'
-                                ? false
-                                : toolMsg.content.terminal_approval_required,
+                            terminal: {
+                              ...toolMsg.content.terminal,
+                              terminal_approval_required:
+                                toolMsg.content.tool_name === 'execute_command'
+                                  ? false
+                                  : toolMsg.content.terminal?.terminal_approval_required,
+                            },
                           },
                         };
                       }
@@ -958,13 +1061,17 @@ export const useChatStore = create(
                   content: {
                     ...toolMsg.content,
                     status: 'aborted',
-                    terminal_approval_required:
-                      toolMsg.content.tool_name === 'execute_command'
-                        ? false
-                        : toolMsg.content.terminal_approval_required,
+                    terminal: {
+                      ...toolMsg.content.terminal,
+                      terminal_approval_required:
+                        toolMsg.content.tool_name === 'execute_command'
+                          ? false
+                          : toolMsg.content.terminal?.terminal_approval_required,
+                    },
                   },
                 };
               }
+
               //  Abort pending CODE_BLOCK_STREAMING messages
               if (lastMsg?.type === 'CODE_BLOCK_STREAMING' && lastMsg.status === 'pending') {
                 newHistory[newHistory.length - 1] = {

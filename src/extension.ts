@@ -33,10 +33,10 @@ import { TextDocument } from 'vscode';
 import { watchMcpFileSave } from './code_syncing/mcpSettingsSync';
 import { MCPManager } from './mcp/mcpManager';
 import { ApiErrorHandler } from './services/api/apiErrorHandler';
+import { TerminalRegistry } from './terminal/TerminalRegistry';
 import { FeedbackService } from './services/feedback/feedbackService';
 import { MCPService } from './services/mcp/mcpService';
 import { UserQueryEnhancerService } from './services/userQueryEnhancer/userQueryEnhancerService';
-import { TerminalManager } from './terminal/TerminalManager';
 import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace';
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { API_ENDPOINTS } from './services/api/endpoints';
@@ -78,7 +78,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
   const userQueryEnhancerService = new UserQueryEnhancerService();
-  const terminalManager = new TerminalManager(context);
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
 
@@ -90,11 +89,13 @@ export async function activate(context: vscode.ExtensionContext) {
   await diffManager.init();
 
   const mcpManager = new MCPManager(outputChannel);
+
+  // Initialize terminal shell execution handlers.
+  TerminalRegistry.initialize();
   const chatService = new ChatManager(
     context,
     outputChannel,
     diffManager,
-    terminalManager,
     apiErrorHandler,
     mcpManager,
     usageTrackingManager,
@@ -120,7 +121,6 @@ export async function activate(context: vscode.ExtensionContext) {
     feedBackService,
     userQueryEnhancerService,
     continueNewWorkspace,
-    terminalManager,
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
@@ -305,5 +305,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 export async function deactivate() {
   await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  TerminalRegistry.cleanup();
   deleteSessionId();
 }

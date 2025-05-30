@@ -33,7 +33,6 @@ import { FeedbackService } from '../services/feedback/feedbackService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import * as fs from 'fs';
-import { TerminalManager } from '../terminal/TerminalManager';
 import { getOSName } from '../utilities/osName';
 import * as os from 'os';
 import { MCPService } from '../services/mcp/mcpService';
@@ -66,7 +65,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private feedbackService: FeedbackService,
     private userQueryEnhancerService: UserQueryEnhancerService,
     private continueWorkspace: ContinueNewWorkspace,
-    private terminalManager: TerminalManager,
   ) {}
 
   public resolveWebviewView(
@@ -114,7 +112,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           promise = this.chatService.stopChat(); // Calls abort on the active request
           break;
         case 'delete-session-id':
-          this.outputChannel.info('Deleting session ID');
+          this.outputChannel.info('Deleting session ID and killing all processes');
+          this.chatService.killAllProcesses();
           deleteSessionId();
           break;
         // case 'api-clear-chat':
@@ -322,8 +321,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           });
           break;
 
+        case 'kill-terminal-process':
+          this.outputChannel.info(`Killing terminal process with ID: ${data.tool_use_id}`);
+          this.chatService.killProcessById(data.tool_use_id);
+          break;
+        case 'kill-all-terminal-processes':
+          this.outputChannel.info('Killing all terminal processes');
+          this.chatService.killAllProcesses();
+          break;
         case 'set-shell-integration-timeout':
-          this.terminalManager.setShellIntegrationTimeout(data.value);
+          this.setGlobalState(data);
+          break;
+        case 'set-disable-shell-integration':
           this.setGlobalState(data);
           break;
 
@@ -403,6 +412,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  //TODO: move this to service folder
   async editTerminalCommand(data: { user_query: string; old_command: string }) {
     try {
       const { user_query, old_command } = data;
@@ -895,7 +905,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       try {
         await this.getAllServers();
       } catch (error) {
-        this.logger.error('Error while polling MCP servers:', error);
+        this.logger.error('Error while polling MCP servers:');
       }
     }, 2000);
   }
@@ -903,7 +913,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async getAllServers() {
     const response = await this.mcpService.getAllMcpServers();
     if (response.is_error && response.meta && response.meta.message) {
-      vscode.window.showInformationMessage(response.meta.message);
+      // vscode.window.showInformationMessage(response.meta.message);
     }
     if (response && response.data && !response.is_error) {
       this.sendMessageToSidebar({
