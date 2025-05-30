@@ -11,6 +11,7 @@ interface SettingsStore {
   shellCommandTimeout: number;
   isYoloModeOn: boolean;
   commandsToDeny: string[];
+  disableShellIntegration: boolean;
   chatType: ChatType;
   urls: URLListItem[];
 
@@ -19,7 +20,9 @@ interface SettingsStore {
   setShellCommandTimeout: (value: number) => void;
   setIsYoloModeOn: (value: boolean) => void;
   setCommandsToDeny: (value: string[]) => void;
+  setDisableShellIntegration: (value: boolean) => void;
   setChatType: (value: ChatType) => void;
+  setUrls: (value: URLListItem[]) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -30,6 +33,7 @@ export const useSettingsStore = create<SettingsStore>()(
       shellCommandTimeout: 10,
       isYoloModeOn: false,
       commandsToDeny: [],
+      disableShellIntegration: false,
       chatType: 'ask',
       urls: [] as URLListItem[],
 
@@ -38,6 +42,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setShellCommandTimeout: (value) => set({ shellCommandTimeout: value }),
       setIsYoloModeOn: (value) => set({ isYoloModeOn: value }),
       setCommandsToDeny: (value) => set({ commandsToDeny: value }),
+      setDisableShellIntegration: (value) => set({ disableShellIntegration: value }),
       setChatType: (value) => set({ chatType: value }),
       setUrls: (value: URLListItem[]) => set({ urls: value }),
     }),

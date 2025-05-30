@@ -1,11 +1,16 @@
-import { acceptTerminalCommand, editTerminalCommand, logToOutput } from '@/commandApi';
-import { useState, useEffect } from 'react';
-import { parse, Allow } from 'partial-json';
-import { TerminalPanelProps } from '@/types';
-import { useThemeStore } from '@/stores/useThemeStore';
-import { TerminalIcon, LoaderCircle } from 'lucide-react';
+import {
+  acceptTerminalCommand,
+  editTerminalCommand,
+  killProcessById,
+  logToOutput,
+} from '@/commandApi';
 import { useChatStore } from '@/stores/chatStore';
-import { cn } from '@/lib/utils';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { TerminalPanelProps } from '@/types';
+import { LoaderCircle, Skull, TerminalIcon } from 'lucide-react';
+import { Allow, parse } from 'partial-json';
+import { useEffect, useState } from 'react';
+import { SnippetReference } from './CodeBlockStyle';
 
 /**
  * Updates the terminal approval status for a specific tool use request in the chat history.
@@ -19,13 +24,16 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
 
   const updatedHistory = history.map((msg) => {
     if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
-      // Ensure terminal_approval_required exists before updating
-      if (msg.content.terminal_approval_required !== undefined) {
+      // Ensure terminal exists before updating
+      if (msg.content.terminal !== undefined) {
         return {
           ...msg,
           content: {
             ...msg.content,
-            terminal_approval_required: required,
+            terminal: {
+              ...msg.content.terminal,
+              terminal_approval_required: required,
+            },
           },
         };
       }
@@ -41,8 +49,12 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
 export function TerminalPanel({
   tool_id,
   terminal_command,
+  terminal_output,
   status,
   show_approval_options,
+  is_execa_process,
+  process_id,
+  exit_code,
 }: TerminalPanelProps) {
   const [isStreaming, setIsStreaming] = useState(true);
   const [editInput, setEditInput] = useState('');
@@ -144,6 +156,13 @@ export function TerminalPanel({
     }
   };
 
+  // Handler to kill the process
+  const handleKillProcess = () => {
+    if (tool_id) {
+      killProcessById(tool_id);
+    }
+  };
+
   // Determine button disabled states
   const isExecuteDisabled = commandState === null || commandState.trim() === '' || isEditingApiCall;
 
@@ -218,19 +237,60 @@ export function TerminalPanel({
       )}
 
       {show_approval_options === false && (
-        <div className="flex items-center gap-2 px-2 py-2 text-xs">
-          <strong>Status:</strong>
-          {status === 'pending' ? (
+        <div className="flex items-center justify-between px-2 py-2 text-xs">
+          <div className="flex items-baseline gap-2">
+            <strong>Status:</strong>
+            {status === 'pending' ? (
+              <div className="flex items-baseline gap-2">
+                <span>In progress</span>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                </span>
+              </div>
+            ) : (
+              <span className="capitalize">{status}</span>
+            )}
+          </div>
+          {is_execa_process && (
             <div className="flex items-center gap-2">
-              <span>In progress</span>
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-              </span>
+              {typeof exit_code === 'number' ? (
+                <span className="font-mono leading-none text-[--vscode-descriptionForeground]">
+                  Exited ({exit_code})
+                </span>
+              ) : (
+                <>
+                  {process_id && (
+                    <>
+                      <span className="size-2 rounded-full bg-green-500" />
+                      <span className="text-[--vscode-descriptionForeground]">
+                        Process ID: {process_id}
+                      </span>
+                    </>
+                  )}
+                  <button
+                    onClick={handleKillProcess}
+                    data-tooltip-id="kill-tooltip"
+                    data-tooltip-content="Kill process"
+                    data-tooltip-place="top-start"
+                    className="group rounded hover:bg-[--vscode-toolbar-hoverBackground]"
+                    title="Kill process"
+                  >
+                    <Skull className="h-4 w-4 group-hover:opacity-80" />
+                  </button>
+                </>
+              )}
             </div>
-          ) : (
-            <span className="capitalize">{status}</span>
           )}
+        </div>
+      )}
+
+      {/* Terminal output section */}
+      {terminal_output && (
+        <div className="m-1 border-t border-gray-500/40">
+          <SnippetReference
+            snippet={{ content: terminal_output, language: 'bash', maxHeight: 300 }}
+          />
         </div>
       )}
 

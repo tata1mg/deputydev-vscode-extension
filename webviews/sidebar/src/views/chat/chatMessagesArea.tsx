@@ -1,25 +1,26 @@
-import { CircleUserRound, TriangleAlert, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { submitFeedback } from '@/commandApi';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { ChatMessage } from '@/types';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { CircleUserRound, ThumbsDown, ThumbsUp, TriangleAlert } from 'lucide-react';
+import { JSX, useRef } from 'react';
 import Markdown from 'react-markdown';
-import { useChatSettingStore, useChatStore } from '../../stores/chatStore';
+import { useChatStore } from '../../stores/chatStore';
 import '../../styles/markdown-body.css';
+import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
+import { TerminalPanel } from './chatElements/TerminalPanel';
 import {
-  ToolUseStatusMessage,
-  ThinkingChip,
   FileEditedChip,
   RetryChip,
+  ThinkingChip,
+  ToolUseStatusMessage,
 } from './chatElements/ToolChips';
+import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
+import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
+import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
 import ReferenceChip from './referencechip';
-import { TerminalPanel } from './chatElements/TerminalPanel';
-import { JSX, useRef } from 'react';
-import { useThemeStore } from '@/stores/useThemeStore';
-import { submitFeedback } from '@/commandApi';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
-import { ChatMessage } from '@/types';
-import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
-import MCPTool from './chatElements/Tools/mcpTool';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
@@ -155,7 +156,11 @@ export function ChatArea() {
                     tool_id={msg.content.tool_use_id}
                     terminal_command={(msg.content.input_params_json as string) || ''}
                     status={msg.content.status}
-                    show_approval_options={msg.content.terminal_approval_required}
+                    show_approval_options={msg.content.terminal?.terminal_approval_required}
+                    is_execa_process={msg.content.terminal?.is_execa_process || false}
+                    process_id={msg.content.terminal?.process_id}
+                    terminal_output={msg.content.terminal?.terminal_output || ''}
+                    exit_code={msg.content.terminal?.exit_code}
                   />
                 );
                 break;
@@ -264,6 +269,21 @@ export function ChatArea() {
                     addedLines={msg.content.diff?.addedLines}
                     removedLines={msg.content.diff?.removedLines}
                     isStreaming={isStreaming}
+                  />
+                );
+                break;
+              }
+              case 'execute_command': {
+                const inputParams = msg.content.tool_input_json as unknown as {
+                  command: string;
+                  is_long_running: boolean;
+                  terminal_approval_required: boolean;
+                };
+                contentComponent = (
+                  <TerminalPanelHistory
+                    tool_id={msg.content.tool_use_id}
+                    terminal_command={inputParams.command}
+                    status={msg.content.status || 'history'}
                   />
                 );
                 break;
@@ -452,7 +472,7 @@ export function ChatArea() {
             return (
               <div
                 key={index}
-                className={`mt-2 flex flex-col items-start gap-1.5 rounded-md ${['light', 'high-contrast-light'].includes(themeKind) ? 'bg-yellow-200/80' : 'bg-yellow-800/40'} px-3 py-2`}
+                className={`mt-2 flex flex-col items-start gap-1.5 rounded-md ${['light', 'high-contrast-light'].includes(themeKind) ? 'bg-yellow-200/60' : 'bg-yellow-800/40'} px-3 py-2`}
               >
                 <div
                   className={`flex items-center ${['light', 'high-contrast-light'].includes(themeKind) ? 'text-gray-900' : 'text-yellow-500'} gap-2`}
@@ -461,18 +481,8 @@ export function ChatArea() {
                   <p className="text-sm font-medium">Shell Integration Unavailable</p>
                 </div>
                 <div className="text-xs">
-                  DeputyDev won't be able to view the command's output. Please update VSCode (
-                  <kbd>CMD/CTRL + Shift + P</kbd> → "Update") and make sure you're using a supported
-                  shell: zsh, bash, or PowerShell (<kbd>CMD/CTRL + Shift + P</kbd> → "Terminal:
-                  Select Default Profile").{' '}
-                  <a
-                    href="https://code.visualstudio.com/docs/terminal/shell-integration"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    Still having trouble?
-                  </a>
+                  DeputyDev won't be able to view the command's output. Future terminal commands
+                  will use the fallback terminal provider.
                 </div>
               </div>
             );
