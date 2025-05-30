@@ -258,11 +258,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                          ...state.current,
-                          content: {
-                            text: state.current.content.text + textChunk,
-                          },
-                        }
+                            ...state.current,
+                            content: {
+                              text: state.current.content.text + textChunk,
+                            },
+                          }
                         : state.current,
                     }));
 
@@ -512,8 +512,13 @@ export const useChatStore = create(
                       .find((msg) => msg.type === 'TEXT_BLOCK' && msg.actor === 'USER');
 
                     let elapsedTime: any;
-                    if (latestUserMessage && latestUserMessage.lastMessageSentTime !== null && latestUserMessage.lastMessageSentTime !== undefined) {
-                      elapsedTime = new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
+                    if (
+                      latestUserMessage &&
+                      latestUserMessage.lastMessageSentTime !== null &&
+                      latestUserMessage.lastMessageSentTime !== undefined
+                    ) {
+                      elapsedTime =
+                        new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
                     }
 
                     set((state) => ({
@@ -638,13 +643,13 @@ export const useChatStore = create(
                         set((state) => ({
                           current: state.current
                             ? {
-                              ...state.current,
-                              content: {
-                                text: (state.current.content.text + delta)
-                                  .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                  .replace(/"}$/, ''), // Remove trailing `"}`
-                              },
-                            }
+                                ...state.current,
+                                content: {
+                                  text: (state.current.content.text + delta)
+                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
+                                    .replace(/"}$/, ''), // Remove trailing `"}`
+                                },
+                              }
                             : state.current,
                         }));
                         break;
