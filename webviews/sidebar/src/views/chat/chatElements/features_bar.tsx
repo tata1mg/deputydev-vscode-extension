@@ -103,6 +103,9 @@ export default function FeaturesBar() {
       <div
         ref={featuresBarRef}
         className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
+        style={{
+          backgroundColor: 'var(--vscode-editor-background)',
+        }}
       >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
@@ -140,14 +143,12 @@ export default function FeaturesBar() {
                           server.name
                         )
                       }
-                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                   </div>
@@ -189,14 +190,12 @@ export default function FeaturesBar() {
                         selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
-                      }`}
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -250,14 +249,20 @@ export default function FeaturesBar() {
                   {mcpServers.length} Available MCP Servers
                 </div>
               </button>
-              <div
-                data-tooltip-id="mcp-tooltips"
-                data-tooltip-content={MCPCircleHelpTooltipContent}
-                data-tooltip-place="top-start"
-                data-tooltip-class-name="max-w-[80%]"
+              <a
+                href="https://onedoc.ekdosis.com/space/52766277-7bce-49f4-b18a-6f9fa97cd4c1/page/3c6529a4-8ddf-49c3-aef0-51b3b5664b4c/28e92fd8-b867-435d-ab55-5b023d2c27b1#%F0%9F%98%9F--Limitations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center"
               >
-                <CircleHelp className="h-4 w-4 opacity-50 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
-              </div>
+                <CircleHelp
+                  className="h-4 w-4 opacity-50 hover:opacity-100 hover:bg-slate-700 hover:bg-opacity-10 transition-opacity"
+                  data-tooltip-id="mcp-tooltips"
+                  data-tooltip-content={MCPCircleHelpTooltipContent}
+                  data-tooltip-place="top-start"
+                  data-tooltip-class-name="max-w-[80%]"
+                />
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-2">
