@@ -641,7 +641,7 @@ addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const selectedServer = useMcpStore.getState().selectedServer;
   if (servers.length === 0) {
     useMcpStore.setState({ mcpServers: [] });
-    useMcpStore.setState({selectedServer: undefined});
+    useMcpStore.setState({ selectedServer: undefined });
   }
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
