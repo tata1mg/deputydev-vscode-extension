@@ -143,12 +143,14 @@ export default function FeaturesBar() {
                           server.name
                         )
                       }
-                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                        }`}
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-4' : 'translate-x-0'
-                          }`}
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                       />
                     </button>
                   </div>
@@ -190,12 +192,14 @@ export default function FeaturesBar() {
                         selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                    }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
                     />
                   </button>
                 </div>
@@ -256,7 +260,7 @@ export default function FeaturesBar() {
                 className="inline-flex items-center"
               >
                 <CircleHelp
-                  className="h-4 w-4 opacity-50 hover:opacity-100 hover:bg-slate-700 hover:bg-opacity-10 transition-opacity"
+                  className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100"
                   data-tooltip-id="mcp-tooltips"
                   data-tooltip-content={MCPCircleHelpTooltipContent}
                   data-tooltip-place="top-start"

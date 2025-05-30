@@ -71,16 +71,16 @@ const BaseTool: React.FC<BaseToolProps> = ({
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       <div className="flex w-full flex-col gap-2">
-        <div className="flex items-center gap-2 w-full">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="flex items-center gap-2 w-full min-w-0">
+        <div className="flex w-full items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2">
               <StatusIcon status={toolRunStatus} />
-              <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <span className="text-xs font-bold">
                   {requestRejected ? 'Tool Use Request Rejected' : displayText}
                 </span>
                 <span
-                  className="text-xs text-gray-400 truncate"
+                  className="truncate text-xs text-gray-400"
                   data-tooltip-id="tool-chip-tool-tip"
                   data-tooltip-content={`${toolRequest?.toolMeta.serverName}/${toolRequest?.toolMeta.toolName}`}
                   data-tooltip-place="top-start"
@@ -90,12 +90,12 @@ const BaseTool: React.FC<BaseToolProps> = ({
               </div>
             </div>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex items-center gap-2">
             {toolRequest?.requiresApproval && (
               <div>
                 {showConsent && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 whitespace-nowrap">Auto approve</span>
+                    <span className="whitespace-nowrap text-xs text-gray-400">Auto approve</span>
                     <input
                       type="checkbox"
                       checked={autoApproval}
