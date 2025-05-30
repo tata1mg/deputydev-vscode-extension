@@ -13,6 +13,19 @@ function isNotCompatible(): boolean {
     return true;
   }
 
+  // Windows: Check for Docker
+  if (platform === 'win32') {
+    try {
+      execSync('docker --version');
+      // Docker exists, do nothing.
+    } catch (err) {
+      vscode.window.showWarningMessage(
+        'DeputyDev requires Docker Desktop to be installed on Windows. Please install Docker Desktop and ensure it is available in your PATH.'
+      );
+      return true;
+    }
+  }
+
   if (platform === 'darwin') {
     try {
       const version = execSync('sw_vers -productVersion').toString().trim(); // e.g., 14.0.1
