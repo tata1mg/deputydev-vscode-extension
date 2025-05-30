@@ -143,25 +143,26 @@ export default function FeaturesBar() {
                           server.name
                         )
                       }
-                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                        !server.disabled ? 'bg-green-500' : 'bg-gray-300'
-                      }`}
+                      className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!server.disabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}
                     >
                       <div
-                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          !server.disabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!server.disabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                   </div>
                 </div>
               </div>
             ))}
+            {mcpServers.length === 0 &&
+              <div className="text-center">MCP Server are not available</div>
+            }
           </div>
         )}
 
         {/* SINGLE MCP SERVER WITH ITS TOOLS */}
-        {showMCPServerTools && (
+        {showMCPServerTools && selectedServer && (
           <div>
             <div
               className="flex justify-between"
@@ -192,14 +193,12 @@ export default function FeaturesBar() {
                         selectedServer?.name || ''
                       )
                     }
-                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                      !selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
-                    }`}
+                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${!selectedServer?.disabled ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
                   >
                     <div
-                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                        !selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
-                      }`}
+                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${!selectedServer?.disabled ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
@@ -224,6 +223,9 @@ export default function FeaturesBar() {
               {selectedServer?.error && (
                 <div className="text-center text-red-600">{selectedServer.error}</div>
               )}
+              {!selectedServer.tools &&
+                <div className="text-center">No Tools</div>
+              }
             </div>
           </div>
         )}
