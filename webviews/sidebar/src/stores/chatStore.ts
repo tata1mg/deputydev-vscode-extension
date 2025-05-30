@@ -143,6 +143,7 @@ export const useChatStore = create(
                 referenceList: editorReferences,
                 s3Reference: s3Reference,
                 actor: 'USER',
+                lastMessageSentTime: useChatStore.getState().lastMessageSentTime,
               };
 
               if (!retryChat) {
@@ -257,11 +258,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                            ...state.current,
-                            content: {
-                              text: state.current.content.text + textChunk,
-                            },
-                          }
+                          ...state.current,
+                          content: {
+                            text: state.current.content.text + textChunk,
+                          },
+                        }
                         : state.current,
                     }));
 
@@ -504,6 +505,17 @@ export const useChatStore = create(
 
                   case 'QUERY_COMPLETE': {
                     useChatStore.setState({ showSkeleton: false });
+
+                    const { history } = useChatStore.getState();
+                    const latestUserMessage = [...history]
+                      .reverse()
+                      .find((msg) => msg.type === 'TEXT_BLOCK' && msg.actor === 'USER');
+
+                    let elapsedTime: any;
+                    if (latestUserMessage && latestUserMessage.lastMessageSentTime !== null && latestUserMessage.lastMessageSentTime !== undefined) {
+                      elapsedTime = new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
+                    }
+
                     set((state) => ({
                       history: [
                         ...state.history,
@@ -511,8 +523,7 @@ export const useChatStore = create(
                           type: 'QUERY_COMPLETE',
                           actor: 'ASSISTANT',
                           content: {
-                            elapsedTime:
-                              new Date().getTime() - (state.lastMessageSentTime?.getTime() || 0),
+                            elapsedTime,
                             feedbackState: '',
                           },
                         } as ChatCompleteMessage,
@@ -627,13 +638,13 @@ export const useChatStore = create(
                         set((state) => ({
                           current: state.current
                             ? {
-                                ...state.current,
-                                content: {
-                                  text: (state.current.content.text + delta)
-                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                    .replace(/"}$/, ''), // Remove trailing `"}`
-                                },
-                              }
+                              ...state.current,
+                              content: {
+                                text: (state.current.content.text + delta)
+                                  .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
+                                  .replace(/"}$/, ''), // Remove trailing `"}`
+                              },
+                            }
                             : state.current,
                         }));
                         break;
