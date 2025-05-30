@@ -475,10 +475,6 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     showAllSessions: lastChatDataParsed.showAllSessions,
   });
   useChatStore.setState({ showSkeleton: true });
-  const rawTime = lastChatDataParsed.lastMessageSentTime;
-  const parsedTime = rawTime ? new Date(rawTime) : null;
-
-  useChatStore.setState({ lastMessageSentTime: parsedTime });
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()
     .find(
@@ -643,6 +639,10 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
   const selectedServer = useMcpStore.getState().selectedServer;
+  if (servers.length === 0) {
+    useMcpStore.setState({ mcpServers: [] });
+    useMcpStore.setState({ selectedServer: undefined });
+  }
   if (servers && servers.length > 0) {
     useMcpStore.setState({ mcpServers: servers });
     if (selectedServer) {

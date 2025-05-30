@@ -103,6 +103,9 @@ export default function FeaturesBar() {
       <div
         ref={featuresBarRef}
         className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
+        style={{
+          backgroundColor: 'var(--vscode-editor-background)',
+        }}
       >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
@@ -154,11 +157,14 @@ export default function FeaturesBar() {
                 </div>
               </div>
             ))}
+            {mcpServers.length === 0 && (
+              <div className="text-center">MCP Server are not available</div>
+            )}
           </div>
         )}
 
         {/* SINGLE MCP SERVER WITH ITS TOOLS */}
-        {showMCPServerTools && (
+        {showMCPServerTools && selectedServer && (
           <div>
             <div
               className="flex justify-between"
@@ -221,6 +227,7 @@ export default function FeaturesBar() {
               {selectedServer?.error && (
                 <div className="text-center text-red-600">{selectedServer.error}</div>
               )}
+              {!selectedServer.tools && <div className="text-center">No Tools</div>}
             </div>
           </div>
         )}
@@ -250,14 +257,20 @@ export default function FeaturesBar() {
                   {mcpServers.length} Available MCP Servers
                 </div>
               </button>
-              <div
-                data-tooltip-id="mcp-tooltips"
-                data-tooltip-content={MCPCircleHelpTooltipContent}
-                data-tooltip-place="top-start"
-                data-tooltip-class-name="max-w-[80%]"
+              <a
+                href="https://onedoc.ekdosis.com/space/52766277-7bce-49f4-b18a-6f9fa97cd4c1/page/3c6529a4-8ddf-49c3-aef0-51b3b5664b4c/28e92fd8-b867-435d-ab55-5b023d2c27b1#%F0%9F%98%9F--Limitations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center"
               >
-                <CircleHelp className="h-4 w-4 opacity-50 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
-              </div>
+                <CircleHelp
+                  className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100"
+                  data-tooltip-id="mcp-tooltips"
+                  data-tooltip-content={MCPCircleHelpTooltipContent}
+                  data-tooltip-place="top-start"
+                  data-tooltip-class-name="max-w-[80%]"
+                />
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-2">

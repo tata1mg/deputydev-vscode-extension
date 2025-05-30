@@ -108,6 +108,7 @@ export type ChatUserMessage = {
   referenceList: ChatReferenceItem[];
   s3Reference?: S3Object;
   actor: 'USER';
+  lastMessageSentTime?: Date | null;
 };
 
 export interface ChatAssistantMessage {

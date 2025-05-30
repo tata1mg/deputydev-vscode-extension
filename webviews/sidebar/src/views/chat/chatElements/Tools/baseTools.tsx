@@ -8,6 +8,7 @@ import { toolUseApprovalUpdate } from '@/commandApi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { Tooltip } from 'react-tooltip';
 
 const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   switch (status) {
@@ -70,26 +71,31 @@ const BaseTool: React.FC<BaseToolProps> = ({
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       <div className="flex w-full flex-col gap-2">
-        <div className="flex w-full items-center justify-between gap-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="flex w-full min-w-0 items-center gap-2">
               <StatusIcon status={toolRunStatus} />
-              <div className="flex flex-col">
-                <span className="text-md">
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <span className="text-xs font-bold">
                   {requestRejected ? 'Tool Use Request Rejected' : displayText}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span
+                  className="truncate text-xs text-gray-400"
+                  data-tooltip-id="tool-chip-tool-tip"
+                  data-tooltip-content={`${toolRequest?.toolMeta.serverName}/${toolRequest?.toolMeta.toolName}`}
+                  data-tooltip-place="top-start"
+                >
                   {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {toolRequest?.requiresApproval && (
               <div>
                 {showConsent && (
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">Auto approve</span>
+                    <span className="whitespace-nowrap text-xs text-gray-400">Auto approve</span>
                     <input
                       type="checkbox"
                       checked={autoApproval}
@@ -209,6 +215,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
             )}
           </div>
         )}
+        <Tooltip id="tool-chip-tool-tip" />
       </div>
     </div>
   );
