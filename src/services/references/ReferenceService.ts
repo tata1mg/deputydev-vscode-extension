@@ -208,22 +208,16 @@ export class ReferenceService {
     }
   }
 
-  public async getDownloadUrl(
-    payload: { key: string },
-  ): Promise<any> {
+  public async getDownloadUrl(payload: { key: string }): Promise<any> {
     try {
       if (!payload.key) {
         throw new Error('Invalid payload: missing key field');
       }
-      
+
       const authToken = await this.fetchAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };
 
-      const response = await api.post(
-        API_ENDPOINTS.GET_PRESIGNED_GET_URL,
-        { attachment_id: payload.key },
-        { headers },
-      );      
+      const response = await api.post(API_ENDPOINTS.GET_PRESIGNED_GET_URL, { attachment_id: payload.key }, { headers });
       return response.data.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
@@ -231,22 +225,16 @@ export class ReferenceService {
     }
   }
 
-  public async deleteImage(
-    payload: { key: string },
-  ): Promise<any> {
+  public async deleteImage(payload: { key: string }): Promise<any> {
     try {
       if (!payload.key) {
         throw new Error('Invalid payload: missing key field');
       }
-      
+
       const authToken = await this.fetchAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };
 
-      const response = await api.post(
-        API_ENDPOINTS.DELETE_FILE,
-        { attachment_id: payload.key },
-        { headers },
-      );
+      const response = await api.post(API_ENDPOINTS.DELETE_FILE, { attachment_id: payload.key }, { headers });
       return response.data;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
@@ -254,14 +242,12 @@ export class ReferenceService {
     }
   }
 
-  public async downloadImageFile(
-    payload: { key: string }
-  ): Promise<any> {
+  public async downloadImageFile(payload: { key: string }): Promise<any> {
     try {
       if (!payload.key) {
         throw new Error('Invalid payload: missing key field');
       }
-      
+
       // First get the download URL
       const downloadData = await this.getDownloadUrl(payload);
       if (!downloadData.download_url) {
@@ -270,15 +256,15 @@ export class ReferenceService {
 
       // Fetch the image data
       const response = await axios.get(downloadData.download_url, {
-        responseType: 'arraybuffer'
+        responseType: 'arraybuffer',
       });
 
       // Show save dialog to user
       const saveUri = await vscode.window.showSaveDialog({
         defaultUri: vscode.Uri.file(downloadData.file_name || 'image'),
         filters: {
-          'Images': ['png', 'jpg', 'jpeg', 'webp']
-        }
+          Images: ['png', 'jpg', 'jpeg', 'webp'],
+        },
       });
 
       if (saveUri) {
@@ -288,10 +274,8 @@ export class ReferenceService {
       }
       return { success: false, cancelled: true };
     } catch (error) {
-      this.apiErrorHandler.handleApiError(error);``
+      this.apiErrorHandler.handleApiError(error);
       throw error;
     }
   }
 }
-
-

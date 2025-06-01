@@ -164,7 +164,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'delete-image':
           promise = this.codeReferenceService.deleteImage(data);
           break;
-        
+
         case 'usage-tracking': {
           const sessionId = getSessionId();
           if (sessionId) {
