@@ -156,6 +156,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'upload-file-to-s3':
           promise = this.codeReferenceService.uploadFileToS3(data, sendMessage);
           break;
+
+        case 'download-image-file':
+          promise = this.codeReferenceService.downloadImageFile(data);
+          break;
+
+        case 'delete-image':
+          promise = this.codeReferenceService.deleteImage(data);
+          break;
+        
         case 'usage-tracking': {
           const sessionId = getSessionId();
           if (sessionId) {

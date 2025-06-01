@@ -21,6 +21,7 @@ import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
 import ReferenceChip from './referencechip';
+import { ImageWithDownload } from './chatElements/imageView';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showSessionsBox } = useChatStore();
@@ -76,13 +77,10 @@ export function ChatArea() {
 
                       {/* Embed image inside message bubble */}
                       {msg.s3Reference && msg.s3Reference.get_url && (
-                        <img
+                        <ImageWithDownload
                           src={msg.s3Reference.get_url}
                           alt="Attached content"
-                          className="my-2 max-w-full rounded-md border"
-                          style={{
-                            borderColor: 'var(--vscode-editorWidget-border)',
-                          }}
+                          Key={msg.s3Reference.key}
                         />
                       )}
 
@@ -131,19 +129,6 @@ export function ChatArea() {
                 />
               </div>
             );
-          }
-
-          case 'TOOL_CHIP_UPSERT': {
-            console.log('comes here in tool chip upsert', msg.content.status);
-            const contentComponent = (
-              <MCPTool
-                toolRequest={msg.content.toolRequest}
-                toolResponse={msg.content.toolResponse}
-                toolUseId={msg.content.tool_use_id}
-                toolRunStatus={msg.content.status}
-              />
-            );
-            return contentComponent;
           }
 
           case 'TOOL_USE_REQUEST': {
