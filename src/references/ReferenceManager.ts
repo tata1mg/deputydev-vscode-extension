@@ -127,4 +127,18 @@ export class ReferenceManager {
       data: response,
     });
   }
+
+  async deleteImage(
+    payload: { key: string }
+  ) {
+    const response = await this.referenceService.deleteImage(payload);
+    return response;
+  }
+
+  async downloadImageFile(
+    payload: { key: string }
+  ) {
+    const response = await this.referenceService.downloadImageFile(payload);
+    return response;
+  }
 }
