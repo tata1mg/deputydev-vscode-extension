@@ -128,16 +128,12 @@ export class ReferenceManager {
     });
   }
 
-  async deleteImage(
-    payload: { key: string }
-  ) {
+  async deleteImage(payload: { key: string }) {
     const response = await this.referenceService.deleteImage(payload);
     return response;
   }
 
-  async downloadImageFile(
-    payload: { key: string }
-  ) {
+  async downloadImageFile(payload: { key: string }) {
     const response = await this.referenceService.downloadImageFile(payload);
     return response;
   }

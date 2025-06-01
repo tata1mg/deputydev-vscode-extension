@@ -1,9 +1,16 @@
 import { useState } from 'react';
-import { MoreVertical, Download, Trash2, CheckCircle} from 'lucide-react';
+import { MoreVertical, Download, Trash2, CheckCircle } from 'lucide-react';
 import { deleteImage, downloadImageFile } from '@/commandApi';
 
-
-export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string; Key?: string }) => {
+export const ImageWithDownload = ({
+  src,
+  alt,
+  Key,
+}: {
+  src: string;
+  alt: string;
+  Key?: string;
+}) => {
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -22,8 +29,7 @@ export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string;
           setDownloadComplete(false);
           setShowMenu(false);
         }, 1500);
-      }
-      else{
+      } else {
         setShowMenu(false);
       }
     } catch (error) {
@@ -60,18 +66,18 @@ export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string;
         }}
       />
       {Key && (
-        <div className="absolute top-2 right-2">
+        <div className="absolute right-2 top-2">
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
               title="More options"
             >
               <MoreVertical size={14} />
             </button>
             {showMenu && (
               <div
-                className="absolute right-0 top-full mt-1 min-w-[120px] rounded-md border bg-white shadow-lg z-10"
+                className="absolute right-0 top-full z-10 mt-1 min-w-[120px] rounded-md border bg-white shadow-lg"
                 style={{
                   backgroundColor: 'var(--vscode-dropdown-background)',
                   borderColor: 'var(--vscode-dropdown-border)',
@@ -80,7 +86,7 @@ export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string;
               >
                 <button
                   onClick={handleDownload}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100 transition-colors disabled:opacity-50"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 disabled:opacity-50"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
                   }}
@@ -98,7 +104,7 @@ export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string;
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-gray-700 transition-colors"
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 transition-colors hover:bg-gray-700"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
                   }}
@@ -114,12 +120,7 @@ export const ImageWithDownload = ({ src, alt, Key }: { src: string; alt: string;
           </div>
         </div>
       )}
-      {showMenu && (
-        <div
-          className="fixed inset-0 z-0"
-          onClick={() => setShowMenu(false)}
-        />
-      )}
+      {showMenu && <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />}
     </div>
   );
 };
