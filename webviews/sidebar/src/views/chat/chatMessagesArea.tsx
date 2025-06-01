@@ -131,6 +131,19 @@ export function ChatArea() {
             );
           }
 
+          case 'TOOL_CHIP_UPSERT': {
+            console.log('comes here in tool chip upsert', msg.content.status);
+            const contentComponent = (
+              <MCPTool
+                toolRequest={msg.content.toolRequest}
+                toolResponse={msg.content.toolResponse}
+                toolUseId={msg.content.tool_use_id}
+                toolRunStatus={msg.content.status}
+              />
+            );
+            return contentComponent;
+          }
+
           case 'TOOL_USE_REQUEST': {
             let contentComponent: JSX.Element;
 
