@@ -253,11 +253,10 @@ export class ChatManager {
    * the provided chunkCallback.
    */
 
-  async apiChat(payload: ChatPayload, chunkCallback: ChunkCallback, toolUseResult?: ToolUseResult) {
+  async apiChat(payload: ChatPayload, chunkCallback: ChunkCallback) {
     const originalPayload = structuredClone(payload);
     const abortController = new AbortController();
     this.currentAbortController = abortController; // Track the current controller
-    let toolResultSent = false;
     let querySolverTask:
       | {
           abortController: AbortController;
@@ -322,17 +321,6 @@ export class ChatManager {
         if (abortController.signal.aborted) {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
           break; // Exit loop if cancelled
-        }
-        if (
-          !toolResultSent &&
-          event.type !== 'STREAM_START' &&
-          event.type !== 'RESPONSE_METADATA' &&
-          toolUseResult &&
-          !clientTools.find((x) => x.name === toolUseResult.data.tool_name)
-        ) {
-          this.outputChannel.info(`Event: ${event.type} , updating tool result`);
-          chunkCallback(toolUseResult);
-          toolResultSent = true;
         }
         switch (event.type) {
           case 'RESPONSE_METADATA':
@@ -887,6 +875,7 @@ export class ChatManager {
               status: resultStatus,
             },
           };
+          chunkCallback(toolUseResult);
           const EnvironmentDetails = await getEnvironmentDetails(true);
           const toolUseRejectedPayload = {
             search_web: toolRequest.search_web,
@@ -907,7 +896,7 @@ export class ChatManager {
             vscode_env: EnvironmentDetails,
             client_tools: clientTools,
           };
-          await this.apiChat(toolUseRejectedPayload, chunkCallback, toolUseResult);
+          await this.apiChat(toolUseRejectedPayload, chunkCallback);
           return; // Exit early if tool use was rejected
         }
         if (!detectedClientTool.auto_approve) {
@@ -1131,7 +1120,8 @@ export class ChatManager {
 
       // Now, continue the chat flow with the tool response
       this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
-      await this.apiChat(continuationPayload, chunkCallback, toolUseResult);
+      chunkCallback(toolUseResult);
+      await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
       let errorResponse = error.response?.data;
       if (!errorResponse) {
@@ -1165,7 +1155,7 @@ export class ChatManager {
           status: status,
         },
       };
-
+      chunkCallback(toolUseResult);
       const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
       if (detectedClientTool) {
         // user tracking for error tool use
@@ -1225,7 +1215,7 @@ export class ChatManager {
         vscode_env: EnvironmentDetails,
         client_tools: clientTools,
       };
-      await this.apiChat(toolUseRetryPayload, chunkCallback, toolUseResult);
+      await this.apiChat(toolUseRetryPayload, chunkCallback);
     }
   }
 

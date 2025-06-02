@@ -101,6 +101,7 @@ export const useChatStore = create(
         search_web: false,
         imageUploadProgress: 0,
         s3Object: {} as S3Object,
+        showGeneratingEffect: false,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -118,6 +119,7 @@ export const useChatStore = create(
               lastToolUseResponse: undefined,
               enhancedUserQuery: '',
               enhancingUserQuery: false,
+              showGeneratingEffect: false,
             });
           },
 
@@ -133,6 +135,7 @@ export const useChatStore = create(
             logToOutput('info', `sendChatMessage: ${message}`);
             let stream;
             if (create_new_workspace_payload) {
+              useChatStore.setState({ showGeneratingEffect: true });
               stream = apiChat(create_new_workspace_payload);
             } else {
               const { history, lastToolUseResponse } = get();
@@ -248,12 +251,14 @@ export const useChatStore = create(
                         actor: 'ASSISTANT',
                       },
                     }));
+                    useChatStore.setState({ showGeneratingEffect: false });
                     chunkCallback({ name: 'TEXT_START', data: event.data });
                     break;
                   }
 
                   case 'TEXT_DELTA': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const textChunk = (event.data as any)?.text || '';
 
                     set((state) => ({
@@ -286,13 +291,14 @@ export const useChatStore = create(
                       }
                       return state;
                     });
-
+                    useChatStore.setState({ showGeneratingEffect: true });
                     chunkCallback({ name: 'TEXT_BLOCK_END', data: event.data });
                     break;
                   }
 
                   case 'THINKING_BLOCK_START': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const thinkingContent = (event.data as any)?.content || {
                       text: '',
                     };
@@ -319,6 +325,7 @@ export const useChatStore = create(
 
                   case 'THINKING_BLOCK_DELTA': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const thinkingDelta = (event.data as any)?.thinking_delta || '';
 
                     set((state) => {
@@ -353,10 +360,12 @@ export const useChatStore = create(
                       }
                       return { history: newHistory };
                     });
+                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
                   case 'CODE_BLOCK_START': {
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const codeData = event.data as {
                       language?: string;
                       filepath?: string;
@@ -391,6 +400,7 @@ export const useChatStore = create(
 
                   case 'CODE_BLOCK_DELTA': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const codeData = event.data as { code_delta?: string };
                     const codeDelta = codeData.code_delta || '';
 
@@ -434,6 +444,7 @@ export const useChatStore = create(
 
                       return { history: newHistory };
                     });
+                    useChatStore.setState({ showGeneratingEffect: true });
 
                     chunkCallback({ name: 'CODE_BLOCK_END', data: event.data });
                     break;
@@ -506,6 +517,7 @@ export const useChatStore = create(
 
                   case 'QUERY_COMPLETE': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
 
                     const { history } = useChatStore.getState();
                     const latestUserMessage = [...history]
@@ -544,6 +556,7 @@ export const useChatStore = create(
 
                   case 'TERMINAL_NO_SHELL_INTEGRATION': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     set((state) => ({
                       history: [
                         ...state.history,
@@ -601,6 +614,7 @@ export const useChatStore = create(
                   }
 
                   case 'TOOL_USE_REQUEST_START': {
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const toolData = event.data as {
                       tool_name: string;
                       tool_use_id: string;
@@ -637,6 +651,7 @@ export const useChatStore = create(
                   }
                   case 'TOOL_USE_REQUEST_DELTA': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const { delta, tool_use_id, tool_name } = event.data as {
                       tool_name: string;
                       delta: string;
@@ -765,6 +780,7 @@ export const useChatStore = create(
 
                   case 'TOOL_CHIP_UPSERT': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
                     const baseToolProps = event.data as BaseToolProps;
                     if (baseToolProps) {
                       const newToolMsg: ChatToolUseMessage = {
@@ -801,6 +817,9 @@ export const useChatStore = create(
                               status: baseToolProps.toolRunStatus,
                             },
                           };
+                          if (baseToolProps.toolRunStatus === 'completed') {
+                            useChatStore.setState({ showGeneratingEffect: true });
+                          }
                           return { history: newHistory };
                         } else {
                           // If it doesn't exist, add it
@@ -903,6 +922,7 @@ export const useChatStore = create(
                       });
                       return { history: newHistory };
                     });
+                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
                   case 'TOOL_USE_RESULT': {
@@ -931,12 +951,16 @@ export const useChatStore = create(
                       });
                       return { history: newHistory };
                     });
+                    if (toolResultData.status !== 'aborted') {
+                      useChatStore.setState({ showGeneratingEffect: true });
+                    }
 
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
                   case 'error': {
                     useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
 
                     const errorData = event.data as {
                       payload_to_retry: unknown;
@@ -1033,6 +1057,7 @@ export const useChatStore = create(
               showErrorMessage(`Error: ${String(err)}`);
               set({ isLoading: false });
               useChatStore.setState({ showSkeleton: false });
+              useChatStore.setState({ showGeneratingEffect: false });
             }
           },
 
@@ -1086,6 +1111,7 @@ export const useChatStore = create(
                 currentChatRequest: undefined,
                 isLoading: false,
                 showSkeleton: false,
+                showGeneratingEffect: false,
               };
             });
 
