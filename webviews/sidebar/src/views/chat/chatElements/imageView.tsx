@@ -28,7 +28,7 @@ export const ImageWithDownload = ({
         setTimeout(() => {
           setDownloadComplete(false);
           setShowMenu(false);
-        }, 1500);
+        }, 1100);
       } else {
         setShowMenu(false);
       }
@@ -66,7 +66,7 @@ export const ImageWithDownload = ({
         }}
       />
       {Key && (
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-1 top-3.5">
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}

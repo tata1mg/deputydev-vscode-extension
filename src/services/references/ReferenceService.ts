@@ -6,6 +6,8 @@ import { SaveUrlRequest } from '../../types';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import axios from 'axios';
+import * as os from 'os';
+import * as path from 'path';
 import FormData from 'form-data';
 import { getMainConfig } from '../../config/configSetGet';
 export class ReferenceService {
@@ -242,33 +244,61 @@ export class ReferenceService {
     }
   }
 
+  private getDownloadsFolder(): string {
+    const platform = os.platform();
+    const homeDir = os.homedir();
+    let downloadsPath: string;
+    
+    switch (platform) {
+      case 'win32':
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      case 'darwin': // macOS
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      case 'linux':
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      default:
+        downloadsPath = homeDir;
+        break;
+    }
+    
+    try {
+      if (fs.existsSync(downloadsPath)) {
+        return downloadsPath;
+      }
+    } catch (error) {}
+    return homeDir;
+  }
+
   public async downloadImageFile(payload: { key: string }): Promise<any> {
     try {
       if (!payload.key) {
         throw new Error('Invalid payload: missing key field');
       }
 
-      // First get the download URL
       const downloadData = await this.getDownloadUrl(payload);
       if (!downloadData.download_url) {
         throw new Error('No download URL available');
       }
 
-      // Fetch the image data
       const response = await axios.get(downloadData.download_url, {
         responseType: 'arraybuffer',
       });
 
-      // Show save dialog to user
+      const downloadsFolder = this.getDownloadsFolder();
+      const fileName = downloadData.file_name || 'image.png';
+      const defaultPath = path.join(downloadsFolder, fileName);
+
       const saveUri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file(downloadData.file_name || 'image'),
+        defaultUri: vscode.Uri.file(defaultPath),
         filters: {
           Images: ['png', 'jpg', 'jpeg', 'webp'],
         },
       });
 
       if (saveUri) {
-        // Write the file to the selected location
         await fs.promises.writeFile(saveUri.fsPath, Buffer.from(response.data));
         return { success: true, path: saveUri.fsPath };
       }
