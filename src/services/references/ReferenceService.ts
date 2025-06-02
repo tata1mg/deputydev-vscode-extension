@@ -248,7 +248,7 @@ export class ReferenceService {
     const platform = os.platform();
     const homeDir = os.homedir();
     let downloadsPath: string;
-    
+
     switch (platform) {
       case 'win32':
         downloadsPath = path.join(homeDir, 'Downloads');
@@ -263,12 +263,14 @@ export class ReferenceService {
         downloadsPath = homeDir;
         break;
     }
-    
+
     try {
       if (fs.existsSync(downloadsPath)) {
         return downloadsPath;
       }
-    } catch (error) {}
+    } catch (error) {
+      // If the directory does not exist, fallback to home directory
+    }
     return homeDir;
   }
 
