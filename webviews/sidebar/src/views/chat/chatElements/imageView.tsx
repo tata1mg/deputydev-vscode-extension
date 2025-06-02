@@ -129,7 +129,7 @@ export const ImageWithDownload = ({
       )}
       {showDeleteConfirmation && (
         <div className="absolute right-1 top-3.5">
-          <div 
+          <div
             className="absolute right-0 top-full z-50 mt-1 rounded-md border p-3 shadow-lg"
             style={{
               backgroundColor: '#3c3c3c',
@@ -138,10 +138,7 @@ export const ImageWithDownload = ({
               minWidth: '240px',
             }}
           >
-            <p 
-              className="mb-3 text-sm"
-              style={{ color: '#cccccc' }}
-            >
+            <p className="mb-3 text-sm" style={{ color: '#cccccc' }}>
               Are you sure you want to delete this image?
             </p>
             <div className="flex justify-end gap-2">
@@ -181,7 +178,9 @@ export const ImageWithDownload = ({
           </div>
         </div>
       )}
-      {showDeleteConfirmation && <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirmation(false)} />}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirmation(false)} />
+      )}
 
       {showMenu && <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />}
     </div>
