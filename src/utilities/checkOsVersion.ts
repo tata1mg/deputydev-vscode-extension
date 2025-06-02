@@ -20,7 +20,7 @@ function isNotCompatible(): boolean {
       // Docker exists, do nothing.
     } catch (err) {
       vscode.window.showWarningMessage(
-        'DeputyDev requires Docker Desktop to be installed on Windows. Please install Docker Desktop and ensure it is available in your PATH.'
+        'DeputyDev requires Docker Desktop to be installed on Windows. Please install Docker Desktop and ensure it is available in your PATH.',
       );
       return true;
     }
