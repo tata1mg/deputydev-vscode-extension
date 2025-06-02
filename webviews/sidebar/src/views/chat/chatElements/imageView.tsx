@@ -1,0 +1,188 @@
+import { useState } from 'react';
+import { MoreVertical, Download, Trash2, CheckCircle } from 'lucide-react';
+import { deleteImage, downloadImageFile } from '@/commandApi';
+
+export const ImageWithDownload = ({
+  src,
+  alt,
+  Key,
+}: {
+  src: string;
+  alt: string;
+  Key?: string;
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [downloadComplete, setDownloadComplete] = useState(false);
+
+  const handleDownload = async () => {
+    if (!Key) return;
+
+    setIsDownloading(true);
+    setDownloadComplete(false);
+    try {
+      const result = await downloadImageFile(Key);
+      if (result?.success) {
+        setDownloadComplete(true);
+        setTimeout(() => {
+          setDownloadComplete(false);
+          setShowMenu(false);
+        }, 1100);
+      } else {
+        setShowMenu(false);
+      }
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+    setIsDownloading(false);
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmation(true);
+    setShowMenu(false);
+  };
+
+  const handleDelete = async () => {
+    if (!Key) return;
+
+    try {
+      const data = await deleteImage(Key);
+      setIsDeleted(true);
+    } catch (error) {
+      console.error('Error deleting image:', error);
+    }
+    setShowDeleteConfirmation(false);
+    setShowMenu(false);
+  };
+
+  // Don't render if image is deleted
+  if (isDeleted) {
+    return null;
+  }
+
+  return (
+    <div className="relative inline-block">
+      <img
+        src={src}
+        alt={alt}
+        className="my-2 max-w-full rounded-md border"
+        style={{
+          borderColor: 'var(--vscode-editorWidget-border)',
+        }}
+      />
+      {Key && (
+        <div className="absolute right-1 top-3.5">
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70"
+              title="More options"
+            >
+              <MoreVertical size={14} />
+            </button>
+            {showMenu && (
+              <div
+                className="absolute right-0 top-full z-10 mt-1 min-w-[120px] rounded-md border bg-white shadow-lg"
+                style={{
+                  backgroundColor: 'var(--vscode-dropdown-background)',
+                  borderColor: 'var(--vscode-dropdown-border)',
+                  color: 'var(--vscode-dropdown-foreground)',
+                }}
+              >
+                <button
+                  onClick={handleDownload}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  disabled={isDownloading}
+                >
+                  {downloadComplete ? (
+                    <CheckCircle size={14} className="text-green-500" />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                  {isDownloading ? 'Downloading...' : downloadComplete ? 'Downloaded' : 'Download'}
+                </button>
+                <button
+                  onClick={handleDeleteClick}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 transition-colors hover:bg-gray-700"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {showDeleteConfirmation && (
+        <div className="absolute right-1 top-3.5">
+          <div
+            className="absolute right-0 top-full z-50 mt-1 rounded-md border p-3 shadow-lg"
+            style={{
+              backgroundColor: '#3c3c3c',
+              borderColor: '#5a5a5a',
+              color: '#cccccc',
+              minWidth: '240px',
+            }}
+          >
+            <p className="mb-3 text-sm" style={{ color: '#cccccc' }}>
+              Are you sure you want to delete this image?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="rounded-md px-2 py-1 text-sm"
+                style={{
+                  color: '#cccccc',
+                  backgroundColor: '#5a5a5a',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#666666';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5a5a';
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={handleDelete}
+                className="rounded-md px-2 py-1 text-sm"
+                style={{
+                  color: '#ffffff',
+                  backgroundColor: '#8b7355',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#9d8566';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#8b7355';
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirmation(false)} />
+      )}
+
+      {showMenu && <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />}
+    </div>
+  );
+};

@@ -297,3 +297,11 @@ export function uploadFileToS3(data: File) {
 export function showVsCodeMessageBox(type: 'info' | 'error' | 'warning', message: string) {
   return callCommand('show-vscode-message-box', { type, message });
 }
+
+export function deleteImage(key: string) {
+  return callCommand('delete-image', { key });
+}
+
+export function downloadImageFile(key: string) {
+  return callCommand('download-image-file', { key });
+}
