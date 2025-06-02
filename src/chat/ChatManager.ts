@@ -875,7 +875,7 @@ export class ChatManager {
               status: resultStatus,
             },
           };
-          chunkCallback(toolUseResult)
+          chunkCallback(toolUseResult);
           const EnvironmentDetails = await getEnvironmentDetails(true);
           const toolUseRejectedPayload = {
             search_web: toolRequest.search_web,
@@ -1155,7 +1155,7 @@ export class ChatManager {
           status: status,
         },
       };
-      chunkCallback(toolUseResult)
+      chunkCallback(toolUseResult);
       const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
       if (detectedClientTool) {
         // user tracking for error tool use

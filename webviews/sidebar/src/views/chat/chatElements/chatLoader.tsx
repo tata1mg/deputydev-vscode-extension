@@ -26,7 +26,7 @@ const GeneratingLoader: React.FC<GeneratingLoaderProps> = ({ text, speed = 100 }
     }
 
     const textInterval = setInterval(() => {
-      setDisplayText(prev => {
+      setDisplayText((prev) => {
         if (currentIndexRef.current < text.length) {
           const newText = prev + text[currentIndexRef.current];
           currentIndexRef.current += 1;
@@ -46,14 +46,17 @@ const GeneratingLoader: React.FC<GeneratingLoaderProps> = ({ text, speed = 100 }
     if (!showDots) return;
 
     const dotsInterval = setInterval(() => {
-      setDots(prev => (prev.length < 3 ? prev + '.' : ''));
+      setDots((prev) => (prev.length < 3 ? prev + '.' : ''));
     }, 500);
 
     return () => clearInterval(dotsInterval);
   }, [showDots]);
 
   return (
-    <div className='text-xs text-gray-500' style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'Arial, sans-serif' }}>
+    <div
+      className="text-xs text-gray-500"
+      style={{ display: 'inline-flex', alignItems: 'center', fontFamily: 'Arial, sans-serif' }}
+    >
       <span style={{ marginRight: '0.5rem' }}>{displayText}</span>
       {showDots && <span style={{ width: '1.5rem', textAlign: 'left' }}>{dots}</span>}
     </div>

@@ -24,7 +24,13 @@ import ReferenceChip from './referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 
 export function ChatArea() {
-  const { history: messages, current, showSkeleton, showSessionsBox, showGeneratingEffect } = useChatStore();
+  const {
+    history: messages,
+    current,
+    showSkeleton,
+    showSessionsBox,
+    showGeneratingEffect,
+  } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
   const queryIdMap = new Map();
@@ -503,7 +509,7 @@ export function ChatArea() {
             return null;
         }
       })}
-      {showGeneratingEffect && !showSkeleton && <GeneratingLoader text='Generating'/>}
+      {showGeneratingEffect && !showSkeleton && <GeneratingLoader text="Generating" />}
       {showSkeleton && showSessionsBox === false && <Shimmer />}
       {current && typeof current.content?.text === 'string' && (
         <div
