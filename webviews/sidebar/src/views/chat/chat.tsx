@@ -394,7 +394,10 @@ export function ChatUI() {
   useEffect(() => {
     // console.log("messages updated:", messages);
     if (isAutoScrollEnabled) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // Use setTimeout to ensure all content is rendered
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 150);
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
   return (

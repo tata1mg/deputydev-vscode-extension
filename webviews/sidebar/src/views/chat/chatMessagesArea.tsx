@@ -22,6 +22,7 @@ import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
 import ReferenceChip from './referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
+import { ImageWithDownload } from './chatElements/imageView';
 
 export function ChatArea() {
   const {
@@ -83,13 +84,10 @@ export function ChatArea() {
 
                       {/* Embed image inside message bubble */}
                       {msg.s3Reference && msg.s3Reference.get_url && (
-                        <img
+                        <ImageWithDownload
                           src={msg.s3Reference.get_url}
                           alt="Attached content"
-                          className="my-2 max-w-full rounded-md border"
-                          style={{
-                            borderColor: 'var(--vscode-editorWidget-border)',
-                          }}
+                          Key={msg.s3Reference.key}
                         />
                       )}
 

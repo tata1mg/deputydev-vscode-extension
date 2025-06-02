@@ -3,7 +3,11 @@ import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { AuthService } from '../auth/AuthService';
 import { SaveUrlRequest } from '../../types';
+import * as vscode from 'vscode';
+import * as fs from 'fs';
 import axios from 'axios';
+import * as os from 'os';
+import * as path from 'path';
 import FormData from 'form-data';
 import { getMainConfig } from '../../config/configSetGet';
 export class ReferenceService {
@@ -200,6 +204,107 @@ export class ReferenceService {
       });
 
       return { get_url: download_url, key: attachment_id };
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async getDownloadUrl(payload: { key: string }): Promise<any> {
+    try {
+      if (!payload.key) {
+        throw new Error('Invalid payload: missing key field');
+      }
+
+      const authToken = await this.fetchAuthToken();
+      const headers = { Authorization: `Bearer ${authToken}` };
+
+      const response = await api.post(API_ENDPOINTS.GET_PRESIGNED_GET_URL, { attachment_id: payload.key }, { headers });
+      return response.data.data;
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async deleteImage(payload: { key: string }): Promise<any> {
+    try {
+      if (!payload.key) {
+        throw new Error('Invalid payload: missing key field');
+      }
+
+      const authToken = await this.fetchAuthToken();
+      const headers = { Authorization: `Bearer ${authToken}` };
+
+      const response = await api.post(API_ENDPOINTS.DELETE_FILE, { attachment_id: payload.key }, { headers });
+      return response.data;
+    } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  private getDownloadsFolder(): string {
+    const platform = os.platform();
+    const homeDir = os.homedir();
+    let downloadsPath: string;
+
+    switch (platform) {
+      case 'win32':
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      case 'darwin': // macOS
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      case 'linux':
+        downloadsPath = path.join(homeDir, 'Downloads');
+        break;
+      default:
+        downloadsPath = homeDir;
+        break;
+    }
+
+    try {
+      if (fs.existsSync(downloadsPath)) {
+        return downloadsPath;
+      }
+    } catch (error) {
+      // If the directory does not exist, fallback to home directory
+    }
+    return homeDir;
+  }
+
+  public async downloadImageFile(payload: { key: string }): Promise<any> {
+    try {
+      if (!payload.key) {
+        throw new Error('Invalid payload: missing key field');
+      }
+
+      const downloadData = await this.getDownloadUrl(payload);
+      if (!downloadData.download_url) {
+        throw new Error('No download URL available');
+      }
+
+      const response = await axios.get(downloadData.download_url, {
+        responseType: 'arraybuffer',
+      });
+
+      const downloadsFolder = this.getDownloadsFolder();
+      const fileName = downloadData.file_name || 'image.png';
+      const defaultPath = path.join(downloadsFolder, fileName);
+
+      const saveUri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file(defaultPath),
+        filters: {
+          Images: ['png', 'jpg', 'jpeg', 'webp'],
+        },
+      });
+
+      if (saveUri) {
+        await fs.promises.writeFile(saveUri.fsPath, Buffer.from(response.data));
+        return { success: true, path: saveUri.fsPath };
+      }
+      return { success: false, cancelled: true };
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
       throw error;
