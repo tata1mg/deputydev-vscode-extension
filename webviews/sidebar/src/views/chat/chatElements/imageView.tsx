@@ -14,6 +14,7 @@ export const ImageWithDownload = ({
   const [showMenu, setShowMenu] = useState(false);
   const [isDeleted, setIsDeleted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [downloadComplete, setDownloadComplete] = useState(false);
 
   const handleDownload = async () => {
@@ -38,6 +39,11 @@ export const ImageWithDownload = ({
     setIsDownloading(false);
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmation(true);
+    setShowMenu(false);
+  };
+
   const handleDelete = async () => {
     if (!Key) return;
 
@@ -47,6 +53,7 @@ export const ImageWithDownload = ({
     } catch (error) {
       console.error('Error deleting image:', error);
     }
+    setShowDeleteConfirmation(false);
     setShowMenu(false);
   };
 
@@ -100,10 +107,10 @@ export const ImageWithDownload = ({
                   ) : (
                     <Download size={14} />
                   )}
-                  {isDownloading ? 'Downloading...' : 'Download'}
+                  {isDownloading ? 'Downloading...' : downloadComplete ? 'Downloaded' : 'Download'}
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-400 transition-colors hover:bg-gray-700"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--vscode-list-hoverBackground)';
@@ -120,6 +127,62 @@ export const ImageWithDownload = ({
           </div>
         </div>
       )}
+      {showDeleteConfirmation && (
+        <div className="absolute right-1 top-3.5">
+          <div 
+            className="absolute right-0 top-full z-50 mt-1 rounded-md border p-3 shadow-lg"
+            style={{
+              backgroundColor: '#3c3c3c',
+              borderColor: '#5a5a5a',
+              color: '#cccccc',
+              minWidth: '240px',
+            }}
+          >
+            <p 
+              className="mb-3 text-sm"
+              style={{ color: '#cccccc' }}
+            >
+              Are you sure you want to delete this image?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="rounded-md px-2 py-1 text-sm"
+                style={{
+                  color: '#cccccc',
+                  backgroundColor: '#5a5a5a',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#666666';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#5a5a5a';
+                }}
+              >
+                No
+              </button>
+              <button
+                onClick={handleDelete}
+                className="rounded-md px-2 py-1 text-sm"
+                style={{
+                  color: '#ffffff',
+                  backgroundColor: '#8b7355',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#9d8566';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#8b7355';
+                }}
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showDeleteConfirmation && <div className="fixed inset-0 z-40" onClick={() => setShowDeleteConfirmation(false)} />}
+
       {showMenu && <div className="fixed inset-0 z-0" onClick={() => setShowMenu(false)} />}
     </div>
   );
