@@ -136,7 +136,7 @@ export const ImageWithDownload = ({
               borderColor: '#5a5a5a',
               color: '#cccccc',
               maxWidth: 'calc(100vw - 15px)',
-              margin: '0 10px'
+              margin: '0 10px',
             }}
           >
             <p className="mb-3 text-sm" style={{ color: '#cccccc' }}>
