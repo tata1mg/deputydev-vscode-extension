@@ -101,7 +101,7 @@ export const useChatStore = create(
         search_web: false,
         imageUploadProgress: 0,
         s3Object: {} as S3Object,
-        showGeneratingEffect: false
+        showGeneratingEffect: false,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -119,7 +119,7 @@ export const useChatStore = create(
               lastToolUseResponse: undefined,
               enhancedUserQuery: '',
               enhancingUserQuery: false,
-              showGeneratingEffect: false
+              showGeneratingEffect: false,
             });
           },
 
@@ -264,11 +264,11 @@ export const useChatStore = create(
                     set((state) => ({
                       current: state.current
                         ? {
-                          ...state.current,
-                          content: {
-                            text: state.current.content.text + textChunk,
-                          },
-                        }
+                            ...state.current,
+                            content: {
+                              text: state.current.content.text + textChunk,
+                            },
+                          }
                         : state.current,
                     }));
 
@@ -662,13 +662,13 @@ export const useChatStore = create(
                         set((state) => ({
                           current: state.current
                             ? {
-                              ...state.current,
-                              content: {
-                                text: (state.current.content.text + delta)
-                                  .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                  .replace(/"}$/, ''), // Remove trailing `"}`
-                              },
-                            }
+                                ...state.current,
+                                content: {
+                                  text: (state.current.content.text + delta)
+                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
+                                    .replace(/"}$/, ''), // Remove trailing `"}`
+                                },
+                              }
                             : state.current,
                         }));
                         break;
@@ -1111,7 +1111,7 @@ export const useChatStore = create(
                 currentChatRequest: undefined,
                 isLoading: false,
                 showSkeleton: false,
-                showGeneratingEffect: false
+                showGeneratingEffect: false,
               };
             });
 
