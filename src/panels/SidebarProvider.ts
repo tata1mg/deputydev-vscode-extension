@@ -21,7 +21,7 @@ import { updateVectorStoreWithResponse } from '../clients/common/websocketHandle
 import { ConfigManager } from '../utilities/ConfigManager';
 import { CLIENT_VERSION, DD_HOST } from '../config';
 import { ProfileUiService } from '../services/profileUi/profileUiService';
-import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { Logger } from '../utilities/Logger';
 import { DiffManager } from '../diff/diffManager';
 import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
@@ -36,6 +36,7 @@ import * as fs from 'fs';
 import { getOSName } from '../utilities/osName';
 import * as os from 'os';
 import { MCPService } from '../services/mcp/mcpService';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -64,6 +65,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     private trackingManager: UsageTrackingManager,
     private feedbackService: FeedbackService,
     private userQueryEnhancerService: UserQueryEnhancerService,
+    private errorTrackingManager: ErrorTrackingManager,
     private continueWorkspace: ContinueNewWorkspace,
   ) {}
 
@@ -531,10 +533,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       while (attempts < 3) {
         response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
-        this.logger.info(`Binary init status: ${response.data.status}`);
         if (response.data.status != 'Completed') {
           attempts++;
           this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);
+          this.logger.info(`Binary init status: ${response.data.status}`);
           if (attempts === 3) {
             this.logger.warn('Binary initialization failed');
             this.outputChannel.warn('🚨 Binary initialization failed.');
@@ -560,9 +562,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         } catch (error) {
           this.logger.warn('Embedding failed');
           this.outputChannel.warn('Embedding failed');
+          throw error;
         }
       }
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'BINARY_INIT_ERROR', 'BINARY');
       this.logger.error('Binary initialization failed');
       this.outputChannel.error('🚨 Binary initialization failed.');
       throw new Error('Binary initialization failed');
@@ -579,6 +583,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     try {
       await updateVectorStoreWithResponse(params);
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'RETRY_EMBEDDING_ERROR', 'BINARY');
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
     }

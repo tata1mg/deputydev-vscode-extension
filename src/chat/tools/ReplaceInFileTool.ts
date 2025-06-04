@@ -4,7 +4,7 @@ import { ChunkCallback, ToolRequest, UsageTrackingRequest } from '../../types';
 import { getActiveRepo, getSessionId } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { SidebarProvider } from '../../panels/SidebarProvider';
-import { UsageTrackingManager } from '../../usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
 import { DiffManager } from '../../diff/diffManager';
 import { AuthService } from '../../services/auth/AuthService';
 import { calculateDiffMetric } from '../../utilities/calculateDiffLinesNo';

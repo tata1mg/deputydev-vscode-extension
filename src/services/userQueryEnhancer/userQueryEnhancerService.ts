@@ -5,6 +5,7 @@ import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SESSION_TYPE } from '../../constants';
 import { getSessionId, setSessionId } from '../../utilities/contextManager';
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();
@@ -14,6 +15,7 @@ const fetchAuthToken = async () => {
 
 export class UserQueryEnhancerService {
   private apiErrorHandler = new ApiErrorHandler();
+  constructor(private errorTrackingManager: ErrorTrackingManager) {}
 
   public async generateEnhancedUserQuery(userQuery: string): Promise<any> {
     try {
@@ -35,6 +37,7 @@ export class UserQueryEnhancerService {
       }
       return response.data.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'QUERY_ENHANCER_API_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
   }

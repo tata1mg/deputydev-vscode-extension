@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { createTwoFilesPatch } from 'diff';
 import * as path from 'path';
-import { UsageTrackingManager } from '../../usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
 import { UsageTrackingRequest } from '../../types';
 import { promises as fs } from 'fs';
 
