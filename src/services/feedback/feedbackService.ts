@@ -5,6 +5,7 @@ import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SESSION_TYPE } from '../../constants';
 import { getSessionId } from '../../utilities/contextManager';
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();
@@ -14,6 +15,7 @@ const fetchAuthToken = async () => {
 
 export class FeedbackService {
   private apiErrorHandler = new ApiErrorHandler();
+  private errorTrackingManager = new ErrorTrackingManager();
 
   public async submitFeedback(feedback: string, queryId: number): Promise<any> {
     try {
@@ -30,6 +32,7 @@ export class FeedbackService {
       refreshCurrentToken(response.headers);
       return response.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'FEEDBACK_API_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
   }

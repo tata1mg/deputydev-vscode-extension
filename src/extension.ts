@@ -14,7 +14,8 @@ import { ReferenceManager } from './references/ReferenceManager';
 import { AuthService } from './services/auth/AuthService';
 import { HistoryService } from './services/history/HistoryService';
 import { ProfileUiService } from './services/profileUi/profileUiService';
-import { UsageTrackingManager } from './usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from './analyticsTracking/UsageTrackingManager';
+import { ErrorTrackingManager } from './analyticsTracking/ErrorTrackingManager';
 import { isNotCompatible } from './utilities/checkOsVersion';
 import { ConfigManager } from './utilities/ConfigManager';
 import {
@@ -75,9 +76,10 @@ export async function activate(context: vscode.ExtensionContext) {
   const historyService = new HistoryService();
   const profileService = new ProfileUiService();
   const usageTrackingManager = new UsageTrackingManager(context, outputChannel);
+  const errorTrackingManager = new ErrorTrackingManager();
   const referenceService = new ReferenceManager(context, outputChannel);
   const feedBackService = new FeedbackService();
-  const userQueryEnhancerService = new UserQueryEnhancerService();
+  const userQueryEnhancerService = new UserQueryEnhancerService(errorTrackingManager);
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
 
@@ -99,6 +101,7 @@ export async function activate(context: vscode.ExtensionContext) {
     apiErrorHandler,
     mcpManager,
     usageTrackingManager,
+    errorTrackingManager,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
@@ -120,6 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
     usageTrackingManager,
     feedBackService,
     userQueryEnhancerService,
+    errorTrackingManager,
     continueNewWorkspace,
   );
   context.subscriptions.push(
@@ -193,6 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
     sidebarProvider,
     diffManager,
     usageTrackingManager,
+    errorTrackingManager,
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();

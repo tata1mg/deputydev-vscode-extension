@@ -16,7 +16,8 @@ import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { HistoryService } from '../services/history/HistoryService';
 import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest, ToolUseResult } from '../types';
-import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
@@ -24,6 +25,7 @@ import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationMa
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
+import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -59,6 +61,7 @@ export class ChatManager {
     private apiErrorHandler: ApiErrorHandler,
     private mcpManager: MCPManager,
     private usageTrackingManager: UsageTrackingManager,
+    private errorTrackingManager: ErrorTrackingManager,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
@@ -533,6 +536,10 @@ export class ChatManager {
         this.outputChannel.info('apiChat was cancelled.');
         return;
       }
+      const extraErrorInfo = {
+        chat_payload: truncatePayloadValues(payload, 100),
+      };
+      this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
       // Send error details back to the UI for potential retry
       chunkCallback({
         name: 'error',
@@ -1123,6 +1130,8 @@ export class ChatManager {
       chunkCallback(toolUseResult);
       await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
+      // raw error in json
+      this.logger.error(`Raw error new: ${JSON.stringify(error)}`);
       let errorResponse = error.response?.data;
       if (!errorResponse) {
         errorResponse = {
@@ -1131,6 +1140,7 @@ export class ChatManager {
           error_message: error.message,
         };
       }
+      this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
       if (errorResponse && errorResponse.traceback) {
         delete errorResponse.traceback;
       }

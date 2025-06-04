@@ -10,8 +10,10 @@ import * as os from 'os';
 import * as path from 'path';
 import FormData from 'form-data';
 import { getMainConfig } from '../../config/configSetGet';
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
+  private errorTrackingManager = new ErrorTrackingManager();
 
   private fetchAuthToken = async () => {
     const authService = new AuthService();
@@ -125,6 +127,7 @@ export class ReferenceService {
         throw new Error('Failed to update URL');
       }
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'UPDATE_SAVED_URL_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -141,6 +144,7 @@ export class ReferenceService {
       );
       return searchResponse.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'URL_SEARCH_ERROR', 'BINARY');
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -202,7 +206,11 @@ export class ReferenceService {
           }
         },
       });
-
+      this.errorTrackingManager.trackGeneralError(
+        { message: 'File uploaded successfully', fileName: payload.name },
+        'FILE_UPLOAD_SUCCESS',
+        'BINARY',
+      );
       return { get_url: download_url, key: attachment_id };
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
@@ -222,6 +230,7 @@ export class ReferenceService {
       const response = await api.post(API_ENDPOINTS.GET_PRESIGNED_GET_URL, { attachment_id: payload.key }, { headers });
       return response.data.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'GET_DOWNLOAD_URL_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
@@ -239,6 +248,7 @@ export class ReferenceService {
       const response = await api.post(API_ENDPOINTS.DELETE_FILE, { attachment_id: payload.key }, { headers });
       return response.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'DELETE_IMAGE_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
