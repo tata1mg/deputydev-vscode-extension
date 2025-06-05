@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreVertical, Download, Trash2, CheckCircle } from 'lucide-react';
-import { deleteImage, downloadImageFile } from '@/commandApi';
+import { deleteImage, downloadImageFile, logToOutput } from '@/commandApi';
 
 export const ImageWithDownload = ({
   src,
@@ -34,7 +34,7 @@ export const ImageWithDownload = ({
         setShowMenu(false);
       }
     } catch (error) {
-      console.error('Error downloading file:', error);
+      logToOutput('error', `Error downloading image: ${error}`);
     }
     setIsDownloading(false);
   };
@@ -51,7 +51,7 @@ export const ImageWithDownload = ({
       const data = await deleteImage(Key);
       setIsDeleted(true);
     } catch (error) {
-      console.error('Error deleting image:', error);
+      logToOutput('error', `Error deleting image: ${error}`);
     }
     setShowDeleteConfirmation(false);
     setShowMenu(false);
