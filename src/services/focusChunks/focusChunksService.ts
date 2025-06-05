@@ -2,6 +2,7 @@ import { binaryApi } from '../api/axios';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 
 export class FocusChunksService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -9,6 +10,7 @@ export class FocusChunksService {
     this.logger = SingletonLogger.getInstance();
   }
   private apiErrorHandler = new ApiErrorHandler();
+  private errorTrackingManager = new ErrorTrackingManager();
   public async getFocusChunks(payload: unknown): Promise<any> {
     // console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
@@ -17,6 +19,7 @@ export class FocusChunksService {
       return response.data;
     } catch (error) {
       this.logger.error('Error fetching focus chunks');
+      this.errorTrackingManager.trackGeneralError(error, 'FOCUS_CHUNKS_ERROR', 'BINARY');
       this.apiErrorHandler.handleApiError(error);
     }
   }

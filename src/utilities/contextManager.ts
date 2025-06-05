@@ -105,6 +105,10 @@ export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
 
+export function getUserData() {
+  return extensionContext?.globalState.get('userData', undefined) as { email?: string; userName?: string } | undefined;
+}
+
 export function getIconPathObject(): vscode.Uri | { light: vscode.Uri; dark: vscode.Uri } | vscode.ThemeIcon {
   if (!extensionContext) {
     // Fallback: use a single ThemeIcon (not in an object)

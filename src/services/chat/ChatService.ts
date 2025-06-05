@@ -90,10 +90,8 @@ export class QuerySolverService {
             sendNotVerified();
             return 'REJECT_AND_RETRY';
           }
-          // console.error("❌ Error in WebSocket stream:", messageData.message);
-          this.logger.error('Error in querysolver WebSocket stream: ', messageData.message);
-          // console.error("Error in WebSocket stream:", messageData.message);
-          streamError = Error(messageData.message);
+          this.logger.error('Error in querysolver WebSocket stream: ', messageData);
+          streamError = new Error(messageData);
           return 'REJECT';
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
