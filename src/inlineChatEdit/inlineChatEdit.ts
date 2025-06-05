@@ -15,9 +15,10 @@ import { API_ENDPOINTS } from '../services/api/endpoints';
 import { SearchTerm, UsageTrackingRequest } from '../types';
 import { AuthService } from '../services/auth/AuthService';
 import { DiffManager } from '../diff/diffManager';
-import { UsageTrackingManager } from '../usageTracking/UsageTrackingManager';
+import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { calculateDiffMetric } from '../utilities/calculateDiffLinesNo';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 
 interface InlineEditPayload {
   query: string;
@@ -74,11 +75,13 @@ export class InlineChatEditManager {
     private readonly sidebarProvider: SidebarProvider,
     private readonly diffManager: DiffManager,
     private readonly usageTrackingManager: UsageTrackingManager,
+    private readonly errorTrackingManager: ErrorTrackingManager,
   ) {
     this.context = context;
     this.outputChannel = outputChannel;
     this.logger = SingletonLogger.getInstance();
     this.usageTrackingManager = usageTrackingManager;
+    this.errorTrackingManager = errorTrackingManager;
   }
 
   public async inlineChatEditQuickFixes() {
@@ -331,6 +334,16 @@ export class InlineChatEditManager {
 
           toolResult = { RELEVANT_CHUNKS: result.relevant_chunks || [] };
         } catch (error) {
+          const extraErrorInfo = {
+            toolName: 'related_code_searcher',
+            toolUseId: payload.content.tool_use_id,
+          };
+          this.errorTrackingManager.trackGeneralError(
+            error,
+            'INLINE_RELATED_CODE_SEARCHER_FAILED',
+            'BINARY',
+            extraErrorInfo,
+          );
           toolResult = {
             RELEVANT_CHUNKS: [],
           };
@@ -362,6 +375,16 @@ export class InlineChatEditManager {
             throw new Error(`Batch chunks search failed with status ${response.status}`);
           }
         } catch (error: any) {
+          const extraErrorInfo = {
+            toolName: 'focused_snippets_searcher',
+            toolUseId: payload.content.tool_use_id,
+          };
+          this.errorTrackingManager.trackGeneralError(
+            error,
+            'INLINE_FOCUSED_SNIPPET_SEARCHER_FAILED',
+            'BINARY',
+            extraErrorInfo,
+          );
           toolResult = {
             batch_chunks_search: [],
           };
@@ -375,6 +398,16 @@ export class InlineChatEditManager {
           vscode.window.showInformationMessage('File modified successfully.');
         }
         if (status === 'failed') {
+          const extraErrorInfo = {
+            toolName: 'task_completion',
+            toolUseId: payload.content.tool_use_id,
+          };
+          this.errorTrackingManager.trackGeneralError(
+            new Error('Inline modify failed. as per LLM response'),
+            'INLINE_MODIFY_FAILED',
+            'EXTENSION',
+            extraErrorInfo,
+          );
           this.outputChannel.error(`Inline Task failed.`);
           vscode.window.showErrorMessage('Failed to modify the file.');
         }
@@ -401,7 +434,16 @@ export class InlineChatEditManager {
           };
         } catch (error: any) {
           this.outputChannel.info(`Iterative file reader result at failed: ${error?.message || error}`);
-
+          const extraErrorInfo = {
+            toolName: 'iterative_file_reader',
+            toolUseId: payload.content.tool_use_id,
+          };
+          this.errorTrackingManager.trackGeneralError(
+            error,
+            'INLINE_ITERATIVE_FILE_READER_FAILED',
+            'BINARY',
+            extraErrorInfo,
+          );
           toolResult = {
             iterative_file_reader_result: `Failed to read file: ${error?.message || error}. \n If repeated failures occur, invoke the "task_completion" tool with status "failed".  \n Otherwise, try reading the latest content with the "iterative_file_reader" tool before retrying your modification.`,
           };
@@ -443,6 +485,11 @@ export class InlineChatEditManager {
               'Successfully modified the file, please continue with the next steps, incase no more changes are needed,  call this **task_completion** with status as "completed". ',
           };
         } catch (error: any) {
+          const extraErrorInfo = {
+            toolName: 'replace_in_file',
+            toolUseId: payload.content.tool_use_id,
+          };
+          this.errorTrackingManager.trackGeneralError(error, 'INLINE_REPLACE_IN_FILE_FAILED', 'BINARY', extraErrorInfo);
           this.outputChannel.error(`Failed to apply diff:\n${error?.message || error}`);
           toolResult = { FileEditResult: `Failed to apply diff:\n ${error?.message || String(error)}` };
         }
@@ -497,7 +544,6 @@ export class InlineChatEditManager {
     if (inlineEditResponse.tool_use_request) {
       const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
       if (inlineEditResponse.tool_use_request.content.tool_name === 'task_completion') {
-        this.outputChannel.info('**************task completion*************');
         return;
       }
       payload.tool_use_response = {

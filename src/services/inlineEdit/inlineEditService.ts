@@ -5,6 +5,7 @@ import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SESSION_TYPE } from '../../constants';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();
@@ -18,6 +19,7 @@ export class InlineEditService {
     this.logger = SingletonLogger.getInstance();
   }
   private apiErrorHandler = new ApiErrorHandler();
+  private errorTrackingManager = new ErrorTrackingManager();
 
   public async generateInlineEdit(payload: any, sessionId?: number): Promise<any> {
     try {
@@ -31,6 +33,8 @@ export class InlineEditService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.errorTrackingManager.trackGeneralError(error, 'INLINE_EDIT_GENERATION_ERROR', 'BACKEND');
+      this.logger.error('Error generating inline edit', error);
       this.apiErrorHandler.handleApiError(error);
     }
   }

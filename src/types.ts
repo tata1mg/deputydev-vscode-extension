@@ -4,6 +4,17 @@ export type UsageTrackingRequest = {
   sessionId: number;
 };
 
+export interface ErrorTrackingRequestForBackend {
+  error_type: string;
+  client_version: string;
+  repo_name?: string;
+  error_source: string;
+  timestamp: string;
+  session_id?: number;
+  user_email?: string;
+  error_data: Record<string, any>;
+}
+
 export type ChunkCallback = (data: { name: string; data: unknown }) => void;
 
 export type Chunk = {
