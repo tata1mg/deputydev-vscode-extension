@@ -404,7 +404,7 @@ export class InlineChatEditManager {
           };
           this.errorTrackingManager.trackGeneralError(
             new Error('Inline modify failed. as per LLM response'),
-            'inline_Modify_FAILED',
+            'INLINE_MODIFY_FAILED',
             'EXTENSION',
             extraErrorInfo,
           );
