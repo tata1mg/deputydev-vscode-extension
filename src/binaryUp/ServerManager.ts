@@ -1,19 +1,20 @@
-import * as fs from 'fs';
-import * as https from 'https';
-import * as path from 'path';
-import * as vscode from 'vscode';
-import { API_ENDPOINTS } from '../services/api/endpoints';
-import * as tar from 'tar';
-import { ConfigManager } from '../utilities/ConfigManager';
-import * as crypto from 'crypto';
 import axios from 'axios';
 import { spawn, SpawnOptions } from 'child_process';
-import { MAX_PORT_ATTEMPTS, getBinaryPort, setBinaryPort } from '../config';
-import { Logger } from '../utilities/Logger';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
+import { createReadStream, promises as fsp } from 'fs';
+import * as https from 'https';
 import * as net from 'node:net';
+import * as path from 'path';
+import * as tar from 'tar';
+import * as vscode from 'vscode';
+import { getBinaryPort, MAX_PORT_ATTEMPTS, setBinaryPort } from '../config';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { ConfigManager } from '../utilities/ConfigManager';
 import { loaderMessage } from '../utilities/contextManager';
+import { Logger } from '../utilities/Logger';
+import { pipeline as streamPipeline } from 'stream/promises';
 
-// const AdmZip = require('adm-zip') as typeof import('adm-zip');
 export class ServerManager {
   private context: vscode.ExtensionContext;
   private outputChannel: vscode.OutputChannel;
@@ -40,16 +41,26 @@ export class ServerManager {
     this.binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['directory']);
   }
 
+  /** Utility */
+  private async pathExists(p: string): Promise<boolean> {
+    try {
+      await fsp.access(p);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** Check if the binary already exists */
-  private isBinaryAvailable(): boolean {
+  private async isBinaryAvailable(): Promise<boolean> {
     const servicePath = this.getServiceExecutablePath();
     this.outputChannel.appendLine(`Checking for binary at: ${servicePath}`);
-    return fs.existsSync(servicePath);
+    return await this.pathExists(servicePath);
   }
 
   /** Ensure the binary exists and is extracted */
   public async ensureBinaryExists(): Promise<boolean> {
-    if (this.isBinaryAvailable()) {
+    if (await this.isBinaryAvailable()) {
       this.outputChannel.appendLine('Server binary already exists.');
       return true;
     }
@@ -63,12 +74,13 @@ export class ServerManager {
     const fileUrl = this.essential_config['BINARY']['download_link'];
     if (!fileUrl) {
       this.logger.error(`Unsupported platform, no binary download link found from essential config.`);
-      vscode.window.showErrorMessage(`Unsupported platform, no binary download link found from essential confi .`);
+      vscode.window.showErrorMessage(`Unsupported platform, no binary download link found from essential config.`);
       return false;
     }
 
     try {
-      const fileName = path.basename(fileUrl);
+      const urlObj = new URL(fileUrl);
+      const fileName = path.basename(urlObj.pathname);
       const downloadPath = path.join(this.binaryPath, fileName);
 
       await this.downloadFile(fileUrl, downloadPath);
@@ -95,12 +107,9 @@ export class ServerManager {
   private async downloadFile(url: string, outputPath: string): Promise<void> {
     this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
-    // Always delete this.binaryPath_root and its contents
-    if (fs.existsSync(this.binaryPath_root)) {
-      fs.rmSync(this.binaryPath_root, { recursive: true, force: true });
-      this.logger.info(`Deleted existing BinaryPath`);
-      this.outputChannel.appendLine(`Deleted existing binaryPath_root: ${this.binaryPath_root}`);
-    }
+    // Always delete this.binaryPath_root and its contents (non‑blocking)
+    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
+    this.logger.info(`Deleted existing BinaryPath`);
 
     // Ensure the directory for the output path exists
     const dir = path.dirname(outputPath);
@@ -109,131 +118,90 @@ export class ServerManager {
       this.outputChannel.appendLine(`Created directory: ${dir}`);
     }
 
-    return new Promise((resolve, reject) => {
-      const file = fs.createWriteStream(outputPath);
-      let hasError = false;
-
-      const request = https.get(url, (response) => {
-        if (response.statusCode !== 200) {
-          this.logger.error(`Failed to download file. HTTP Status: ${response.statusCode}`);
-          this.outputChannel.appendLine(`Failed to download file. HTTP Status: ${response.statusCode}`);
-          return reject(`HTTP ${response.statusCode}`);
-        }
-        loaderMessage(true);
-        this.logger.info(`Download started`);
-        this.outputChannel.appendLine('Download in progress...');
-        response.pipe(file);
-
-        response.on('end', () => {
-          this.outputChannel.appendLine('Download stream ended.');
-        });
-
-        file.on('finish', () => {
-          if (!hasError) {
-            file.close(() => {
-              this.logger.info(`Download completed`);
-              this.outputChannel.appendLine('Download completed successfully.');
-              resolve();
-            });
+    await new Promise<void>((resolve, reject) => {
+      https
+        .get(url, async (response) => {
+          if (response.statusCode !== 200 || !response.readable) {
+            this.logger.error(`Failed to download file. HTTP Status: ${response.statusCode}`);
+            this.outputChannel.appendLine(`❌ Failed to download file. HTTP Status: ${response.statusCode}`);
+            return reject(`HTTP ${response.statusCode}`);
           }
-        });
-      });
+          loaderMessage(true);
+          this.logger.info(`Download started`);
+          this.outputChannel.appendLine('Download in progress...');
 
-      request.on('error', (err) => {
-        hasError = true;
-        fs.unlink(outputPath, () => {}); // Delete incomplete file
-        this.outputChannel.appendLine(`Error during download: ${err.message}`);
-        reject(err.message);
-      });
-
-      file.on('error', (err) => {
-        hasError = true;
-        fs.unlink(outputPath, () => {}); // Delete incomplete file
-        this.outputChannel.appendLine(`File stream error: ${err.message}`);
-        reject(err.message);
-      });
+          const fileStream = fs.createWriteStream(outputPath);
+          try {
+            await streamPipeline(response, fileStream);
+            this.outputChannel.appendLine('Download completed successfully.');
+            resolve();
+          } catch (err) {
+            await fsp.unlink(outputPath).catch(() => {});
+            this.outputChannel.appendLine(`Error during download: ${err}`);
+            this.logger.error(`Error during download: ${err}`);
+            reject(err);
+          }
+        })
+        .on('error', reject);
     });
   }
-  /** Extract a tar file */
+
+  /** Decrypt and extract a tar.gz using streaming pipeline */
   private async decryptAndExtract(encPath: string, extractTo: string): Promise<void> {
-    const tempTarPath = path.join(extractTo, 'binary.tar.gz');
     const password = this.essential_config['BINARY']['password'];
     const SALT_LENGTH = 16;
     const IV_LENGTH = 16;
     const KEY_LENGTH = 32;
     const HMAC_LENGTH = 32;
-    const ITERATIONS = 100000;
+    const ITERATIONS = 100_000;
 
-    this.outputChannel.appendLine(`Starting decryption of: ${encPath}`);
-    this.outputChannel.appendLine(`Will extract to: ${extractTo}`);
-    this.outputChannel.appendLine(`Temporary tar path: ${tempTarPath}`);
+    // Read header + footer only
+    const fd = await fsp.open(encPath, 'r');
+    const headerBuf = Buffer.alloc(SALT_LENGTH + IV_LENGTH);
+    await fd.read(headerBuf, 0, headerBuf.length, 0);
 
-    const inputBuffer = fs.readFileSync(encPath);
-    this.outputChannel.appendLine(`Read encrypted file. Total size: ${inputBuffer.length} bytes`);
+    const stats = await fd.stat();
+    const tailPos = stats.size - HMAC_LENGTH;
+    const hmacBuf = Buffer.alloc(HMAC_LENGTH);
+    await fd.read(hmacBuf, 0, HMAC_LENGTH, tailPos);
+    await fd.close();
 
-    const salt = inputBuffer.subarray(0, SALT_LENGTH);
-    const iv = inputBuffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
-    const ciphertext = inputBuffer.subarray(SALT_LENGTH + IV_LENGTH, inputBuffer.length - HMAC_LENGTH);
-    const receivedHmac = inputBuffer.subarray(-HMAC_LENGTH);
-
-    this.outputChannel.appendLine(
-      `Parsed salt (${SALT_LENGTH} bytes), IV (${IV_LENGTH} bytes), ciphertext (${ciphertext.length} bytes), HMAC (${HMAC_LENGTH} bytes)`,
-    );
-
-    this.outputChannel.appendLine(`Deriving key using PBKDF2...`);
+    const salt = headerBuf.subarray(0, SALT_LENGTH);
+    const iv = headerBuf.subarray(SALT_LENGTH);
     const key = crypto.pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, 'sha256');
-    this.outputChannel.appendLine(`Key derivation complete.`);
 
-    this.outputChannel.appendLine(`Verifying HMAC...`);
+    const expectedHmac = hmacBuf;
     const hmac = crypto.createHmac('sha256', key);
-    hmac.update(ciphertext);
-    const expectedHmac = hmac.digest();
 
-    if (!crypto.timingSafeEqual(receivedHmac, expectedHmac)) {
+    await fsp.mkdir(extractTo, { recursive: true });
+
+    const cipherStream = createReadStream(encPath, {
+      start: SALT_LENGTH + IV_LENGTH,
+      end: tailPos - 1, // exclude HMAC footer
+    });
+
+    cipherStream.on('data', (chunk) => hmac.update(chunk));
+
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+
+    await streamPipeline(cipherStream, decipher, tar.x({ cwd: extractTo }));
+
+    // Verify HMAC after stream finished
+    const calculatedHmac = hmac.digest();
+    if (!crypto.timingSafeEqual(calculatedHmac, expectedHmac)) {
       vscode.window.showErrorMessage('Decryption failed: HMAC does not match. File may be tampered.');
-      this.outputChannel.appendLine('HMAC verification failed. Aborting decryption.');
       this.logger.error('HMAC verification failed. File may be tampered.');
       throw new Error('HMAC verification failed. File may be tampered.');
-      return;
     }
-    this.outputChannel.appendLine('HMAC verified successfully.');
 
-    this.outputChannel.appendLine('Decrypting ciphertext...');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    this.logger.info('Decipher initialized.');
-    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-    this.outputChannel.appendLine(`Decryption complete. Decrypted size: ${decrypted.length} bytes`);
+    // set executable permissions
+    const binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['service_path']);
+    await fsp.chmod(binaryPath, 0o755);
 
-    this.outputChannel.appendLine(`Writing decrypted tar to: ${tempTarPath}`);
-    fs.writeFileSync(tempTarPath, decrypted);
-    this.outputChannel.appendLine('Decrypted tar file written.');
-    this.logger.info(`Decrypted tar file.`);
-    this.outputChannel.appendLine(`Starting extraction of tar file to: ${extractTo}`);
-    try {
-      await tar.x({ file: tempTarPath, cwd: extractTo });
-      this.outputChannel.appendLine('Extraction complete.');
-
-      const binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['service_path']);
-      this.outputChannel.appendLine(`Setting executable permission on: ${binaryPath}`);
-      fs.chmodSync(binaryPath, 0o755);
-      this.outputChannel.appendLine(`Executable permission set.`);
-
-      this.outputChannel.appendLine(`Cleaning up: ${encPath}`);
-      fs.unlinkSync(encPath);
-      this.outputChannel.appendLine(`Deleted: ${encPath}`);
-
-      this.outputChannel.appendLine(`Cleaning up: ${tempTarPath}`);
-      fs.unlinkSync(tempTarPath);
-      this.outputChannel.appendLine(`Deleted: ${tempTarPath}`);
-
-      this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
-    } catch (err) {
-      this.logger.error(`Error during extraction: ${err}`);
-      this.outputChannel.appendLine(`❌ Extraction failed: ${err}`);
-      throw err;
-    }
+    // cleanup
+    await fsp.unlink(encPath).catch(() => {});
+    this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
   }
-
   /** Check if the port is available */
   private async isPortAvailable(port: number): Promise<boolean> {
     return new Promise((resolve) => {
@@ -246,21 +214,14 @@ export class ServerManager {
     });
   }
 
-  private async findAvailablePort([min, max]: number[]): Promise<number | null> {
-    const maxAttempts = MAX_PORT_ATTEMPTS;
-
-    try {
-      for (let i = 0; i < maxAttempts; i++) {
-        const port = Math.floor(Math.random() * (max - min + 1)) + min;
-        if (await this.isPortAvailable(port)) {
-          this.outputChannel.appendLine(`🔎 Found available port: ${port}`);
-          return port;
-        }
+  private async findAvailablePort([min, max]: [number, number]): Promise<number | null> {
+    for (let i = 0; i < MAX_PORT_ATTEMPTS; i++) {
+      const port = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (await this.isPortAvailable(port)) {
+        this.outputChannel.appendLine(`🔎 Found available port: ${port}`);
+        return port;
       }
-    } catch (error) {
-      this.logger.error(`Error finding available port: ${error}`);
     }
-
     return null;
   }
 
@@ -299,18 +260,16 @@ export class ServerManager {
     // loaderMessage('Starting server...');
     this.outputChannel.appendLine('Sthe registry file path is ');
     const serviceExecutable = this.getServiceExecutablePath();
-    const portRange: number[] | undefined = this.essential_config?.['BINARY']?.['port_range'];
+    const portRange: [number, number] | undefined = this.essential_config?.['BINARY']?.['port_range'];
     this.outputChannel.appendLine(`Starting server with binary: ${serviceExecutable}`);
     this.outputChannel.appendLine(`Port range: ${portRange}`);
     if (!serviceExecutable || !fs.existsSync(serviceExecutable)) {
-      // vscode.window.showErrorMessage('Server binary not found.');
       this.logger.error('Server binary not found.');
       this.outputChannel.appendLine('❌ Server binary not found at path: ' + serviceExecutable);
       return false;
     }
 
     if (!portRange || portRange.length !== 2) {
-      // vscode.window.showErrorMessage('Invalid or missing port range in config.');
       this.outputChannel.appendLine('❌ Missing or invalid port range in config.');
       return false;
     }
