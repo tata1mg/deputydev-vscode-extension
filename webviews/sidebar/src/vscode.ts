@@ -16,6 +16,7 @@ import {
   Settings,
   URLListItem,
   MCPServer,
+  ChangedFile,
 } from '@/types';
 import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
@@ -640,14 +641,8 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 });
 
 addCommandEventListener('file-diff-applied', ({ data }) => {
-  const { filePath, repoPath, addedLines, removedLines, sessionId } = data as {
-    filePath: string;
-    repoPath: string;
-    addedLines: number[];
-    removedLines: number[];
-    sessionId: number;
-  };
-  console.log('File diff applied:', {
+  const { filePath, repoPath, addedLines, removedLines, sessionId } = data as ChangedFile;
+  console.log('*************File diff applied:', {
     filePath,
     repoPath,
     addedLines,

@@ -355,14 +355,16 @@ export interface S3Object {
 }
 
 export interface ChangedFile {
-  fileName: string;
   filePath: string;
-  linesAdded: number;
-  linesRemoved: number;
+  repoPath: string;
+  addedLines: number[];
+  removedLines: number[];
+  sessionId: number;
   accepted: boolean;
 }
 
 export interface FilesStorage {
   changedFiles: ChangedFile[];
   selectedChangedFile: ChangedFile;
+  filesChangedSessionId: number;
 }

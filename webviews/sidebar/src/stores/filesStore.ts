@@ -7,13 +7,15 @@ export const useFileStore = create<FilesStorage>()(
   persist(
     (set) => ({
       changedFiles: [],
+      filesChangedSessionId: 0,
       selectedChangedFile: {
-        fileName: "",
         filePath: "",
-        linesAdded: 0,
-        linesRemoved: 0,
+        repoPath: "",
+        addedLines: [],
+        removedLines: [],
+        sessionId: 0,
         accepted: false
-      },
+      }
     }),
     {
       name: 'files-storage',
