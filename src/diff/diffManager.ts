@@ -230,8 +230,36 @@ export class DiffManager {
       throw error; // Optional: return false if you want to silently fail
     }
   };
-  public acceptAllFiles = async () => {};
-  public rejectAllFiles = async () => {};
-  public acceptFile = async (path: string) => {};
-  public rejectFile = async (path: string) => {};
+  public acceptAllFilesForSession = async (
+    sessionId: number,
+    applicationTrackingData: {
+      usageTrackingSource: string;
+      usageTrackingSessionId: number | null;
+    },
+  ) => {};
+  public rejectAllFilesForSession = async (
+    sessionId: number,
+    applicationTrackingData: {
+      usageTrackingSource: string;
+      usageTrackingSessionId: number | null;
+    },
+  ) => {};
+  public acceptFile = async (filePath: string, repoPath: string) => {
+    this.checkInit();
+    try {
+      this.fileChangeStateManager?.acceptAllChangesInFile(filePath, repoPath);
+    } catch (error) {
+      this.outputChannel.error(`acceptFile failed:\n${(error as Error).message}`);
+      throw error;
+    }
+  };
+  public rejectFile = async (filePath: string, repoPath: string) => {
+    this.checkInit();
+    try {
+      this.fileChangeStateManager?.rejectAllChangesInFile(filePath, repoPath);
+    } catch (error) {
+      this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);
+      throw error;
+    }
+  };
 }
