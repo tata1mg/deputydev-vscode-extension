@@ -613,6 +613,8 @@ export const useChatStore = create(
                     break;
                   }
 
+                  
+
                   case 'TOOL_USE_REQUEST_START': {
                     useChatStore.setState({ showGeneratingEffect: false });
                     const toolData = event.data as {
