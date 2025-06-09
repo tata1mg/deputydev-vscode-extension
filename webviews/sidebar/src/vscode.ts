@@ -639,6 +639,23 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   });
 });
 
+addCommandEventListener('file-diff-applied', ({ data }) => {
+  const { filePath, repoPath, addedLines, removedLines, sessionId } = data as {
+    filePath: string;
+    repoPath: string;
+    addedLines: number[];
+    removedLines: number[];
+    sessionId: number;
+  };
+  console.log('File diff applied:', {
+    filePath,
+    repoPath,
+    addedLines,
+    removedLines,
+    sessionId,
+  });
+});
+
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
   const selectedServer = useMcpStore.getState().selectedServer;

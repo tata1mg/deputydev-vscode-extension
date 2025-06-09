@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
+import { v4 as uuidv4 } from 'uuid';
+
 import { SESSION_TYPE } from '../constants';
 import { DiffManager } from '../diff/diffManager';
 import { MCPManager } from '../mcp/mcpManager';
@@ -475,19 +477,33 @@ export class ChatManager {
                       sessionId: sessionId,
                     });
                   }
-                  const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiff(
+                  const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
                     {
                       path: currentDiffRequest.filepath,
                       incrementalUdiff: currentDiffRequest.raw_diff,
                     },
                     activeRepo,
-                    true,
                     {
                       usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
                       usageTrackingSessionId: getSessionId() || null,
                     },
                     payload.write_mode,
+                    sessionId as number,
                   );
+
+                  if (diffApplySuccess) {
+                    this.sidebarProvider?.sendMessageToSidebar({
+                      id: uuidv4(),
+                      command: 'file-diff-applied',
+                      data: {
+                        addedLines,
+                        removedLines,
+                        filePath: currentDiffRequest.filepath,
+                        repoPath: activeRepo,
+                        sessionId: sessionId,
+                      },
+                    });
+                  }
 
                   this.sidebarProvider?.sendMessageToSidebar({
                     id: messageId,

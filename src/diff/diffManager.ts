@@ -263,7 +263,7 @@ export class DiffManager {
     }
 
     // Now apply the diff and return the result
-    // openViweer will be true only if the session file is first time being applied
+    // openViewer will be true only if the session file is first time being applied
 
     return this.applyDiff(data, repoPath, firstTimeApplyingSessionFile, applicationTrackingData, writeMode);
   };
