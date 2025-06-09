@@ -321,6 +321,7 @@ export class DiffManager {
       this.outputChannel.error(`Failed to accept all changes for session ${sessionId}: ${(error as Error).message}`);
     }
   };
+
   public rejectAllFilesForSession = async (
     sessionId: number,
     applicationTrackingData: {
@@ -347,6 +348,7 @@ export class DiffManager {
       this.outputChannel.error(`Failed to reject all changes for session ${sessionId}: ${(error as Error).message}`);
     }
   };
+
   public acceptFile = async (filePath: string, repoPath: string) => {
     this.checkInit();
     try {
@@ -356,6 +358,7 @@ export class DiffManager {
       throw error;
     }
   };
+
   public rejectFile = async (filePath: string, repoPath: string) => {
     this.checkInit();
     try {
