@@ -297,10 +297,6 @@ export class DiffManager {
 
   public acceptAllFilesForSession = async (
     sessionId: number,
-    applicationTrackingData: {
-      usageTrackingSource: string;
-      usageTrackingSessionId: number | null;
-    },
   ) => {
     // get all the files that are tracked in the fileChangeStateMap for the sessionId
     const filePathAndRepoPathArray = await this.getLatestFilesWithChangesForSession(sessionId);
@@ -324,10 +320,6 @@ export class DiffManager {
 
   public rejectAllFilesForSession = async (
     sessionId: number,
-    applicationTrackingData: {
-      usageTrackingSource: string;
-      usageTrackingSessionId: number | null;
-    },
   ) => {
     // get all the files that are tracked in the fileChangeStateMap for the sessionId
     const filePathAndRepoPathArray = await this.getLatestFilesWithChangesForSession(sessionId);

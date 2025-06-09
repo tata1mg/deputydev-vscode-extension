@@ -372,6 +372,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           );
           break;
         }
+
+        case 'accept-all-changes-in-session': {
+          promise = this.diffManager.acceptAllFilesForSession(
+            data.sessionId,
+          );
+          break;
+        }
+
+        case 'reject-all-changes-in-session': {
+          promise = this.diffManager.rejectAllFilesForSession(
+            data.sessionId,
+          );
+          break;
+        }
+
         case 'open-file':
           this.openFile(data.path);
           break;
