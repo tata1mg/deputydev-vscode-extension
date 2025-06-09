@@ -383,6 +383,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
 
+        case 'open-diff-viewer-for-file': {
+          promise = this.diffManager.openDiffView(data.filePath, data.repoPath);
+          break;
+        }
+
         case 'open-file':
           this.openFile(data.path);
           break;

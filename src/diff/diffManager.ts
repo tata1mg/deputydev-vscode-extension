@@ -177,11 +177,11 @@ export class DiffManager {
     };
   };
 
-  public openDiffView = async (filePath: string, repoPath: string, writeMode: boolean) => {
+  public openDiffView = async (filePath: string, repoPath: string) => {
     if (!this.deputydevChangeProposer) {
       throw new Error('DiffManager not initialized');
     }
-    await this.deputydevChangeProposer.openDiffView(filePath, repoPath, writeMode);
+    await this.deputydevChangeProposer.openDiffView(filePath, repoPath);
   };
 
   public applyDiff = async (
@@ -220,7 +220,7 @@ export class DiffManager {
 
       // Optionally open the diff viewer
       if (openViewer) {
-        await this.openDiffView(data.path, repoPath, writeMode);
+        await this.openDiffView(data.path, repoPath);
       }
 
       return {
