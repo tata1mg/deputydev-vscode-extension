@@ -1,8 +1,25 @@
 import { ChevronDown, ChevronUp, CircleX, CircleCheckBig } from 'lucide-react';
 import { useState } from 'react';
 
-export default function FilesEdited() {
+export default function ChangedFilesBar() {
     const [showAllChangedFiles, setShowAllChangedFiles] = useState(false);
+
+    const handleAcceptAllFiles = () => {
+
+    }
+
+    const handleRejectAllFiles = () => {
+
+    }
+
+    const handleAcceptFile = () => {
+
+    }
+
+    const handleRejectFile = () => {
+
+    }
+
     return (
         <div className="flex justify-center pl-3 pr-3">
             <div
@@ -58,13 +75,13 @@ export default function FilesEdited() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                             className="text-green-500 border border-green-500 p-[2px] whitespace-nowrap text-xs"
-                            onClick={() => { }}
+                            onClick={() => {handleAcceptAllFiles()}}
                         >
                             Accept All
                         </button>
                         <button
                             className='text-red-600 border border-red-600 p-[2px] whitespace-nowrap text-xs'
-                            onClick={() => { }}
+                            onClick={() => {handleRejectAllFiles()}}
                         >
                             Reject All
                         </button>
