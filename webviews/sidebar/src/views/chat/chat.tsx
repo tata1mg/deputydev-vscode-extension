@@ -42,6 +42,7 @@ import ReferenceChip from './referencechip';
 import ModelSelector from './chatElements/modelSelector';
 import FeaturesBar from './chatElements/features_bar';
 import { useMcpStore } from '@/stores/mcpStore';
+import FilesEdited from './chatElements/filesEditedBar';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -475,7 +476,8 @@ export function ChatUI() {
 
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            {!showAutocomplete && <FeaturesBar />}
+            {/* {!showAutocomplete && <FeaturesBar />} */}
+            <FilesEdited />
             <div
               className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
             >
