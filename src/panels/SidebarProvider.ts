@@ -374,16 +374,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
 
         case 'accept-all-changes-in-session': {
-          promise = this.diffManager.acceptAllFilesForSession(
-            data.sessionId,
-          );
+          promise = this.diffManager.acceptAllFilesForSession(data.sessionId);
           break;
         }
 
         case 'reject-all-changes-in-session': {
-          promise = this.diffManager.rejectAllFilesForSession(
-            data.sessionId,
-          );
+          promise = this.diffManager.rejectAllFilesForSession(data.sessionId);
           break;
         }
 
