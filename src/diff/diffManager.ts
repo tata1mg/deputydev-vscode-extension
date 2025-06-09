@@ -6,13 +6,14 @@ import { binaryApi } from '../services/api/axios';
 import { AuthService } from '../services/auth/AuthService';
 
 export class DiffManager {
-  private changeStateStorePath: string;
+  private readonly changeStateStorePath: string;
   private readonly vscodeContext: vscode.ExtensionContext;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly authService: AuthService;
 
   private deputydevChangeProposer: DeputydevChangeProposer | undefined;
   private fileChangeStateManager: FileChangeStateManager | undefined;
+  private readonly sessionIdToFilePathAndRepoPathMap: Map<number, Array<{ filePath: string; repoPath: string }>>;
 
   constructor(
     vscodeContext: vscode.ExtensionContext,
@@ -24,6 +25,8 @@ export class DiffManager {
     this.vscodeContext = vscodeContext;
     this.outputChannel = outputChannel;
     this.authService = authService;
+
+    this.sessionIdToFilePathAndRepoPathMap = new Map<number, Array<{ filePath: string; repoPath: string }>>();
 
     // If you want commands for accepting or rejecting ALL tracked files:
     this.vscodeContext.subscriptions.push(
@@ -230,24 +233,124 @@ export class DiffManager {
       throw error; // Optional: return false if you want to silently fail
     }
   };
+
+  public applyDiffForSession = async (
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
+    repoPath: string,
+    applicationTrackingData: {
+      usageTrackingSource: string;
+      usageTrackingSessionId: number | null;
+    },
+    writeMode: boolean,
+    sessionId: number,
+  ): Promise<{ diffApplySuccess: boolean; addedLines: number; removedLines: number }> => {
+    const firstTimeApplyingSessionFile = false;
+    // first add the filePath and repoPath to the sessionIdToFilePathAndRepoPathMap
+    if (!this.sessionIdToFilePathAndRepoPathMap.has(sessionId)) {
+      this.sessionIdToFilePathAndRepoPathMap.set(sessionId, [{ filePath: data.path, repoPath: repoPath }]);
+    } else {
+      const existingFiles = this.sessionIdToFilePathAndRepoPathMap.get(sessionId);
+      if (existingFiles) {
+        // Only add if this filePath/repoPath pair is not already present
+        const alreadyExists = existingFiles.some(
+          (entry) => entry.filePath === data.path && entry.repoPath === repoPath,
+        );
+        if (!alreadyExists) {
+          existingFiles.push({ filePath: data.path, repoPath: repoPath });
+          this.sessionIdToFilePathAndRepoPathMap.set(sessionId, existingFiles);
+        }
+      }
+    }
+
+    // Now apply the diff and return the result
+    // openViweer will be true only if the session file is first time being applied
+
+    return this.applyDiff(data, repoPath, firstTimeApplyingSessionFile, applicationTrackingData, writeMode);
+  };
+
+  private async getLatestFilesWithChangesForSession(
+    sessionId: number,
+  ): Promise<Array<{ filePath: string; repoPath: string }>> {
+    // Get the filePath and repoPath pairs for the sessionId which are currently in the fileChangeStateMap
+    const filePathAndRepoPathArray = this.sessionIdToFilePathAndRepoPathMap.get(sessionId);
+    if (!filePathAndRepoPathArray || filePathAndRepoPathArray.length === 0) {
+      this.outputChannel.info(`No files to accept for session ${sessionId}`);
+      return [];
+    }
+
+    // check initialization
+    this.checkInit();
+
+    // filter the filePathAndRepoPathArray to only include files that are tracked in the fileChangeStateMap
+    const trackedFiles: Array<{ filePath: string; repoPath: string }> = [];
+    for (const { filePath, repoPath } of filePathAndRepoPathArray) {
+      const trackedFileChangeState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+        filePath,
+        repoPath,
+      );
+      if (trackedFileChangeState) {
+        trackedFiles.push({ filePath, repoPath });
+      }
+    }
+    return trackedFiles;
+  }
+
   public acceptAllFilesForSession = async (
     sessionId: number,
     applicationTrackingData: {
       usageTrackingSource: string;
       usageTrackingSessionId: number | null;
     },
-  ) => {};
+  ) => {
+    // get all the files that are tracked in the fileChangeStateMap for the sessionId
+    const filePathAndRepoPathArray = await this.getLatestFilesWithChangesForSession(sessionId);
+
+    // parallely accept all the files
+    const acceptPromises = filePathAndRepoPathArray.map(async ({ filePath, repoPath }) => {
+      try {
+        await (this.fileChangeStateManager as FileChangeStateManager).acceptAllChangesInFile(filePath, repoPath);
+        this.outputChannel.info(`Accepted changes for file: ${filePath}`);
+      } catch (error) {
+        this.outputChannel.error(`Failed to accept changes for file ${filePath}: ${(error as Error).message}`);
+      }
+    });
+    try {
+      await Promise.all(acceptPromises);
+      this.outputChannel.info(`All changes accepted for session ${sessionId}`);
+    } catch (error) {
+      this.outputChannel.error(`Failed to accept all changes for session ${sessionId}: ${(error as Error).message}`);
+    }
+  };
   public rejectAllFilesForSession = async (
     sessionId: number,
     applicationTrackingData: {
       usageTrackingSource: string;
       usageTrackingSessionId: number | null;
     },
-  ) => {};
+  ) => {
+    // get all the files that are tracked in the fileChangeStateMap for the sessionId
+    const filePathAndRepoPathArray = await this.getLatestFilesWithChangesForSession(sessionId);
+
+    // parallely reject all the files
+    const rejectPromises = filePathAndRepoPathArray.map(async ({ filePath, repoPath }) => {
+      try {
+        await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
+        this.outputChannel.info(`Rejected changes for file: ${filePath}`);
+      } catch (error) {
+        this.outputChannel.error(`Failed to reject changes for file ${filePath}: ${(error as Error).message}`);
+      }
+    });
+    try {
+      await Promise.all(rejectPromises);
+      this.outputChannel.info(`All changes rejected for session ${sessionId}`);
+    } catch (error) {
+      this.outputChannel.error(`Failed to reject all changes for session ${sessionId}: ${(error as Error).message}`);
+    }
+  };
   public acceptFile = async (filePath: string, repoPath: string) => {
     this.checkInit();
     try {
-      this.fileChangeStateManager?.acceptAllChangesInFile(filePath, repoPath);
+      await (this.fileChangeStateManager as FileChangeStateManager).acceptAllChangesInFile(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`acceptFile failed:\n${(error as Error).message}`);
       throw error;
@@ -256,7 +359,7 @@ export class DiffManager {
   public rejectFile = async (filePath: string, repoPath: string) => {
     this.checkInit();
     try {
-      this.fileChangeStateManager?.rejectAllChangesInFile(filePath, repoPath);
+      await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);
       throw error;
