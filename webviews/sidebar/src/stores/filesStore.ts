@@ -9,13 +9,13 @@ export const useFileStore = create<FilesStorage>()(
       changedFiles: [],
       filesChangedSessionId: 0,
       selectedChangedFile: {
-        filePath: "",
-        repoPath: "",
+        filePath: '',
+        repoPath: '',
         addedLines: [],
         removedLines: [],
         sessionId: 0,
-        accepted: false
-      }
+        accepted: false,
+      },
     }),
     {
       name: 'files-storage',
