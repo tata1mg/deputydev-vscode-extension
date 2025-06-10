@@ -18,7 +18,13 @@ import {
   MCPServer,
   ChangedFile,
 } from '@/types';
-import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState, rejectAllChangesInSession } from './commandApi';
+import {
+  logToOutput,
+  getSessions,
+  sendWorkspaceRepoChange,
+  getGlobalState,
+  rejectAllChangesInSession,
+} from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
@@ -237,7 +243,7 @@ addCommandEventListener('new-chat', async () => {
     callCommand('delete-session-id', null);
   }
   rejectAllChangesInSession(useChangedFilesStore.getState().filesChangedSessionId);
-  useChangedFilesStore.setState({changedFiles: []});
+  useChangedFilesStore.setState({ changedFiles: [] });
 });
 
 addCommandEventListener('set-view-type', ({ data }) => {
@@ -680,8 +686,8 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
   );
 });
 
-addCommandEventListener('all-file-changes-accepted', ({data}) => {
-  const {filePath, repoPath} = data as {
+addCommandEventListener('all-file-changes-accepted', ({ data }) => {
+  const { filePath, repoPath } = data as {
     filePath: string;
     repoPath: string;
   };
@@ -689,15 +695,15 @@ addCommandEventListener('all-file-changes-accepted', ({data}) => {
   useChangedFilesStore.setState((state) => {
     // Filter out the file that was accepted
     const updatedFiles = state.changedFiles.filter(
-      file => !(file.filePath === filePath && file.repoPath === repoPath)
+      (file) => !(file.filePath === filePath && file.repoPath === repoPath)
     );
 
     return { changedFiles: updatedFiles };
   });
 });
 
-addCommandEventListener('all-file-changes-rejected', ({data}) => {
-  const {filePath, repoPath} = data as {
+addCommandEventListener('all-file-changes-rejected', ({ data }) => {
+  const { filePath, repoPath } = data as {
     filePath: string;
     repoPath: string;
   };
@@ -705,20 +711,20 @@ addCommandEventListener('all-file-changes-rejected', ({data}) => {
   useChangedFilesStore.setState((state) => {
     // Filter out the file that was accepted
     const updatedFiles = state.changedFiles.filter(
-      file => !(file.filePath === filePath && file.repoPath === repoPath)
+      (file) => !(file.filePath === filePath && file.repoPath === repoPath)
     );
 
     return { changedFiles: updatedFiles };
   });
-})
+});
 
-addCommandEventListener('all-session-changes-accepted', ({data}) => {
-  useChangedFilesStore.setState({changedFiles: []});
-})
+addCommandEventListener('all-session-changes-accepted', ({ data }) => {
+  useChangedFilesStore.setState({ changedFiles: [] });
+});
 
-addCommandEventListener('all-session-changes-rejected', ({data}) => {
-  useChangedFilesStore.setState({changedFiles: []});
-})
+addCommandEventListener('all-session-changes-rejected', ({ data }) => {
+  useChangedFilesStore.setState({ changedFiles: [] });
+});
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
