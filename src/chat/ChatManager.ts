@@ -21,7 +21,7 @@ import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager'
 import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
-import { registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
+import { cancelBackendLLMTask, registerApiChatTask, unregisterApiChatTask} from './ChatCancellationManager';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
@@ -1316,6 +1316,7 @@ export class ChatManager {
    * Stops the currently active chat stream, if any.
    */
   async stopChat(): Promise<void> {
+    cancelBackendLLMTask();
     if (this.currentAbortController) {
       this.currentAbortController.abort();
       this.outputChannel.warn('Stopping active chat request...');
