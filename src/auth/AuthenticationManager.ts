@@ -4,7 +4,7 @@ import { ConfigManager } from '../utilities/ConfigManager';
 import { Logger } from '../utilities/Logger';
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
-
+import { AuthStatus } from '../types';
 export class AuthenticationManager {
   authService = new AuthService();
   browserClient = new BrowserClient();
@@ -26,7 +26,7 @@ export class AuthenticationManager {
       try {
         const response = await this.authService.getSession(supabaseSessionId);
 
-        if (response.data.status === 'AUTHENTICATED') {
+        if (response.data.status === AuthStatus.AUTHENTICATED) {
           if (response.data.encrypted_session_data) {
             const result = await this.authService.storeAuthToken(response.data.encrypted_session_data);
             if (result === 'success') {
@@ -34,26 +34,21 @@ export class AuthenticationManager {
                 email: response.data.user_email,
                 userName: response.data.user_name,
               };
-              this.context.globalState.update('userData', userData);
               this.configManager.fetchAndStoreConfig();
-              this.context.workspaceState.update('authToken', response.data.encrypted_session_data);
-              this.context.workspaceState.update('isAuthenticated', true);
-              vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
+              this.context.secrets.store('authToken', response.data.encrypted_session_data);
+              this.setAuthState(true, userData);
               return response.data.status;
             } else {
-              this.context.workspaceState.update('isAuthenticated', false);
-              vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+              this.setAuthState(false);
               return 'NOT_AUTHENTICATED';
             }
           } else {
-            this.context.workspaceState.update('isAuthenticated', false);
-            vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+            this.setAuthState(false);
             return 'NOT_AUTHENTICATED';
           }
         }
       } catch (error) {
-        this.context.workspaceState.update('isAuthenticated', false);
-        vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+        this.setAuthState(false);
         this.logger.error('Error while polling session');
         return 'AUTHENTICATION_FAILED';
       }
@@ -62,6 +57,7 @@ export class AuthenticationManager {
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
     this.logger.error('Authentication failed, please try again later.');
+    return 'AUTHENTICATION_FAILED';
   }
 
   public async validateCurrentSession() {
@@ -74,17 +70,14 @@ export class AuthenticationManager {
 
     try {
       const response = await this.authService.verifyAuthToken(authToken);
-      if (response.data.status === 'VERIFIED') {
+      if (response.data.status === AuthStatus.VERIFIED) {
         const userData = {
           email: response.data.user_email,
           userName: response.data.user_name,
         };
-        this.context.globalState.update('userData', userData);
-        this.context.workspaceState.update('isAuthenticated', true);
-        this.context.workspaceState.update('isAuthenticated', true);
+        this.setAuthState(true, userData);
         return true;
-        // return false;
-      } else if (response.data.status === 'EXPIRED') {
+      } else if (response.data.status === AuthStatus.EXPIRED) {
         if (response.data.encrypted_session_data) {
           const result = await this.authService.storeAuthToken(response.data.encrypted_session_data);
           if (result === 'success') {
@@ -92,28 +85,20 @@ export class AuthenticationManager {
               email: response.data.user_email,
               userName: response.data.user_name,
             };
-            this.context.globalState.update('userData', userData);
-            this.context.workspaceState.update('authToken', response.data.encrypted_session_data);
-            this.context.workspaceState.update('isAuthenticated', true);
-            this.context.workspaceState.update('isAuthenticated', true);
+            this.setAuthState(true, userData);
+            this.context.secrets.store('authToken', response.data.encrypted_session_data);
             return true;
-            // return false;
           }
         } else {
-          this.context.workspaceState.update('isAuthenticated', false);
-          vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+          this.setAuthState(false);
           return false;
-          // return true;
         }
       } else {
-        this.context.workspaceState.update('isAuthenticated', false);
-        vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+        this.setAuthState(false);
         return false;
-        // return true;
       }
     } catch (error) {
-      this.context.workspaceState.update('isAuthenticated', false);
-      vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+      this.setAuthState(false);
       this.logger.error('Authentication failed, please try again later.');
       throw error;
     }
@@ -126,5 +111,18 @@ export class AuthenticationManager {
 
     // Poll Session
     return await this.pollSession(supabaseSessionId);
+  }
+
+  private setAuthState(isAuth: boolean, userData?: { email: string; userName: string }) {
+    this.context.workspaceState.update('isAuthenticated', isAuth);
+    vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', isAuth);
+    if (isAuth) {
+      this.logger.info('User is authenticated');
+    } else {
+      this.logger.info('User is not authenticated');
+    }
+    if (userData) {
+      this.context.globalState.update('userData', userData);
+    }
   }
 }

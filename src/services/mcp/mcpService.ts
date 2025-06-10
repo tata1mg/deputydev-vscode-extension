@@ -1,11 +1,9 @@
-import * as os from 'os';
-import * as path from 'path';
 import { MCPServerToolApprovePayload, MCPServerToolInvokePayload } from '../../types';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { binaryApi } from '../api/axios';
 import { API_ENDPOINTS } from '../api/endpoints';
-import { cp } from 'fs';
+import { MCP_CONFIG_PATH } from '../../config';
 
 export class MCPService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -36,10 +34,8 @@ export class MCPService {
 
   public async syncServers(): Promise<any> {
     try {
-      const homeDir = os.homedir();
-      const config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
       const data = {
-        config_path: config_path,
+        config_path: MCP_CONFIG_PATH,
       };
       const response = await binaryApi().post(API_ENDPOINTS.SYNC_MCP_SERVERS, data);
       return response.data;

@@ -6,7 +6,8 @@ import { BINARY_BG_PING_INTERVAL_MS } from '../config';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { Logger } from '../utilities/Logger';
-export class BackgroundPinger {
+
+export class BackgroundPinger implements vscode.Disposable {
   private context: vscode.ExtensionContext;
   private sideBarProvider: SidebarProvider;
   private serverManager: ServerManager;
@@ -15,6 +16,7 @@ export class BackgroundPinger {
   private configManager: ConfigManager;
   private interval: NodeJS.Timeout | null = null;
   private failureCount: number = 0;
+  private inProgress = false;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -42,17 +44,27 @@ export class BackgroundPinger {
     const BINARI_MAX_FAILURES = this.configManager.getAllConfigEssentials()['BINARY']['max_alive_retry'];
 
     this.interval = setInterval(async () => {
+      if (this.inProgress) {
+        return;
+      }
+      this.inProgress = true;
+
       try {
         const response = await binaryApi().get(API_ENDPOINTS.PING);
         if (response.status === 200) {
           // this.outputChannel.appendLine('✅ Ping successful.');
           this.failureCount = 0;
           return;
+        } else {
+          // Treat any non-200 as failure
+          throw new Error(`Ping returned unexpected status ${response.status}`);
         }
       } catch (err) {
         this.failureCount++;
         this.logger.warn(`Ping failed (${this.failureCount}/${BINARI_MAX_FAILURES}).`);
         this.outputChannel.appendLine(`⚠️ Ping failed (${this.failureCount}/${BINARI_MAX_FAILURES}).`);
+      } finally {
+        this.inProgress = false;
       }
 
       if (this.failureCount >= BINARI_MAX_FAILURES) {
@@ -64,13 +76,12 @@ export class BackgroundPinger {
         this.stop();
         await this.configManager.fetchAndStoreConfigEssentials();
         await this.serverManager.ensureBinaryExists();
-        const server_status = await this.serverManager.startServer();
-        if (server_status) {
+        const serverStatus = await this.serverManager.startServer();
+        if (serverStatus) {
           const isAuthenticated = this.context.workspaceState.get('isAuthenticated');
           if (isAuthenticated) {
             try {
               await this.sideBarProvider.initiateBinary();
-              this.sideBarProvider.setViewType('chat'); //TODO: return to last view type
             } catch (error) {
               this.logger.error('Error initiating binary:', error);
               this.outputChannel.appendLine('❌ Error initiating binary.');
@@ -96,5 +107,9 @@ export class BackgroundPinger {
       this.logger.info('Background pinger stopped.');
       this.outputChannel.appendLine('🛑 Background pinger stopped.');
     }
+  }
+
+  public dispose(): void {
+    this.stop();
   }
 }
