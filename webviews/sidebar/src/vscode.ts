@@ -25,6 +25,7 @@ import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
+import { useChangedFilesStore } from './stores/changedFilesStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -641,14 +642,37 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
 });
 
 addCommandEventListener('file-diff-applied', ({ data }) => {
-  const { filePath, repoPath, addedLines, removedLines, sessionId } = data as ChangedFile;
-  console.log('*************File diff applied:', {
-    filePath,
-    repoPath,
-    addedLines,
-    removedLines,
-    sessionId,
+  const { fileName, filePath, repoPath, addedLines, removedLines, sessionId } = data as ChangedFile;
+
+  useChangedFilesStore.setState((state) => {
+    // Check if file with same path and repo already exists
+    const existingFileIndex = state.changedFiles.findIndex(
+      file => file.filePath === filePath && file.repoPath === repoPath
+    );
+
+    const newFile = {
+      fileName,
+      filePath,
+      repoPath,
+      addedLines,
+      removedLines,
+      sessionId,
+      accepted: false,
+    };
+
+    if (existingFileIndex >= 0) {
+      // Update existing file
+      const updatedFiles = [...state.changedFiles];
+      updatedFiles[existingFileIndex] = newFile;
+      return { changedFiles: updatedFiles };
+    } else {
+      // Add new file
+      return { changedFiles: [...state.changedFiles, newFile] };
+    }
   });
+  useChangedFilesStore.setState({filesChangedSessionId: sessionId});
+
+  console.log('**************changed files**************', useChangedFilesStore.getState().changedFiles);
 });
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {

@@ -1,16 +1,11 @@
+import { acceptAllChangesInFile, acceptAllChangesInSession, openDiffViewer, rejectAllChangesInFile, rejectAllChangesInSession } from '@/commandApi';
+import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { ChevronDown, ChevronUp, CircleX, CircleCheckBig } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ChangedFilesBar() {
+  const { changedFiles, filesChangedSessionId } = useChangedFilesStore();
   const [showAllChangedFiles, setShowAllChangedFiles] = useState(false);
-
-  const handleAcceptAllFiles = () => {};
-
-  const handleRejectAllFiles = () => {};
-
-  const handleAcceptFile = () => {};
-
-  const handleRejectFile = () => {};
 
   return (
     <div className="flex justify-center pl-3 pr-3">
@@ -27,28 +22,43 @@ export default function ChangedFilesBar() {
               backgroundColor: 'var(--vscode-editor-background)',
             }}
           >
-            <div className="flex w-full items-center justify-between">
-              <button className="flex min-w-0 flex-1 items-center">
-                <div className="flex w-full min-w-0 flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-left text-sm">
-                      codeActionPanelFileEdit.tsx
-                    </span>
-                    <div className="flex items-center gap-1 text-xs">
-                      <span className="text-green-500">+12</span>
-                      <span className="text-red-500">-20</span>
+            {changedFiles && changedFiles.length > 0 &&
+              <div className='flex flex-col gap-1 w-full'>
+                {changedFiles.map((file, index) => (
+                  <div key={index} className="flex w-full items-center justify-between">
+                    <button
+                      className="flex min-w-0 flex-1 items-center"
+                      onClick={() => openDiffViewer(file.filePath, file.repoPath)}
+                    >
+                      <div className="flex w-full min-w-0 flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="overflow-hidden text-ellipsis whitespace-nowrap text-left text-sm">
+                            {file.fileName}
+                          </span>
+                          <div className="flex items-center gap-1 text-xs">
+                            <span className="text-green-500">+{file.addedLines}</span>
+                            <span className="text-red-500">-{file.removedLines}</span>
+                          </div>
+                        </div>
+                        <span className="w-full overflow-hidden text-ellipsis whitespace-nowrap text-left text-xs text-gray-500">
+                          {file.filePath}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+                      <CircleCheckBig
+                        className="h-5 w-5 text-green-500 cursor-pointer"
+                        onClick={() => acceptAllChangesInFile(file.filePath, file.repoPath)}
+                      />
+                      <CircleX
+                        className="h-5 w-5 text-red-600 cursor-pointer"
+                        onClick={() => rejectAllChangesInFile(file.filePath, file.repoPath)}
+                      />
                     </div>
                   </div>
-                  <span className="w-full overflow-hidden text-ellipsis whitespace-nowrap text-left text-xs text-gray-500">
-                    chat/chatElements/codeActionPanelFileEdit.tsx
-                  </span>
-                </div>
-              </button>
-              <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-                <CircleCheckBig className="h-5 w-5 text-green-500" />
-                <CircleX className="h-5 w-5 text-red-600" />
+                ))}
               </div>
-            </div>
+            }
           </div>
         )}
         <div className="m-1.5 flex items-center justify-between gap-2">
@@ -62,14 +72,14 @@ export default function ChangedFilesBar() {
               <ChevronUp className="flex-shrink-0" />
             )}
             <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
-              23 files changed
+              {changedFiles.length} {changedFiles.length === 1 ? "file changed" : "files changed"}
             </div>
           </button>
           <div className="flex flex-shrink-0 items-center gap-2">
             <button
               className="whitespace-nowrap border border-green-500 p-[2px] text-xs text-green-500"
               onClick={() => {
-                handleAcceptAllFiles();
+                acceptAllChangesInSession(filesChangedSessionId);
               }}
             >
               Accept All
@@ -77,7 +87,7 @@ export default function ChangedFilesBar() {
             <button
               className="whitespace-nowrap border border-red-600 p-[2px] text-xs text-red-600"
               onClick={() => {
-                handleRejectAllFiles();
+                rejectAllChangesInSession(filesChangedSessionId);
               }}
             >
               Reject All
