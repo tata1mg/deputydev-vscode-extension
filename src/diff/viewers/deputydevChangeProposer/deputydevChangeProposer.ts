@@ -66,4 +66,27 @@ export class DeputydevChangeProposer {
       throw error;
     }
   }
+
+  async updateDiffView(filePath: string, repoPath: string): Promise<void> {
+    try {
+      this.outputChannel.info(`updating diff view for: ${filePath}`);
+
+      const fileChangeState = await this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
+      if (!fileChangeState) {
+        throw new Error(`File change state not found for ${filePath}`);
+      }
+
+      const displayableUdiffUri = vscode.Uri.from({
+        scheme: 'ddproposed',
+        query: Buffer.from(repoPath).toString('base64'),
+        path: `${filePath}`,
+      });
+      if (!this.changeProposerEditor) {
+        return;
+      }
+      this.changeProposerEditor.updateExistingPanel(displayableUdiffUri);
+    } catch (error) {
+      this.outputChannel.error(`Error updating inline diff: ${error}`);
+    }
+  }
 }
