@@ -153,4 +153,5 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('isAuthenticated', false);
   await extensionContext.workspaceState.update('activeRepo', undefined);
   await extensionContext.workspaceState.update('mcp-storage', undefined);
+  // await extensionContext.workspaceState.update('changed-files-storage', undefined); //TODO: need to remove this
 }

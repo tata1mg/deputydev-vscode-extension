@@ -458,7 +458,8 @@ export function ChatUI() {
           {messages.length === 0 &&
             !showAutocomplete &&
             !showAllMCPServers &&
-            !showMCPServerTools && (
+            !showMCPServerTools &&
+            changedFiles.length === 0 && (
               <div className="px-4">
                 <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                   DeputyDev is powered by AI. It can make mistakes. Please double check all output.
@@ -479,7 +480,7 @@ export function ChatUI() {
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
             {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
-            {changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
+            {!showAutocomplete && changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
             <div
               className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
             >
