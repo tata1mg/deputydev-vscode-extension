@@ -6,7 +6,7 @@ import { BaseWebSocketClient } from '../../clients/baseClients/baseWebsocketClie
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
-import { config } from 'process';
+import { ReferenceManager } from '../../references/ReferenceManager';
 
 interface StreamEvent {
   type: string;
@@ -18,9 +18,12 @@ export class QuerySolverService {
   private context: vscode.ExtensionContext;
   private DD_HOST_WS: string;
   private QUERY_SOLVER_ENDPOINT: string;
+  private referenceManager: ReferenceManager;
+  private outputChannel: vscode.LogOutputChannel;
 
-  constructor(context: vscode.ExtensionContext) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
     this.logger = SingletonLogger.getInstance();
+    this.outputChannel = outputChannel;
     this.context = context;
     const configData = this.context.workspaceState.get('essentialConfigData') as any;
     if (!configData) {
@@ -28,6 +31,7 @@ export class QuerySolverService {
     }
     this.DD_HOST_WS = configData.DD_HOST_WS;
     this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
+    this.referenceManager = new ReferenceManager(context, this.outputChannel);
   }
 
   public async *querySolver(payload: Record<string, any>, signal?: AbortSignal): AsyncIterableIterator<any> {
@@ -65,9 +69,12 @@ export class QuerySolverService {
     }
 
     const currentSessionId = getSessionId();
-    payload.session_id = currentSessionId;
-    payload.session_type = SESSION_TYPE;
-    payload.auth_token = authToken;
+    const finalPayload = await this.preparePayload(payload);
+    finalPayload.session_id = currentSessionId;
+    finalPayload.session_type = SESSION_TYPE;
+    finalPayload.auth_token = authToken;
+
+    console.log('Final payload for querySolver:', finalPayload);
     let streamDone = false;
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
@@ -88,6 +95,7 @@ export class QuerySolverService {
           if (messageData.status == 'NOT_VERIFIED') {
             streamError = new Error('Session not verified');
             sendNotVerified();
+            console.log('Session not verified, sending not verified message');
             return 'REJECT_AND_RETRY';
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
@@ -114,9 +122,8 @@ export class QuerySolverService {
         'X-Session-Type': SESSION_TYPE,
       },
     );
-
     websocketClient
-      .send(payload)
+      .send(finalPayload)
       .then(() => websocketClient.close())
       .catch((error) => {
         // console.error("Error sending message to WebSocket:", error);
@@ -164,7 +171,7 @@ export class QuerySolverService {
           );
 
           websocketClient
-            .send(payload)
+            .send(finalPayload)
             .then(() => websocketClient.close())
             .catch((error) => {
               // console.error("Error sending message to WebSocket:", error);
@@ -190,5 +197,38 @@ export class QuerySolverService {
     }
 
     websocketClient.close();
+  }
+  /**
+   * Ensure the outbound WebSocket message is ≤100 KB; if it is larger,
+   * off-load it to S3 and return a lightweight envelope.
+   */
+  private async preparePayload(original: Record<string, any>): Promise<Record<string, any>> {
+    // ── 1. Measure size ──────────────────────────────────────────────
+    const serialised = JSON.stringify(original);
+    const byteSize = Buffer.byteLength(serialised, 'utf8');
+    const mainConfigData = this.context.workspaceState.get('configData') as any;
+    console.log('mainConfigData:', mainConfigData);
+    const CHAT_PAYLOAD_MAX_SIZE = mainConfigData.CHAT_PAYLOAD_MAX_SIZE * 1024 || 100 * 1024; // Default to 100 KB if not set
+    console.log('Payload size:', byteSize, 'bytes (max:', CHAT_PAYLOAD_MAX_SIZE, 'bytes)');
+    if (byteSize <= CHAT_PAYLOAD_MAX_SIZE) {
+      return original;
+    }
+    console.log('Payload size:', byteSize, 'bytes');
+
+    // ── 2. Too big → store in S3 (folder: 'payload') ────────────────
+    try {
+      const { key: attachment_id } = await this.referenceManager.uploadPayloadToS3(serialised);
+
+      // Keep only the routing fields + attachment pointer
+      console.log('Payload off-loaded to S3, attachment_id:', attachment_id);
+      return {
+        type: 'PAYLOAD_ATTACHMENT',
+        attachment_id,
+      };
+    } catch (err) {
+      this.logger.error('preparePayload: failed to off-load payload via ReferenceManager');
+      // Fallback: return original (backend may still reject if >128 KB)
+      return original;
+    }
   }
 }
