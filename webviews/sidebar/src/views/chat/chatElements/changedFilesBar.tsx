@@ -7,15 +7,23 @@ import {
 } from '@/commandApi';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { ChevronDown, ChevronUp, CircleX, CircleCheckBig } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Tooltip } from 'react-tooltip';
+import { useClickAway } from 'react-use';
 
 export default function ChangedFilesBar() {
   const { changedFiles, filesChangedSessionId } = useChangedFilesStore();
   const [showAllChangedFiles, setShowAllChangedFiles] = useState(false);
+  const changedFilesBar = useRef<HTMLDivElement>(null);
+
+  useClickAway(changedFilesBar, () => {
+    setShowAllChangedFiles(false);
+  });
 
   return (
     <div className="flex justify-center pl-3 pr-3">
       <div
+        ref={changedFilesBar}
         className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
         style={{
           backgroundColor: 'var(--vscode-editor-background)',
@@ -55,10 +63,16 @@ export default function ChangedFilesBar() {
                       <CircleCheckBig
                         className="h-5 w-5 cursor-pointer text-green-500"
                         onClick={() => acceptAllChangesInFile(file.filePath, file.repoPath)}
+                        data-tooltip-id="changed-files-tooltips"
+                        data-tooltip-content="Accept all changes"
+                        data-tooltip-place="top-start"
                       />
                       <CircleX
                         className="h-5 w-5 cursor-pointer text-red-600"
                         onClick={() => rejectAllChangesInFile(file.filePath, file.repoPath)}
+                        data-tooltip-id="changed-files-tooltips"
+                        data-tooltip-content="Reject all changes"
+                        data-tooltip-place="top-start"
                       />
                     </div>
                   </div>
@@ -83,23 +97,30 @@ export default function ChangedFilesBar() {
           </button>
           <div className="flex flex-shrink-0 items-center gap-2">
             <button
-              className="whitespace-nowrap border border-green-500 p-[2px] text-xs text-green-500"
+              className="whitespace-nowrap border border-green-500 px-[2px] text-xs text-green-500"
               onClick={() => {
                 acceptAllChangesInSession(filesChangedSessionId);
               }}
+              data-tooltip-id="changed-files-tooltips"
+              data-tooltip-content="Accept all files changes"
+              data-tooltip-place="top-start"
             >
               Accept All
             </button>
             <button
-              className="whitespace-nowrap border border-red-600 p-[2px] text-xs text-red-600"
+              className="whitespace-nowrap border border-red-600 px-[2px] text-xs text-red-600"
               onClick={() => {
                 rejectAllChangesInSession(filesChangedSessionId);
               }}
+              data-tooltip-id="changed-files-tooltips"
+              data-tooltip-content="Reject all files changes"
+              data-tooltip-place="top-start"
             >
               Reject All
             </button>
           </div>
         </div>
+        <Tooltip id="changed-files-tooltips" />
       </div>
     </div>
   );
