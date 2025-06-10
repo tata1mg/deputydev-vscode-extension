@@ -4,6 +4,8 @@ import { DeputydevChangeProposer } from './viewers/deputydevChangeProposer/deput
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { binaryApi } from '../services/api/axios';
 import { AuthService } from '../services/auth/AuthService';
+import path from 'path';
+import { promises as fs } from 'fs';
 
 export class DiffManager {
   private readonly changeStateStorePath: string;
@@ -184,6 +186,23 @@ export class DiffManager {
     await this.deputydevChangeProposer.openDiffView(filePath, repoPath);
   };
 
+  private readonly writeModifiedContentToFile = // The rest are no-ops
+    async (filePath: string, repoPath: string, modifiedContent: string): Promise<void> => {
+      console.log('Writing file:', filePath);
+
+      try {
+        const fullPath = path.join(repoPath, filePath);
+        const dirPath = path.dirname(fullPath);
+
+        await fs.mkdir(dirPath, { recursive: true });
+
+        await fs.writeFile(fullPath, modifiedContent, 'utf-8');
+        console.log('File written successfully.');
+      } catch (err) {
+        console.error('Error writing file:', err);
+      }
+    };
+
   public applyDiff = async (
     data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
     repoPath: string,
@@ -218,6 +237,11 @@ export class DiffManager {
         originalContent,
       );
 
+      if (writeMode) {
+        // Write the modified content to the file system
+        await this.writeModifiedContentToFile(data.path, repoPath, updatedModifiedContent);
+      }
+
       // Optionally open the diff viewer
       if (openViewer) {
         await this.openDiffView(data.path, repoPath);
@@ -244,10 +268,14 @@ export class DiffManager {
     writeMode: boolean,
     sessionId: number,
   ): Promise<{ diffApplySuccess: boolean; addedLines: number; removedLines: number }> => {
-    const firstTimeApplyingSessionFile = false;
+    this.outputChannel.debug(
+      `Applying diff for session ${sessionId} on file ${data.path} with repo path ${repoPath}, writeMode: ${writeMode}`,
+    );
+    let shouldOpenDiffView = false;
     // first add the filePath and repoPath to the sessionIdToFilePathAndRepoPathMap
     if (!this.sessionIdToFilePathAndRepoPathMap.has(sessionId)) {
       this.sessionIdToFilePathAndRepoPathMap.set(sessionId, [{ filePath: data.path, repoPath: repoPath }]);
+      shouldOpenDiffView = true; // This is the first time this file is being applied in this session
     } else {
       const existingFiles = this.sessionIdToFilePathAndRepoPathMap.get(sessionId);
       if (existingFiles) {
@@ -265,7 +293,7 @@ export class DiffManager {
     // Now apply the diff and return the result
     // openViewer will be true only if the session file is first time being applied
 
-    return this.applyDiff(data, repoPath, firstTimeApplyingSessionFile, applicationTrackingData, writeMode);
+    return this.applyDiff(data, repoPath, shouldOpenDiffView, applicationTrackingData, writeMode);
   };
 
   private async getLatestFilesWithChangesForSession(

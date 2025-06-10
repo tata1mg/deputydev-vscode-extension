@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
-import { ChunkCallback, ToolRequest, UsageTrackingRequest } from '../../types';
+import { ChunkCallback, ToolRequest } from '../../types';
 import { getActiveRepo, getSessionId } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { SidebarProvider } from '../../panels/SidebarProvider';
 import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
 import { DiffManager } from '../../diff/diffManager';
 import { AuthService } from '../../services/auth/AuthService';
-import { calculateDiffMetric } from '../../utilities/calculateDiffLinesNo';
+import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
 
 interface ApplyDiffArgs {
   parsedContent: {
@@ -54,19 +55,33 @@ export class WriteToFileTool {
     }
 
     try {
-      const { addedLines, removedLines } = await this.diffManager.applyDiff(
+      const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
         {
           path: parsedContent.path,
           search_and_replace_blocks: diff,
         },
         activeRepo,
-        true,
         {
           usageTrackingSource: toolRequest.is_inline ? 'inline-chat-act' : 'act',
           usageTrackingSessionId: sessionId || null,
         },
         toolRequest.write_mode,
+        sessionId as number,
       );
+      if (diffApplySuccess) {
+        this.sidebarProvider?.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'file-diff-applied',
+          data: {
+            addedLines,
+            removedLines,
+            filePath: parsedContent.path,
+            fileName: path.basename(parsedContent.path),
+            repoPath: activeRepo,
+            sessionId: sessionId,
+          },
+        });
+      }
       this.sidebarProvider.sendMessageToSidebar({
         id: messageId,
         command: 'chunk',

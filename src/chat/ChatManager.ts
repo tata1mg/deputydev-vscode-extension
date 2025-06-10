@@ -499,6 +499,7 @@ export class ChatManager {
                         addedLines,
                         removedLines,
                         filePath: currentDiffRequest.filepath,
+                        fileName: path.basename(currentDiffRequest.filepath),
                         repoPath: activeRepo,
                         sessionId: sessionId,
                       },
