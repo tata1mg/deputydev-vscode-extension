@@ -1,4 +1,10 @@
-import { acceptAllChangesInFile, acceptAllChangesInSession, openDiffViewer, rejectAllChangesInFile, rejectAllChangesInSession } from '@/commandApi';
+import {
+  acceptAllChangesInFile,
+  acceptAllChangesInSession,
+  openDiffViewer,
+  rejectAllChangesInFile,
+  rejectAllChangesInSession,
+} from '@/commandApi';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { ChevronDown, ChevronUp, CircleX, CircleCheckBig } from 'lucide-react';
 import { useState } from 'react';
@@ -22,8 +28,8 @@ export default function ChangedFilesBar() {
               backgroundColor: 'var(--vscode-editor-background)',
             }}
           >
-            {changedFiles && changedFiles.length > 0 &&
-              <div className='flex flex-col gap-1 w-full'>
+            {changedFiles && changedFiles.length > 0 && (
+              <div className="flex w-full flex-col gap-1">
                 {changedFiles.map((file, index) => (
                   <div key={index} className="flex w-full items-center justify-between">
                     <button
@@ -47,18 +53,18 @@ export default function ChangedFilesBar() {
                     </button>
                     <div className="ml-2 flex flex-shrink-0 items-center gap-2">
                       <CircleCheckBig
-                        className="h-5 w-5 text-green-500 cursor-pointer"
+                        className="h-5 w-5 cursor-pointer text-green-500"
                         onClick={() => acceptAllChangesInFile(file.filePath, file.repoPath)}
                       />
                       <CircleX
-                        className="h-5 w-5 text-red-600 cursor-pointer"
+                        className="h-5 w-5 cursor-pointer text-red-600"
                         onClick={() => rejectAllChangesInFile(file.filePath, file.repoPath)}
                       />
                     </div>
                   </div>
                 ))}
               </div>
-            }
+            )}
           </div>
         )}
         <div className="m-1.5 flex items-center justify-between gap-2">
@@ -72,7 +78,7 @@ export default function ChangedFilesBar() {
               <ChevronUp className="flex-shrink-0" />
             )}
             <div className="overflow-hidden text-ellipsis whitespace-nowrap text-sm">
-              {changedFiles.length} {changedFiles.length === 1 ? "file changed" : "files changed"}
+              {changedFiles.length} {changedFiles.length === 1 ? 'file changed' : 'files changed'}
             </div>
           </button>
           <div className="flex flex-shrink-0 items-center gap-2">

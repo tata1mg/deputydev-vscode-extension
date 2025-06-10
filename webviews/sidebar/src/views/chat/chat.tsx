@@ -66,7 +66,7 @@ export function ChatUI() {
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
   const { showAllMCPServers, showMCPServerTools } = useMcpStore();
-  const {changedFiles} = useChangedFilesStore();
+  const { changedFiles } = useChangedFilesStore();
 
   const deputyDevLogo =
     themeKind === 'light' || themeKind === 'high-contrast-light'

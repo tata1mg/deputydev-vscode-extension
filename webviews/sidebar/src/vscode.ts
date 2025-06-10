@@ -647,7 +647,7 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
   useChangedFilesStore.setState((state) => {
     // Check if file with same path and repo already exists
     const existingFileIndex = state.changedFiles.findIndex(
-      file => file.filePath === filePath && file.repoPath === repoPath
+      (file) => file.filePath === filePath && file.repoPath === repoPath
     );
 
     const newFile = {
@@ -670,9 +670,12 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
       return { changedFiles: [...state.changedFiles, newFile] };
     }
   });
-  useChangedFilesStore.setState({filesChangedSessionId: sessionId});
+  useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
 
-  console.log('**************changed files**************', useChangedFilesStore.getState().changedFiles);
+  console.log(
+    '**************changed files**************',
+    useChangedFilesStore.getState().changedFiles
+  );
 });
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {

@@ -7,7 +7,7 @@ export const useChangedFilesStore = create<ChangedFilesStorage>()(
   persist(
     (set) => ({
       changedFiles: [],
-      filesChangedSessionId: 0
+      filesChangedSessionId: 0,
     }),
     {
       name: 'changed-files-storage',
