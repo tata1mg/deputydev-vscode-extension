@@ -39,14 +39,13 @@ import { fileExists, openFile } from '../utilities/path';
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
-  private pendingMessages: any[] = [];
-  private _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
+  private readonly pendingMessages: any[] = [];
+  private readonly _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
-  private _onWebviewFocused = new vscode.EventEmitter<void>();
+  private readonly _onWebviewFocused = new vscode.EventEmitter<void>();
   public readonly onWebviewFocused = this._onWebviewFocused.event;
-  private apiErrorHandler = new ApiErrorHandler();
-  private mcpService = new MCPService();
-  private terminalService = new TerminalService();
+  private readonly mcpService = new MCPService();
+  private readonly terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -55,17 +54,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly diffManager: DiffManager,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly logger: Logger,
-    private chatService: ChatManager,
-    private historyService: HistoryService,
-    private authService: AuthService,
-    private codeReferenceService: ReferenceManager,
-    private configManager: ConfigManager,
-    private profileService: ProfileUiService,
-    private trackingManager: UsageTrackingManager,
-    private feedbackService: FeedbackService,
-    private userQueryEnhancerService: UserQueryEnhancerService,
-    private errorTrackingManager: ErrorTrackingManager,
-    private continueWorkspace: ContinueNewWorkspace,
+    private readonly chatService: ChatManager,
+    private readonly historyService: HistoryService,
+    private readonly authService: AuthService,
+    private readonly codeReferenceService: ReferenceManager,
+    private readonly configManager: ConfigManager,
+    private readonly profileService: ProfileUiService,
+    private readonly trackingManager: UsageTrackingManager,
+    private readonly feedbackService: FeedbackService,
+    private readonly userQueryEnhancerService: UserQueryEnhancerService,
+    private readonly errorTrackingManager: ErrorTrackingManager,
+    private readonly continueWorkspace: ContinueNewWorkspace,
   ) {}
 
   public resolveWebviewView(
@@ -363,7 +362,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           await this.diffManager.acceptAllFilesForSession(data.sessionId);
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'all-session-changes-accepted',
+            command: 'all-session-changes-finalized',
             data: { sessionId: data.sessionId },
           });
           break;
@@ -373,7 +372,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           await this.diffManager.rejectAllFilesForSession(data.sessionId);
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'all-session-changes-accepted',
+            command: 'all-session-changes-finalized',
             data: { sessionId: data.sessionId },
           });
           break;
@@ -383,7 +382,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           await this.diffManager.acceptFile(data.filePath, data.repoPath);
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'all-file-changes-accepted',
+            command: 'all-file-changes-finalized',
             data: { filePath: data.filePath, repoPath: data.repoPath },
           });
           const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
@@ -397,7 +396,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           await this.diffManager.rejectFile(data.filePath, data.repoPath);
           this.sendMessageToSidebar({
             id: message.id,
-            command: 'all-file-changes-accepted',
+            command: 'all-file-changes-finalized',
             data: { filePath: data.filePath, repoPath: data.repoPath },
           });
           const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
@@ -960,7 +959,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     if (this._view && this.isWebviewInitialized) {
       this._view.webview.postMessage(message);
     } else {
-      // console.log("Webview not initialized, queuing message:", message);
       this.pendingMessages.push(message);
     }
   }

@@ -124,18 +124,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
-          // // set the document as dirty
-          // this._onDidChangeCustomDocument.fire({
-          //   document: document,
-          //   undo: () => {},
-          //   redo: () => {},
-          // });
           await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
           const newContentLineEol = newContent.includes('\r\n') ? '\r\n' : '\n';
           const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
+            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
@@ -160,18 +155,13 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
-          // // set the document as dirty
-          // this._onDidChangeCustomDocument.fire({
-          //   document: document,
-          //   undo: () => {},
-          //   redo: () => {},
-          // });
           await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
           const newContentLineEol = newContent.includes('\r\n') ? '\r\n' : '\n';
           const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
+            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
@@ -198,13 +188,9 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
             });
-            // // set the document as dirty
-            // this._onDidChangeCustomDocument.fire({
-            //   document: document,
-            //   undo: () => {},
-            //   redo: () => {},
-            // });
             await this.saveCustomDocument(document, cancellationToken.token);
+
+            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
 
             // close this editor
             selectedPanel.dispose();
@@ -229,14 +215,9 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             await vscode.window.showTextDocument(originalFileUri, {
               preview: false,
             });
-            // // set the document as dirty
-            // this._onDidChangeCustomDocument.fire({
-            //   document: document,
-            //   undo: () => {},
-            //   redo: () => {},
-            // });
             await this.saveCustomDocument(document, cancellationToken.token);
 
+            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
             // close this editor
             selectedPanel.dispose();
             this.panels.delete(key);
@@ -273,7 +254,14 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
 
     webviewPanel.onDidDispose(() => {
       // Remove the document from the fileChangeStateManager
-      this.fileChangeStateManager.removeFileChangeState(document.filePath, document.repoPath);
+      // this.fileChangeStateManager.removeFileChangeState(document.filePath, document.repoPath);
+      for (const group of vscode.window.tabGroups.all) {
+        for (const tab of group.tabs) {
+          if (tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === document.uri.toString()) {
+            vscode.window.tabGroups.close(tab);
+          }
+        }
+      }
     });
   }
 
