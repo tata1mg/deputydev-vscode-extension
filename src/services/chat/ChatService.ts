@@ -95,7 +95,6 @@ export class QuerySolverService {
           if (messageData.status == 'NOT_VERIFIED') {
             streamError = new Error('Session not verified');
             sendNotVerified();
-            console.log('Session not verified, sending not verified message');
             return 'REJECT_AND_RETRY';
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
