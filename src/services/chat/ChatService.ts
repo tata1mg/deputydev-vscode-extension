@@ -217,7 +217,6 @@ export class QuerySolverService {
       const { key: attachment_id } = await this.referenceManager.uploadPayloadToS3(serialised);
 
       // Keep only the routing fields + attachment pointer
-      console.log('Payload off-loaded to S3, attachment_id:', attachment_id);
       return {
         type: 'PAYLOAD_ATTACHMENT',
         attachment_id,
