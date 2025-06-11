@@ -61,6 +61,12 @@ const App: React.FC = () => {
     editorRef.current = editor;
     addEditorListeners(editor, monaco);
     decorateEditor(editor, monaco);
+    // scroll to first line which starts with + or - if it exists
+    const model = editor.getModel();
+    if (!model) return;
+    const lines = model.getLinesContent();
+    const firstEditLine = lines.findIndex((line) => line.startsWith('+') || line.startsWith('-'));
+    editor.revealLineInCenterIfOutsideViewport(firstEditLine + 1, monaco.editor.ScrollType.Immediate);
   };
   
   const clearContentWidgets = () => {
