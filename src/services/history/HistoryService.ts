@@ -6,7 +6,6 @@ import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SESSION_TYPE } from '../../constants';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
-
 const fetchAuthToken = async () => {
   const authService = new AuthService();
   const authToken = await authService.loadAuthToken();
@@ -16,6 +15,10 @@ const fetchAuthToken = async () => {
 export class HistoryService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  constructor() {
+    this.logger = SingletonLogger.getInstance();
+  }
 
   public async getPastSessions(limit: number, offset: number, sessions_list_type: string): Promise<any> {
     try {
@@ -35,6 +38,7 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.logger.error('Error fetching past sessions');
       this.errorTrackingManager.trackGeneralError(error, 'HISTORY_LIST_FETCHING_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
@@ -51,6 +55,7 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.logger.error('Error reordering pinned sessions');
       this.errorTrackingManager.trackGeneralError(error, 'HISTORY_REORDERING_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
@@ -70,6 +75,7 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.logger.error('Error fetching past session chats');
       this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_FETCHING_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
@@ -87,16 +93,13 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data;
     } catch (error) {
+      this.logger.error('Error deleting session');
       this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_DELETION_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
   }
 
   public async pinOrUnpinSession(data: { sessionId: number; pin_or_unpin: string; rank?: number }): Promise<any> {
-    // console.log("Pinning/Unpinning session", {
-    //   sessions_list_type: data.pin_or_unpin,
-    //   pinned_rank: data.rank,
-    // });
     try {
       const authToken = await fetchAuthToken();
       const headers = {
@@ -118,6 +121,7 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.logger.error('Error pinning or unpinning session');
       this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_PINNING_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }
@@ -141,6 +145,7 @@ export class HistoryService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
+      this.logger.error('Error fetching relevant chat history');
       this.errorTrackingManager.trackGeneralError(error, 'RELEVANT_CHAT_FETCHING_ERROR', 'BACKEND');
       this.apiErrorHandler.handleApiError(error);
     }

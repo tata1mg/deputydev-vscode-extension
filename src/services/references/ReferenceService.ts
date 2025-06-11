@@ -14,7 +14,6 @@ import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManag
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
-
   private fetchAuthToken = async () => {
     const authService = new AuthService();
     const authToken = await authService.loadAuthToken();
@@ -148,9 +147,8 @@ export class ReferenceService {
       this.apiErrorHandler.handleApiError(error);
     }
   }
-
   public async uploadFileToS3(
-    payload: { name: string; type: string; size: number; content: Buffer },
+    payload: { name: string; type: string; size: number; content: Buffer; folder?: 'payload' },
     onProgress?: (percent: number) => void,
   ): Promise<any> {
     try {
@@ -161,10 +159,10 @@ export class ReferenceService {
       if (!payload.name || !payload.type || !payload.size || !payload.content) {
         throw new Error('Invalid payload: missing required fields');
       }
-      if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
+      if (payload.size > mainConfig['CHAT_FILE_UPLOAD']['MAX_BYTES']) {
         throw new Error('File size exceeds the maximum allowed limit');
       }
-      if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
+      if (!mainConfig['CHAT_FILE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
         throw new Error('Invalid file type');
       }
       const authToken = await this.fetchAuthToken();
@@ -176,6 +174,7 @@ export class ReferenceService {
           file_name: payload.name,
           file_size: payload.size,
           file_type: payload.type,
+          folder: payload.folder,
         },
         { headers },
       );
@@ -206,11 +205,6 @@ export class ReferenceService {
           }
         },
       });
-      this.errorTrackingManager.trackGeneralError(
-        { message: 'File uploaded successfully', fileName: payload.name },
-        'FILE_UPLOAD_SUCCESS',
-        'BINARY',
-      );
       return { get_url: download_url, key: attachment_id };
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
