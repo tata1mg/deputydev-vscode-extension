@@ -1,3 +1,9 @@
+export enum AuthStatus {
+  AUTHENTICATED = 'AUTHENTICATED',
+  VERIFIED = 'VERIFIED',
+  EXPIRED = 'EXPIRED',
+}
+
 export type UsageTrackingRequest = {
   eventType: string;
   eventData: Record<string, any>;
@@ -5,6 +11,7 @@ export type UsageTrackingRequest = {
 };
 
 export interface ErrorTrackingRequestForBackend {
+  error_id: string;
   error_type: string;
   client_version: string;
   repo_name?: string;

@@ -2,6 +2,7 @@ import { UsageTrackingService } from '../services/usageTracking/UsageTrackingSer
 import * as vscode from 'vscode';
 import { UsageTrackingRequest } from '../types';
 import { CLIENT, CLIENT_VERSION } from '../config';
+import { v4 as uuidv4 } from 'uuid';
 
 export class UsageTrackingManager {
   onStarted: () => void = () => {};
@@ -15,6 +16,7 @@ export class UsageTrackingManager {
 
   async trackUsage(payload: UsageTrackingRequest) {
     const usageTrackingPayload = {
+      event_id: uuidv4(),
       event_type: payload.eventType,
       event_data: payload.eventData,
       session_id: payload.sessionId,
