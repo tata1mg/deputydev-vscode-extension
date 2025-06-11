@@ -30,6 +30,7 @@ import {
   enhanceUserQuery,
   uploadFileToS3,
   showVsCodeMessageBox,
+  getWorkspaceState,
 } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -89,10 +90,12 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showBiggerImage, setShowBiggerImage] = useState<boolean>(false);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [expandedImageIndex, setExpandedImageIndex] = useState<number>(-1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const [maxSize, setMaxSize] = useState<number>(5 * 1024 * 1024); // Default 5MB
+  const [maxFiles, setMaxFiles] = useState<number>(5); // Default 5 files
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -150,17 +153,17 @@ export function ChatUI() {
 
     const message = userInput.trim();
     const editorReferences = [...useChatStore.getState().currentEditorReference];
-    const s3Reference = useChatStore.getState().s3Object;
+    const s3References = [...useChatStore.getState().s3Objects];
     setUserInput('');
-    setImagePreview(null);
+    setImagePreviews([]);
     fileInputRef.current!.value = '';
     timeoutRef.current = null;
-    useChatStore.setState({ s3Object: undefined });
+    useChatStore.setState({ s3Objects: [] });
     useChatStore.setState({ currentEditorReference: [] });
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {}, s3Reference);
+      await sendChatMessage(message, editorReferences, () => {}, s3References);
     } catch (error) {
       // Handle error if needed
     }
@@ -400,6 +403,31 @@ export function ChatUI() {
       }, 150);
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
+
+  useEffect(() => {
+    const fetchImageUploadConfig = async () => {
+      try {
+        const mainConfig = await getWorkspaceState({ key: 'configData' });
+        if (mainConfig) {
+          const maxSize = mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES'];
+          const maxFiles = mainConfig['CHAT_IMAGE_UPLOAD']['MAX_FILES'];
+
+          if (maxFiles && typeof maxFiles === 'number') {
+            setMaxFiles(maxFiles);
+          }
+          if (maxSize && typeof maxSize === 'number' && maxFiles && typeof maxFiles === 'number') {
+            setMaxSize(maxSize * maxFiles);
+          }
+          
+        }
+      } catch (error) {
+        console.error('Failed to fetch image upload config:', error);
+      }
+    };
+
+    fetchImageUploadConfig();
+  }, []);
+
   return (
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
@@ -497,71 +525,91 @@ export function ChatUI() {
                 />
               ))}
 
-              {imagePreview && (
-                <div
-                  className={`group relative mb-2 transition-all duration-500 ease-in-out ${
-                    showBiggerImage ? 'h-48 w-48' : 'h-12 w-12'
-                  }`}
-                >
-                  <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
-                    <img
-                      onClick={() => {
-                        if (!showBiggerImage) {
-                          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              {imagePreviews.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2 max-w-full">
+                  {imagePreviews.map((preview, index) => (
+                    <div
+                      key={index}
+                      className={`group relative transition-all duration-500 ease-in-out ${
+                        expandedImageIndex === index ? 'h-32 w-32' : 'h-12 w-12'
+                      }`}
+                    >
+                      <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                        <img
+                          onClick={() => {
+                            if (expandedImageIndex !== index) {
+                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                              setExpandedImageIndex(index);
+                              timeoutRef.current = window.setTimeout(() => {
+                                setExpandedImageIndex(-1);
+                              }, 5000);
+                            } else {
+                              setExpandedImageIndex(-1);
+                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                            }
+                          }}
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="h-full w-full object-cover transition-opacity hover:opacity-90 cursor-pointer"
+                        />
 
-                          timeoutRef.current = window.setTimeout(() => {
-                            setShowBiggerImage(false);
-                          }, 5000);
-                        }
-                        setShowBiggerImage(!showBiggerImage);
-                      }}
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-full w-full object-cover transition-opacity hover:opacity-90"
-                    />
-
-                    {/* Circular loader overlay */}
-                    {imageUploadProgress !== null && imageUploadProgress < 100 && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-                        <svg
-                          className="h-6 w-6 animate-spin text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                          ></path>
-                        </svg>
+                        {/* Circular loader overlay */}
+                        {imageUploadProgress !== null && 
+                         imageUploadProgress < 100 && 
+                         index === imagePreviews.length - 1 && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                            <svg
+                              className="h-4 w-4 animate-spin text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                              ></path>
+                            </svg>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Remove button */}
-                  <button
-                    onClick={() => {
-                      useChatStore.setState({ s3Object: undefined });
-                      setImagePreview(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = ''; // Clear file input value
-                      }
-                    }}
-                    className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                    title="Remove image"
-                    aria-label="Remove image"
-                  >
-                    <X className="h-3 w-3" strokeWidth={3} />
-                  </button>
+                      {/* Remove button */}
+                      <button
+                        onClick={() => {
+                          const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                          const newS3Objects = useChatStore.getState().s3Objects.filter((_, i) => i !== index);
+                          setImagePreviews(newPreviews);
+                          useChatStore.setState({ s3Objects: newS3Objects });
+                          
+                          // Reset expanded state if needed
+                          if (expandedImageIndex === index) {
+                            setExpandedImageIndex(-1);
+                          } else if (expandedImageIndex > index) {
+                            setExpandedImageIndex(expandedImageIndex - 1);
+                          }
+                          
+                          // Clear file input if no images left
+                          if (newPreviews.length === 0 && fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        title={`Remove image ${index + 1}`}
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        <X className="h-2.5 w-2.5" strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -654,36 +702,59 @@ export function ChatUI() {
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 id="image-upload"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                disabled={imagePreview !== null}
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-                    if (file.size > maxSize) {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    
+                    // Check if adding these files exceeds the limit
+                    const currentCount = imagePreviews.length;
+                    if (currentCount + files.length > maxFiles) {
                       showVsCodeMessageBox(
                         'error',
-                        'File size exceeds 5MB. Please upload a smaller file.'
+                        `Maximum ${maxFiles} images allowed. You can upload ${maxFiles - currentCount} more.`
                       );
                       return;
                     }
-                    const previewUrl = URL.createObjectURL(file);
-                    setImagePreview(previewUrl);
-                    uploadFileToS3(file);
+
+                    // Check file sizes
+                    const oversizedFiles = files.filter(file => file.size > maxSize);
+                    if (oversizedFiles.length > 0) {
+                      showVsCodeMessageBox(
+                        'error',
+                        `${oversizedFiles.length} file(s) exceed 25 MB limit. Please upload smaller files.`
+                      );
+                      return;
+                    }
+
+                    // Create previews for all valid files
+                    const newPreviews: string[] = [];
+                    files.forEach(file => {
+                      const previewUrl = URL.createObjectURL(file);
+                      newPreviews.push(previewUrl);
+                    });
+                    
+                    setImagePreviews(prev => [...prev, ...newPreviews]);
+                    
+                    // Upload all files
+                    files.forEach(file => {
+                      uploadFileToS3(file);
+                    });
                   }
                 }}
               />
 
               <label
                 htmlFor="image-upload"
-                className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
-                  imagePreview !== null ? 'cursor-not-allowed' : 'cursor-pointer'
-                }`}
+                className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 cursor-pointer"
                 data-tooltip-id="upload-tooltip"
                 data-tooltip-content={
-                  imagePreview !== null ? 'Max 1 image allowed' : 'Upload Image'
+                  imagePreviews.length >= maxFiles
+                    ? `Maximum ${maxFiles} images allowed`
+                    : `Upload Images (${imagePreviews.length}/${maxFiles})`
                 }
                 data-tooltip-place="top-start"
               >

@@ -100,7 +100,7 @@ export const useChatStore = create(
         activeModel: '',
         search_web: false,
         imageUploadProgress: 0,
-        s3Object: {} as S3Object,
+        s3Objects: [] as S3Object[],
         showGeneratingEffect: false,
       },
       (set, get) => {
@@ -117,6 +117,7 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
+              s3Objects: [],
               enhancedUserQuery: '',
               enhancingUserQuery: false,
               showGeneratingEffect: false,
@@ -127,7 +128,7 @@ export const useChatStore = create(
             message: string,
             editorReferences: ChatReferenceItem[],
             chunkCallback: (data: { name: string; data: any }) => void,
-            s3Reference?: S3Object,
+            s3References?: S3Object[],
             retryChat?: boolean,
             retry_payload?: any,
             create_new_workspace_payload?: any
@@ -145,7 +146,7 @@ export const useChatStore = create(
                 type: 'TEXT_BLOCK',
                 content: { text: message },
                 referenceList: editorReferences,
-                s3Reference: s3Reference,
+                s3References: s3References,
                 actor: 'USER',
                 lastMessageSentTime: useChatStore.getState().lastMessageSentTime,
               };
@@ -183,7 +184,7 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-              // delete copyS3Reference.get_url
+              
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
@@ -195,7 +196,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                attachments: s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [],
+                attachments: s3References ? s3References.map(ref => ({ attachment_id: ref.key })).filter(att => att.attachment_id) : [],
               };
 
               // If a tool response was stored, add it to the payload

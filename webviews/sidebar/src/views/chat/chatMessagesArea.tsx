@@ -82,13 +82,22 @@ export function ChatArea() {
                         />
                       ))}
 
-                      {/* Embed image inside message bubble */}
-                      {msg.s3Reference && msg.s3Reference.get_url && (
-                        <ImageWithDownload
-                          src={msg.s3Reference.get_url}
-                          alt="Attached content"
-                          Key={msg.s3Reference.key}
-                        />
+                      {msg.s3References && msg.s3References.length > 0 && (
+                        <div className="mt-2 overflow-x-auto">
+                          <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
+                          {msg.s3References.map((s3Ref, imgIndex) => (
+                            s3Ref.get_url && (
+                              <ImageWithDownload
+                                key={imgIndex}
+                                src={s3Ref.get_url}
+                                alt={`Attached content ${imgIndex + 1}`}
+                                Key={s3Ref.key}
+                                thumbnail={true}
+                              />
+                            )
+                          ))}
+                          </div>
+                        </div>
                       )}
 
                       <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
