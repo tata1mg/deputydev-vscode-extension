@@ -381,6 +381,10 @@ export class DiffManager {
         await this.disposeDiffView(filePath, repoPath);
         (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
         this.removeFileFromSessions(filePath, repoPath);
+        const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+        await vscode.window.showTextDocument(originalFileUri, {
+          preview: false,
+        });
         this.outputChannel.info(`Accepted changes for file: ${filePath}`);
       } catch (error) {
         this.outputChannel.error(`Failed to accept changes for file ${filePath}: ${(error as Error).message}`);
@@ -414,6 +418,10 @@ export class DiffManager {
         await this.disposeDiffView(filePath, repoPath);
         (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
         this.removeFileFromSessions(filePath, repoPath);
+        const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+        await vscode.window.showTextDocument(originalFileUri, {
+          preview: false,
+        });
         this.outputChannel.info(`Rejected changes for file: ${filePath}`);
       } catch (error) {
         this.outputChannel.error(`Failed to reject changes for file ${filePath}: ${(error as Error).message}`);
@@ -443,6 +451,10 @@ export class DiffManager {
       await this.disposeDiffView(filePath, repoPath);
       (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
       this.removeFileFromSessions(filePath, repoPath);
+      const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+      await vscode.window.showTextDocument(originalFileUri, {
+        preview: false,
+      });
     } catch (error) {
       this.outputChannel.error(`acceptFile failed:\n${(error as Error).message}`);
       throw error;
@@ -465,6 +477,10 @@ export class DiffManager {
       await this.disposeDiffView(filePath, repoPath);
       (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
       this.removeFileFromSessions(filePath, repoPath);
+      const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+      await vscode.window.showTextDocument(originalFileUri, {
+        preview: false,
+      });
     } catch (error) {
       this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);
       throw error;
