@@ -104,7 +104,7 @@ export default function ChangedFilesBar() {
           </button>
           <div className="flex flex-shrink-0 items-center gap-3">
             <button
-              className="whitespace-nowrap border border-green-500 p-1 text-xs text-green-500 hover:bg-green-500 hover:text-white rounded-md"
+              className="whitespace-nowrap rounded-md border border-green-500 p-1 text-xs text-green-500 hover:bg-green-500 hover:text-white"
               onClick={() => {
                 acceptAllChangesInSession(filesChangedSessionId);
               }}
@@ -115,7 +115,7 @@ export default function ChangedFilesBar() {
               Accept All
             </button>
             <button
-              className="whitespace-nowrap border border-red-600 p-1 text-xs text-red-600 hover:bg-red-600 hover:text-white rounded-md"
+              className="whitespace-nowrap rounded-md border border-red-600 p-1 text-xs text-red-600 hover:bg-red-600 hover:text-white"
               onClick={() => {
                 rejectAllChangesInSession(filesChangedSessionId);
               }}
