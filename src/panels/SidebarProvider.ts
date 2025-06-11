@@ -196,14 +196,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.mcpServerEnableOrDisable(data.action, data.serverName);
           break;
 
-        // File Operations
-        case 'accept-file':
-          promise = this.diffManager.acceptFile(data.path);
-          break;
-        case 'reject-file':
-          promise = this.diffManager.rejectFile(data.path);
-          break;
-
         // Profile UI data
         case 'fetch-profile-ui-data':
           promise = this.fetchProfileUiData();
@@ -368,27 +360,55 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         }
 
         case 'accept-all-changes-in-session': {
-          promise = this.diffManager.acceptAllFilesForSession(data.sessionId);
+          await this.diffManager.acceptAllFilesForSession(data.sessionId);
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'all-session-changes-accepted',
+            data: { sessionId: data.sessionId },
+          });
           break;
         }
 
         case 'reject-all-changes-in-session': {
-          promise = this.diffManager.rejectAllFilesForSession(data.sessionId);
+          await this.diffManager.rejectAllFilesForSession(data.sessionId);
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'all-session-changes-accepted',
+            data: { sessionId: data.sessionId },
+          });
           break;
         }
 
         case 'accept-all-changes-in-file': {
-          promise = this.diffManager.acceptFile(data.filePath, data.repoPath);
+          await this.diffManager.acceptFile(data.filePath, data.repoPath);
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'all-file-changes-accepted',
+            data: { filePath: data.filePath, repoPath: data.repoPath },
+          });
+          const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
+          if (nextFileInSession) {
+            await this.diffManager.openDiffView(nextFileInSession.filePath, nextFileInSession.repoPath);
+          }
           break;
         }
 
         case 'reject-all-changes-in-file': {
-          promise = this.diffManager.rejectFile(data.filePath, data.repoPath);
+          await this.diffManager.rejectFile(data.filePath, data.repoPath);
+          this.sendMessageToSidebar({
+            id: message.id,
+            command: 'all-file-changes-accepted',
+            data: { filePath: data.filePath, repoPath: data.repoPath },
+          });
+          const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
+          if (nextFileInSession) {
+            await this.diffManager.openDiffView(nextFileInSession.filePath, nextFileInSession.repoPath);
+          }
           break;
         }
 
         case 'open-diff-viewer-for-file': {
-          promise = this.diffManager.openDiffView(data.filePath, data.repoPath);
+          await this.diffManager.openDiffView(data.filePath, data.repoPath);
           break;
         }
 

@@ -80,12 +80,12 @@ export function rejectAllChangesInSession(sessionId: number) {
   return callCommand('reject-all-changes-in-session', { sessionId });
 }
 
-export function acceptAllChangesInFile(filePath: string, repoPath: string) {
-  return callCommand('accept-all-changes-in-file', { filePath, repoPath });
+export function acceptAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('accept-all-changes-in-file', { filePath, repoPath, sessionId });
 }
 
-export function rejectAllChangesInFile(filePath: string, repoPath: string) {
-  return callCommand('reject-all-changes-in-file', { filePath, repoPath });
+export function rejectAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('reject-all-changes-in-file', { filePath, repoPath, sessionId });
 }
 
 export function openDiffViewer(filePath: string, repoPath: string) {

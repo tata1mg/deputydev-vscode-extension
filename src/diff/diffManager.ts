@@ -186,6 +186,20 @@ export class DiffManager {
     await this.deputydevChangeProposer.openDiffView(filePath, repoPath);
   };
 
+  public updateDiffView = async (filePath: string, repoPath: string) => {
+    if (!this.deputydevChangeProposer) {
+      throw new Error('DiffManager not initialized');
+    }
+    await this.deputydevChangeProposer.updateDiffView(filePath, repoPath);
+  };
+
+  public disposeDiffView = async (filePath: string, repoPath: string) => {
+    if (!this.deputydevChangeProposer) {
+      throw new Error('DiffManager not initialized');
+    }
+    await this.deputydevChangeProposer.disposeDiffView(filePath, repoPath);
+  };
+
   private readonly writeModifiedContentToFile = // The rest are no-ops
     async (filePath: string, repoPath: string, modifiedContent: string): Promise<void> => {
       console.log('Writing file:', filePath);
@@ -331,6 +345,19 @@ export class DiffManager {
     const acceptPromises = filePathAndRepoPathArray.map(async ({ filePath, repoPath }) => {
       try {
         await (this.fileChangeStateManager as FileChangeStateManager).acceptAllChangesInFile(filePath, repoPath);
+        // after accepting, need to get the latest diff which shall be written to the file
+        const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+          filePath,
+          repoPath,
+        );
+        if (newState) {
+          // Write the modified content to the file system
+          await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+        }
+        await this.updateDiffView(filePath, repoPath);
+        await this.disposeDiffView(filePath, repoPath);
+        (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
+        this.removeFileFromSessions(filePath, repoPath);
         this.outputChannel.info(`Accepted changes for file: ${filePath}`);
       } catch (error) {
         this.outputChannel.error(`Failed to accept changes for file ${filePath}: ${(error as Error).message}`);
@@ -352,6 +379,18 @@ export class DiffManager {
     const rejectPromises = filePathAndRepoPathArray.map(async ({ filePath, repoPath }) => {
       try {
         await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
+        const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+          filePath,
+          repoPath,
+        );
+        if (newState) {
+          // Write the modified content to the file system
+          await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+        }
+        await this.updateDiffView(filePath, repoPath);
+        await this.disposeDiffView(filePath, repoPath);
+        (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
+        this.removeFileFromSessions(filePath, repoPath);
         this.outputChannel.info(`Rejected changes for file: ${filePath}`);
       } catch (error) {
         this.outputChannel.error(`Failed to reject changes for file ${filePath}: ${(error as Error).message}`);
@@ -369,6 +408,18 @@ export class DiffManager {
     this.checkInit();
     try {
       await (this.fileChangeStateManager as FileChangeStateManager).acceptAllChangesInFile(filePath, repoPath);
+      const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+        filePath,
+        repoPath,
+      );
+      if (newState) {
+        // Write the modified content to the file system
+        await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+      }
+      await this.updateDiffView(filePath, repoPath);
+      await this.disposeDiffView(filePath, repoPath);
+      (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
+      this.removeFileFromSessions(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`acceptFile failed:\n${(error as Error).message}`);
       throw error;
@@ -379,9 +430,52 @@ export class DiffManager {
     this.checkInit();
     try {
       await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
+      const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+        filePath,
+        repoPath,
+      );
+      if (newState) {
+        // Write the modified content to the file system
+        await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+      }
+      await this.updateDiffView(filePath, repoPath);
+      await this.disposeDiffView(filePath, repoPath);
+      (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
+      this.removeFileFromSessions(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);
       throw error;
     }
+  };
+
+  public removeFileFromSessions = (filePath: string, repoPath: string) => {
+    this.outputChannel.debug(`Removing file ${filePath} from all sessions`);
+    // Iterate through all session IDs and remove the filePath and repoPath pair
+    for (const [sessionId, filePathAndRepoPathArray] of this.sessionIdToFilePathAndRepoPathMap.entries()) {
+      const updatedArray = filePathAndRepoPathArray.filter(
+        (entry) => !(entry.filePath === filePath && entry.repoPath === repoPath),
+      );
+      if (updatedArray.length === 0) {
+        this.sessionIdToFilePathAndRepoPathMap.delete(sessionId);
+      } else {
+        this.sessionIdToFilePathAndRepoPathMap.set(sessionId, updatedArray);
+      }
+    }
+    this.outputChannel.info(`Removed file ${filePath} from all sessions`);
+  };
+
+  public getNextFileForSession = async (sessionId: number): Promise<{ filePath: string; repoPath: string } | null> => {
+    this.outputChannel.debug(`Getting next file for session ${sessionId}`);
+    // Get the filePath and repoPath pairs for the sessionId
+    const filePathAndRepoPathArray = this.sessionIdToFilePathAndRepoPathMap.get(sessionId);
+    if (!filePathAndRepoPathArray || filePathAndRepoPathArray.length === 0) {
+      this.outputChannel.info(`No files to process for session ${sessionId}`);
+      return null;
+    }
+
+    // Get the first file in the array
+    const nextFile = filePathAndRepoPathArray[0];
+    this.outputChannel.debug(`Next file for session ${sessionId}: ${JSON.stringify(nextFile)}`);
+    return nextFile;
   };
 }
