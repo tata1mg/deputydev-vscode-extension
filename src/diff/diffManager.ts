@@ -61,6 +61,19 @@ export class DiffManager {
       this.changeStateStorePath,
     );
 
+    this.fileChangeStateManager.onFileChangeStateFinalized.event(async ({ filePath, repoPath }) => {
+      this.removeFileFromSessions(filePath, repoPath);
+
+      // get latest session in sessionIdToFilePathAndRepoPathMap
+      const latestSessionId = Array.from(this.sessionIdToFilePathAndRepoPathMap.keys()).sort((a, b) => b - a)[0];
+      if (latestSessionId !== undefined) {
+        const nextFile = await this.getNextFileForSession(latestSessionId);
+        if (nextFile) {
+          await this.openDiffView(nextFile.filePath, nextFile.repoPath);
+        }
+      }
+    });
+
     this.deputydevChangeProposer = new DeputydevChangeProposer(
       this.vscodeContext,
       this.outputChannel,
@@ -266,6 +279,9 @@ export class DiffManager {
       // Optionally open the diff viewer
       if (openViewer) {
         await this.openDiffView(data.path, repoPath);
+      } else {
+        // send signal to update the diff view if it is already open
+        await this.updateDiffView(data.path, repoPath);
       }
 
       return {
