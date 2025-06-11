@@ -24,6 +24,15 @@ export class FileChangeStateManager {
   private readonly fileChangeStateMap: Map<string, FileChangeState>;
   private initialized = false; // Indicates if the manager is initialized
 
+  // event to signal finalization
+  public readonly onFileChangeStateFinalized: vscode.EventEmitter<{
+    filePath: string;
+    repoPath: string;
+  }> = new vscode.EventEmitter<{
+    filePath: string;
+    repoPath: string;
+  }>();
+
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
@@ -43,7 +52,7 @@ export class FileChangeStateManager {
     this.sidebarProvider = sidebarProvider;
   };
 
-  public signalFileChangeFinalization = async (
+  public finalizeFileChangeState = async (
     filePath: string, // relative path of the file from the repo
     repoPath: string, // absolute path of the repo
   ): Promise<void> => {
@@ -62,11 +71,19 @@ export class FileChangeStateManager {
       this.outputChannel.warn(`Sidebar provider not available. Cannot send message to sidebar.`);
       return;
     }
+
+    // remove the fileChangeStateMap entry for the filePath
+    this.fileChangeStateMap.delete(uri);
+    this.saveFileChangeStateToDisk();
+
     this.sidebarProvider.sendMessageToSidebar({
       id: uuidv4(),
       command: 'all-file-changes-finalized',
       data: { filePath: filePath, repoPath: repoPath },
     });
+
+    // fire an event to notify that the file change state has been finalized
+    this.onFileChangeStateFinalized.fire({ filePath: filePath, repoPath: repoPath });
   };
 
   // This method loads the file change state from the persistent state file.

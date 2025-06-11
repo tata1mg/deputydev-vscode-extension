@@ -130,7 +130,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
+            this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
@@ -161,7 +161,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
-            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
+            this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
             const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
@@ -190,7 +190,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             });
             await this.saveCustomDocument(document, cancellationToken.token);
 
-            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
+            this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
 
             // close this editor
             selectedPanel.dispose();
@@ -217,7 +217,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
             });
             await this.saveCustomDocument(document, cancellationToken.token);
 
-            this.fileChangeStateManager.signalFileChangeFinalization(document.filePath, document.repoPath);
+            this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             // close this editor
             selectedPanel.dispose();
             this.panels.delete(key);
@@ -255,13 +255,23 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     webviewPanel.onDidDispose(() => {
       // Remove the document from the fileChangeStateManager
       // this.fileChangeStateManager.removeFileChangeState(document.filePath, document.repoPath);
-      for (const group of vscode.window.tabGroups.all) {
-        for (const tab of group.tabs) {
-          if (tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === document.uri.toString()) {
-            vscode.window.tabGroups.close(tab);
+
+      const closeFunction = async () => {
+        this.outputChannel.info(`Closing custom editor for: ${document.uri.toString()}`);
+        const cancellationToken = new vscode.CancellationTokenSource();
+        await this.saveCustomDocument(document, cancellationToken.token);
+        for (const group of vscode.window.tabGroups.all) {
+          for (const tab of group.tabs) {
+            if (tab.input instanceof vscode.TabInputCustom && tab.input.uri.toString() === document.uri.toString()) {
+              vscode.window.tabGroups.close(tab);
+            }
           }
         }
-      }
+      };
+
+      closeFunction().catch((error) => {
+        this.outputChannel.error(`Error closing custom editor: ${error}`);
+      });
     });
   }
 
