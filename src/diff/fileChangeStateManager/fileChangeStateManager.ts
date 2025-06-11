@@ -3,6 +3,8 @@ import { createTwoFilesPatch } from 'diff';
 import * as path from 'path';
 import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
 import { promises as fs } from 'fs';
+import { SidebarProvider } from '../../panels/SidebarProvider';
+import { v4 as uuidv4 } from 'uuid';
 
 // Type definitions for the file change state manager
 type FileChangeState = {
@@ -26,6 +28,7 @@ export class FileChangeStateManager {
     private readonly context: vscode.ExtensionContext,
     private readonly outputChannel: vscode.LogOutputChannel,
     private readonly persistentStateFilePath: string,
+    private sidebarProvider?: SidebarProvider,
   ) {
     this.outputChannel.info('FileChangeStateManager initialized');
     this.outputChannel.info('Persistent state file path:', this.persistentStateFilePath);
@@ -35,6 +38,36 @@ export class FileChangeStateManager {
       this.loadFileChangeStateFromDisk();
     }
   }
+
+  public setSidebarProvider = (sidebarProvider: SidebarProvider): void => {
+    this.sidebarProvider = sidebarProvider;
+  };
+
+  public signalFileChangeFinalization = async (
+    filePath: string, // relative path of the file from the repo
+    repoPath: string, // absolute path of the repo
+  ): Promise<void> => {
+    // check if fileChangeStateMap is initialized
+    while (!this.initialized) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    // check if fileChangeStateMap has the filePath
+    const uri = path.join(repoPath, filePath);
+    if (!this.fileChangeStateMap.has(uri)) {
+      this.outputChannel.warn(`File change state not found for ${filePath}. No changes to finalize.`);
+      return;
+    }
+    if (!this.sidebarProvider) {
+      this.outputChannel.warn(`Sidebar provider not available. Cannot send message to sidebar.`);
+      return;
+    }
+    this.sidebarProvider.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'all-file-changes-finalized',
+      data: { filePath: filePath, repoPath: repoPath },
+    });
+  };
 
   // This method loads the file change state from the persistent state file.
   private loadFileChangeStateFromDisk = async (): Promise<void> => {

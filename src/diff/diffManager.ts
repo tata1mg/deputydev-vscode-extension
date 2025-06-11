@@ -6,6 +6,7 @@ import { binaryApi } from '../services/api/axios';
 import { AuthService } from '../services/auth/AuthService';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { SidebarProvider } from '../panels/SidebarProvider';
 
 export class DiffManager {
   private readonly changeStateStorePath: string;
@@ -44,6 +45,12 @@ export class DiffManager {
         vscode.window.showInformationMessage('All changes rejected.');
       }),
     );
+  }
+
+  public setSidebarProvider(sidebarProvider: SidebarProvider) {
+    if (this.fileChangeStateManager) {
+      this.fileChangeStateManager.setSidebarProvider(sidebarProvider);
+    }
   }
 
   // initialize the diff manager

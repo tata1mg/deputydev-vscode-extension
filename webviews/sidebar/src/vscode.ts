@@ -681,7 +681,7 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
   );
 });
 
-addCommandEventListener('all-file-changes-accepted', ({ data }) => {
+addCommandEventListener('all-file-changes-finalized', ({ data }) => {
   const { filePath, repoPath } = data as {
     filePath: string;
     repoPath: string;
@@ -713,7 +713,7 @@ addCommandEventListener('all-file-changes-rejected', ({ data }) => {
   });
 });
 
-addCommandEventListener('all-session-changes-accepted', ({ data }) => {
+addCommandEventListener('all-session-changes-finalized', ({ data }) => {
   useChangedFilesStore.setState({ changedFiles: [] });
 });
 

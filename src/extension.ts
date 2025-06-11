@@ -126,6 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
     errorTrackingManager,
     continueNewWorkspace,
   );
+  diffManager.setSidebarProvider(sidebarProvider);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
       webviewOptions: { retainContextWhenHidden: true },
