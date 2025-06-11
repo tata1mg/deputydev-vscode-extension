@@ -303,8 +303,8 @@ export class FileChangeStateManager {
         modifiedContent: parsedUdiffContent.modifiedContent,
         currentUdiff: udiff,
         stateMetadata: {
-          usageTrackingSource: 'inlineDiff',
-          usageTrackingSessionId: 0,
+          usageTrackingSource: stateMetadata.usageTrackingSource,
+          usageTrackingSessionId: stateMetadata.usageTrackingSessionId,
         },
         writeMode: writeMode,
       });

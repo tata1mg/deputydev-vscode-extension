@@ -32,7 +32,7 @@ interface ToolUseApprovalStatus {
   autoAcceptNextTime: boolean;
 }
 export class ChatManager {
-  private querySolverService = new QuerySolverService(this.context);
+  private querySolverService = new QuerySolverService(this.context, this.outputChannel);
   private sidebarProvider?: SidebarProvider; // Optional at first
   private historyService = new HistoryService();
   private focusChunksService = new FocusChunksService();

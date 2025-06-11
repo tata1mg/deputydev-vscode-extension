@@ -137,4 +137,30 @@ export class ReferenceManager {
     const response = await this.referenceService.downloadImageFile(payload);
     return response;
   }
+
+  async uploadPayloadToS3(payload: unknown): Promise<{ get_url: string; key: string }> {
+    try {
+      // ── 1. Serialise / buffer ─────────────────────────────────────
+      const serialised = typeof payload === 'string' ? payload : JSON.stringify(payload, null, 0);
+      const buffer = Buffer.from(serialised, 'utf8');
+
+      // ── 2. Build file-upload descriptor ───────────────────────────
+      const fileDescriptor = {
+        name: uuidv4() + '.json',
+        type: 'application/json',
+        size: buffer.length,
+        content: buffer,
+        folder: 'payload' as const,
+      };
+
+      // ── 3. Upload via the underlying ReferenceService ────────────
+      const response = await this.referenceService.uploadFileToS3(fileDescriptor);
+
+      this.outputChannel.info('uploadPayloadToS3-response', response);
+      return response; // { get_url, key }
+    } catch (err) {
+      this.outputChannel.error('uploadPayloadToS3-error', err);
+      throw err;
+    }
+  }
 }
