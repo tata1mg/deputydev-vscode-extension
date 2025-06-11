@@ -1,44 +1,42 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
+import { promises as fsp } from 'fs';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
+import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
-import { getUri } from '../utilities/getUri';
-import { HistoryService } from '../services/history/HistoryService';
-import { AuthService } from '../services/auth/AuthService';
+import { updateVectorStoreWithResponse } from '../clients/common/websocketHandlers';
+import { CLIENT_VERSION, DD_HOST, MCP_CONFIG_PATH } from '../config';
+import { DiffManager } from '../diff/diffManager';
 import { ReferenceManager } from '../references/ReferenceManager';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { AuthService } from '../services/auth/AuthService';
+import { FeedbackService } from '../services/feedback/feedbackService';
+import { HistoryService } from '../services/history/HistoryService';
+import { MCPService } from '../services/mcp/mcpService';
+import { ProfileUiService } from '../services/profileUi/profileUiService';
+import { TerminalService } from '../services/terminal/TerminalService';
+import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
+import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
+import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
+import { ConfigManager } from '../utilities/ConfigManager';
 import {
+  clearWorkspaceStorage,
   deleteSessionId,
   getActiveRepo,
   getSessionId,
-  setSessionId,
   sendProgress,
-  clearWorkspaceStorage,
+  setSessionId,
 } from '../utilities/contextManager';
-import { api, binaryApi } from '../services/api/axios';
-import { API_ENDPOINTS } from '../services/api/endpoints';
-import { updateVectorStoreWithResponse } from '../clients/common/websocketHandlers';
-import { ConfigManager } from '../utilities/ConfigManager';
-import { CLIENT_VERSION, DD_HOST } from '../config';
-import { ProfileUiService } from '../services/profileUi/profileUiService';
-import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
+import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
-import { DiffManager } from '../diff/diffManager';
-import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
-import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
-import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
-import { SESSION_TYPE } from '../constants';
-import { getShell } from '../terminal/utils/shell';
-import { FeedbackService } from '../services/feedback/feedbackService';
-import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
-import { ApiErrorHandler } from '../services/api/apiErrorHandler';
-import * as fs from 'fs';
-import { getOSName } from '../utilities/osName';
-import * as os from 'os';
-import { MCPService } from '../services/mcp/mcpService';
-import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
+import { fileExists, openFile } from '../utilities/path';
 
-export class SidebarProvider implements vscode.WebviewViewProvider {
+export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
   private isWebviewInitialized = false;
   private pendingMessages: any[] = [];
@@ -48,6 +46,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   public readonly onWebviewFocused = this._onWebviewFocused.event;
   private apiErrorHandler = new ApiErrorHandler();
   private mcpService = new MCPService();
+  private terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -189,10 +188,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         // MCP operations
         case 'sync-servers':
-          // Start polling asynchronously first
-          setTimeout(() => {
-            this.startPollingMcpServers();
-          }, 0);
+          this.startPollingMcpServers();
           promise = this.syncMcpServers();
           break;
 
@@ -206,11 +202,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         case 'reject-file':
           promise = this.diffManager.rejectFile(data.path);
-          break;
-        case 'get-opened-files':
-          promise = this.getOpenedFiles();
-          break;
-        case 'search-file':
           break;
 
         // Profile UI data
@@ -238,14 +229,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case 'log-to-output':
           promise = this.logToOutput(data);
           break;
+        case 'log-to-log-file':
+          promise = this.logToLogFile(data);
+          break;
+        case 'show-logs':
+          promise = this.showLogs();
+          break;
         case 'show-error-message':
           promise = this.showErrorMessage(data);
           break;
         case 'show-info-message':
           promise = this.showInfoMessage(data);
-          break;
-        case 'show-logs':
-          promise = this.showLogs();
           break;
 
         // Global State Management
@@ -321,7 +315,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           });
           break;
         case 'edit-terminal-command':
-          promise = this.editTerminalCommand(data);
+          promise = this.terminalService.editTerminalCommand(data);
           break;
 
         case 'tool-use-approval-update':
@@ -373,7 +367,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           break;
         }
         case 'open-file':
-          this.openFile(data.path);
+          openFile(data.path, data.startLine, data.endLine);
           break;
 
         case 'open-or-create-file':
@@ -423,33 +417,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  //TODO: move this to service folder
-  async editTerminalCommand(data: { user_query: string; old_command: string }) {
-    try {
-      const { user_query, old_command } = data;
-      const authToken = await this.authService.loadAuthToken();
-      const headers = {
-        Authorization: `Bearer ${authToken}`,
-        'X-Session-Type': SESSION_TYPE,
-        'X-Session-Id': getSessionId(),
-      };
-      const payload = {
-        query: user_query,
-        old_terminal_command: old_command,
-        os_name: await getOSName(),
-        shell: getShell(),
-      };
-      const response = await api.post(API_ENDPOINTS.TERMINAL_COMMAND_EDIT, payload, {
-        headers,
-      });
-      this.outputChannel.info('Terminal command edit response:', response.data.data.terminal_command);
-      refreshCurrentToken(response.headers);
-      return response.data.data.terminal_command;
-    } catch (error) {
-      this.logger.error('Error updating terminal command:');
-      this.apiErrorHandler.handleApiError(error);
-    }
-  }
   // For browser pages
   async openBrowserPage(data: { url: string }) {
     await vscode.env.openExternal(vscode.Uri.parse(data.url));
@@ -481,7 +448,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   // For Binary init
   public async initiateBinary() {
-    this.outputChannel.info('🔧 Initiating Binary **********************************');
+    this.outputChannel.info('🔧 Initiating Binary');
 
     const activeRepo = getActiveRepo();
     const authToken = await this.authService.loadAuthToken();
@@ -490,86 +457,88 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       this.outputChannel.warn('❌ No auth token available. Aborting binary initiation.');
       return;
     }
+
     const sendMessage = (message: any) => {
       this.sendMessageToSidebar(message);
     };
-    await this.context.workspaceState.update('authToken', authToken);
+    await this.context.secrets.store('authToken', authToken);
     this.configManager.initializeSettings(sendMessage);
     const essentialConfig = this.configManager.getAllConfigEssentials();
     this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
-    const homeDir = os.homedir();
-    const mcp_config_path = path.join(homeDir, '.deputydev', 'mcp_settings.json');
 
+    // Prepare binary init payload
     this.logger.info('Initiating binary...');
     this.outputChannel.info('🚀 Initiating binary...');
+
     const payload = {
       config: {
         DEPUTY_DEV: {
           HOST: DD_HOST,
         },
       },
-      mcp_config_path: mcp_config_path,
+      mcp_config_path: MCP_CONFIG_PATH,
     };
 
     const headers = {
       Authorization: `Bearer ${authToken}`,
     };
+    if (activeRepo) {
+      sendProgress({
+        repo: activeRepo as string,
+        progress: 0,
+        status: 'In Progress',
+      });
+    }
 
-    // this.sendMessageToSidebar({
-    //   id: uuidv4(),
-    //   command: "repo-selector-state",
-    //   data: true,
-    // });
-
-    sendProgress({
-      repo: activeRepo as string,
-      progress: 0,
-      status: 'In Progress',
-    });
-
-    try {
-      let attempts = 0;
-      let response: any;
-      while (attempts < 3) {
+    let response: any;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
         response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
-        if (response.data.status != 'Completed') {
-          attempts++;
-          this.outputChannel.info(`🔄 Binary init attempt ${attempts}`);
-          this.logger.info(`Binary init status: ${response.data.status}`);
-          if (attempts === 3) {
-            this.logger.warn('Binary initialization failed');
-            this.outputChannel.warn('🚨 Binary initialization failed.');
-            throw new Error('Binary initialization failed');
-          }
-        } else {
+
+        if (response.data.status === 'Completed') {
+          this.outputChannel.info('Binary initialization completed successfully.');
+          this.logger.info('Binary initialization completed successfully.');
           break;
+        } else if (attempt < 3) {
+          this.outputChannel.info(`🔄 Retrying binary init (attempt ${attempt + 1})...`);
+          this.logger.info(`Binary init status: ${response.data.status}`);
+        } else {
+          throw new Error('Binary initialization failed after 3 attempts.');
+        }
+      } catch (err) {
+        if (attempt === 3) {
+          this.logger.warn('Binary initialization failed');
+          this.outputChannel.warn('🚨 Binary initialization failed.');
+          this.errorTrackingManager.trackGeneralError(err, 'BINARY_INIT_ERROR', 'BINARY');
+          this.setViewType('error');
+          throw err;
         }
       }
+    }
 
-      if (response.data.status === 'Completed' && activeRepo) {
-        this.continueWorkspace.triggerAuthChange(true);
-        this.startPollingMcpServers();
-        this.syncMcpServers();
-        this.logger.info(`Creating embedding for repository: ${activeRepo}`);
-        this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
+    if (response?.data?.status !== 'Completed') return;
+    // Start services regardless of activeRepo status
+    this.startPollingMcpServers();
+    this.syncMcpServers();
 
-        const params = { repo_path: activeRepo };
-        this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    if (!activeRepo) return;
 
-        try {
-          await updateVectorStoreWithResponse(params);
-        } catch (error) {
-          this.logger.warn('Embedding failed');
-          this.outputChannel.warn('Embedding failed');
-          throw error;
-        }
-      }
+    this.logger.info(`Creating embedding for repository: ${activeRepo}`);
+    this.outputChannel.info(`📁 Creating embedding for repo: ${activeRepo}`);
+
+    this.continueWorkspace.triggerAuthChange(true);
+
+    const params = { repo_path: activeRepo };
+    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+
+    try {
+      await updateVectorStoreWithResponse(params);
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'BINARY_INIT_ERROR', 'BINARY');
-      this.logger.error('Binary initialization failed');
-      this.outputChannel.error('🚨 Binary initialization failed.');
-      throw new Error('Binary initialization failed');
+      this.logger.warn('Embedding failed');
+      this.outputChannel.warn('Embedding failed');
+      this.errorTrackingManager.trackGeneralError(error, 'EMBEDDING_ERROR', 'BINARY');
+      throw error;
     }
   }
 
@@ -612,8 +581,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   private async openOrCreateFileByAbsolutePath(filePath: string) {
     const uri = vscode.Uri.file(filePath);
     try {
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, '');
+      if (!(await fileExists(uri))) {
+        await vscode.workspace.fs.writeFile(uri, new Uint8Array()); // create empty file
       }
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
@@ -623,58 +592,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private async openMcpSettings() {
-    const homeDir = os.homedir();
-    const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
-    const uri = vscode.Uri.file(filePath);
+    const uri = vscode.Uri.file(MCP_CONFIG_PATH);
     try {
-      if (!fs.existsSync(filePath)) {
-        fs.writeFileSync(filePath, '');
+      if (!(await fileExists(uri))) {
+        await vscode.workspace.fs.writeFile(uri, new Uint8Array());
       }
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
     } catch (error: any) {
       vscode.window.showErrorMessage(`Failed to open or create mcp settings file: ${error.message}`);
+      this.errorTrackingManager.trackGeneralError(error, 'OPEN_MCP_SETTINGS_ERROR', 'EXTENSION');
     }
-  }
-
-  private async getOpenedFiles() {
-    const basePathSet = new Set<string>();
-    const allTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs);
-
-    return allTabs
-      .filter((tab) => {
-        const uri = (tab.input as any)?.uri;
-        return uri?.scheme === 'file';
-      })
-      .map((tab) => {
-        const uri = (tab.input as any).uri as vscode.Uri;
-        let basePath;
-        for (const path of basePathSet) {
-          if (uri.fsPath.startsWith(path)) {
-            basePath = path;
-            break;
-          }
-        }
-
-        if (!basePath) {
-          basePath = this.getFileBasePath(uri);
-          basePathSet.add(basePath);
-        }
-
-        return {
-          id: uri.fsPath,
-          type: 'file',
-          name: path.basename(uri.fsPath),
-          basePath: basePath,
-          path: path.relative(basePath, uri.fsPath),
-          fsPath: uri.fsPath,
-        };
-      });
-  }
-
-  private getFileBasePath(fileUri: vscode.Uri) {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
-    return workspaceFolder?.uri.fsPath ?? '';
   }
 
   // Logging and Messages
@@ -690,6 +618,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async showInfoMessage(data: { message: string }) {
     vscode.window.showInformationMessage(data.message);
+  }
+
+  private async logToLogFile(data: { type: 'info' | 'warn' | 'error'; message: string }) {
+    this.logger[data.type](`From Webview: ${data.message}`);
   }
 
   private async showLogs() {
@@ -796,21 +728,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   async getSessionChats(sessionData: { sessionId: number }) {
+    const response: any[] = [];
     try {
-      const response = await this.historyService.getPastSessionChats(sessionData.sessionId);
-      this.sendMessageToSidebar({
-        id: uuidv4(),
-        command: 'session-chats-history',
-        data: response,
-      });
+      const sessionResponse = await this.historyService.getPastSessionChats(sessionData.sessionId);
       setSessionId(sessionData.sessionId);
-    } catch (error) {
-      const response: any[] = [];
-      this.sendMessageToSidebar({
-        id: uuidv4(),
-        command: 'session-chats-history',
-        data: response,
-      });
+      return sessionResponse;
+    } catch {
+      return response;
     }
   }
 
@@ -878,27 +802,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  currentEditorChanged(editor: vscode.TextEditor) {
-    if (editor.document.uri.scheme !== 'file') {
-      return;
-    }
-
-    const uri = editor.document.uri;
-    const basePath = this.getFileBasePath(uri);
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: 'current-editor-changed',
-      data: {
-        id: uri.fsPath,
-        type: 'file',
-        name: path.basename(uri.fsPath),
-        basePath,
-        path: path.relative(basePath, uri.fsPath),
-        fsPath: uri.fsPath,
-      },
-    });
-  }
-
   async addSelectedTerminalOutputToChat(output: string) {
     await vscode.commands.executeCommand('deputydev-sidebar.focus');
     this.sendMessageToSidebar({
@@ -914,6 +817,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   async startPollingMcpServers() {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
     this.pollingInterval = setInterval(async () => {
       try {
@@ -994,6 +898,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     `;
   }
 
+  public dispose(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    this._onDidChangeRepo.dispose();
+    this._onWebviewFocused.dispose();
+    // Optionally clear any other resources here
+  }
   /**
    * Helper to send messages from extension to webview.
    */

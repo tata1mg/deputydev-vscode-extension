@@ -9,15 +9,10 @@ export class ApiErrorHandler {
     if (this.isAxiosError(error)) {
       const axiosError = error as AxiosError<any>;
       const errorData = axiosError.response?.data;
-      // console.error( errorData);
-      // console.error(error)
       const errorCode = errorData?.meta?.error_code || axiosError.code || errorData.error_code;
       const errorName = errorData?.meta?.error_name || axiosError.name || errorData.error_type;
       const message = errorData?.meta?.message || axiosError.message || errorData.error_message;
       const stack = errorData?.meta?.stack || axiosError.stack || errorData.traceback;
-      // console.error("API Error", axiosError.response);
-      // console.error("API Error raw", error);
-      // console.error("API Error raw json", JSON.stringify(error));
       logger.error(
         `API Error | name=${errorName} | code=${errorCode} | message="${message}" | method=${axiosError.config?.method} | url=${axiosError.config?.url} | status=${axiosError.response?.status}`,
       );

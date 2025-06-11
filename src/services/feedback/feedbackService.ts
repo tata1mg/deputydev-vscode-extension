@@ -1,11 +1,11 @@
+import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
+import { SESSION_TYPE } from '../../constants';
+import { getSessionId } from '../../utilities/contextManager';
+import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { api } from '../api/axios';
 import { API_ENDPOINTS } from '../api/endpoints';
 import { AuthService } from '../auth/AuthService';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
-import { ApiErrorHandler } from '../api/apiErrorHandler';
-import { SESSION_TYPE } from '../../constants';
-import { getSessionId } from '../../utilities/contextManager';
-import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 
 const fetchAuthToken = async () => {
   const authService = new AuthService();
