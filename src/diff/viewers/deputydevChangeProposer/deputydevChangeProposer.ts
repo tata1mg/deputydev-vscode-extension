@@ -89,4 +89,17 @@ export class DeputydevChangeProposer {
       this.outputChannel.error(`Error updating inline diff: ${error}`);
     }
   }
+
+  async disposeDiffView(filePath: string, repoPath: string): Promise<void> {
+    if (!this.changeProposerEditor) {
+      throw new Error('DiffManager not initialized');
+    }
+    this.changeProposerEditor.disposeExistingPanel(
+      vscode.Uri.from({
+        scheme: 'ddproposed',
+        query: Buffer.from(repoPath).toString('base64'),
+        path: `${filePath}`,
+      }),
+    );
+  }
 }

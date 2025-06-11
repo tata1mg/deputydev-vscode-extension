@@ -289,6 +289,16 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
     }
   }
 
+  // Dispose existing panels
+  public disposeExistingPanel(uri: vscode.Uri): void {
+    const key = uri.toString();
+    const panel = this.panels.get(key);
+    if (panel) {
+      panel.dispose();
+      this.panels.delete(key);
+    }
+  }
+
   private getHtmlForWebview(webview: vscode.Webview): string {
     // The CSS file from the React build output
     const stylesUri = getUri(webview, this.context.extensionUri, [

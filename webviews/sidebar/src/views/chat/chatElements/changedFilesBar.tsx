@@ -62,14 +62,18 @@ export default function ChangedFilesBar() {
                     <div className="ml-2 flex flex-shrink-0 items-center gap-2">
                       <CircleCheckBig
                         className="h-5 w-5 cursor-pointer text-green-500"
-                        onClick={() => acceptAllChangesInFile(file.filePath, file.repoPath)}
+                        onClick={() =>
+                          acceptAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
+                        }
                         data-tooltip-id="changed-files-tooltips"
                         data-tooltip-content="Accept all changes"
                         data-tooltip-place="top-start"
                       />
                       <CircleX
                         className="h-5 w-5 cursor-pointer text-red-600"
-                        onClick={() => rejectAllChangesInFile(file.filePath, file.repoPath)}
+                        onClick={() =>
+                          rejectAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
+                        }
                         data-tooltip-id="changed-files-tooltips"
                         data-tooltip-content="Reject all changes"
                         data-tooltip-place="top-start"
