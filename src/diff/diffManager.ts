@@ -30,21 +30,6 @@ export class DiffManager {
     this.authService = authService;
 
     this.sessionIdToFilePathAndRepoPathMap = new Map<number, Array<{ filePath: string; repoPath: string }>>();
-
-    // If you want commands for accepting or rejecting ALL tracked files:
-    this.vscodeContext.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.acceptAllChanges', async () => {
-        outputChannel.info(`Accepting changes for all file`);
-        await this.acceptAllFiles();
-        vscode.window.showInformationMessage('All changes accepted.');
-      }),
-    );
-    this.vscodeContext.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.rejectAllChanges', async () => {
-        await this.rejectAllFiles();
-        vscode.window.showInformationMessage('All changes rejected.');
-      }),
-    );
   }
 
   public setSidebarProvider(sidebarProvider: SidebarProvider) {
