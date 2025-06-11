@@ -382,11 +382,6 @@ addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
   useSettingsStore.setState({ urls: data as URLListItem[] });
 });
 
-addCommandEventListener('session-chats-history', ({ data }) => {
-  useExtensionStore.setState({ viewType: 'chat' });
-  useChatStore.setState({ history: data as ChatMessage[] });
-});
-
 addCommandEventListener('image-upload-progress', (event) => {
   const { data } = event as { data: { progress: number } };
   useChatStore.setState({ imageUploadProgress: data.progress as number });

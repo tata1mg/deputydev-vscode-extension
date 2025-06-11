@@ -39,7 +39,7 @@ export class ReplaceInFile {
 
   public async applyDiff(args: ApplyDiffArgs): Promise<string> {
     const { parsedContent, chunkCallback, toolRequest, messageId } = args;
-    const activeRepo = getActiveRepo() || '';
+    const activeRepo = getActiveRepo() ?? '';
     const sessionId = getSessionId();
 
     if (sessionId) {
@@ -62,7 +62,7 @@ export class ReplaceInFile {
         activeRepo,
         {
           usageTrackingSource: toolRequest.is_inline ? 'inline-chat-act' : 'act',
-          usageTrackingSessionId: sessionId || null,
+          usageTrackingSessionId: sessionId ?? null,
         },
         toolRequest.write_mode,
         sessionId as number,
