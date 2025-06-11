@@ -41,7 +41,7 @@ export default function ChangedFilesBar() {
                 {changedFiles.map((file, index) => (
                   <div key={index} className="flex w-full items-center justify-between">
                     <button
-                      className="flex min-w-0 flex-1 items-center"
+                      className="flex min-w-0 flex-1 items-center hover:opacity-70"
                       onClick={() => openDiffViewer(file.filePath, file.repoPath)}
                     >
                       <div className="flex w-full min-w-0 flex-col gap-1">
@@ -61,7 +61,7 @@ export default function ChangedFilesBar() {
                     </button>
                     <div className="ml-2 flex flex-shrink-0 items-center gap-2">
                       <CircleCheckBig
-                        className="h-5 w-5 cursor-pointer text-green-500"
+                        className="h-5 w-5 cursor-pointer text-green-500 hover:opacity-70"
                         onClick={() =>
                           acceptAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
                         }
@@ -70,7 +70,7 @@ export default function ChangedFilesBar() {
                         data-tooltip-place="top-start"
                       />
                       <CircleX
-                        className="h-5 w-5 cursor-pointer text-red-600"
+                        className="h-5 w-5 cursor-pointer text-red-600 hover:opacity-70"
                         onClick={() =>
                           rejectAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
                         }
@@ -101,7 +101,7 @@ export default function ChangedFilesBar() {
           </button>
           <div className="flex flex-shrink-0 items-center gap-2">
             <button
-              className="whitespace-nowrap border border-green-500 px-[2px] text-xs text-green-500"
+              className="whitespace-nowrap border border-green-500 px-[2px] text-xs text-green-500 hover:opacity-70"
               onClick={() => {
                 acceptAllChangesInSession(filesChangedSessionId);
               }}
@@ -112,7 +112,7 @@ export default function ChangedFilesBar() {
               Accept All
             </button>
             <button
-              className="whitespace-nowrap border border-red-600 px-[2px] text-xs text-red-600"
+              className="whitespace-nowrap border border-red-600 px-[2px] text-xs text-red-600 hover:opacity-70"
               onClick={() => {
                 rejectAllChangesInSession(filesChangedSessionId);
               }}
