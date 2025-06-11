@@ -3,6 +3,7 @@ import { ErrorTrackingService } from '../services/errorTracking/ErrorTrackingSer
 import { ErrorTrackingRequestForBackend, ToolRequest } from '../types';
 import { getActiveRepo, getSessionId, getUserData } from '../utilities/contextManager';
 import { AxiosError } from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 export class ErrorTrackingManager {
   onStarted: () => void = () => {};
@@ -23,6 +24,7 @@ export class ErrorTrackingManager {
     const sessionId = getSessionId();
 
     const errorAnalyticsPayload: ErrorTrackingRequestForBackend = {
+      error_id: uuidv4(),
       error_type: errorPayload.errorType,
       error_source: errorPayload.errorSource,
       error_data: errorPayload.errorData,

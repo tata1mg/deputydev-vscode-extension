@@ -130,13 +130,14 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
+    sidebarProvider,
   );
 
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
 
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
-
+  context.subscriptions.push(pinger);
   (async () => {
     // sidebarProvider.setViewType("loader");
     await serverManager.ensureBinaryExists();

@@ -106,8 +106,8 @@ export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
 }
 
-export function openFile(path: string) {
-  return callCommand('open-file', { path });
+export function openFile(path: string, startLine?: number, endLine?: number) {
+  return callCommand('open-file', { path, startLine, endLine });
 }
 
 export function createOrOpenFile(path: string) {
@@ -133,6 +133,10 @@ export function rejectGenerateCode() {
 
 export function logToOutput(type: 'info' | 'warn' | 'error', message: string) {
   return callCommand('log-to-output', { type, message });
+}
+
+export function logToLogFile(type: 'info' | 'warn' | 'error', message: string) {
+  return callCommand('log-to-log-file', { type, message });
 }
 
 export function showErrorMessage(message: string) {

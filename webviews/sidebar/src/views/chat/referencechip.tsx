@@ -49,8 +49,10 @@ export default function ReferenceChip({
         end_line = chunks[i].end_line;
       }
     }
-    return `${start_line}-${end_line}`;
+    return { start_line, end_line, display: `${start_line}-${end_line}` };
   };
+
+  const chunkDetail = chunks?.length ? getChunkDetail(chunks) : undefined;
 
   useEffect(() => {
     if (text.split(': ')[1] === '') {
@@ -134,8 +136,12 @@ export default function ReferenceChip({
     if (displayOnly) {
       if (url) {
         openBrowserPage(url);
-      } else {
-        openFile(path ? path : '');
+      } else if (path) {
+        if (chunkDetail) {
+          openFile(path, chunkDetail.start_line, chunkDetail.end_line);
+        } else {
+          openFile(path);
+        }
       }
     }
   };
@@ -163,7 +169,7 @@ export default function ReferenceChip({
         />
       ) : (
         <span onClick={handleEdit} className="group flex items-center gap-1">
-          {chunks?.length ? `@${text}:${getChunkDetail(chunks)}` : '@' + text}
+          {chunks?.length ? `@${text}:${chunkDetail?.display}` : '@' + text}
           {!displayOnly && (
             <Pencil
               size={12}

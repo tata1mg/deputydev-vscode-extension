@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as os from 'os';
+import { MCP_CONFIG_PATH } from '../config';
 
 /**
  * Watch for saves to a specific file, even if it's not in the workspace.
@@ -12,11 +13,9 @@ export function watchMcpFileSave(
   context: vscode.ExtensionContext,
   onSave: (document: vscode.TextDocument) => void,
 ): void {
-  const homeDir = os.homedir();
-  const filePath = path.join(homeDir, '.deputydev', 'mcp_settings.json');
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument(async (document: vscode.TextDocument) => {
-      if (document.uri.fsPath === filePath) {
+      if (document.uri.fsPath === MCP_CONFIG_PATH) {
         onSave(document);
       }
     }),

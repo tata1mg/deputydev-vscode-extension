@@ -76,7 +76,6 @@ export class ConfigManager {
       const headers = {
         Authorization: `Bearer ${auth_token}`,
       };
-      // const response = await api.get(API_ENDPOINTS.CONFIG, { params: {consumer: CLIENT}, headers });
       const response = await api.get(API_ENDPOINTS.CONFIG, {
         params: {
           consumer: CLIENT,

@@ -15,7 +15,7 @@ export function setSidebarProvider(provider: SidebarProvider) {
 }
 
 // export function getAuthToken(): string | undefined {
-//     return  extensionContext?.workspaceState.get<string>('authToken');
+//   return extensionContext?.secrets.get('authToken');
 // }
 
 export function getSessionId(): number | undefined {
@@ -101,6 +101,14 @@ export function terminalProcessCompleted(data: { toolUseId: string; exitCode: nu
   });
 }
 
+export function sendMessageToSidebarDirect(command: string, message: any) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: command,
+    data: message,
+  });
+}
+
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
@@ -125,7 +133,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
     return;
   }
   if (isLogout) {
-    await extensionContext.workspaceState.update('authToken', false);
+    await extensionContext.secrets.delete('authToken');
     await extensionContext.workspaceState.update('configData', undefined);
     await extensionContext.workspaceState.update('auth-storage', undefined);
     await extensionContext.workspaceState.update('chat-storage', undefined);
@@ -133,9 +141,10 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
     await extensionContext.workspaceState.update('sessionId', undefined);
     await extensionContext.workspaceState.update('isAuthenticated', false);
     await extensionContext.workspaceState.update('sessions-storage', undefined);
+    await extensionContext.globalState.update('userData', undefined);
     return;
   }
-  await extensionContext.workspaceState.update('authToken', false);
+  await extensionContext.secrets.delete('authToken');
   await extensionContext.workspaceState.update('essentialConfigData', undefined);
   await extensionContext.workspaceState.update('configData', undefined);
   await extensionContext.workspaceState.update('auth-storage', undefined);
