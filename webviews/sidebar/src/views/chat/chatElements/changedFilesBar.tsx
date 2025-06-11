@@ -43,6 +43,9 @@ export default function ChangedFilesBar() {
                     <button
                       className="flex min-w-0 flex-1 items-center hover:opacity-70"
                       onClick={() => openDiffViewer(file.filePath, file.repoPath)}
+                      data-tooltip-id="changed-files-tooltips"
+                      data-tooltip-content={`Open diff for ${file.fileName}`}
+                      data-tooltip-place="top-start"
                     >
                       <div className="flex w-full min-w-0 flex-col gap-1">
                         <div className="flex items-center gap-2">
