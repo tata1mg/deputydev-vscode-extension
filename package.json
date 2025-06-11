@@ -91,18 +91,6 @@
         "title": "Reject Changes"
       },
       {
-        "command": "deputydev.AcceptAllChanges",
-        "category": "DeputyDev",
-        "title": "Accept All Changes",
-        "icon": "$(check-all)"
-      },
-      {
-        "command": "deputydev.RejectAllChanges",
-        "category": "DeputyDev",
-        "title": "Reject All Changes",
-        "icon": "$(close-all)"
-      },
-      {
         "command": "deputydev.AcceptChange",
         "category": "DeputyDev",
         "title": "Accept Single Change",
