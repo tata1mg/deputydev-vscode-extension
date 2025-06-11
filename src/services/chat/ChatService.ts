@@ -211,7 +211,6 @@ export class QuerySolverService {
     if (byteSize <= CHAT_PAYLOAD_MAX_SIZE) {
       return original;
     }
-    console.log('Payload size:', byteSize, 'bytes');
 
     // ── 2. Too big → store in S3 (folder: 'payload') ────────────────
     try {
