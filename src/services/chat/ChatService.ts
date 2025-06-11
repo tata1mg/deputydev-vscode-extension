@@ -208,7 +208,6 @@ export class QuerySolverService {
     const mainConfigData = this.context.workspaceState.get('configData') as any;
     console.log('mainConfigData:', mainConfigData);
     const CHAT_PAYLOAD_MAX_SIZE = mainConfigData.CHAT_PAYLOAD_MAX_SIZE * 1024 || 100 * 1024; // Default to 100 KB if not set
-    console.log('Payload size:', byteSize, 'bytes (max:', CHAT_PAYLOAD_MAX_SIZE, 'bytes)');
     if (byteSize <= CHAT_PAYLOAD_MAX_SIZE) {
       return original;
     }
