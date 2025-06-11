@@ -385,10 +385,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
             command: 'all-file-changes-finalized',
             data: { filePath: data.filePath, repoPath: data.repoPath },
           });
-          const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
-          if (nextFileInSession) {
-            await this.diffManager.openDiffView(nextFileInSession.filePath, nextFileInSession.repoPath);
-          }
           break;
         }
 
@@ -399,10 +395,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
             command: 'all-file-changes-finalized',
             data: { filePath: data.filePath, repoPath: data.repoPath },
           });
-          const nextFileInSession = await this.diffManager.getNextFileForSession(data.sessionId);
-          if (nextFileInSession) {
-            await this.diffManager.openDiffView(nextFileInSession.filePath, nextFileInSession.repoPath);
-          }
           break;
         }
 
