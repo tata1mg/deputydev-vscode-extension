@@ -455,6 +455,7 @@ export class DiffManager {
       await vscode.window.showTextDocument(originalFileUri, {
         preview: false,
       });
+      this.fileChangeStateManager?.finalizeFileChangeState(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`acceptFile failed:\n${(error as Error).message}`);
       throw error;
@@ -481,6 +482,7 @@ export class DiffManager {
       await vscode.window.showTextDocument(originalFileUri, {
         preview: false,
       });
+      this.fileChangeStateManager?.finalizeFileChangeState(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);
       throw error;
