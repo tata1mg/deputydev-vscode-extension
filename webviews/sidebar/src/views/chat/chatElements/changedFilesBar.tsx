@@ -69,7 +69,7 @@ export default function ChangedFilesBar() {
                           acceptAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
                         }
                         data-tooltip-id="changed-files-tooltips"
-                        data-tooltip-content="Accept all changes"
+                        data-tooltip-content="Accept changes"
                         data-tooltip-place="top-start"
                       />
                       <CircleX
@@ -78,7 +78,7 @@ export default function ChangedFilesBar() {
                           rejectAllChangesInFile(file.filePath, file.repoPath, file.sessionId)
                         }
                         data-tooltip-id="changed-files-tooltips"
-                        data-tooltip-content="Reject all changes"
+                        data-tooltip-content="Reject changes"
                         data-tooltip-place="top-start"
                       />
                     </div>
@@ -102,25 +102,25 @@ export default function ChangedFilesBar() {
               {changedFiles.length} {changedFiles.length === 1 ? 'file changed' : 'files changed'}
             </div>
           </button>
-          <div className="flex flex-shrink-0 items-center gap-2">
+          <div className="flex flex-shrink-0 items-center gap-3">
             <button
-              className="whitespace-nowrap border border-green-500 px-[2px] text-xs text-green-500 hover:opacity-70"
+              className="whitespace-nowrap border border-green-500 p-1 text-xs text-green-500 hover:bg-green-500 hover:text-white rounded-md"
               onClick={() => {
                 acceptAllChangesInSession(filesChangedSessionId);
               }}
               data-tooltip-id="changed-files-tooltips"
-              data-tooltip-content="Accept all files changes"
+              data-tooltip-content="Accept all changes"
               data-tooltip-place="top-start"
             >
               Accept All
             </button>
             <button
-              className="whitespace-nowrap border border-red-600 px-[2px] text-xs text-red-600 hover:opacity-70"
+              className="whitespace-nowrap border border-red-600 p-1 text-xs text-red-600 hover:bg-red-600 hover:text-white rounded-md"
               onClick={() => {
                 rejectAllChangesInSession(filesChangedSessionId);
               }}
               data-tooltip-id="changed-files-tooltips"
-              data-tooltip-content="Reject all files changes"
+              data-tooltip-content="Reject all changes"
               data-tooltip-place="top-start"
             >
               Reject All
