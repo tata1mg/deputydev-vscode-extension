@@ -450,7 +450,6 @@ export class DiffManager {
       await this.updateDiffView(filePath, repoPath);
       await this.disposeDiffView(filePath, repoPath);
       (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
-      this.removeFileFromSessions(filePath, repoPath);
       const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
       await vscode.window.showTextDocument(originalFileUri, {
         preview: false,
@@ -477,7 +476,6 @@ export class DiffManager {
       await this.updateDiffView(filePath, repoPath);
       await this.disposeDiffView(filePath, repoPath);
       (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
-      this.removeFileFromSessions(filePath, repoPath);
       const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
       await vscode.window.showTextDocument(originalFileUri, {
         preview: false,
