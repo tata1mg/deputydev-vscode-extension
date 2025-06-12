@@ -418,7 +418,6 @@ export function ChatUI() {
           if (maxSize && typeof maxSize === 'number' && maxFiles && typeof maxFiles === 'number') {
             setMaxSize(maxSize * maxFiles);
           }
-          
         }
       } catch (error) {
         console.error('Failed to fetch image upload config:', error);
@@ -526,7 +525,7 @@ export function ChatUI() {
               ))}
 
               {imagePreviews.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-2 max-w-full">
+                <div className="mb-2 flex max-w-full flex-wrap gap-2">
                   {imagePreviews.map((preview, index) => (
                     <div
                       key={index}
@@ -550,53 +549,55 @@ export function ChatUI() {
                           }}
                           src={preview}
                           alt={`Preview ${index + 1}`}
-                          className="h-full w-full object-cover transition-opacity hover:opacity-90 cursor-pointer"
+                          className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
                         />
 
                         {/* Circular loader overlay */}
-                        {imageUploadProgress !== null && 
-                         imageUploadProgress < 100 && 
-                         index === imagePreviews.length - 1 && (
-                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-                            <svg
-                              className="h-4 w-4 animate-spin text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                              ></path>
-                            </svg>
-                          </div>
-                        )}
+                        {imageUploadProgress !== null &&
+                          imageUploadProgress < 100 &&
+                          index === imagePreviews.length - 1 && (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                              <svg
+                                className="h-4 w-4 animate-spin text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                ></path>
+                              </svg>
+                            </div>
+                          )}
                       </div>
 
                       {/* Remove button */}
                       <button
                         onClick={() => {
                           const newPreviews = imagePreviews.filter((_, i) => i !== index);
-                          const newS3Objects = useChatStore.getState().s3Objects.filter((_, i) => i !== index);
+                          const newS3Objects = useChatStore
+                            .getState()
+                            .s3Objects.filter((_, i) => i !== index);
                           setImagePreviews(newPreviews);
                           useChatStore.setState({ s3Objects: newS3Objects });
-                          
+
                           // Reset expanded state if needed
                           if (expandedImageIndex === index) {
                             setExpandedImageIndex(-1);
                           } else if (expandedImageIndex > index) {
                             setExpandedImageIndex(expandedImageIndex - 1);
                           }
-                          
+
                           // Clear file input if no images left
                           if (newPreviews.length === 0 && fileInputRef.current) {
                             fileInputRef.current.value = '';
@@ -709,7 +710,6 @@ export function ChatUI() {
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
                   if (files.length > 0) {
-                    
                     // Check if adding these files exceeds the limit
                     const currentCount = imagePreviews.length;
                     if (currentCount + files.length > maxFiles) {
@@ -721,7 +721,7 @@ export function ChatUI() {
                     }
 
                     // Check file sizes
-                    const oversizedFiles = files.filter(file => file.size > maxSize);
+                    const oversizedFiles = files.filter((file) => file.size > maxSize);
                     if (oversizedFiles.length > 0) {
                       showVsCodeMessageBox(
                         'error',
@@ -732,15 +732,15 @@ export function ChatUI() {
 
                     // Create previews for all valid files
                     const newPreviews: string[] = [];
-                    files.forEach(file => {
+                    files.forEach((file) => {
                       const previewUrl = URL.createObjectURL(file);
                       newPreviews.push(previewUrl);
                     });
-                    
-                    setImagePreviews(prev => [...prev, ...newPreviews]);
-                    
+
+                    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
                     // Upload all files
-                    files.forEach(file => {
+                    files.forEach((file) => {
                       uploadFileToS3(file);
                     });
                   }
@@ -749,7 +749,7 @@ export function ChatUI() {
 
               <label
                 htmlFor="image-upload"
-                className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 cursor-pointer"
+                className="flex cursor-pointer items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                 data-tooltip-id="upload-tooltip"
                 data-tooltip-content={
                   imagePreviews.length >= maxFiles
