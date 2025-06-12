@@ -4,6 +4,7 @@ import { AuthService } from '../services/auth/AuthService';
 import { getSessionId } from '../utilities/contextManager';
 import { SESSION_TYPE } from '../constants';
 import { CLIENT, CLIENT_VERSION } from '../config';
+import { Logger } from '../utilities/Logger';
 
 interface CancellableTask {
   abortController: AbortController;
@@ -12,7 +13,7 @@ interface CancellableTask {
 
 const activeApiChatTasks = new Set<CancellableTask>();
 const authService = new AuthService();
-let currentConnectionId: string | null = null;
+const logger = new Logger()
 
 export function registerApiChatTask(task: CancellableTask) {
   activeApiChatTasks.add(task);
@@ -32,8 +33,7 @@ export function cancelAllApiChats() {
   activeApiChatTasks.clear();
 }
 
-export async function cancelBackendLLMTask() {
-  console.log("called here")
+export async function cancelChat() : Promise<void> {
   try {
     const authToken = await authService.loadAuthToken();
     if (!authToken) {
@@ -57,6 +57,6 @@ export async function cancelBackendLLMTask() {
       }
     });
   } catch (error) {
-    console.log(' Backend cancellation failed:', error);
+    logger.error(' Backend cancellation failed:', error);
   }
 }
