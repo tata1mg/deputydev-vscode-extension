@@ -418,8 +418,8 @@ export function ChatUI() {
           if (maxFiles && typeof maxFiles === 'number') {
             setMaxFiles(maxFiles);
           }
-          if (maxSize && typeof maxSize === 'number' && maxFiles && typeof maxFiles === 'number') {
-            setMaxSize(maxSize * maxFiles);
+          if (maxSize && typeof maxSize === 'number') {
+            setMaxSize(maxSize);
           }
         }
       } catch (error) {
@@ -730,7 +730,7 @@ export function ChatUI() {
                     if (oversizedFiles.length > 0) {
                       showVsCodeMessageBox(
                         'error',
-                        `${oversizedFiles.length} file(s) exceed 25 MB limit. Please upload smaller files.`
+                        `${oversizedFiles.length} file(s) exceed ${maxSize/1048576} MB limit. Please upload smaller files.`
                       );
                       return;
                     }

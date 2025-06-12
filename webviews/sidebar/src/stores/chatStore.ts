@@ -128,7 +128,7 @@ export const useChatStore = create(
             message: string,
             editorReferences: ChatReferenceItem[],
             chunkCallback: (data: { name: string; data: any }) => void,
-            s3References?: S3Object[],
+            s3References: S3Object[] = [],
             retryChat?: boolean,
             retry_payload?: any,
             create_new_workspace_payload?: any
@@ -196,11 +196,7 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                attachments: s3References
-                  ? s3References
-                      .map((ref) => ({ attachment_id: ref.key }))
-                      .filter((att) => att.attachment_id)
-                  : [],
+                attachments: s3References.map((ref) => ({ attachment_id: ref.key })),
               };
 
               // If a tool response was stored, add it to the payload
