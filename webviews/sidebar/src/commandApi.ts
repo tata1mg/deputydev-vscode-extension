@@ -72,6 +72,26 @@ export function updateSavedUrl(payload: { id: string; name: string; isSettings?:
 
 // accept/reject file
 
+export function acceptAllChangesInSession(sessionId: number) {
+  return callCommand('accept-all-changes-in-session', { sessionId });
+}
+
+export function rejectAllChangesInSession(sessionId: number) {
+  return callCommand('reject-all-changes-in-session', { sessionId });
+}
+
+export function acceptAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('accept-all-changes-in-file', { filePath, repoPath, sessionId });
+}
+
+export function rejectAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('reject-all-changes-in-file', { filePath, repoPath, sessionId });
+}
+
+export function openDiffViewer(filePath: string, repoPath: string) {
+  return callCommand('open-diff-viewer-for-file', { filePath, repoPath });
+}
+
 /**
  * @param path: fs path
  */

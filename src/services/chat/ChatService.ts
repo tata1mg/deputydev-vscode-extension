@@ -74,7 +74,6 @@ export class QuerySolverService {
     finalPayload.session_type = SESSION_TYPE;
     finalPayload.auth_token = authToken;
 
-    console.log('Final payload for querySolver:', finalPayload);
     let streamDone = false;
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
@@ -206,7 +205,6 @@ export class QuerySolverService {
     const serialised = JSON.stringify(original);
     const byteSize = Buffer.byteLength(serialised, 'utf8');
     const mainConfigData = this.context.workspaceState.get('configData') as any;
-    console.log('mainConfigData:', mainConfigData);
     const CHAT_PAYLOAD_MAX_SIZE = mainConfigData.CHAT_PAYLOAD_MAX_SIZE * 1024 || 100 * 1024; // Default to 100 KB if not set
     if (byteSize <= CHAT_PAYLOAD_MAX_SIZE) {
       return original;

@@ -149,7 +149,6 @@ export function ChatArea() {
           }
 
           case 'TOOL_CHIP_UPSERT': {
-            console.log('comes here in tool chip upsert', msg.content.status);
             const contentComponent = (
               <MCPTool
                 toolRequest={msg.content.toolRequest}

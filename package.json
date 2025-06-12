@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "6.1.0",
+  "version": "7.0.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -89,18 +89,6 @@
         "command": "deputydev.rejectChanges",
         "category": "DeputyDev",
         "title": "Reject Changes"
-      },
-      {
-        "command": "deputydev.AcceptAllChanges",
-        "category": "DeputyDev",
-        "title": "Accept All Changes",
-        "icon": "$(check-all)"
-      },
-      {
-        "command": "deputydev.RejectAllChanges",
-        "category": "DeputyDev",
-        "title": "Reject All Changes",
-        "icon": "$(close-all)"
       },
       {
         "command": "deputydev.AcceptChange",

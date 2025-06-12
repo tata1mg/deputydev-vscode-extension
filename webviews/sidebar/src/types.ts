@@ -353,3 +353,18 @@ export interface S3Object {
   key?: string;
   get_url?: string;
 }
+
+export interface ChangedFile {
+  fileName: string;
+  filePath: string;
+  repoPath: string;
+  addedLines: number;
+  removedLines: number;
+  sessionId: number;
+  accepted: boolean;
+}
+
+export interface ChangedFilesStorage {
+  changedFiles: ChangedFile[];
+  filesChangedSessionId: number;
+}

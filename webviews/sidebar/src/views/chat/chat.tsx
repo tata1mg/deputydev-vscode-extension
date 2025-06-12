@@ -43,6 +43,8 @@ import ReferenceChip from './referencechip';
 import ModelSelector from './chatElements/modelSelector';
 import FeaturesBar from './chatElements/features_bar';
 import { useMcpStore } from '@/stores/mcpStore';
+import ChangedFilesBar from './chatElements/changedFilesBar';
+import { useChangedFilesStore } from '@/stores/changedFilesStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -65,6 +67,7 @@ export function ChatUI() {
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
   const { showAllMCPServers, showMCPServerTools } = useMcpStore();
+  const { changedFiles } = useChangedFilesStore();
 
   const deputyDevLogo =
     themeKind === 'light' || themeKind === 'high-contrast-light'
@@ -482,7 +485,8 @@ export function ChatUI() {
           {messages.length === 0 &&
             !showAutocomplete &&
             !showAllMCPServers &&
-            !showMCPServerTools && (
+            !showMCPServerTools &&
+            changedFiles.length === 0 && (
               <div className="px-4">
                 <p className="mb-1 mt-4 text-center text-xs text-gray-500">
                   DeputyDev is powered by AI. It can make mistakes. Please double check all output.
@@ -502,7 +506,8 @@ export function ChatUI() {
 
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            {!showAutocomplete && <FeaturesBar />}
+            {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
+            {!showAutocomplete && changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
             <div
               className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
             >
