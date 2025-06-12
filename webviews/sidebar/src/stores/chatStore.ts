@@ -184,7 +184,7 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-              
+
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
@@ -196,7 +196,11 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                attachments: s3References ? s3References.map(ref => ({ attachment_id: ref.key })).filter(att => att.attachment_id) : [],
+                attachments: s3References
+                  ? s3References
+                      .map((ref) => ({ attachment_id: ref.key }))
+                      .filter((att) => att.attachment_id)
+                  : [],
               };
 
               // If a tool response was stored, add it to the payload
