@@ -40,7 +40,7 @@ export class DeputydevChangeProposer {
   /**
    * Open a diff view for a file: calculates line-based diffs and highlights them inline.
    */
-  async openDiffView(filePath: string, repoPath: string, writeMode: boolean): Promise<void> {
+  async openDiffView(filePath: string, repoPath: string): Promise<void> {
     try {
       this.outputChannel.info(`opening diff view for: ${filePath}`);
 
@@ -65,5 +65,41 @@ export class DeputydevChangeProposer {
       this.outputChannel.error(`Error applying inline diff: ${error}`);
       throw error;
     }
+  }
+
+  async updateDiffView(filePath: string, repoPath: string): Promise<void> {
+    try {
+      this.outputChannel.info(`updating diff view for: ${filePath}`);
+
+      const fileChangeState = await this.fileChangeStateManager.getFileChangeState(filePath, repoPath);
+      if (!fileChangeState) {
+        throw new Error(`File change state not found for ${filePath}`);
+      }
+
+      const displayableUdiffUri = vscode.Uri.from({
+        scheme: 'ddproposed',
+        query: Buffer.from(repoPath).toString('base64'),
+        path: `${filePath}`,
+      });
+      if (!this.changeProposerEditor) {
+        return;
+      }
+      this.changeProposerEditor.updateExistingPanel(displayableUdiffUri);
+    } catch (error) {
+      this.outputChannel.error(`Error updating inline diff: ${error}`);
+    }
+  }
+
+  async disposeDiffView(filePath: string, repoPath: string): Promise<void> {
+    if (!this.changeProposerEditor) {
+      throw new Error('DiffManager not initialized');
+    }
+    this.changeProposerEditor.disposeExistingPanel(
+      vscode.Uri.from({
+        scheme: 'ddproposed',
+        query: Buffer.from(repoPath).toString('base64'),
+        path: `${filePath}`,
+      }),
+    );
   }
 }
