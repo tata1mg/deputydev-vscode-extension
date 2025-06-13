@@ -715,29 +715,43 @@ export function ChatUI() {
                 onChange={(e) => {
                   const files = Array.from(e.target.files || []);
                   if (files.length > 0) {
-                    // Check if adding these files exceeds the limit
                     const currentCount = imagePreviews.length;
-                    if (currentCount + files.length > maxFiles) {
+                    const availableSlots = maxFiles - currentCount;
+
+                    // If no slots available, don't process any files
+                    if (availableSlots <= 0) {
                       showVsCodeMessageBox(
                         'error',
-                        `Maximum ${maxFiles} images allowed. You can upload ${maxFiles - currentCount} more.`
+                        `Maximum ${maxFiles} images allowed. Please remove some images before uploading new ones.`
                       );
                       return;
                     }
 
+                    // Select only the files that can fit within the limit
+                    const filesToProcess = files.slice(0, availableSlots);
+                    const remainingFiles = files.length - filesToProcess.length;
+
+                    // Show message if some files were not selected
+                    if (currentCount + files.length > maxFiles) {
+                      showVsCodeMessageBox(
+                        'warning',
+                        `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
+                      );
+                    }
+
                     // Check file sizes
-                    const oversizedFiles = files.filter((file) => file.size > maxSize);
+                    const oversizedFiles = filesToProcess.filter((file) => file.size > maxSize);
                     if (oversizedFiles.length > 0) {
                       showVsCodeMessageBox(
                         'error',
-                        `${oversizedFiles.length} file(s) exceed ${maxSize/1048576} MB limit. Please upload smaller files.`
+                        `${oversizedFiles.length} file(s) exceed ${maxSize / 1048576} MB limit. Please upload smaller files.`
                       );
                       return;
                     }
 
                     // Create previews for all valid files
                     const newPreviews: string[] = [];
-                    files.forEach((file) => {
+                    filesToProcess.forEach((file) => {
                       const previewUrl = URL.createObjectURL(file);
                       newPreviews.push(previewUrl);
                     });
@@ -745,7 +759,7 @@ export function ChatUI() {
                     setImagePreviews((prev) => [...prev, ...newPreviews]);
 
                     // Upload all files
-                    files.forEach((file) => {
+                    filesToProcess.forEach((file) => {
                       uploadFileToS3(file);
                     });
                   }
@@ -754,7 +768,11 @@ export function ChatUI() {
 
               <label
                 htmlFor="image-upload"
-                className="flex cursor-pointer items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
+                  imagePreviews.length >= maxFiles
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
+                }`}
                 data-tooltip-id="upload-tooltip"
                 data-tooltip-content={
                   imagePreviews.length >= maxFiles
@@ -762,6 +780,7 @@ export function ChatUI() {
                     : `Upload Images (${imagePreviews.length}/${maxFiles})`
                 }
                 data-tooltip-place="top-start"
+                style={{ pointerEvents: imagePreviews.length >= maxFiles ? 'none' : 'auto' }}
               >
                 <Image className="h-4 w-4" />
               </label>
