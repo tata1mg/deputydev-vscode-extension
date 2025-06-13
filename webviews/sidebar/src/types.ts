@@ -106,7 +106,7 @@ export type ChatUserMessage = {
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
-  s3Reference?: S3Object;
+  s3References: S3Object[];
   actor: 'USER';
   lastMessageSentTime?: Date | null;
 };

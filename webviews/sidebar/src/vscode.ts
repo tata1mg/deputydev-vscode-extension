@@ -17,6 +17,7 @@ import {
   URLListItem,
   MCPServer,
   ChangedFile,
+  S3Object,
 } from '@/types';
 import {
   logToOutput,
@@ -389,7 +390,8 @@ addCommandEventListener('image-upload-progress', (event) => {
 
 addCommandEventListener('uploaded-image-key', (event) => {
   const { data } = event as { data: { key: string; get_url: string } };
-  useChatStore.setState({ s3Object: data });
+  const currentS3Objects = useChatStore.getState().s3Objects;
+  useChatStore.setState({ s3Objects: [...currentS3Objects, data] });
 });
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
