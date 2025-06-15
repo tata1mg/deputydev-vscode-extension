@@ -33,11 +33,18 @@ export function setSessionId(value: number) {
   return;
 }
 
-export function sendProgress(progressBarData: { repo: string; progress: number; status: string }) {
+export function sendProgress(indexingProgressData: {
+  task: string;
+  status: string;
+  repo_path: string;
+  progress: number;
+  indexing_status: string[];
+  is_partial_state: boolean;
+}) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
-    command: 'progress-bar',
-    data: progressBarData,
+    command: 'indexing-progress',
+    data: indexingProgressData,
   });
 }
 
@@ -161,4 +168,5 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('isAuthenticated', false);
   await extensionContext.workspaceState.update('activeRepo', undefined);
   await extensionContext.workspaceState.update('mcp-storage', undefined);
+  await extensionContext.workspaceState.update('indexing-data-storage', undefined);
 }

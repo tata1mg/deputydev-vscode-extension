@@ -9,17 +9,25 @@ export type ViewType =
   | 'force-upgrade'
   | 'help'
   | 'faq';
-export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress';
+export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress' | 'Idle';
 export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {
   email: string;
   userName: string;
 };
 
-export type ProgressBarData = {
-  repo: string;
-  progress: number;
+export interface IndexingStatusData {
+  file_path: string;
+  progress: ProgressStatus;
+}
+
+export type IndexingProgressData = {
+  task: string;
   status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+  indexing_status: IndexingStatusData[];
+  is_partial_state: boolean;
 };
 
 export type ProfileUiDiv = {
@@ -367,4 +375,8 @@ export interface ChangedFile {
 export interface ChangedFilesStorage {
   changedFiles: ChangedFile[];
   filesChangedSessionId: number;
+}
+
+export interface IndexingDataStorage {
+  IndexingProgressData: IndexingProgressData[];
 }

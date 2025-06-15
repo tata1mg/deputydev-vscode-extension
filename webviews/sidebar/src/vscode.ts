@@ -10,13 +10,13 @@ import {
   ViewType,
   ChatReferenceItem,
   ProfileUiDiv,
-  ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
   Settings,
   URLListItem,
   MCPServer,
   ChangedFile,
+  IndexingProgressData,
 } from '@/types';
 import {
   logToOutput,
@@ -32,6 +32,28 @@ import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
+import { useIndexingStore } from './stores/indexingDataStore';
+
+const mockData: IndexingProgressData = {
+  task: 'Indexing',
+  status: 'In Progress',
+  repo_path: '/Users/prathamverma/projects/deputydev_ui',
+  progress: 0,
+  indexing_status: [
+    { file_path: '.eslintrc.json', progress: 'In Progress' },
+    { file_path: 'Dockerfile', progress: 'In Progress' },
+    { file_path: 'app/(auth)/callback/route.ts', progress: 'In Progress' },
+    { file_path: 'tailwind.config.ts', progress: 'In Progress' },
+    { file_path: 'tsconfig.json', progress: 'In Progress' },
+    { file_path: 'utils/actions.ts', progress: 'In Progress' },
+    { file_path: 'utils/supabase/client.ts', progress: 'In Progress' },
+    { file_path: 'utils/supabase/middleware.ts', progress: 'In Progress' },
+    { file_path: 'utils/supabase/server.ts', progress: 'In Progress' },
+    { file_path: 'components/graphs/comment-types.tsx', progress: 'In Progress' },
+    { file_path: 'components/graphs/reviewed-vs-rejected.tsx', progress: 'In Progress' },
+  ],
+  is_partial_state: false,
+};
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -273,6 +295,8 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
+  useIndexingStore.getState().initializeRepos(repos);
+  console.log('after update**********', useIndexingStore.getState().IndexingProgressData);
 });
 
 addCommandEventListener('sessions-history', ({ data }: any) => {
@@ -421,27 +445,9 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
   // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
-addCommandEventListener('progress-bar', ({ data }) => {
-  const progressBarData = data as ProgressBarData;
-  const incomingProgressBarRepo = progressBarData.repo;
-  const currentProgressBars = useChatStore.getState().progressBars;
-  // Check if the repo is present in the currentProgressBars array
-  const isRepoPresent = currentProgressBars.some((bar) => bar.repo === incomingProgressBarRepo);
-  if (!isRepoPresent) {
-    // If the repo is not present, add it to the array
-    useChatStore.setState({
-      progressBars: [...currentProgressBars, progressBarData],
-    });
-  } else {
-    // If the repo is present, update the progress
-    useChatStore.setState({
-      progressBars: currentProgressBars.map((bar) =>
-        bar.repo === incomingProgressBarRepo
-          ? { ...progressBarData } // Replace the existing bar with progressBarData
-          : bar
-      ),
-    });
-  }
+addCommandEventListener('indexing-progress', ({ data }) => {
+  const indexingProgressData = data as IndexingProgressData;
+  useIndexingStore.getState().updateOrAppendIndexingData(mockData);
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {
