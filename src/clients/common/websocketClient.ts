@@ -47,25 +47,34 @@ export class WebSocketClient {
           this.close();
         } else if (messageData.status === 'In Progress') {
           sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as string[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
         }
         // Check if the response is an object (update vector store)
         else if (messageData.status === 'Completed') {
           sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as string[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
           this.resolveResponse(messageData.status);
           this.close();
         } else if (messageData.status === 'Failed') {
           sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as string[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
           this.rejectResponse(new Error('WebSocket request timed out'));
           this.close();

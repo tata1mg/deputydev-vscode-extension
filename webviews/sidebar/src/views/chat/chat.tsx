@@ -37,7 +37,6 @@ import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from '@/types'
 import { isEqual as lodashIsEqual } from 'lodash';
 import '../../styles/markdown-body.css';
 import { AutocompleteMenu } from './autocomplete';
-import ProgressBar from './chatElements/progressBar';
 import ReferenceChip from './referencechip';
 import ModelSelector from './chatElements/modelSelector';
 import FeaturesBar from './chatElements/features_bar';
@@ -56,7 +55,6 @@ export function ChatUI() {
     cancelChat,
     showSessionsBox,
     ChatAutocompleteOptions,
-    progressBars,
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
@@ -79,9 +77,7 @@ export function ChatUI() {
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
-    const activeProgress = progressBars.find((bar) => bar.repo === activeRepo);
-    return activeProgress?.status !== 'Completed';
-  }, [activeRepo, progressBars]);
+  }, [activeRepo]);
 
   // const [repoSelectorDisabled] = useState(false);
   const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
@@ -467,7 +463,7 @@ export function ChatUI() {
               </div>
             )}
 
-          {activeRepo ? (
+          {/* {activeRepo ? (
             <div className="mb-[2px] w-full">
               <ProgressBar progressBars={progressBars} />
             </div>
@@ -475,7 +471,7 @@ export function ChatUI() {
             <div className="mb-[4px] w-full text-center text-sm">
               To proceed, please import a project into your workspace!
             </div>
-          )}
+          )} */}
 
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">

@@ -11,6 +11,11 @@ import {
   ArrowLeft,
   Plus,
   CornerDownLeft,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  CirclePlay,
+  ChevronDown,
 } from 'lucide-react';
 import { Settings, URLListItem, SaveUrlRequest } from '../../types';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -30,6 +35,7 @@ import {
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useIndexingStore } from '@/stores/indexingDataStore';
 
 const getLocaleTimeString = (dateString: string) => {
   const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
@@ -398,6 +404,101 @@ export function CustomLoader() {
   );
 }
 
+interface ProgressData {
+  repo: string;
+  progress: number;
+  status: 'Completed' | 'Failed' | 'In Progress';
+}
+
+interface IndexingProgressProps {
+  progress: ProgressData[];
+}
+
+const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
+  switch (status) {
+    case 'In Progress':
+      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
+    case 'Completed':
+      return <CheckCircle className="h-4 w-4 text-green-400" />;
+    case 'Failed':
+      return <XCircle className="h-4 w-4 text-red-400" />;
+    case 'Idle':
+      return <CirclePlay className="h-4 w-4 text-green-400" />;
+    default:
+      return null;
+  }
+};
+
+const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
+  const { IndexingProgressData } = useIndexingStore();
+  const [expandedRepos, setExpandedRepos] = useState<Record<string, boolean>>({});
+
+  const toggleRepoExpand = (index: number) => {
+    setExpandedRepos((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  return (
+    <div className="flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto pr-3">
+      {IndexingProgressData && IndexingProgressData.length > 0 && (
+        <div className="space-y-2">
+          {IndexingProgressData.map((progress, index) => {
+            const isExpanded = expandedRepos[index] || false;
+
+            return (
+              <div
+                key={index}
+                className="overflow-hidden rounded-md"
+                style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
+              >
+                <div
+                  className="flex cursor-pointer items-center justify-between p-3"
+                  onClick={() => toggleRepoExpand(index)}
+                >
+                  <div className="flex-1 truncate pr-2">{progress.repo_path}</div>
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 text-right text-sm text-gray-600 dark:text-gray-400">
+                      {Math.round(progress.progress)}%
+                    </span>
+                    <StatusIcon status={progress.status} />
+                    <ChevronDown
+                      className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
+                    />
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div
+                    className="p-3 text-sm"
+                    style={{ borderTop: '1px solid var(--vscode-editorWidget-border)' }}
+                  >
+                    <div className="mb-2 font-medium">File Progress:</div>
+                    {progress.indexing_status && progress.indexing_status.length > 0 ? (
+                      <div className="max-h-40 space-y-2 overflow-y-auto">
+                        {progress.indexing_status.map((status, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <span className="truncate">{status.file_path}</span>
+                            <StatusIcon status={status.progress} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="italic text-gray-500">
+                        No file progress information available
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Setting = () => {
   const {
     terminalOutputLimit,
@@ -602,6 +703,15 @@ const Setting = () => {
       }}
     >
       <div>
+        <h3
+          className="mb-3 text-lg font-semibold"
+          style={{ color: 'var(--vscode-editor-foreground)' }}
+        >
+          Context
+        </h3>
+        <SettingsCard title="Source Projects" description="">
+          <IndexingArea progress={[]} />
+        </SettingsCard>
         <h3
           className="mb-3 text-lg font-semibold"
           style={{ color: 'var(--vscode-editor-foreground)' }}
