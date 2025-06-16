@@ -116,10 +116,8 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === 'get-workspace-state' || command === 'get-global-state') {
-
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
 

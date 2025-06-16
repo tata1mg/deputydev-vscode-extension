@@ -212,7 +212,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
   // add button click
