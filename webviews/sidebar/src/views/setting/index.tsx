@@ -624,14 +624,14 @@ const Setting = () => {
         >
           <EditRulesButton />
         </SettingsCard>
-        <SettingsCard
+        {/* <SettingsCard
           title="DeputyDev Ignore"
           description={
             'DeputyDev currently ignores paths specified in `.gitignore`, files in `node_modules` and all hidden pathnames (starting with "."). With `.deputydevignore` file you can explicitly ignore other file paths as well. If you need to include a file that is ignored by `.gitignore`, you can use `!path/to/folder` in your `.deputydevignore` file.'
           }
         >
           <EditIgnoreButton />
-        </SettingsCard>
+        </SettingsCard> */}
       </div>
       <div>
         <h3

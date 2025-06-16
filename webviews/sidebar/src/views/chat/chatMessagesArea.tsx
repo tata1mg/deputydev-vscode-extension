@@ -58,35 +58,17 @@ export function ChatArea() {
                 }
               }
               return (
-                <div key={index} className="flex items-start gap-2 rounded-md p-2">
-                  <div className="flex h-7 flex-shrink-0 items-center justify-center">
-                    <CircleUserRound className="text-neutral-600" size={20} />
-                  </div>
-                  <div
-                    className="max-w-full flex-1 overflow-hidden rounded-lg border p-3"
-                    style={{
-                      backgroundColor: 'var(--vscode-editor-background)',
-                      borderColor: 'var(--vscode-editorWidget-border)',
-                    }}
-                  >
-                    <p className="space-x-1 space-y-1">
-                      {msg.activeFileReference && (
-                        <ActiveFileReferenceInChat activeFileReference={msg.activeFileReference} />
-                      )}
+                <div key={index} className="flex flex-col gap-1 rounded-md p-2">
+                  {/* ── 1️⃣ First row: avatar + message bubble ─────────────────────────────── */}
+                  <div className="flex items-start gap-2">
+                    <div className="flex h-7 flex-shrink-0 items-center justify-center">
+                      <CircleUserRound className="text-neutral-600" size={20} />
+                    </div>
 
-                      {msg.referenceList?.map((reference, chipIndex) => (
-                        <QueryReferenceChip
-                          key={chipIndex}
-                          value={reference.value}
-                          type={reference.type}
-                          path={reference.path}
-                          chunks={reference.chunks}
-                          url={reference.url}
-                        />
-                      ))}
-
-                      {msg.s3References && msg.s3References.length > 0 && (
-                        <div className="mt-2 overflow-x-auto">
+                    <div className="max-w-full flex-1 overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
+                      {/* attachments (optional) */}
+                      {msg.s3References?.length > 0 && (
+                        <div className="mb-2 overflow-x-auto">
                           <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
                             {msg.s3References.map(
                               (s3Ref, imgIndex) =>
@@ -96,7 +78,7 @@ export function ChatArea() {
                                     src={s3Ref.get_url}
                                     alt={`Attached content ${imgIndex + 1}`}
                                     Key={s3Ref.key}
-                                    thumbnail={true}
+                                    thumbnail
                                   />
                                 )
                             )}
@@ -104,11 +86,41 @@ export function ChatArea() {
                         </div>
                       )}
 
-                      <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
+                      {/* main text */}
+                      <span className="whitespace-pre-wrap break-words font-sans text-[var(--vscode-editor-foreground)]">
                         {msg.content.text}
                       </span>
-                    </p>
+                    </div>
                   </div>
+
+                  {/* ── 2️⃣ Second row: reference chips (only rendered if needed) ──────────── */}
+                  {(msg.activeFileReference || (msg.referenceList?.length ?? 0) > 0) && (
+                    <div className="flex items-start gap-2">
+                      {/* empty spacer keeps left edge aligned with the bubble,                  */}
+                      {/* matching avatar width + gap from row 1                                */}
+                      <div className="flex h-7 w-[21px] flex-shrink-0" />
+
+                      {/* chip container */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {msg.activeFileReference && (
+                          <ActiveFileReferenceInChat
+                            activeFileReference={msg.activeFileReference}
+                          />
+                        )}
+
+                        {msg.referenceList?.map((reference, chipIndex) => (
+                          <QueryReferenceChip
+                            key={chipIndex}
+                            value={reference.value}
+                            type={reference.type}
+                            path={reference.path}
+                            chunks={reference.chunks}
+                            url={reference.url}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }
