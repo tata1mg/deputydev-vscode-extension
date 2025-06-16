@@ -42,10 +42,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly pendingMessages: any[] = [];
   private readonly _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
-  private readonly _onWebviewFocused = new vscode.EventEmitter<void>();
-  public readonly onWebviewFocused = this._onWebviewFocused.event;
-  private readonly mcpService = new MCPService();
-  private readonly terminalService = new TerminalService();
+  private apiErrorHandler = new ApiErrorHandler();
+  private mcpService = new MCPService();
+  private terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -415,6 +414,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           openFile(data.path, data.startLine, data.endLine);
           break;
 
+        case 'reveal-folder-in-explorer':
+          this.revealFolderInExplorer(data.folderPath);
+          break;
+
         case 'open-or-create-file':
           this.openOrCreateFileByAbsolutePath(data.path);
           break;
@@ -620,6 +623,21 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       const uri = vscode.Uri.file(absolutePath);
       const document = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(document);
+    }
+  }
+
+  private async revealFolderInExplorer(folderPath: string) {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) {
+      vscode.window.showErrorMessage('No workspace folder found.');
+      return;
+    }
+    const absolutePath = path.join(activeRepo, folderPath);
+    const uri = vscode.Uri.file(absolutePath);
+    try {
+      await vscode.commands.executeCommand('revealInExplorer', uri);
+    } catch (error: any) {
+      // vscode.window.showErrorMessage(`Failed to reveal folder in explorer: ${error.message}`);
     }
   }
 
@@ -948,8 +966,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
-    this._onDidChangeRepo.dispose();
-    this._onWebviewFocused.dispose();
     // Optionally clear any other resources here
   }
   /**

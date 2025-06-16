@@ -35,7 +35,7 @@ export type Chunk = {
 
 type ChatReferenceItem = {
   index: number;
-  type: 'file' | 'directory' | 'function' | 'keyword' | string;
+  type: 'file' | 'directory' | 'function' | 'keyword' | 'url' | 'code_snippet' | 'class';
   keyword: string;
   path: string;
   chunks: Chunk[];
@@ -87,6 +87,11 @@ export interface ChatPayload {
   shell: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
+  active_file_reference?: {
+    active_file: string;
+    start_line?: number;
+    end_line?: number;
+  };
 }
 
 export interface SearchTerm {

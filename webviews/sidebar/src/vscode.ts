@@ -32,6 +32,7 @@ import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
+import { useActiveFileStore } from './stores/activeFileStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
 
 type Resolver = {
@@ -412,6 +413,8 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     index: lengthOfCurrentEditorReference,
     type: 'code_snippet',
     keyword: response.keyword,
+    // value is file name which we generate from response.path
+    value: response.path.split('/').pop() || '',
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
@@ -769,4 +772,29 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
   });
 
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
+});
+
+addCommandEventListener('active-file-change', ({ data }) => {
+  const activeFileChangeData = data as {
+    fileUri: string | undefined;
+    startLine?: number;
+    endLine?: number;
+  };
+  const activeFileUri = activeFileChangeData.fileUri;
+  const startLine = activeFileChangeData.startLine;
+  const endLine = activeFileChangeData.endLine;
+  console.log('Active file change detected:', {
+    activeFileUri,
+    startLine,
+    endLine,
+  });
+  if (activeFileUri) {
+    useActiveFileStore.setState({ activeFileUri, startLine, endLine });
+  } else {
+    useActiveFileStore.setState({
+      activeFileUri: undefined,
+      startLine: undefined,
+      endLine: undefined,
+    });
+  }
 });
