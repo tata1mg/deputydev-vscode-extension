@@ -20,9 +20,11 @@ import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory'
 import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
-import ReferenceChip from './referencechip';
+import ReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { ImageWithDownload } from './chatElements/imageView';
+import QueryReferenceChip from './chatElements/autocomplete/referencechip';
+import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 
 export function ChatArea() {
   const {
@@ -68,14 +70,15 @@ export function ChatArea() {
                     }}
                   >
                     <p className="space-x-1 space-y-1">
+                      {msg.activeFileReference && (
+                        <ActiveFileReferenceInChat activeFileReference={msg.activeFileReference} />
+                      )}
+
                       {msg.referenceList?.map((reference, chipIndex) => (
-                        <ReferenceChip
+                        <QueryReferenceChip
                           key={chipIndex}
-                          chipIndex={chipIndex}
-                          initialText={reference.keyword}
-                          onDelete={() => {}}
-                          setShowAutoComplete={() => {}}
-                          displayOnly={true}
+                          value={reference.value}
+                          type={reference.type}
                           path={reference.path}
                           chunks={reference.chunks}
                           url={reference.url}

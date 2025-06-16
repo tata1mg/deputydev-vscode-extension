@@ -61,15 +61,32 @@ export type Chunk = {
   meta_info?: any;
 };
 
+export type ChatReferenceItemTypes =
+  | 'file'
+  | 'directory'
+  | 'function'
+  | 'keyword'
+  | 'code_snippet'
+  | 'url'
+  | 'code_snippet'
+  | 'class';
+
 export type ChatReferenceItem = {
   index: number;
-  type: 'file' | 'directory' | 'function' | 'keyword' | string;
+  type: ChatReferenceItemTypes;
   keyword: string;
   path: string;
   chunks: Chunk[];
   value?: string;
   noEdit?: boolean;
   url?: string;
+};
+
+export type ActiveFileChatReferenceItem = {
+  type: ChatReferenceItemTypes;
+  activeFileUri: string;
+  startLine?: number;
+  endLine?: number;
 };
 
 export type ChatType = 'ask' | 'write';
@@ -106,6 +123,7 @@ export type ChatUserMessage = {
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
+  activeFileReference?: ActiveFileChatReferenceItem;
   s3References: S3Object[];
   actor: 'USER';
   lastMessageSentTime?: Date | null;

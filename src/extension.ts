@@ -4,7 +4,6 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
-import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { getBinaryHost } from './config';
 import { DiffManager } from './diff/diffManager';
@@ -42,6 +41,7 @@ import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace'
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { API_ENDPOINTS } from './services/api/endpoints';
 import { binaryApi } from './services/api/axios';
+import { ActiveFileListener } from './code_syncing/ActiveFileListener';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -52,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = false;
+  const ENABLE_OUTPUT_CHANNEL = true;
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -133,18 +133,19 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     sidebarProvider,
   );
-
+  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
+  new ActiveFileListener(sidebarProvider, workspaceManager);
 
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
   context.subscriptions.push(pinger);
   (async () => {
     // sidebarProvider.setViewType("loader");
-    await serverManager.ensureBinaryExists();
-    await serverManager.startServer();
+    // await serverManager.ensureBinaryExists();
+    // await serverManager.startServer();
     outputChannel.info('this binary host now is ' + getBinaryHost());
-    pinger.start();
+    // pinger.start();
 
     authenticationManager
       .validateCurrentSession()
@@ -211,9 +212,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
-
-  new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
+  // const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
@@ -311,7 +310,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   TerminalRegistry.cleanup();
   deleteSessionId();
 }

@@ -9,11 +9,27 @@ export type ChatReferenceSnippetItem = {
   maxHeight?: number;
 };
 
+function stripBackground(theme: any) {
+  return {
+    ...theme,
+    'pre[class*="language-"]': {
+      ...theme['pre[class*="language-"]'],
+      background: 'none',
+    },
+    'code[class*="language-"]': {
+      ...theme['code[class*="language-"]'],
+      background: 'none',
+    },
+  };
+}
+
 export function SnippetReference({ snippet }: { snippet: ChatReferenceSnippetItem }) {
   const { themeKind } = useThemeStore();
 
-  const snippetStyle =
+  const baseStyle =
     themeKind === 'light' || themeKind === 'high-contrast-light' ? duotoneLight : dracula;
+
+  const snippetStyle = stripBackground(baseStyle);
 
   const customStyle = {
     padding: '16px',
