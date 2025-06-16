@@ -98,7 +98,7 @@ export function ChatArea() {
                     <div className="flex items-start gap-2">
                       {/* empty spacer keeps left edge aligned with the bubble,                  */}
                       {/* matching avatar width + gap from row 1                                */}
-                      <div className="flex h-7 w-[21px] flex-shrink-0" />
+                      <div className="flex w-[21px] flex-shrink-0" />
 
                       {/* chip container */}
                       <div className="flex flex-wrap items-center gap-1">

@@ -116,11 +116,9 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === 'get-workspace-state' || command === 'get-global-state') {
-    // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
 
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // console.log("callCommand: 0.5 seconds elapsed, now sending workspace state request...");
 
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
@@ -423,7 +421,6 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
-  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
 addCommandEventListener('progress-bar', ({ data }) => {
@@ -679,11 +676,6 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
     }
   });
   useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
-
-  console.log(
-    '**************changed files**************',
-    useChangedFilesStore.getState().changedFiles
-  );
 });
 
 addCommandEventListener('all-file-changes-finalized', ({ data }) => {
@@ -783,11 +775,6 @@ addCommandEventListener('active-file-change', ({ data }) => {
   const activeFileUri = activeFileChangeData.fileUri;
   const startLine = activeFileChangeData.startLine;
   const endLine = activeFileChangeData.endLine;
-  console.log('Active file change detected:', {
-    activeFileUri,
-    startLine,
-    endLine,
-  });
   if (activeFileUri) {
     useActiveFileStore.setState({ activeFileUri, startLine, endLine });
   } else {
