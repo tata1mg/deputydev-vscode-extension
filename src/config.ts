@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = 'VSCODE_EXT';
-export const CLIENT_VERSION = '7.1.0';
+export const CLIENT_VERSION = '7.2.0';
 export const DD_HOST = 'https://api.deputydev.ai';
 // export const DD_HOST = 'http://localhost:8084';
 
@@ -18,7 +18,7 @@ export function setBinaryPort(port: number) {
 }
 
 export function getBinaryPort(): number | null {
-  return 8001;
+  // return 8001;
   return BINARY_PORT;
 }
 

@@ -52,7 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = true;
+  const ENABLE_OUTPUT_CHANNEL = false;
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -142,10 +142,10 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(pinger);
   (async () => {
     // sidebarProvider.setViewType("loader");
-    // await serverManager.ensureBinaryExists();
-    // await serverManager.startServer();
+    await serverManager.ensureBinaryExists();
+    await serverManager.startServer();
     outputChannel.info('this binary host now is ' + getBinaryHost());
-    // pinger.start();
+    pinger.start();
 
     authenticationManager
       .validateCurrentSession()
@@ -212,7 +212,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  // const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
@@ -310,7 +309,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   TerminalRegistry.cleanup();
   deleteSessionId();
 }
