@@ -25,6 +25,7 @@ import GeneratingLoader from './chatElements/chatLoader';
 import { ImageWithDownload } from './chatElements/imageView';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
+import { AskUserInput } from './chatElements/Tools/askUserInput';
 
 export function ChatArea() {
   const {
@@ -179,6 +180,9 @@ export function ChatArea() {
             let contentComponent: JSX.Element;
 
             switch (msg.content.tool_name) {
+              case 'ask_user_input':
+                contentComponent = <AskUserInput input={msg.content.input_params_json} />;
+                break;
               case 'execute_command':
                 contentComponent = (
                   <TerminalPanel

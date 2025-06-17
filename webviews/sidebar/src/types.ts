@@ -154,7 +154,7 @@ export interface ChatToolUseMessage {
   content: {
     tool_name: string;
     tool_use_id: string;
-    input_params_json: { prompt: string } | string;
+    input_params_json: string;
     tool_input_json?: { prompt: string } | string;
     result_json: string;
     status: 'pending' | 'completed' | 'error' | 'aborted';
