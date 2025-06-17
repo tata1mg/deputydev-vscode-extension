@@ -154,9 +154,10 @@ export class ConfigManager {
       const headers = {
         Authorization: `Bearer ${auth_token}`,
       };
-      await api.post(API_ENDPOINTS.SAVE_SETTINGS, payload, {
+      const response = await api.post(API_ENDPOINTS.SAVE_SETTINGS, payload, {
         headers,
       });
+      refreshCurrentToken(response.headers);
     } catch (error) {
       this.logger.error(`Error saving settings`);
     }
@@ -175,6 +176,7 @@ export class ConfigManager {
         headers,
       });
       if (response.data && response.data.is_success) {
+        refreshCurrentToken(response.headers);
         const settings = response.data.data;
         this.context.workspaceState.update('dd-settings', settings);
         sendMessage({
