@@ -20,6 +20,11 @@ export class WorkspaceManager {
   private fileWatcher?: WorkspaceFileWatcher;
   private configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
+  private readonly _onDidSendRepos = new vscode.EventEmitter<{
+    repos: { repoPath: string; repoName: string }[];
+    activeRepo: string | null;
+  }>();
+  public readonly onDidSendRepos = this._onDidSendRepos.event;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -152,6 +157,11 @@ export class WorkspaceManager {
     this.outputChannel.info(
       `these are the repos stored in the workspace ${JSON.stringify(this.context.workspaceState.get('workspace-storage'))}`,
     );
+    // Emit event for any listeners
+    this._onDidSendRepos.fire({
+      repos: reposArray,
+      activeRepo: this.activeRepo || null,
+    });
   }
 
   /**
@@ -161,13 +171,13 @@ export class WorkspaceManager {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
         this.updateWorkspaceRepos();
-        vscode.window.showInformationMessage(
-          `Workspace repositories updated: ${
-            Array.from(this.workspaceRepos.entries())
-              .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
-              .join(', ') || 'None'
-          }`,
-        );
+        // vscode.window.showInformationMessage(
+        //   `Workspace repositories updated: ${
+        //     Array.from(this.workspaceRepos.entries())
+        //       .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
+        //       .join(', ') || 'None'
+        //   }`,
+        // );
       }),
     );
   }

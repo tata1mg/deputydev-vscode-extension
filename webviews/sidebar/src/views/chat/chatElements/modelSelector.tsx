@@ -39,7 +39,7 @@ const ModelSelector = () => {
   const selectElement = (
     <div className="relative w-full">
       <select
-        className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-xs focus:outline-none"
+        className="w-[110px] cursor-pointer appearance-none text-ellipsis whitespace-nowrap bg-inherit pl-6 text-[0.7rem] focus:outline-none"
         value={useChatSettingStore.getState().activeModel}
         onChange={handleChange}
       >

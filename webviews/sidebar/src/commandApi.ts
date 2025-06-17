@@ -110,6 +110,10 @@ export function openFile(path: string, startLine?: number, endLine?: number) {
   return callCommand('open-file', { path, startLine, endLine });
 }
 
+export function revealFolderInExplorer(folderPath: string) {
+  return callCommand('reveal-folder-in-explorer', { folderPath });
+}
+
 export function createOrOpenFile(path: string) {
   return callCommand('open-or-create-file', { path });
 }
