@@ -435,8 +435,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           );
           break;
         }
-        case 'hit-retry-embedding':
-          this.hitRetryEmbedding();
+
+        case 'hit-embedding':
+          this.hitEmbedding(data.repoPath);
           break;
 
         case 'webview-initialized':
@@ -590,12 +591,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
-  async hitRetryEmbedding() {
-    const activeRepo = getActiveRepo();
-    if (!activeRepo) {
+  async hitEmbedding(repoPath: string) {
+    if (!repoPath) {
       return;
     }
-    const params = { repo_path: activeRepo, retried_by_user: true };
+    const params = { repo_path: repoPath, retried_by_user: true };
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
     try {
       await updateVectorStoreWithResponse(params);

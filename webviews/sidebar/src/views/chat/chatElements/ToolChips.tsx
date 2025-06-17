@@ -191,7 +191,11 @@ export function RetryChip({
       //   "Payload data just before sending:",
       //   JSON.stringify(errorData.payload_to_retry, null, 2)
       // );
-      const payload = errorData.payload_to_retry;
+      const payload: any = errorData.payload_to_retry;
+
+      //Need to add embedding done state in retry case as well.
+      payload['is_embedding_done'] = useIndexingStore.getState().isEmbeddingDone;
+
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
       sendChatMessage('retry', [], () => {}, undefined, true, payload);
@@ -228,6 +232,7 @@ export function RetryChip({
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
+import { useIndexingStore } from '@/stores/indexingDataStore';
 
 export function FileEditedChip({
   isToolUse,

@@ -34,27 +34,6 @@ import { useMcpStore } from './stores/mcpStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
 
-const mockData: IndexingProgressData = {
-  task: 'Indexing',
-  status: 'In Progress',
-  repo_path: '/Users/prathamverma/projects/deputydev_ui',
-  progress: 0,
-  indexing_status: [
-    { file_path: '.eslintrc.json', progress: 'In Progress' },
-    { file_path: 'Dockerfile', progress: 'In Progress' },
-    { file_path: 'app/(auth)/callback/route.ts', progress: 'In Progress' },
-    { file_path: 'tailwind.config.ts', progress: 'In Progress' },
-    { file_path: 'tsconfig.json', progress: 'In Progress' },
-    { file_path: 'utils/actions.ts', progress: 'In Progress' },
-    { file_path: 'utils/supabase/client.ts', progress: 'In Progress' },
-    { file_path: 'utils/supabase/middleware.ts', progress: 'In Progress' },
-    { file_path: 'utils/supabase/server.ts', progress: 'In Progress' },
-    { file_path: 'components/graphs/comment-types.tsx', progress: 'In Progress' },
-    { file_path: 'components/graphs/reviewed-vs-rejected.tsx', progress: 'In Progress' },
-  ],
-  is_partial_state: false,
-};
-
 type Resolver = {
   resolve: (data: unknown) => void;
   reject: (error: unknown) => void;
@@ -447,7 +426,11 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
 
 addCommandEventListener('indexing-progress', ({ data }) => {
   const indexingProgressData = data as IndexingProgressData;
-  useIndexingStore.getState().updateOrAppendIndexingData(mockData);
+  useIndexingStore.getState().updateOrAppendIndexingData(indexingProgressData);
+});
+
+addCommandEventListener('embedding-done', ({ data }) => {
+  useIndexingStore.setState({ isEmbeddingDone: data as boolean });
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {

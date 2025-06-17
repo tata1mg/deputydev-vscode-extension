@@ -32,6 +32,7 @@ import {
   getGlobalState,
   setShellIntegrationTimeoutMessage,
   setDisableShellIntegrationMessage,
+  hitEmbedding,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -414,16 +415,30 @@ interface IndexingProgressProps {
   progress: ProgressData[];
 }
 
-const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
+const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, repoPath }) => {
   switch (status) {
     case 'In Progress':
-      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
+      return <Loader2 className="h-5 w-5 animate-spin text-yellow-400" />;
     case 'Completed':
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
+      return <CheckCircle className="h-5 w-5 text-green-400" />;
     case 'Failed':
-      return <XCircle className="h-4 w-4 text-red-400" />;
+      return (
+        <Loader2
+          className="h-5 w-5 cursor-pointer text-red-400"
+          onClick={() => {
+            hitEmbedding(repoPath ?? '');
+          }}
+        />
+      );
     case 'Idle':
-      return <CirclePlay className="h-4 w-4 text-green-400" />;
+      return (
+        <CirclePlay
+          className="h-5 w-5 cursor-pointer text-green-400"
+          onClick={() => {
+            hitEmbedding(repoPath ?? '');
+          }}
+        />
+      );
     default:
       return null;
   }
@@ -442,10 +457,11 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
 
   return (
     <div className="flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto pr-3">
-      {IndexingProgressData && IndexingProgressData.length > 0 && (
+      {IndexingProgressData && IndexingProgressData.length > 0 ? (
         <div className="space-y-2">
           {IndexingProgressData.map((progress, index) => {
             const isExpanded = expandedRepos[index] || false;
+            const repoName = progress.repo_path?.split(/[/\\]/).pop();
 
             return (
               <div
@@ -453,18 +469,22 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
                 className="overflow-hidden rounded-md"
                 style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
               >
-                <div
-                  className="flex cursor-pointer items-center justify-between p-3"
-                  onClick={() => toggleRepoExpand(index)}
-                >
-                  <div className="flex-1 truncate pr-2">{progress.repo_path}</div>
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 text-right text-sm text-gray-600 dark:text-gray-400">
-                      {Math.round(progress.progress)}%
+                <div className="flex items-center justify-between p-3">
+                  <div className="flex-1 truncate pr-2">{repoName}</div>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <StatusIcon status={progress.status} repoPath={progress.repo_path} />
+                    </div>
+                    <span className="text-right text-sm text-gray-600 dark:text-gray-400">
+                      {progress.status === 'Completed'
+                        ? 'Indexed'
+                        : progress.status === 'Failed'
+                          ? 'Failed Indexing'
+                          : `${Math.round(progress.progress)}%`}
                     </span>
-                    <StatusIcon status={progress.status} />
                     <ChevronDown
-                      className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
+                      className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
+                      onClick={() => toggleRepoExpand(index)}
                     />
                   </div>
                 </div>
@@ -479,7 +499,9 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
                         {progress.indexing_status.map((status, idx) => (
                           <div key={idx} className="flex items-center justify-between text-sm">
                             <span className="truncate">{status.file_path}</span>
-                            <StatusIcon status={status.progress} />
+                            <div>
+                              <StatusIcon status={status.status} />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -494,6 +516,8 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
             );
           })}
         </div>
+      ) : (
+        <div className="italic text-gray-500">No repositories available</div>
       )}
     </div>
   );

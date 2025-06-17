@@ -12,6 +12,7 @@ export const useIndexingStore = create<
   persist(
     (set, get) => ({
       IndexingProgressData: [],
+      isEmbeddingDone: false,
       initializeRepos: (repoPaths) => {
         const currentData = get().IndexingProgressData;
         const existingPaths = new Set(currentData.map((item) => item.repo_path));
