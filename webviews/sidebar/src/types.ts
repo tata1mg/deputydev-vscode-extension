@@ -18,7 +18,7 @@ export type UserData = {
 
 export interface IndexingStatusData {
   file_path: string;
-  progress: ProgressStatus;
+  status: ProgressStatus;
 }
 
 export type IndexingProgressData = {
@@ -379,4 +379,5 @@ export interface ChangedFilesStorage {
 
 export interface IndexingDataStorage {
   IndexingProgressData: IndexingProgressData[];
+  isEmbeddingDone: boolean;
 }

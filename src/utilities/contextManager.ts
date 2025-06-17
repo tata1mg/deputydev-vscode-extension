@@ -38,13 +38,21 @@ export function sendProgress(indexingProgressData: {
   status: string;
   repo_path: string;
   progress: number;
-  indexing_status: string[];
+  indexing_status: { file_path: string; status: string }[];
   is_partial_state: boolean;
 }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'indexing-progress',
     data: indexingProgressData,
+  });
+}
+
+export function sendEmbeddingDoneMessage(isEmbeddingDone: boolean) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'embedding-done',
+    data: isEmbeddingDone,
   });
 }
 

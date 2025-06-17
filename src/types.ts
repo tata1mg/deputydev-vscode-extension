@@ -87,6 +87,7 @@ export interface ChatPayload {
   shell: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
+  is_embedding_done?: boolean;
 }
 
 export interface SearchTerm {
