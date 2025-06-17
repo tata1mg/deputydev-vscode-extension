@@ -1,48 +1,54 @@
 // file: webview-ui/src/components/Chat.tsx
 import {
-  Check,
-  Sparkles,
-  CornerDownLeft,
-  Loader2,
-  CircleStop,
-  Globe,
   AtSign,
+  Check,
+  CircleStop,
+  CornerDownLeft,
+  Globe,
   Image,
+  Loader2,
+  Sparkles,
   X,
 } from 'lucide-react';
-import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Tooltip } from 'react-tooltip';
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
   useChatStore,
 } from '../../stores/chatStore';
 import { ChatTypeToggle } from './chatElements/chatTypeToggle';
-import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import RepoSelector from './chatElements/RepoSelector';
-import { ChatArea } from './chatMessagesArea';
 import {
+  enhanceUserQuery,
+  getSavedUrls,
   keywordSearch,
   keywordTypeSearch,
   logToOutput,
-  getSavedUrls,
-  urlSearch,
-  enhanceUserQuery,
-  uploadFileToS3,
   showVsCodeMessageBox,
+  uploadFileToS3,
+  urlSearch,
   getWorkspaceState,
 } from '@/commandApi';
+import { useMcpStore } from '@/stores/mcpStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from '@/types';
+import {
+  AutocompleteOption,
+  ChatReferenceItem,
+  ChatReferenceItemTypes,
+  ChatUserMessage,
+} from '@/types';
 import { isEqual as lodashIsEqual } from 'lodash';
 import '../../styles/markdown-body.css';
-import { AutocompleteMenu } from './autocomplete';
-import ProgressBar from './chatElements/progressBar';
-import ReferenceChip from './referencechip';
-import ModelSelector from './chatElements/modelSelector';
+import ActiveFileReferenceChip from './chatElements/autocomplete/ActiveFileReferenceChip';
+import { AutocompleteMenu } from './chatElements/autocomplete/autocomplete';
+import InputReferenceChip from './chatElements/autocomplete/inputReferenceChip';
 import FeaturesBar from './chatElements/features_bar';
-import { useMcpStore } from '@/stores/mcpStore';
+import ModelSelector from './chatElements/modelSelector';
+import ProgressBar from './chatElements/progressBar';
+import RepoSelector from './chatElements/RepoSelector';
+import { ChatArea } from './chatMessagesArea';
 import ChangedFilesBar from './chatElements/changedFilesBar';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
 
@@ -136,7 +142,7 @@ export function ChatUI() {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.max(70, Math.min(el.scrollHeight, 300))}px`;
+    el.style.height = `${Math.max(50, Math.min(el.scrollHeight, 300))}px`;
   };
 
   const handleSend = async () => {
@@ -148,7 +154,7 @@ export function ChatUI() {
 
     const resetTextareaHeight = () => {
       if (textareaRef.current) {
-        textareaRef.current.style.height = '70px';
+        textareaRef.current.style.height = '50px';
       }
     };
 
@@ -266,29 +272,37 @@ export function ChatUI() {
     }
   };
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (chipEditMode) {
-      const value = e.target.value.split('@')[1];
-      const valueArr = value.split(': ');
-      if (['file', 'directory', 'function', 'class'].includes(valueArr[0].toLowerCase())) {
-        setShowAutocomplete(true);
-        keywordTypeSearch({
-          type: valueArr[0].toLowerCase(),
-          keyword: valueArr[1],
-        });
-      } else if (valueArr[0].toLowerCase() === 'url') {
-        setShowAutocomplete(true);
-        valueArr[1] &&
-          urlSearch({
-            keyword: valueArr[1].trim(),
+    const input = e.target.value;
+    const atIdx = input.indexOf('@');
+
+    if (chipEditMode && atIdx !== -1) {
+      const afterAt = input.slice(atIdx + 1);
+      if (afterAt) {
+        const [rawType, ...rest] = afterAt.split(':');
+        const keywordType = rawType?.trim().toLowerCase();
+        const keyword = rest.join(':').trim();
+
+        if (['file', 'directory', 'function', 'class'].includes(keywordType)) {
+          setShowAutocomplete(true);
+          keywordTypeSearch({
+            type: keywordType,
+            keyword,
           });
-      } else {
-        setShowAutocomplete(true);
-        if (value !== '' && !value.startsWith('url:')) {
-          keywordSearch({ keyword: value });
+        } else if (keywordType === 'url') {
+          setShowAutocomplete(true);
+          if (keyword) {
+            urlSearch({ keyword });
+          }
+        } else {
+          setShowAutocomplete(true);
+          if (afterAt && !afterAt.startsWith('url:')) {
+            keywordSearch({ keyword: afterAt });
+          }
         }
       }
     }
-    if (e.target.value.endsWith('@')) {
+
+    if (input.endsWith('@')) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -296,7 +310,8 @@ export function ChatUI() {
       setShowAutocomplete(true);
       setChipEditMode(true);
     }
-    setUserInput(e.target.value);
+
+    setUserInput(input);
   };
 
   const handleChipDelete = (index: number) => {
@@ -319,32 +334,57 @@ export function ChatUI() {
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
-      if (chipIndexBeingEdited == -1) {
-        const newChatRefrenceItem: ChatReferenceItem = {
-          index: allChips.length,
-          type: option.icon,
-          keyword: option.icon + ': ' + option.value,
-          path: option.description,
-          chunks: option.chunks,
-          value: option.value,
-          url: option.url,
-        };
-        useChatStore.setState({
-          currentEditorReference: [...allChips, newChatRefrenceItem],
-        });
+
+      const isDuplicate = allChips.some(
+        (chip) =>
+          chip.type === option.icon &&
+          chip.value === option.value &&
+          chip.path === option.description &&
+          lodashIsEqual(chip.chunks, option.chunks)
+      );
+
+      if (chipIndexBeingEdited === -1) {
+        if (!isDuplicate) {
+          const newChatRefrenceItem: ChatReferenceItem = {
+            index: allChips.length,
+            type: option.icon as ChatReferenceItemTypes,
+            keyword: option.icon + ': ' + option.value,
+            path: option.description,
+            chunks: option.chunks,
+            value: option.value,
+            url: option.url,
+          };
+          useChatStore.setState({
+            currentEditorReference: [...allChips, newChatRefrenceItem],
+          });
+        } else {
+          logToOutput('info', `Duplicate chip detected. Skipping addition.`);
+        }
+        setShowAutocomplete(false);
+        setUserInput(userInput.split('@')[0]);
+        setChipEditMode(false);
+      } else if (allChips[chipIndexBeingEdited]) {
+        allChips[chipIndexBeingEdited].keyword = option.icon + ': ' + option.value;
+        allChips[chipIndexBeingEdited].type = option.icon as ChatReferenceItemTypes;
+        allChips[chipIndexBeingEdited].path = option.description;
+        allChips[chipIndexBeingEdited].chunks = option.chunks;
+        allChips[chipIndexBeingEdited].value = option.value;
+
+        useChatStore.setState({ currentEditorReference: allChips });
         setShowAutocomplete(false);
         setUserInput(userInput.split('@')[0]);
         setChipEditMode(false);
       } else {
-        allChips[chipIndexBeingEdited].keyword = option.icon + ': ' + option.value;
-        allChips[chipIndexBeingEdited].type = option.icon;
-        allChips[chipIndexBeingEdited].path = option.description;
-        allChips[chipIndexBeingEdited].chunks = option.chunks;
-        allChips[chipIndexBeingEdited].value = option.value;
+        logToOutput(
+          'error',
+          `No chip found with index ${chipIndexBeingEdited}. Cannot update the chip.`
+        );
       }
     }
+
     useChatStore.setState({ chipIndexBeingEdited: -1 });
     useChatStore.setState({ selectedOptionIndex: -1 });
+
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
@@ -464,7 +504,7 @@ export function ChatUI() {
         )}
       </div>
 
-      <div className="mb-[160px] h-full overflow-auto px-4">
+      <div className="mb-[180px] h-full overflow-auto px-4">
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
@@ -488,7 +528,7 @@ export function ChatUI() {
             !showMCPServerTools &&
             changedFiles.length === 0 && (
               <div className="px-4">
-                <p className="mb-1 mt-4 text-center text-xs text-gray-500">
+                <p className="mb-1 mt-4 text-center text-[0.7rem] text-gray-500">
                   DeputyDev is powered by AI. It can make mistakes. Please double check all output.
                 </p>
               </div>
@@ -499,7 +539,7 @@ export function ChatUI() {
               <ProgressBar progressBars={progressBars} />
             </div>
           ) : (
-            <div className="mb-[4px] w-full text-center text-sm">
+            <div className="mb-[4px] w-full text-center text-xs">
               To proceed, please import a project into your workspace!
             </div>
           )}
@@ -509,21 +549,20 @@ export function ChatUI() {
             {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
             {!showAutocomplete && changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
             <div
-              className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
+              className={`mb-1 flex flex-wrap items-center gap-0.5 rounded bg-[--deputydev-input-background] p-2 pb-6 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
             >
+              <ActiveFileReferenceChip />
               {useChatStore.getState().currentEditorReference?.map((chip) => (
-                <ReferenceChip
+                <InputReferenceChip
                   key={chip.index}
                   chipIndex={chip.index}
-                  initialText={chip.keyword}
+                  path={chip.path}
+                  text={chip.keyword}
+                  type={chip.type}
+                  value={chip.value}
                   onDelete={() => {
                     handleChipDelete(chip.index);
                   }}
-                  autoEdit={
-                    !chip.noEdit &&
-                    chip.index === useChatStore.getState().currentEditorReference.length - 1
-                  }
-                  setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
                   url={chip.url}
                 />
@@ -622,12 +661,8 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`no-scrollbar relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder={
-                  useChatStore.getState().currentEditorReference?.length
-                    ? ''
-                    : 'Ask DeputyDev to do anything, @ to mention'
-                }
+                className={`no-scrollbar relative max-h-[300px] min-h-[50px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                placeholder={'Ask DeputyDev to do anything, @ to mention'}
                 value={userInput}
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
@@ -831,7 +866,7 @@ export function ChatUI() {
           </div>
         </div>
 
-        {/* Chat Type Toggle and RepoSelector */}
+        {/* Chat Type Toggle and model selector */}
         <div className="flex items-center justify-between gap-2 text-xs">
           <ModelSelector />
           <ChatTypeToggle />

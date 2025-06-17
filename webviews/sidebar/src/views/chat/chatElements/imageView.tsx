@@ -343,7 +343,7 @@ export const ImageWithDownload = ({
           <div className="relative max-h-full max-w-full">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute -right-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/90"
+              className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white transition-colors hover:bg-black/90"
               title="Close"
             >
               <X size={16} />

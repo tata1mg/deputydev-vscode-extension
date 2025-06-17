@@ -32,6 +32,7 @@ import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
+import { useActiveFileStore } from './stores/activeFileStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
 
 type Resolver = {
@@ -115,12 +116,8 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === 'get-workspace-state' || command === 'get-global-state') {
-    // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
-
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // console.log("callCommand: 0.5 seconds elapsed, now sending workspace state request...");
-
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
 
@@ -412,6 +409,8 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     index: lengthOfCurrentEditorReference,
     type: 'code_snippet',
     keyword: response.keyword,
+    // value is file name which we generate from response.path
+    value: response.path.split('/').pop() || '',
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
@@ -420,7 +419,6 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
-  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
 addCommandEventListener('progress-bar', ({ data }) => {
@@ -676,11 +674,6 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
     }
   });
   useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
-
-  console.log(
-    '**************changed files**************',
-    useChangedFilesStore.getState().changedFiles
-  );
 });
 
 addCommandEventListener('all-file-changes-finalized', ({ data }) => {
@@ -769,4 +762,24 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
   });
 
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
+});
+
+addCommandEventListener('active-file-change', ({ data }) => {
+  const activeFileChangeData = data as {
+    fileUri: string | undefined;
+    startLine?: number;
+    endLine?: number;
+  };
+  const activeFileUri = activeFileChangeData.fileUri;
+  const startLine = activeFileChangeData.startLine;
+  const endLine = activeFileChangeData.endLine;
+  if (activeFileUri) {
+    useActiveFileStore.setState({ activeFileUri, startLine, endLine });
+  } else {
+    useActiveFileStore.setState({
+      activeFileUri: undefined,
+      startLine: undefined,
+      endLine: undefined,
+    });
+  }
 });
