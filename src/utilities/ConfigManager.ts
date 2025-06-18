@@ -9,6 +9,7 @@ import { setEssentialConfig, setMainConfig } from '../config/configSetGet';
 import { Logger } from './Logger';
 import { Settings } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -21,6 +22,7 @@ export class ConfigManager {
 
   private _onDidUpdateConfig = new vscode.EventEmitter<void>();
   public readonly onDidUpdateConfig = this._onDidUpdateConfig.event;
+  private apiErrorHandler = new ApiErrorHandler();
 
   constructor(context: vscode.ExtensionContext, logger: Logger, outputChannel: vscode.LogOutputChannel) {
     this.context = context;
@@ -96,7 +98,8 @@ export class ConfigManager {
       } else {
         // this.outputChannel.error("Failed to fetch CONFIG: Invalid response format.");
       }
-    } catch (error) {
+    } catch (error: any) {
+      this.apiErrorHandler.handleApiError(error);
       this.logger.error(`Error fetching main config`);
       // this.outputChannel.error(`Error fetching CONFIG: ${error}`);
     }
