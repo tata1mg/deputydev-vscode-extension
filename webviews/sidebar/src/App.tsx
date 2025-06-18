@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect } from 'react';
-import { sendWebviewFocusState, webviewInitialized } from '@/commandApi';
+import { webviewInitialized } from '@/commandApi';
 import useExtensionStore from './stores/useExtensionStore';
 import { Chat } from './views/chat';
 import Setting from './views/setting';
@@ -21,11 +21,9 @@ function App() {
 
   // Retrieve authentication state and setter from the auth store
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const setIsAuthenticated = useAuthStore((state) => state.setAuthenticated);
 
   // Retrieve force upgrade state and setter from the force upgrade store
   const showForceUpgrade = useForceUpgradeStore((state) => state.showForceUpgrade);
-  const setShowForceUpgrade = useForceUpgradeStore((state) => state.setShowForceUpgrade);
 
   // Variable to hold the view to be rendered
   let view;
@@ -33,33 +31,6 @@ function App() {
   useEffect(() => {
     // Send a message to the extension host when the webview is initialized
     webviewInitialized();
-    function handleMessage(event: MessageEvent) {
-      const response = event.data || {};
-
-      if (response === 'force-upgrade-needed') {
-        extensionState.setViewType('force-upgrade');
-        setShowForceUpgrade(true);
-      }
-
-      if (response === 'AUTHENTICATED') {
-        setIsAuthenticated(true);
-        extensionState.setViewType('chat');
-      }
-
-      if (response === 'NOT_VERIFIED') {
-        setIsAuthenticated(false);
-        extensionState.setViewType('auth');
-      }
-    }
-
-    function handleFocus() {
-      sendWebviewFocusState(true);
-    }
-
-    window.addEventListener('message', handleMessage); // Listen for messages
-    // window.addEventListener('focus', handleFocus);
-
-    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   switch (extensionState.viewType) {
@@ -96,12 +67,10 @@ function App() {
     default:
       view = null;
   }
-  // use background color tailwind white
 
   return (
     <>
-      {' '}
-      <div className=" "> {view}</div>
+      <div>{view}</div>
     </>
   );
 }

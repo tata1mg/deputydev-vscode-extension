@@ -1,4 +1,4 @@
-import { getSessionId, sendNotVerified } from '../../utilities/contextManager';
+import { getSessionId, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from 'ws';
@@ -7,6 +7,7 @@ import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
+import { CLIENT_VERSION } from '../../config';
 
 interface StreamEvent {
   type: string;
@@ -95,6 +96,15 @@ export class QuerySolverService {
             streamError = new Error('Session not verified');
             sendNotVerified();
             return 'REJECT_AND_RETRY';
+          } else if (messageData.status == 'INVALID_CLIENT_VERSION') {
+            this.logger.error('Invalid client version in querysolver WebSocket stream');
+            streamError = new Error('Invalid client version');
+            sendForceUpgrade({
+              url: messageData.message.client_download_link,
+              upgradeVersion: messageData.message.upgrade_version,
+              currentVersion: CLIENT_VERSION,
+            });
+            return 'REJECT';
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData);

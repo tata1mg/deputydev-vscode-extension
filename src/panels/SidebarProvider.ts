@@ -477,7 +477,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     if (status === 'AUTHENTICATION_FAILED') {
       this.setViewType('error');
     } else {
-      this.sendMessageToSidebar(status);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'auth-response',
+        data: 'AUTHENTICATED',
+      });
       this.initiateBinary();
     }
   }
