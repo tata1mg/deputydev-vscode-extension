@@ -1,5 +1,5 @@
 import { WebSocket, RawData } from 'ws';
-import { CLIENT, CLIENT_VERSION } from '../../config';
+import { CLIENT, CLIENT_VERSION } from '../../../config';
 
 export class BaseWebSocketClient {
   private socket: WebSocket;
