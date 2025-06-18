@@ -122,18 +122,15 @@ export class QuerySolverService {
           streamDone = true;
           this.backendClient.querySolver.webSocketConnection.close();
         } else if (result === 'REJECT_AND_RETRY') {
-          streamError =  new Error('RETRY_NEEDED');
+          streamError = new Error('RETRY_NEEDED');
           streamDone = true;
           this.backendClient.querySolver.webSocketConnection.close();
-        }
-        else if (result === 'RESOLVE') {
+        } else if (result === 'RESOLVE') {
           streamDone = true;
           this.backendClient.querySolver.webSocketConnection.close();
         }
       });
-      await this.backendClient.querySolver.sendMessageWithRetry(
-        finalPayload,
-      );
+      await this.backendClient.querySolver.sendMessageWithRetry(finalPayload);
     } catch (error: any) {
       this.logger.error('Error calling querySolver endpoint:', error);
       streamError = error;

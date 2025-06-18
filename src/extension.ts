@@ -78,8 +78,8 @@ export async function activate(context: vscode.ExtensionContext) {
     essentialConfigs['HOST_AND_TIMEOUT']['HOST'],
     essentialConfigs['DD_HOST_WS'],
     {
-      'QUERY_SOLVER': essentialConfigs['QUERY_SOLVER_ENDPOINT'],
-    }
+      QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
+    },
   );
 
   // 3. Core Services Initialization
