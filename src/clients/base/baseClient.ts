@@ -59,6 +59,12 @@ export class BaseWebsocketEndpoint {
     });
   }
 
+  close(): void {
+    if (this.webSocketConnection) {
+      this.webSocketConnection.close();
+    }
+  }
+
   async sendMessageWithRetry(message: any, retryCount: number = 3, retryDelayMs: number = 1000): Promise<void> {
     for (let attempt = 0; attempt < retryCount; attempt++) {
       try {
