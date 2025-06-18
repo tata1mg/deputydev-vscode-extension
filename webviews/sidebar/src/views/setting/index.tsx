@@ -37,6 +37,7 @@ import {
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
+import { Tooltip } from 'react-tooltip';
 
 const getLocaleTimeString = (dateString: string) => {
   const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
@@ -425,6 +426,9 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
       return (
         <Loader2
           className="h-5 w-5 cursor-pointer text-red-400"
+          data-tooltip-id="indexing-tooltips"
+          data-tooltip-content="Re-index"
+          data-tooltip-place="top-start"
           onClick={() => {
             hitEmbedding(repoPath ?? '');
           }}
@@ -434,6 +438,9 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
       return (
         <CirclePlay
           className="h-5 w-5 cursor-pointer text-green-400"
+          data-tooltip-id="indexing-tooltips"
+          data-tooltip-content="Start Indexing"
+          data-tooltip-place="top-start"
           onClick={() => {
             hitEmbedding(repoPath ?? '');
           }}
@@ -480,12 +487,19 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
                         ? 'Indexed'
                         : progress.status === 'Failed'
                           ? 'Failed Indexing'
-                          : `${Math.round(progress.progress)}%`}
+                          : progress.status === 'Idle'
+                            ? 'Index'
+                            : `${Math.round(progress.progress)}%`}
                     </span>
-                    <ChevronDown
-                      className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
-                      onClick={() => toggleRepoExpand(index)}
-                    />
+                    {progress.status !== 'Idle' && (
+                      <ChevronDown
+                        className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
+                        data-tooltip-id="indexing-tooltips"
+                        data-tooltip-content="Files Progress"
+                        data-tooltip-place="top-start"
+                        onClick={() => toggleRepoExpand(index)}
+                      />
+                    )}
                   </div>
                 </div>
                 {isExpanded && (
@@ -519,6 +533,7 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
       ) : (
         <div className="italic text-gray-500">No repositories available</div>
       )}
+      <Tooltip id="indexing-tooltips" />
     </div>
   );
 };
