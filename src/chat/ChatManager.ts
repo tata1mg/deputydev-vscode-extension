@@ -28,13 +28,14 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
+import { BackendClient } from '../clients/backendClient';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
   autoAcceptNextTime: boolean;
 }
 export class ChatManager {
-  private querySolverService = new QuerySolverService(this.context, this.outputChannel);
+  private readonly querySolverService = new QuerySolverService(this.context, this.outputChannel, this.backendClient);
   private sidebarProvider?: SidebarProvider; // Optional at first
   private historyService = new HistoryService();
   private focusChunksService = new FocusChunksService();
@@ -57,13 +58,14 @@ export class ChatManager {
   onStarted: () => void = () => {};
   onError: (error: Error) => void = () => {};
   constructor(
-    private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel,
-    private diffManager: DiffManager,
-    private apiErrorHandler: ApiErrorHandler,
-    private mcpManager: MCPManager,
-    private usageTrackingManager: UsageTrackingManager,
-    private errorTrackingManager: ErrorTrackingManager,
+    private readonly context: vscode.ExtensionContext,
+    private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly diffManager: DiffManager,
+    private readonly apiErrorHandler: ApiErrorHandler,
+    private readonly mcpManager: MCPManager,
+    private readonly usageTrackingManager: UsageTrackingManager,
+    private readonly errorTrackingManager: ErrorTrackingManager,
+    private readonly backendClient: BackendClient,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();

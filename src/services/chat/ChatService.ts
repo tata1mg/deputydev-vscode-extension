@@ -2,11 +2,12 @@ import { getSessionId, sendNotVerified } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from 'ws';
-import { BaseWebSocketClient } from '../../clients/baseClients/baseWebsocketClient';
+import { BaseWebSocketClient } from '../../clients/base/connections/baseWebsocketClient';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
+import { BackendClient } from '../../clients/backendClient';
 
 interface StreamEvent {
   type: string;
@@ -14,14 +15,15 @@ interface StreamEvent {
 }
 
 export class QuerySolverService {
-  private logger: ReturnType<typeof SingletonLogger.getInstance>;
-  private context: vscode.ExtensionContext;
-  private DD_HOST_WS: string;
-  private QUERY_SOLVER_ENDPOINT: string;
-  private referenceManager: ReferenceManager;
-  private outputChannel: vscode.LogOutputChannel;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private readonly context: vscode.ExtensionContext;
+  private readonly DD_HOST_WS: string;
+  private readonly QUERY_SOLVER_ENDPOINT: string;
+  private readonly referenceManager: ReferenceManager;
+  private readonly outputChannel: vscode.LogOutputChannel;
+  private readonly backendClient: BackendClient;
 
-  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
     this.outputChannel = outputChannel;
     this.context = context;
@@ -32,6 +34,7 @@ export class QuerySolverService {
     this.DD_HOST_WS = configData.DD_HOST_WS;
     this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
     this.referenceManager = new ReferenceManager(context, this.outputChannel);
+    this.backendClient = backendClient;
   }
 
   public async *querySolver(payload: Record<string, any>, signal?: AbortSignal): AsyncIterableIterator<any> {
@@ -110,38 +113,62 @@ export class QuerySolverService {
       return 'WAIT';
     };
 
-    let websocketClient = new BaseWebSocketClient(
-      this.DD_HOST_WS,
-      this.QUERY_SOLVER_ENDPOINT,
-      authToken,
-      handleMessage,
-      {
-        ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-        'X-Session-Type': SESSION_TYPE,
-      },
-    );
-    websocketClient
-      .send(finalPayload)
-      .then(() => websocketClient.close())
-      .catch((error) => {
-        // console.error("Error sending message to WebSocket:", error);
-        streamError = error;
-        websocketClient.close();
+    // call the querySolver endpoint
+    try {
+      this.backendClient.querySolver.onMessage.on('message', (event: RawData) => {
+        const result = handleMessage(event);
+        if (result === 'REJECT') {
+          streamError = new Error('Error in querySolver WebSocket stream');
+          streamDone = true;
+          this.backendClient.querySolver.webSocketConnection.close();
+        } else if (result === 'REJECT_AND_RETRY') {
+          streamError =  new Error('RETRY_NEEDED');
+          streamDone = true;
+          this.backendClient.querySolver.webSocketConnection.close();
+        }
+        else if (result === 'RESOLVE') {
+          streamDone = true;
+          this.backendClient.querySolver.webSocketConnection.close();
+        }
       });
+      await this.backendClient.querySolver.sendMessageWithRetry(
+        finalPayload,
+      );
+    } catch (error: any) {
+      this.logger.error('Error calling querySolver endpoint:', error);
+      streamError = error;
+    }
+
+    // let websocketClient = new BaseWebSocketClient(
+    //   this.DD_HOST_WS,
+    //   this.QUERY_SOLVER_ENDPOINT,
+    //   authToken,
+    //   handleMessage,
+    //   {
+    //     ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
+    //     'X-Session-Type': SESSION_TYPE,
+    //   },
+    // );
+    // websocketClient
+    //   .send(finalPayload)
+    //   .then(() => websocketClient.close())
+    //   .catch((error) => {
+    //     // console.error("Error sending message to WebSocket:", error);
+    //     streamError = error;
+    //     websocketClient.close();
+    //   });
 
     if (signal) {
       signal.addEventListener('abort', () => {
         // console.warn('querySolver stream aborted by user');
-        websocketClient.close();
+        this.backendClient.querySolver.webSocketConnection.close();
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        // this.logger.error("Error in querysolver WebSocket stream:", streamError);
-        // console.error("Error in querysolver WebSocket stream:", streamError);
-        websocketClient.close();
+        this.backendClient.querySolver.webSocketConnection.close();
         this.logger.info('Error in querysolver WebSocket stream:', streamError);
         if (streamError === 'RETRY_NEEDED') {
           this.logger.info('Error in querysolver WebSocket stream 1:', streamError);
@@ -157,25 +184,25 @@ export class QuerySolverService {
             throw new Error('Session not verified');
           }
           authToken = await authService.loadAuthToken();
-          websocketClient = new BaseWebSocketClient(
-            this.DD_HOST_WS,
-            this.QUERY_SOLVER_ENDPOINT,
-            authToken,
-            handleMessage,
-            {
-              ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-              'X-Session-Type': SESSION_TYPE,
-            },
-          );
+          // websocketClient = new BaseWebSocketClient(
+          //   this.DD_HOST_WS,
+          //   this.QUERY_SOLVER_ENDPOINT,
+          //   authToken,
+          //   handleMessage,
+          //   {
+          //     ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
+          //     'X-Session-Type': SESSION_TYPE,
+          //   },
+          // );
 
-          websocketClient
-            .send(finalPayload)
-            .then(() => websocketClient.close())
-            .catch((error) => {
-              // console.error("Error sending message to WebSocket:", error);
-              streamError = error;
-              websocketClient.close();
-            });
+          // websocketClient
+          //   .send(finalPayload)
+          //   .then(() => websocketClient.close())
+          //   .catch((error) => {
+          //     // console.error("Error sending message to WebSocket:", error);
+          //     streamError = error;
+          //     websocketClient.close();
+          //   });
           continue;
         }
 
