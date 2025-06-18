@@ -193,9 +193,6 @@ export function RetryChip({
       // );
       const payload: any = errorData.payload_to_retry;
 
-      //Need to add embedding done state in retry case as well.
-      payload['is_embedding_done'] = useIndexingStore.getState().isEmbeddingDone;
-
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
       sendChatMessage('retry', [], () => {}, undefined, true, payload);

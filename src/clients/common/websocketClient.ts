@@ -46,7 +46,12 @@ export class WebSocketClient {
           this.resolveResponse(messageData);
           this.close();
         } else if (messageData.task === 'Embedding' && messageData.status === 'Completed') {
-          sendEmbeddingDoneMessage(true);
+          sendEmbeddingDoneMessage({
+            task: messageData.task as string,
+            status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+          });
           this.close();
         } else if (messageData.task === 'Indexing' && messageData.status === 'In Progress') {
           sendProgress({
@@ -79,7 +84,6 @@ export class WebSocketClient {
             indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
             is_partial_state: messageData.is_partial_state as boolean,
           });
-          sendEmbeddingDoneMessage(false);
           this.rejectResponse(new Error('WebSocket request timed out'));
           this.close();
         } else if (messageData.error_message) {

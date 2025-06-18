@@ -17,6 +17,7 @@ import {
   MCPServer,
   ChangedFile,
   IndexingProgressData,
+  EmbeddingProgressData,
 } from '@/types';
 import {
   logToOutput,
@@ -24,6 +25,7 @@ import {
   sendWorkspaceRepoChange,
   getGlobalState,
   rejectAllChangesInSession,
+  hitEmbedding,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -275,7 +277,6 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
   useIndexingStore.getState().initializeRepos(repos);
-  console.log('after update**********', useIndexingStore.getState().IndexingProgressData);
 });
 
 addCommandEventListener('sessions-history', ({ data }: any) => {
@@ -425,12 +426,27 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
 });
 
 addCommandEventListener('indexing-progress', ({ data }) => {
-  const indexingProgressData = data as IndexingProgressData;
-  useIndexingStore.getState().updateOrAppendIndexingData(indexingProgressData);
+  const response = data as IndexingProgressData;
+  useIndexingStore.getState().updateOrAppendIndexingData(response);
+  const indexingProgressData = useIndexingStore.getState().indexingProgressData;
+
+  // sequential embedding
+  // If current embedding is completed, find next idle repo and trigger embedding
+  if (response.status === 'Completed') {
+    const nextIdleRepo = indexingProgressData.find(
+      (item) => item.status === 'Idle' && item.repo_path !== response.repo_path
+    );
+
+    if (nextIdleRepo) {
+      console.log('*********hitting sequential embedding');
+      hitEmbedding(nextIdleRepo.repo_path);
+    }
+  }
 });
 
-addCommandEventListener('embedding-done', ({ data }) => {
-  useIndexingStore.setState({ isEmbeddingDone: data as boolean });
+addCommandEventListener('embedding-progress', ({ data }) => {
+  const response = data as EmbeddingProgressData;
+  useIndexingStore.getState().updateOrAppendEmbeddingData(response);
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {

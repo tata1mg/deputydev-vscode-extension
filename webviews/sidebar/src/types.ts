@@ -30,6 +30,13 @@ export type IndexingProgressData = {
   is_partial_state: boolean;
 };
 
+export type EmbeddingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+};
+
 export type ProfileUiDiv = {
   label: string;
   type: string;
@@ -378,6 +385,6 @@ export interface ChangedFilesStorage {
 }
 
 export interface IndexingDataStorage {
-  IndexingProgressData: IndexingProgressData[];
-  isEmbeddingDone: boolean;
+  indexingProgressData: IndexingProgressData[];
+  embeddingProgressData: EmbeddingProgressData[];
 }
