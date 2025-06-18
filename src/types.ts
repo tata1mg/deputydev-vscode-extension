@@ -87,7 +87,6 @@ export interface ChatPayload {
   shell: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
-  is_embedding_done?: boolean;
 }
 
 export interface SearchTerm {
@@ -150,3 +149,26 @@ export interface MCPServerToolApprovePayload {
   tool_name: string;
   server_name: string;
 }
+
+export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress' | 'Idle';
+
+export interface IndexingStatusData {
+  file_path: string;
+  status: ProgressStatus;
+}
+
+export type IndexingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+  indexing_status: IndexingStatusData[];
+  is_partial_state: boolean;
+};
+
+export type EmbeddingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+};

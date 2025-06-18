@@ -16,6 +16,7 @@ import {
   XCircle,
   CirclePlay,
   ChevronDown,
+  RotateCw,
 } from 'lucide-react';
 import { Settings, URLListItem, SaveUrlRequest } from '../../types';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -424,7 +425,7 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
       return <CheckCircle className="h-5 w-5 text-green-400" />;
     case 'Failed':
       return (
-        <Loader2
+        <RotateCw
           className="h-5 w-5 cursor-pointer text-red-400"
           data-tooltip-id="indexing-tooltips"
           data-tooltip-content="Re-index"
@@ -452,7 +453,7 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
 };
 
 const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
-  const { IndexingProgressData } = useIndexingStore();
+  const { indexingProgressData } = useIndexingStore();
   const [expandedRepos, setExpandedRepos] = useState<Record<string, boolean>>({});
 
   const toggleRepoExpand = (index: number) => {
@@ -464,9 +465,9 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
 
   return (
     <div className="flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto pr-3">
-      {IndexingProgressData && IndexingProgressData.length > 0 ? (
+      {indexingProgressData && indexingProgressData.length > 0 ? (
         <div className="space-y-2">
-          {IndexingProgressData.map((progress, index) => {
+          {indexingProgressData.map((progress, index) => {
             const isExpanded = expandedRepos[index] || false;
             const repoName = progress.repo_path?.split(/[/\\]/).pop();
 

@@ -195,7 +195,6 @@ export const useChatStore = create(
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
                 attachments: s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [],
-                is_embedding_done: useIndexingStore.getState().isEmbeddingDone,
               };
 
               // If a tool response was stored, add it to the payload

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { v4 as uuidv4 } from 'uuid';
+import { EmbeddingProgressData } from '../types';
 
 let extensionContext: vscode.ExtensionContext | null = null;
 const logOutputChannel: vscode.LogOutputChannel | null = null;
@@ -48,11 +49,16 @@ export function sendProgress(indexingProgressData: {
   });
 }
 
-export function sendEmbeddingDoneMessage(isEmbeddingDone: boolean) {
+export function sendEmbeddingDoneMessage(embeddingProgressData: {
+  task: string;
+  status: string;
+  repo_path: string;
+  progress: number;
+}) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
-    command: 'embedding-done',
-    data: isEmbeddingDone,
+    command: 'embedding-progress',
+    data: embeddingProgressData,
   });
 }
 
@@ -126,6 +132,18 @@ export function sendMessageToSidebarDirect(command: string, message: any) {
 
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
+}
+
+export function getIsEmbeddingDoneForActiveRepo(): boolean {
+  const activeRepo = getActiveRepo();
+  const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
+  const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
+  const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
+  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === activeRepo);
+  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'Completed') {
+    return true;
+  }
+  return false;
 }
 
 export function getUserData() {
