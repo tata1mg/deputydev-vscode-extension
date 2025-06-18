@@ -1,7 +1,8 @@
 import { AxiosError } from 'axios';
-import { sendForceUgradeData, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
+import { sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
+import { CLIENT_VERSION } from '../../config';
 
 export class ApiErrorHandler {
   public handleApiError(error: unknown): void {
@@ -25,10 +26,10 @@ export class ApiErrorHandler {
         refreshCurrentToken(errorHeaders);
       }
       if (errorCode === 101) {
-        sendForceUpgrade();
-        sendForceUgradeData({
+        sendForceUpgrade({
           url: errorData.meta?.client_download_link,
           upgradeVersion: errorData.meta?.upgrade_version,
+          currentVersion: CLIENT_VERSION,
         });
       }
       if (axiosError.response?.status === 400 && errorData?.error?.message === 'NOT_VERIFIED') {

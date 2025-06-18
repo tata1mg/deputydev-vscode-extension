@@ -20,6 +20,7 @@ import { ConfigManager } from './utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
   deleteSessionId,
+  sendVerified,
   setExtensionContext,
   setSidebarProvider,
 } from './utilities/contextManager';
@@ -154,9 +155,9 @@ export async function activate(context: vscode.ExtensionContext) {
         if (status) {
           configManager.fetchAndStoreConfig();
           sidebarProvider.initiateBinary();
+          sendVerified();
           logger.info('User is authenticated.');
           outputChannel.info('User is authenticated.');
-          sidebarProvider.sendMessageToSidebar('AUTHENTICATED');
           vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
           sidebarProvider.setViewType('chat');
         } else {

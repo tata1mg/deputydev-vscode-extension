@@ -34,6 +34,8 @@ import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
 import { useActiveFileStore } from './stores/activeFileStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
+import { useForceUpgradeStore } from './stores/forceUpgradeStore';
+import { useAuthStore } from './stores/authStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -449,9 +451,10 @@ addCommandEventListener('profile-ui-data', ({ data }) => {
 });
 
 addCommandEventListener('force-upgrade-data', ({ data }) => {
-  useChatStore.setState({
-    forceUpgradeData: data as { url: string; upgradeVersion: string },
+  useForceUpgradeStore.setState({
+    forceUpgradeData: data as { url: string; upgradeVersion: string; currentVersion: string },
   });
+  useForceUpgradeStore.setState({ showForceUpgrade: true });
   useExtensionStore.setState({ viewType: 'force-upgrade' });
 });
 
@@ -781,5 +784,16 @@ addCommandEventListener('active-file-change', ({ data }) => {
       startLine: undefined,
       endLine: undefined,
     });
+  }
+});
+
+addCommandEventListener('auth-response', ({ data }) => {
+  const response = data as string;
+  if (response === 'AUTHENTICATED') {
+    useAuthStore.setState({ isAuthenticated: true });
+    useExtensionStore.setState({ viewType: 'chat' });
+  } else if (response === 'NOT_VERIFIED') {
+    useAuthStore.setState({ isAuthenticated: false });
+    useExtensionStore.setState({ viewType: 'auth' });
   }
 });
