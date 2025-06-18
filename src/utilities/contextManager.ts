@@ -41,20 +41,30 @@ export function sendProgress(progressBarData: { repo: string; progress: number; 
   });
 }
 
-export function sendForceUpgrade() {
-  sidebarProvider?.sendMessageToSidebar('force-upgrade-needed');
-}
-
 export function sendNotVerified() {
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
   extensionContext?.workspaceState.update('isAuthenticated', false);
-  // delay for 0.2 second
+  // delay for 0.1 second
   setTimeout(() => {
-    sidebarProvider?.sendMessageToSidebar('NOT_VERIFIED');
-  }, 200);
+    sidebarProvider?.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'auth-response',
+      data: 'NOT_VERIFIED',
+    });
+  }, 100);
+}
+export function sendVerified() {
+  logOutputChannel?.info('User is authenticated, sending verified response, vaibhav');
+  vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
+  extensionContext?.workspaceState.update('isAuthenticated', true);
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'auth-response',
+    data: 'AUTHENTICATED',
+  });
 }
 
-export function sendForceUgradeData(data: { url: string; upgradeVersion: string }) {
+export function sendForceUpgrade(data: { url: string; upgradeVersion: string; currentVersion: string }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'force-upgrade-data',
@@ -135,7 +145,6 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   if (isLogout) {
     await extensionContext.secrets.delete('authToken');
     await extensionContext.workspaceState.update('configData', undefined);
-    await extensionContext.workspaceState.update('auth-storage', undefined);
     await extensionContext.workspaceState.update('chat-storage', undefined);
     await extensionContext.workspaceState.update('user-profile-store', undefined);
     await extensionContext.workspaceState.update('sessionId', undefined);
@@ -159,7 +168,6 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('loader-view-state-storage', undefined);
   await extensionContext.workspaceState.update('vscode-theme-storage', undefined);
   await extensionContext.workspaceState.update('isAuthenticated', false);
-  await extensionContext.workspaceState.update('activeRepo', undefined);
   await extensionContext.workspaceState.update('mcp-storage', undefined);
   await extensionContext.workspaceState.update('active-file-store', undefined);
 }
