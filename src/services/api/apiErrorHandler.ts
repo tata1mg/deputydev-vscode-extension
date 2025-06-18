@@ -1,6 +1,7 @@
 import { AxiosError } from 'axios';
 import { sendForceUgradeData, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 
 export class ApiErrorHandler {
   public handleApiError(error: unknown): void {
@@ -8,6 +9,7 @@ export class ApiErrorHandler {
 
     if (this.isAxiosError(error)) {
       const axiosError = error as AxiosError<any>;
+      const errorHeaders = axiosError.response?.headers;
       const errorData = axiosError.response?.data;
       const errorCode = errorData?.meta?.error_code || axiosError.code || errorData.error_code;
       const errorName = errorData?.meta?.error_name || axiosError.name || errorData.error_type;
@@ -18,6 +20,10 @@ export class ApiErrorHandler {
       );
       logger.error(`API Error | data=${JSON.stringify(errorData)}`);
       logger.error(`API Error | stack=${stack}`);
+      if (errorHeaders && errorHeaders.new_session_data) {
+        // refreshing token in case of exceptions
+        refreshCurrentToken(errorHeaders);
+      }
       if (errorCode === 101) {
         sendForceUpgrade();
         sendForceUgradeData({
