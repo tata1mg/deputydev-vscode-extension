@@ -28,6 +28,7 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -717,6 +718,7 @@ export class ChatManager {
       if (response.status === 200) {
         this.outputChannel.info('Web Search API call successful.');
         this.outputChannel.info(`Web Search API result: ${JSON.stringify(response.data)}`);
+        refreshCurrentToken(response.headers);
         return response.data;
       }
     } catch (error: any) {
@@ -1114,7 +1116,7 @@ export class ChatManager {
       this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
       chunkCallback(toolUseResult);
       await this.apiChat(continuationPayload, chunkCallback);
-    } catch (error) {
+    } catch (error: any) {
       // handle case where unknown tool is requested
       if (error instanceof UnknownToolError) {
         this.outputChannel.error(`Unknown tool requested: ${error.message}`);
