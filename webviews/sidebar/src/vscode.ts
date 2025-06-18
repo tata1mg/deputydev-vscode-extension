@@ -788,7 +788,6 @@ addCommandEventListener('active-file-change', ({ data }) => {
 });
 
 addCommandEventListener('auth-response', ({ data }) => {
-  console.log('auth-response received:', data);
   const response = data as string;
   if (response === 'AUTHENTICATED') {
     useAuthStore.setState({ isAuthenticated: true });
