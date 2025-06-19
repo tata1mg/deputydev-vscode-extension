@@ -17,6 +17,7 @@ import {
   CirclePlay,
   ChevronDown,
   RotateCw,
+  FolderGit2
 } from 'lucide-react';
 import { Settings, URLListItem, SaveUrlRequest } from '../../types';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -161,9 +162,8 @@ const EditRulesButton: React.FC = () => {
 
       {isOpen && (
         <div
-          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${
-            alignRight ? 'right-0' : 'left-0'
-          }`}
+          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${alignRight ? 'right-0' : 'left-0'
+            }`}
         >
           <ul className="py-1 text-sm text-[--vscode-editor-foreground]">
             {workspaceRepos.map((repo, index) => (
@@ -223,9 +223,8 @@ const EditIgnoreButton: React.FC = () => {
 
       {isOpen && (
         <div
-          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${
-            alignRight ? 'right-0' : 'left-0'
-          }`}
+          className={`absolute z-10 mt-2 w-60 rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-editor-background] shadow-lg ${alignRight ? 'right-0' : 'left-0'
+            }`}
         >
           <ul className="py-1 text-sm text-[--vscode-editor-foreground]">
             {workspaceRepos.map((repo, index) => (
@@ -258,14 +257,12 @@ const Toggle: React.FC<ToggleProps> = ({ checked, onChange }) => {
       <div className="relative inline-block h-5 w-10">
         <input type="checkbox" checked={checked} onChange={handleToggle} className="sr-only" />
         <div
-          className={`block h-full w-full rounded-full transition-colors ${
-            checked ? 'bg-[--deputydev-button-background]' : 'bg-gray-400'
-          }`}
+          className={`block h-full w-full rounded-full transition-colors ${checked ? 'bg-[--deputydev-button-background]' : 'bg-gray-400'
+            }`}
         ></div>
         <div
-          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-            checked ? 'translate-x-5' : 'translate-x-0'
-          }`}
+          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'
+            }`}
         ></div>
       </div>
     </label>
@@ -482,7 +479,12 @@ const IndexingArea: React.FC = () => {
                 style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
               >
                 <div className="flex h-12 items-center justify-between p-2">
-                  <div className="flex-1 truncate pr-2">{repoName}</div>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <FolderGit2 className="h-5 w-5 flex-shrink-0" />
+                    <div className="min-w-0 truncate">
+                      {repoName}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
                       <span className="text-right text-sm text-gray-600 dark:text-gray-400">
@@ -758,9 +760,9 @@ const Setting = () => {
           className="mb-3 text-lg font-semibold"
           style={{ color: 'var(--vscode-editor-foreground)' }}
         >
-          Context
+          Indexing Status
         </h3>
-        <SettingsCard title="Source Projects" description="">
+        <SettingsCard title="Repositories" description="">
           <IndexingArea />
         </SettingsCard>
         <h3
@@ -1047,9 +1049,9 @@ const Setting = () => {
                   style={
                     urlError
                       ? {
-                          marginTop: '0px',
-                          paddingTop: '5px',
-                        }
+                        marginTop: '0px',
+                        paddingTop: '5px',
+                      }
                       : {}
                   }
                   className="mt-3 flex justify-end gap-3 pt-4"
