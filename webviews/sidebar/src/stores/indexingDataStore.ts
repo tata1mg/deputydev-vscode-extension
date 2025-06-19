@@ -43,23 +43,20 @@ export const useIndexingStore = create<
       updateOrAppendIndexingData: (newData) => {
         set((state) => {
           if (newData.is_partial_state) {
-            // Handle partial state update
+            // Keep the partial state update logic the same
             return {
               indexingProgressData: state.indexingProgressData.map((item) => {
                 if (item.repo_path === newData.repo_path) {
-                  // Create a map of updated file statuses for quick lookup
                   const updatedFiles = new Map(
                     newData.indexing_status?.map((file) => [file.file_path, file.status])
                   );
 
-                  // Update only the files that are in the partial update
                   const updatedIndexingStatus =
                     item.indexing_status?.map((file) => ({
                       ...file,
                       status: updatedFiles.get(file.file_path) ?? file.status,
                     })) ?? [];
 
-                  // Add any new files that weren't in the original status
                   const newFiles = (newData.indexing_status || []).filter(
                     (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
                   );
@@ -75,46 +72,43 @@ export const useIndexingStore = create<
             };
           }
 
-          // Handle full state update (existing logic)
+          // Modified: Just update in place or append to the end
           const existingIndex = state.indexingProgressData.findIndex(
             (item) => item.repo_path === newData.repo_path
           );
 
           if (existingIndex >= 0) {
-            // Remove the existing item and add the updated one at the beginning
-            const updatedData = state.indexingProgressData.filter(
-              (_, index) => index !== existingIndex
-            );
+            // Update in place
+            const updatedData = [...state.indexingProgressData];
+            updatedData[existingIndex] = newData;
             return {
-              indexingProgressData: [newData, ...updatedData],
+              indexingProgressData: updatedData,
             };
           } else {
-            // Add new entry at the beginning
+            // Append to the end
             return {
-              indexingProgressData: [newData, ...state.indexingProgressData],
+              indexingProgressData: [...state.indexingProgressData, newData],
             };
           }
         });
       },
       updateOrAppendEmbeddingData: (newData) => {
         set((state) => {
-          // Handle full state update (existing logic)
           const existingIndex = state.embeddingProgressData.findIndex(
             (item) => item.repo_path === newData.repo_path
           );
 
           if (existingIndex >= 0) {
-            // Remove the existing item and add the updated one at the beginning
-            const updatedData = state.embeddingProgressData.filter(
-              (_, index) => index !== existingIndex
-            );
+            // Update in place
+            const updatedData = [...state.embeddingProgressData];
+            updatedData[existingIndex] = newData;
             return {
-              embeddingProgressData: [newData, ...updatedData],
+              embeddingProgressData: updatedData,
             };
           } else {
-            // Add new entry at the beginning
+            // Append to the end
             return {
-              embeddingProgressData: [newData, ...state.embeddingProgressData],
+              embeddingProgressData: [...state.embeddingProgressData, newData],
             };
           }
         });
