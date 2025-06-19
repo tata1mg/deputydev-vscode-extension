@@ -1,7 +1,7 @@
 import { CLIENT_VERSION } from '../config';
 import { ErrorTrackingService } from '../services/errorTracking/ErrorTrackingService';
 import { ErrorTrackingRequestForBackend, ToolRequest } from '../types';
-import { getActiveRepo, getSessionId, getUserData } from '../utilities/contextManager';
+import { getActiveRepo, getSessionId, getUserData, getUserSystemData } from '../utilities/contextManager';
 import { AxiosError } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,11 +17,13 @@ export class ErrorTrackingManager {
     repoName?: string;
     sessionId?: number;
     timestamp?: string;
+    stack_trace?: string;
   }) {
     const userData = getUserData();
     const userEmail = userData?.email;
     const activeRepo = getActiveRepo();
     const sessionId = getSessionId();
+    const userSystemData = getUserSystemData();
 
     const errorAnalyticsPayload: ErrorTrackingRequestForBackend = {
       error_id: uuidv4(),
@@ -31,6 +33,8 @@ export class ErrorTrackingManager {
       user_email: userEmail,
       repo_name: activeRepo,
       session_id: sessionId,
+      user_system_info: userSystemData,
+      stack_trace: errorPayload.stack_trace,
       client_version: CLIENT_VERSION,
       timestamp: new Date().toISOString(),
     };
@@ -53,14 +57,28 @@ export class ErrorTrackingManager {
           : toolRequest.accumulatedContent,
     };
     let errorData: Record<string, any> = {};
+    let stack_trace: string | undefined;
 
     // AxiosError case
+    // AxiosError case
     if (error instanceof AxiosError) {
-      // Remove traceback field from responseData if exists and is an object
       let cleanedResponseData = error.response?.data;
-      if (cleanedResponseData && typeof cleanedResponseData === 'object' && 'traceback' in cleanedResponseData) {
-        const { traceback, ...rest } = cleanedResponseData;
-        cleanedResponseData = rest;
+
+      if (cleanedResponseData && typeof cleanedResponseData === 'object') {
+        if ('traceback' in cleanedResponseData) {
+          // Use backend traceback as stack_trace
+          stack_trace = cleanedResponseData.traceback;
+
+          // Remove traceback from responseData
+          const { traceback, ...rest } = cleanedResponseData;
+          cleanedResponseData = rest;
+        } else {
+          // Use frontend JS stack trace
+          stack_trace = error.stack;
+        }
+      } else {
+        // If data is not an object, just use frontend JS stack trace
+        stack_trace = error.stack;
       }
 
       errorData = {
@@ -75,6 +93,7 @@ export class ErrorTrackingManager {
         responseData: cleanedResponseData,
       };
     }
+
     // Standard JS Error case
     else if (error instanceof Error) {
       const err = error as any;
@@ -88,6 +107,7 @@ export class ErrorTrackingManager {
         url: err.config?.url,
         method: err.config?.method,
       };
+      stack_trace = error.stack;
     }
     // WebSocket or other unknown error shapes
     else if (typeof error === 'object' && error !== null) {
@@ -98,6 +118,7 @@ export class ErrorTrackingManager {
         errorMessage: err.message ?? 'An unknown error occurred during tool execution.',
         ...err, // spreads any other properties if present
       };
+      stack_trace = err.stack;
     }
     // Truly unknown error
     else {
@@ -109,14 +130,13 @@ export class ErrorTrackingManager {
       };
     }
 
-    let errorSource = 'BINARY';
-    if (toolRequest.tool_name === 'write_to_file' || toolRequest.tool_name === 'replace_in_file') {
-      errorSource = 'EXTENSION';
-    }
+    const errorSource = ['write_to_file', 'replace_in_file'].includes(toolRequest.tool_name) ? 'EXTENSION' : 'BINARY';
+
     await this.trackError({
       errorType: 'TOOL_EXECUTION_ERROR',
       errorSource: errorSource,
       errorData,
+      stack_trace,
     });
   }
 
@@ -135,13 +155,26 @@ export class ErrorTrackingManager {
     extraData?: Record<string, any>,
   ) {
     let errorData: Record<string, any> = {};
+    let stack_trace: string | undefined;
 
     if (error instanceof AxiosError) {
-      // Remove traceback field from responseData if exists and is an object
       let cleanedResponseData = error.response?.data;
-      if (cleanedResponseData && typeof cleanedResponseData === 'object' && 'traceback' in cleanedResponseData) {
-        const { traceback, ...rest } = cleanedResponseData;
-        cleanedResponseData = rest;
+
+      if (cleanedResponseData && typeof cleanedResponseData === 'object') {
+        if ('traceback' in cleanedResponseData) {
+          // Extract backend traceback
+          stack_trace = cleanedResponseData.traceback;
+
+          // Remove traceback from the rest of the response
+          const { traceback, ...rest } = cleanedResponseData;
+          cleanedResponseData = rest;
+        } else {
+          // Fallback to JS stack trace if no backend traceback
+          stack_trace = error.stack;
+        }
+      } else {
+        // Also fallback in case data is not an object
+        stack_trace = error.stack;
       }
       errorData = {
         errorName: error.name,
@@ -159,6 +192,7 @@ export class ErrorTrackingManager {
         errorName: error.name,
         errorMessage: error.message,
       };
+      stack_trace = error.stack;
     } else if (typeof error === 'object' && error !== null) {
       const err = error as Record<string, any>;
       errorData = {
@@ -166,6 +200,7 @@ export class ErrorTrackingManager {
         errorMessage: err.message ?? 'An unknown error occurred during tool execution.',
         ...err, // spreads any other properties if present
       };
+      stack_trace = typeof err.stack === 'string' ? err.stack : undefined;
     } else {
       errorData = {
         errorName: 'UnknownError',
@@ -179,6 +214,7 @@ export class ErrorTrackingManager {
       errorType: errorType,
       errorSource: errorSource,
       errorData,
+      stack_trace,
     });
   }
 }

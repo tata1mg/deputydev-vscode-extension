@@ -15,7 +15,7 @@ export class ApiErrorHandler {
       const errorCode = errorData?.meta?.error_code || axiosError.code || errorData.error_code;
       const errorName = errorData?.meta?.error_name || axiosError.name || errorData.error_type;
       const message = errorData?.meta?.message || axiosError.message || errorData.error_message;
-      const stack = errorData?.meta?.stack || axiosError.stack || errorData.traceback;
+      const stack = errorData.traceback || errorData?.meta?.stack || axiosError.stack;
       logger.error(
         `API Error | name=${errorName} | code=${errorCode} | message="${message}" | method=${axiosError.config?.method} | url=${axiosError.config?.url} | status=${axiosError.response?.status}`,
       );
