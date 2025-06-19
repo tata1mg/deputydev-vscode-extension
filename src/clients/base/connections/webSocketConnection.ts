@@ -46,10 +46,12 @@ export class WebSocketConnection {
   private async initSocket() {
     let latestExtraHeaders = {};
     try {
+      console.log('Fetching extra headers...');
       latestExtraHeaders = (await this.options.extraHeadersFetcher?.()) || {};
     } catch (error: any) {
       this.options.onError?.(error);
     }
+    console.log('Connecting to WebSocket at:', this.url);
     this.socket = new WebSocket(this.url, {
       headers: {
         'X-Client': CLIENT,
@@ -67,6 +69,7 @@ export class WebSocketConnection {
     this.socket.on('message', (event: RawData) => {
       try {
         const data = JSON.parse(event.toString());
+        console.log('Received WebSocket message:', data);
         this.options.onMessage?.(data);
       } catch (err) {
         this.options.onError?.(new Error(`Failed to parse WebSocket message: ${err}`));
@@ -133,6 +136,7 @@ export class WebSocketConnection {
 
   async send(data: object) {
     if (this.connectionReady === undefined) {
+      console.log('Connection not ready, attempting to connect...');
       await this.connect();
     }
 
@@ -146,6 +150,7 @@ export class WebSocketConnection {
 
     try {
       await this.connectionReady;
+      console.log('WebSocket connection is ready, sending message:', data);
       this.socket.send(JSON.stringify(data));
     } catch (err) {
       throw new Error(`Failed to send message: ${err}`);

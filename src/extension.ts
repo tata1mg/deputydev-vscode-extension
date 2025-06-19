@@ -76,6 +76,12 @@ export async function activate(context: vscode.ExtensionContext) {
   logger.info(`Extension "DeputyDev" is now active!`);
   outputChannel.info('Extension "DeputyDev" is now active!');
 
+  // 3. Core Services Initialization
+  const serverManager = new ServerManager(context, outputChannel, logger, configManager);
+  await serverManager.ensureBinaryExists();
+  await serverManager.startServer();
+  outputChannel.info('this binary host now is ' + getBinaryHost());
+
   // initialize backend client with essential config
   const essentialConfigs = configManager.getAllConfigEssentials();
   const backendClient = new BackendClient(
@@ -91,8 +97,6 @@ export async function activate(context: vscode.ExtensionContext) {
     getBinaryWsHost(), // This will be the binary WebSocket host URL
   );
 
-  // 3. Core Services Initialization
-  const serverManager = new ServerManager(context, outputChannel, logger, configManager);
   const authenticationManager = new AuthenticationManager(context, configManager, logger);
   const authService = new AuthService();
   const historyService = new HistoryService();
@@ -171,10 +175,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
   context.subscriptions.push(pinger);
   (async () => {
-    // sidebarProvider.setViewType("loader");
-    await serverManager.ensureBinaryExists();
-    await serverManager.startServer();
-    outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
 
     authenticationManager

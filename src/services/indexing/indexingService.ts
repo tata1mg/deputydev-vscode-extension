@@ -9,12 +9,6 @@ export interface UpdateVectorStoreParams {
   chunkable_files?: string[];
 }
 
-const fetchAuthToken = async () => {
-  const authService = new AuthService();
-  const authToken = await authService.loadAuthToken();
-  return authToken;
-};
-
 export class IndexingService {
   private readonly binaryClient: BinaryClient;
 
@@ -23,17 +17,10 @@ export class IndexingService {
   }
 
   public async updateVectorStore(params: UpdateVectorStoreParams): Promise<{ status: string; error?: string }> {
-    const authToken = await fetchAuthToken();
-    const logger = SingletonLogger.getInstance();
-    if (!authToken) {
-      throw new Error('Authentication token is required while updating vector store.');
-    }
-
     try {
       await this.binaryClient.updateVectorDB.sendMessageWithRetry(params);
       return { status: 'sent' };
     } catch (error: any) {
-      logger.error('Error updating vector store:', error);
       return { status: 'failed', error: error.message };
     }
   }
@@ -44,6 +31,7 @@ export class IndexingService {
     rejecter: (reason?: any) => void,
   ): void {
     try {
+      console.log('Received message from updateVectorDB:', messageData);
       if (messageData.status === 'In Progress') {
         sendProgress({
           repo: messageData.repo_path as string,
@@ -91,22 +79,26 @@ export class IndexingService {
           status: 'In Progress',
         });
 
-        const triggerResult = await this.updateVectorStore(params);
-
-        if (triggerResult.status === 'failed') {
-          throw new Error('Failed to update vector store' + (triggerResult.error ? `: ${triggerResult.error}` : ''));
-        }
-
-        const result = await new Promise((resolve, reject) => {
+        const result = new Promise((resolve, reject) => {
           resolver = resolve;
           rejecter = reject;
         });
 
         this.binaryClient.updateVectorDB.onMessage.on('message', (messageData: any) => {
+          console.log('Received message from updateVectorDB:', messageData);
           this.handleIndexingEvents(messageData, resolver, rejecter);
         });
 
-        return result;
+        const triggerResult = await this.updateVectorStore(params);
+        console.log(`Trigger result for repo: ${params.repo_path}:`, triggerResult);
+
+        if (triggerResult.status === 'failed') {
+          throw new Error('Failed to update vector store' + (triggerResult.error ? `: ${triggerResult.error}` : ''));
+        }
+
+        console.log(`Waiting for response from updateVectorDB for repo: ${params.repo_path}`);
+
+        return await result;
       } catch (error) {
         attempts++;
         if (attempts === maxAttempts) {
