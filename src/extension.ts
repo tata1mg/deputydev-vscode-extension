@@ -43,6 +43,7 @@ import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { API_ENDPOINTS } from './services/api/endpoints';
 import { binaryApi } from './services/api/axios';
 import { ActiveFileListener } from './code_syncing/ActiveFileListener';
+import { setUserSystemData } from './utilities/getSystemInformation';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -50,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
   setExtensionContext(context);
-
+  void setUserSystemData(context);
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
   const ENABLE_OUTPUT_CHANNEL = false;

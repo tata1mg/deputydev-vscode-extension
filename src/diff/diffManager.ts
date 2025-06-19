@@ -77,7 +77,7 @@ export class DiffManager {
   };
 
   private getOriginalAndModifiedContentAfterApplyingDiff = async (
-    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string; directReplace?: string },
     repoPath: string,
   ): Promise<{
     originalContent: string;
@@ -88,6 +88,13 @@ export class DiffManager {
     const originalContent = await (
       this.fileChangeStateManager as FileChangeStateManager
     ).getCurrentContentOnWhichChangesAreToBeApplied(data.path, repoPath);
+    // Handle direct replace — no need to hit the diff API
+    if (data.directReplace !== undefined) {
+      return {
+        originalContent,
+        newContent: data.directReplace,
+      };
+    }
     // then apply the diff to the original content
     // Prepare the diff_data and type based on what's provided
     let diffData;
@@ -207,7 +214,7 @@ export class DiffManager {
 
   private readonly writeModifiedContentToFile = // The rest are no-ops
     async (filePath: string, repoPath: string, modifiedContent: string): Promise<void> => {
-      console.log('Writing file:', filePath);
+      this.outputChannel.debug(`Writing file: ${filePath}`);
 
       try {
         const fullPath = path.join(repoPath, filePath);
@@ -216,14 +223,14 @@ export class DiffManager {
         await fs.mkdir(dirPath, { recursive: true });
 
         await fs.writeFile(fullPath, modifiedContent, 'utf-8');
-        console.log('File written successfully.');
+        this.outputChannel.debug('File written successfully.');
       } catch (err) {
-        console.error('Error writing file:', err);
+        this.outputChannel.error(`Error writing file: ${err}`);
       }
     };
 
   public applyDiff = async (
-    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string; directReplace?: string },
     repoPath: string,
     openViewer: boolean,
     applicationTrackingData: {
@@ -281,7 +288,7 @@ export class DiffManager {
   };
 
   public applyDiffForSession = async (
-    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string },
+    data: { path: string; search_and_replace_blocks?: string; incrementalUdiff?: string; directReplace?: string },
     repoPath: string,
     applicationTrackingData: {
       usageTrackingSource: string;
