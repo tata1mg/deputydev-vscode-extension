@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { fetchRelevantChunks } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { v4 as uuidv4 } from 'uuid';
 

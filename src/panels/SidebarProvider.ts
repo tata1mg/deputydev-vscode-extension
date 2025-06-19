@@ -7,7 +7,7 @@ import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager'
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
-import { updateVectorStoreWithResponse } from '../clients/common/websocketHandlers';
+import { updateVectorStoreWithResponse } from '../services/indexing/indexingService';
 import { CLIENT_VERSION, DD_HOST, MCP_CONFIG_PATH } from '../config';
 import { DiffManager } from '../diff/diffManager';
 import { ReferenceManager } from '../references/ReferenceManager';
