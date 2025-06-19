@@ -452,7 +452,7 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
   }
 };
 
-const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
+const IndexingArea: React.FC = () => {
   const { indexingProgressData } = useIndexingStore();
   const [expandedRepos, setExpandedRepos] = useState<Record<string, boolean>>({});
 
@@ -464,7 +464,7 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
   };
 
   return (
-    <div className="flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto pr-3">
+    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto">
       {indexingProgressData && indexingProgressData.length > 0 ? (
         <div className="space-y-2">
           {indexingProgressData.map((progress, index) => {
@@ -494,7 +494,7 @@ const IndexingArea: React.FC<IndexingProgressProps> = ({ progress }) => {
                     </span>
                     {progress.status !== 'Idle' && (
                       <ChevronDown
-                        className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 ${isExpanded ? 'rotate-180 transform' : ''}`}
+                        className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 focus:outline-none ${isExpanded ? 'rotate-180 transform' : ''}`}
                         data-tooltip-id="indexing-tooltips"
                         data-tooltip-content="Files Progress"
                         data-tooltip-place="top-start"
@@ -750,7 +750,7 @@ const Setting = () => {
           Context
         </h3>
         <SettingsCard title="Source Projects" description="">
-          <IndexingArea progress={[]} />
+          <IndexingArea />
         </SettingsCard>
         <h3
           className="mb-3 text-lg font-semibold"

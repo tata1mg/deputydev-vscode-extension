@@ -416,18 +416,16 @@ export function ChatUI() {
                   Develop with DeputyDev
                 </h1> */}
               </div>
-              {!repoSelectorEmbedding && (
-                <div className="h-[128px] px-4 fade-in">
-                  <div className="flex items-center gap-2">
-                    <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
-                    <Check className="mb-1 animate-pulse text-sm text-green-500" />
-                  </div>
-                  <p className="text-md">
-                    Ask questions about your repository or instantly generate code, tests, and
-                    documentation
-                  </p>
+              <div className="h-[128px] px-4 fade-in">
+                <div className="flex items-center gap-2">
+                  <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
+                  <Check className="mb-1 animate-pulse text-sm text-green-500" />
                 </div>
-              )}
+                <p className="text-md">
+                  Ask questions about your repository or instantly generate code, tests, and
+                  documentation
+                </p>
+              </div>
             </div>
           </div>
         )}
