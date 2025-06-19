@@ -195,10 +195,6 @@ export function fetchClientVersion() {
   return callCommand('get-client-version', {});
 }
 
-export function sendWebviewFocusState(isFocused: boolean) {
-  return callCommand('webview-focus-state', { focused: isFocused });
-}
-
 export function getSessions(limit: number, offset: number) {
   return callCommand('get-sessions', { limit, offset });
 }

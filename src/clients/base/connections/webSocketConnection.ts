@@ -19,7 +19,6 @@ export class WebSocketConnection {
   private socket!: WebSocket;
   private readonly url: string;
   private readonly options: WebSocketConnectionOptions;
-  private reconnectAttempts = 0;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
 
@@ -79,18 +78,31 @@ export class WebSocketConnection {
       this.options.onError?.(err);
     });
   }
-
   private tryReconnect() {
-    if (this.isManuallyClosed) return;
+    console.log('tryReconnect called');
+    if (this.isManuallyClosed) {
+      console.log('Reconnect aborted: connection was manually closed');
+      return;
+    }
+
+    let currentReconnectAttempts = 0;
 
     const maxAttempts = this.options.reconnectAttempts ?? 5;
-    if (this.reconnectAttempts >= maxAttempts) {
+    console.log(`Current reconnectAttempts: ${currentReconnectAttempts}, maxAttempts: ${maxAttempts}`);
+    if (currentReconnectAttempts >= maxAttempts) {
+      console.log('Max reconnect attempts reached');
       this.rejectConnectionReady(new Error('Max reconnect attempts reached'));
       return;
     }
 
-    const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, this.reconnectAttempts++);
+    const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, currentReconnectAttempts++);
+    console.log(`Reconnecting in ${backoff} ms (attempt ${currentReconnectAttempts})`);
     this.reconnectTimer = setTimeout(() => {
+      if (this.isManuallyClosed) {
+        console.log('Reconnect aborted: connection was manually closed');
+        return;
+      }
+      console.log('Attempting to reconnect...');
       this.createConnectionPromise();
       this.initSocket();
     }, backoff);
@@ -114,7 +126,11 @@ export class WebSocketConnection {
 
   async send(data: object) {
     if (this.isManuallyClosed) {
-      throw new Error('Cannot send message: WebSocket is closed manually');
+      // log that websocket was manually closed
+      // reconnect
+      console.warn('WebSocket was manually closed, reconnecting...');
+      this.isManuallyClosed = false;
+      this.tryReconnect();
     }
 
     try {
