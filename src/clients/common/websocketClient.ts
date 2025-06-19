@@ -37,49 +37,7 @@ export class WebSocketClient {
     });
 
     this.socket.on('message', (event: RawData) => {
-      try {
-        const messageData = JSON.parse(event.toString());
-        //   console.log("Received WebSocket message:", messageData);
-        // Check if the response is an array (relevant chunks)
-        // Check if response has relevant_chunks key
-        if (messageData.relevant_chunks && Array.isArray(messageData.relevant_chunks)) {
-          this.resolveResponse(messageData);
-          this.close();
-        } else if (messageData.status === 'In Progress') {
-          sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
-            status: messageData.status as string,
-          });
-        }
-        // Check if the response is an object (update vector store)
-        else if (messageData.status === 'Completed') {
-          sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
-            status: messageData.status as string,
-          });
-          this.resolveResponse(messageData.status);
-          this.close();
-        } else if (messageData.status === 'Failed') {
-          sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
-            status: messageData.status as string,
-          });
-          this.rejectResponse(new Error('WebSocket request timed out'));
-          this.close();
-        } else if (messageData.error_message) {
-          this.rejectResponse(new Error(messageData.error_message));
-          this.close();
-        } else {
-          // console.warn("Received unknown message format:", messageData);
-        }
-      } catch (error) {
-        // console.error("❌ Error parsing WebSocket message:", error);
-        this.rejectResponse(error);
-        this.close();
-      }
+      
     });
 
     this.socket.on('close', (code, reason) => {

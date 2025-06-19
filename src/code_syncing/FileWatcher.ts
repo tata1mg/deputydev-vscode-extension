@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
 
-import { updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
+import { updateVectorStore, UpdateVectorStoreParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
 export class WorkspaceFileWatcher {
   private watcher: vscode.FileSystemWatcher | undefined;

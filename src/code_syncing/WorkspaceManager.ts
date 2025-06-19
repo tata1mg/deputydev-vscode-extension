@@ -7,18 +7,17 @@ import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
 import {
   updateVectorStoreWithResponse,
-  updateVectorStore,
   UpdateVectorStoreParams,
-} from '../clients/common/websocketHandlers';
+} from '../services/indexing/indexingService';
 
 export class WorkspaceManager {
-  private workspaceRepos: Map<string, string> = new Map();
-  private context: vscode.ExtensionContext;
+  private readonly workspaceRepos: Map<string, string> = new Map();
+  private readonly context: vscode.ExtensionContext;
   private activeRepo: string | undefined; // Active repo stored as its folder path.
-  private sidebarProvider: SidebarProvider;
-  private outputChannel: vscode.LogOutputChannel;
+  private readonly sidebarProvider: SidebarProvider;
+  private readonly outputChannel: vscode.LogOutputChannel;
   private fileWatcher?: WorkspaceFileWatcher;
-  private configManager: ConfigManager;
+  private readonly configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
   private readonly _onDidSendRepos = new vscode.EventEmitter<{
     repos: { repoPath: string; repoName: string }[];
@@ -171,13 +170,6 @@ export class WorkspaceManager {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
         this.updateWorkspaceRepos();
-        // vscode.window.showInformationMessage(
-        //   `Workspace repositories updated: ${
-        //     Array.from(this.workspaceRepos.entries())
-        //       .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
-        //       .join(', ') || 'None'
-        //   }`,
-        // );
       }),
     );
   }
@@ -224,12 +216,6 @@ export class WorkspaceManager {
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await updateVectorStoreWithResponse(params)
       .then((response) => {
-        // this.sidebarProvider.sendMessageToSidebar({
-        //   id: uuidv4(),
-        //   command: 'repo-selector-state',
-        //   data: false
-        // });
-        // this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
       })
       .catch((error) => {
         this.outputChannel.info('Embedding failed 3 times...');
