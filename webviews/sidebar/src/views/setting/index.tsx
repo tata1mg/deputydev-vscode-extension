@@ -470,6 +470,10 @@ const IndexingArea: React.FC = () => {
           {indexingProgressData.map((progress, index) => {
             const isExpanded = expandedRepos[index] || false;
             const repoName = progress.repo_path?.split(/[/\\]/).pop();
+            const totalFiles = progress.indexing_status.length;
+            const completedFiles = progress.indexing_status.filter(
+              (file) => file.status === 'Completed'
+            ).length;
 
             return (
               <div
@@ -477,21 +481,28 @@ const IndexingArea: React.FC = () => {
                 className="overflow-hidden rounded-md"
                 style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
               >
-                <div className="flex items-center justify-between p-2">
+                <div className="flex h-12 items-center justify-between p-2">
                   <div className="flex-1 truncate pr-2">{repoName}</div>
                   <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end">
+                      <span className="text-right text-sm text-gray-600 dark:text-gray-400">
+                        {progress.status === 'Completed'
+                          ? 'Indexed'
+                          : progress.status === 'Failed'
+                            ? 'Failed Indexing'
+                            : progress.status === 'Idle'
+                              ? 'Index'
+                              : `${Math.round(progress.progress)}%`}
+                      </span>
+                      {progress.status === 'Completed' && (
+                        <span className="text-xs text-gray-500">
+                          {completedFiles}/{totalFiles} files
+                        </span>
+                      )}
+                    </div>
                     <div>
                       <StatusIcon status={progress.status} repoPath={progress.repo_path} />
                     </div>
-                    <span className="text-right text-sm text-gray-600 dark:text-gray-400">
-                      {progress.status === 'Completed'
-                        ? 'Indexed'
-                        : progress.status === 'Failed'
-                          ? 'Failed Indexing'
-                          : progress.status === 'Idle'
-                            ? 'Index'
-                            : `${Math.round(progress.progress)}%`}
-                    </span>
                     {progress.status !== 'Idle' && (
                       <ChevronDown
                         className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 focus:outline-none ${isExpanded ? 'rotate-180 transform' : ''}`}
