@@ -1,5 +1,3 @@
-import { AuthService } from '../auth/AuthService';
-import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { sendProgress } from '../../utilities/contextManager';
 import { BinaryClient } from '../../clients/binaryClient';
 
