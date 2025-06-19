@@ -42,27 +42,33 @@ const RepoSelector = () => {
     switch (currentIndexingProgressData?.status) {
       case 'In Progress':
         return (
-          <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
+          </div>
         );
       case 'Completed':
         return (
-          <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]" />
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]" />
+          </div>
         );
       case 'Failed':
         return (
-          <button
-            className="inline-flex"
-            onClick={(e) => {
-              e.stopPropagation();
-              hitEmbedding(activeRepo ?? '');
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-          >
-            <RefreshCw className="h-3 w-3 cursor-pointer text-red-400 hover:text-red-500" />
-          </button>
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <button
+              className="inline-flex items-center justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                hitEmbedding(activeRepo ?? '');
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <RefreshCw className="h-3 w-3 cursor-pointer text-red-400 hover:text-red-500" />
+            </button>
+          </div>
         );
       default:
-        return null;
+        return <div className="h-3 w-3 pl-1" />;
     }
   };
 
@@ -103,10 +109,14 @@ const RepoSelector = () => {
           }`}
         >
           <IndexingStatusIcon />
-          <span className="max-w-[70px] truncate">{activeRepoData?.repoName ?? 'Select Repo'}</span>
-          <ChevronDown
-            className={`h-3 w-3 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-          />
+          <div className="flex items-center gap-1">
+            <span className="max-w-[70px] truncate">
+              {activeRepoData?.repoName ?? 'Select Repo'}
+            </span>
+            <ChevronDown
+              className={`h-3 w-3 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </div>
         </button>
         {disableRepoSelector && (
           <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground] opacity-0 transition-opacity group-hover:opacity-100">
