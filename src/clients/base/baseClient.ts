@@ -84,7 +84,7 @@ export class BaseWebsocketEndpoint {
 export class BaseClient {
   private readonly httpHost?: string;
   private readonly wsHost?: string;
-  private readonly defaultWebsocketMessageHandlers?: Array<(data: any) => Promise<void>>;
+  private readonly defaultWebsocketMessageHandlers!: Array<(data: any) => Promise<void>>;
 
   constructor(
     httpHost?: string,
