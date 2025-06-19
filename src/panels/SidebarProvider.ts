@@ -1,17 +1,14 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
-import { promises as fsp } from 'fs';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
-import { updateVectorStoreWithResponse } from '../services/indexing/indexingService';
+import { IndexingService } from '../services/indexing/indexingService';
 import { CLIENT_VERSION, DD_HOST, MCP_CONFIG_PATH } from '../config';
 import { DiffManager } from '../diff/diffManager';
 import { ReferenceManager } from '../references/ReferenceManager';
-import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
@@ -42,9 +39,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly pendingMessages: any[] = [];
   private readonly _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
-  private apiErrorHandler = new ApiErrorHandler();
-  private mcpService = new MCPService();
-  private terminalService = new TerminalService();
+  private readonly mcpService = new MCPService();
+  private readonly terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
 
   constructor(
@@ -64,6 +60,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly userQueryEnhancerService: UserQueryEnhancerService,
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly continueWorkspace: ContinueNewWorkspace,
+    private readonly indexingService: IndexingService,
   ) {}
 
   public resolveWebviewView(
@@ -585,7 +582,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
 
     try {
-      await updateVectorStoreWithResponse(params);
+      await this.indexingService.updateVectorStoreWithResponse(params);
     } catch (error) {
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
@@ -602,7 +599,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     const params = { repo_path: activeRepo, retried_by_user: true };
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
     try {
-      await updateVectorStoreWithResponse(params);
+      await this.indexingService.updateVectorStoreWithResponse(params);
     } catch (error) {
       this.errorTrackingManager.trackGeneralError(error, 'RETRY_EMBEDDING_ERROR', 'BINARY');
       this.logger.warn('Embedding failed');
