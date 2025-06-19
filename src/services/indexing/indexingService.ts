@@ -7,6 +7,7 @@ export interface UpdateVectorStoreParams {
   repo_path: string;
   retried_by_user?: boolean;
   chunkable_files?: string[];
+  sync?: boolean;
 }
 
 export class IndexingService {
@@ -89,7 +90,7 @@ export class IndexingService {
           this.handleIndexingEvents(messageData, resolver, rejecter);
         });
 
-        const triggerResult = await this.updateVectorStore(params);
+        const triggerResult = await this.updateVectorStore({ ...params, sync: true });
         console.log(`Trigger result for repo: ${params.repo_path}:`, triggerResult);
 
         if (triggerResult.status === 'failed') {
