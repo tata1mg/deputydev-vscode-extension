@@ -1,4 +1,18 @@
+import { AuthService } from '../services/auth/AuthService';
 import { BaseClient, BaseWebsocketEndpoint } from './base/baseClient';
+
+const fetchAuthToken = async () => {
+  const authService = new AuthService();
+  const authToken = await authService.loadAuthToken();
+  return authToken;
+};
+
+const getAuthorizationHeader = async () => {
+  const authToken = await fetchAuthToken();
+  return {
+    Authorization: `Bearer ${authToken}`,
+  };
+};
 
 export class BinaryClient extends BaseClient {
   // Default endpoints can be set here if needed
@@ -12,7 +26,7 @@ export class BinaryClient extends BaseClient {
   public getRelevantChunks!: BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
-    super(httpHost, wsHost);
+    super(httpHost, wsHost, getAuthorizationHeader);
     this.endpointMap = { ...this.endpointMap, ...endpointsMap };
     this.initEndpoints();
   }

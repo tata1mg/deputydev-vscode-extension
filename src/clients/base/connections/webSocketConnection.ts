@@ -4,8 +4,7 @@ import { CLIENT, CLIENT_VERSION } from '../../../config';
 interface WebSocketConnectionOptions {
   baseUrl: string;
   endpoint: string;
-  authToken: string;
-  extraHeaders?: Record<string, string>;
+  extraHeadersFetcher?: () => Promise<Record<string, string>>;
   onMessage?: (data: any) => Promise<void>;
   onOpen?: () => void;
   onClose?: (code: number, reason: string) => void;
@@ -22,7 +21,7 @@ export class WebSocketConnection {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
 
-  private connectionReady!: Promise<void>;
+  private connectionReady?: Promise<void>;
   private resolveConnectionReady!: () => void;
   private rejectConnectionReady!: (err: Error) => void;
   private isManuallyClosed = false;
@@ -30,8 +29,11 @@ export class WebSocketConnection {
   constructor(options: WebSocketConnectionOptions) {
     this.options = options;
     this.url = `${options.baseUrl}${options.endpoint}`;
+  }
+
+  async connect() {
     this.createConnectionPromise();
-    this.initSocket();
+    await this.initSocket();
   }
 
   private createConnectionPromise() {
@@ -41,13 +43,18 @@ export class WebSocketConnection {
     });
   }
 
-  private initSocket() {
+  private async initSocket() {
+    let latestExtraHeaders = {};
+    try {
+      latestExtraHeaders = (await this.options.extraHeadersFetcher?.()) || {};
+    } catch (error: any) {
+      this.options.onError?.(error);
+    }
     this.socket = new WebSocket(this.url, {
       headers: {
-        Authorization: `Bearer ${this.options.authToken}`,
         'X-Client': CLIENT,
         'X-Client-Version': CLIENT_VERSION,
-        ...(this.options.extraHeaders || {}),
+        ...(latestExtraHeaders || {}),
       },
     });
 
@@ -97,14 +104,14 @@ export class WebSocketConnection {
 
     const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, currentReconnectAttempts++);
     console.log(`Reconnecting in ${backoff} ms (attempt ${currentReconnectAttempts})`);
-    this.reconnectTimer = setTimeout(() => {
+    this.reconnectTimer = setTimeout(async () => {
       if (this.isManuallyClosed) {
         console.log('Reconnect aborted: connection was manually closed');
         return;
       }
       console.log('Attempting to reconnect...');
       this.createConnectionPromise();
-      this.initSocket();
+      await this.initSocket();
     }, backoff);
   }
 
@@ -125,6 +132,10 @@ export class WebSocketConnection {
   }
 
   async send(data: object) {
+    if (this.connectionReady === undefined) {
+      await this.connect();
+    }
+
     if (this.isManuallyClosed) {
       // log that websocket was manually closed
       // reconnect

@@ -21,9 +21,9 @@ export class BaseWebsocketEndpoint {
   defaultMessageHandlers: Array<(data: any) => Promise<void>> = [];
 
   constructor(
-    public wsHost: string,
-    public endpoint: string,
-    public defaultExtraHeaders: Record<string, string>,
+    wsHost: string,
+    endpoint: string,
+    extraHeadersFetcher?: () => Promise<Record<string, string>>,
     messageHandlers: Array<(data: any) => Promise<void>> = [],
   ) {
     // initialize the websocket connection
@@ -31,8 +31,7 @@ export class BaseWebsocketEndpoint {
     this.webSocketConnection = new WebSocketConnection({
       baseUrl: wsHost,
       endpoint: endpoint,
-      authToken: '',
-      extraHeaders: defaultExtraHeaders,
+      extraHeadersFetcher: extraHeadersFetcher,
       onMessage: async (data) => {
         await this.handleMessageForDefaultHandlersAndEmit(data);
       },
@@ -85,15 +84,18 @@ export class BaseClient {
   private readonly httpHost?: string;
   private readonly wsHost?: string;
   private readonly defaultWebsocketMessageHandlers!: Array<(data: any) => Promise<void>>;
+  private readonly extraHeadersFetcher?: () => Promise<Record<string, string>>;
 
   constructor(
     httpHost?: string,
     wsHost?: string,
+    extraHeadersFetcher?: () => Promise<Record<string, string>>,
     defaultWebsocketMessageHandlers: Array<(data: any) => Promise<void>> = [],
   ) {
     this.httpHost = httpHost?.endsWith('/') ? httpHost.slice(0, -1) : httpHost;
     this.wsHost = wsHost?.endsWith('/') ? wsHost.slice(0, -1) : wsHost;
     this.defaultWebsocketMessageHandlers = defaultWebsocketMessageHandlers;
+    this.extraHeadersFetcher = extraHeadersFetcher;
   }
 
   createHttpEndpoint(endpoint: string, method: string, defaultExtraHeaders: Record<string, string>): BaseHttpEndpoint {
@@ -105,13 +107,21 @@ export class BaseClient {
 
   createWebsocketEndpoint(
     endpoint: string,
-    defaultExtraHeaders: Record<string, string> = {},
+    extraHeadersFetcher?: () => Promise<Record<string, string>>,
     messageHandlers: Array<(data: any) => Promise<void>> = [],
   ): BaseWebsocketEndpoint {
     if (!this.wsHost) {
       throw new Error('WebSocket host is not defined');
     }
-    return new BaseWebsocketEndpoint(this.wsHost, endpoint, defaultExtraHeaders, [
+
+    // get a new function thhat fetches and combines extra headers
+    const combinedExtraHeadersFetcher = async () => {
+      const headers = this.extraHeadersFetcher ? await this.extraHeadersFetcher() : {};
+      const extraHeaders = extraHeadersFetcher ? await extraHeadersFetcher() : {};
+      return { ...headers, ...extraHeaders };
+    };
+
+    return new BaseWebsocketEndpoint(this.wsHost, endpoint, combinedExtraHeadersFetcher, [
       ...messageHandlers,
       ...this.defaultWebsocketMessageHandlers,
     ]);
