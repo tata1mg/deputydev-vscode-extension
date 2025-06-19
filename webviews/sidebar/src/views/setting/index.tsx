@@ -477,7 +477,7 @@ const IndexingArea: React.FC = () => {
                 className="overflow-hidden rounded-md"
                 style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
               >
-                <div className="flex items-center justify-between p-3">
+                <div className="flex items-center justify-between p-2">
                   <div className="flex-1 truncate pr-2">{repoName}</div>
                   <div className="flex items-center gap-2">
                     <div>
