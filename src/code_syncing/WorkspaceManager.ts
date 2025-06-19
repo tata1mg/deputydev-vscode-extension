@@ -5,10 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
-import {
-  updateVectorStoreWithResponse,
-  UpdateVectorStoreParams,
-} from '../services/indexing/indexingService';
+import { UpdateVectorStoreParams, IndexingService } from '../services/indexing/indexingService';
 
 export class WorkspaceManager {
   private readonly workspaceRepos: Map<string, string> = new Map();
@@ -24,17 +21,20 @@ export class WorkspaceManager {
     activeRepo: string | null;
   }>();
   public readonly onDidSendRepos = this._onDidSendRepos.event;
+  private readonly indexingService: IndexingService;
 
   constructor(
     context: vscode.ExtensionContext,
     sidebarProvider: SidebarProvider,
     outputChannel: vscode.LogOutputChannel,
     configManager: ConfigManager,
+    indexingService: IndexingService,
   ) {
     this.context = context;
     this.sidebarProvider = sidebarProvider;
     this.outputChannel = outputChannel;
     this.configManager = configManager;
+    this.indexingService = indexingService;
 
     // Subscribe to repo change events from SidebarProvider
     this.sidebarProvider.onDidChangeRepo((newRepoPath) => {
@@ -129,7 +129,12 @@ export class WorkspaceManager {
     // If activeRepo is defined, create a new file watcher.
     if (this.activeRepo) {
       this.outputChannel.info(`Creating file watcher for active repo: ${this.activeRepo}`);
-      this.fileWatcher = new WorkspaceFileWatcher(this.activeRepo, this.configManager, this.outputChannel);
+      this.fileWatcher = new WorkspaceFileWatcher(
+        this.activeRepo,
+        this.configManager,
+        this.outputChannel,
+        this.indexingService,
+      );
       this.outputChannel.info(`Initialized file watcher for active repo: ${this.activeRepo}`);
     } else {
       this.outputChannel.info('No active repository defined. File watcher not initialized.');
@@ -214,9 +219,9 @@ export class WorkspaceManager {
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
-    await updateVectorStoreWithResponse(params)
-      .then((response) => {
-      })
+    await this.indexingService
+      .updateVectorStoreWithResponse(params)
+      .then((response) => {})
       .catch((error) => {
         this.outputChannel.info('Embedding failed 3 times...');
       });

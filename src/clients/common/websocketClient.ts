@@ -36,9 +36,7 @@ export class WebSocketClient {
       // console.log(`✅ Connected to WebSocket: ${this.url}`);
     });
 
-    this.socket.on('message', (event: RawData) => {
-      
-    });
+    this.socket.on('message', (event: RawData) => {});
 
     this.socket.on('close', (code, reason) => {
       // console.log(`⚠️ WebSocket closed: ${this.url} (Code: ${code}, Reason: ${reason})`);

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { fetchRelevantChunks } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
+import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,7 +17,7 @@ import { QuerySolverService } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { HistoryService } from '../services/history/HistoryService';
 import { getShell } from '../terminal/utils/shell';
-import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest, ToolUseResult } from '../types';
+import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
@@ -38,11 +38,11 @@ interface ToolUseApprovalStatus {
 export class ChatManager {
   private readonly querySolverService = new QuerySolverService(this.context, this.outputChannel, this.backendClient);
   private sidebarProvider?: SidebarProvider; // Optional at first
-  private historyService = new HistoryService();
-  private focusChunksService = new FocusChunksService();
-  private authService = new AuthService();
+  private readonly historyService = new HistoryService();
+  private readonly focusChunksService = new FocusChunksService();
+  private readonly authService = new AuthService();
   private currentAbortController: AbortController | null = null;
-  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public _onToolUseApprove = new vscode.EventEmitter<{
     toolUseId: string;
@@ -51,9 +51,10 @@ export class ChatManager {
   }>();
   public onTerminalApprove = this._onTerminalApprove.event;
   public onToolUseApprovalEvent = this._onToolUseApprove.event;
-  private terminalExecutor: TerminalExecutor;
+  private readonly terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
+  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
   // private mcpManager: MCPManager;
 
   onStarted: () => void = () => {};
@@ -67,10 +68,12 @@ export class ChatManager {
     private readonly usageTrackingManager: UsageTrackingManager,
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly backendClient: BackendClient,
+    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
+    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
   }
 
   // Method to set the sidebar provider later
@@ -1263,7 +1266,7 @@ export class ChatManager {
     this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
 
     try {
-      const result = await fetchRelevantChunks({
+      const result = await this.relevantCodeSearcherToolService.runTool({
         repo_path: repoPath,
         query: query,
         focus_files: [], // Explicitly empty based on original logic
