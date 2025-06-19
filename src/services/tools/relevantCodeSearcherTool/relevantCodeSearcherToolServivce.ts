@@ -52,6 +52,6 @@ export class RelevantCodeSearcherToolService {
       this.readRelevantChunkResponse(messageData, resolver, rejector);
     });
     await this.binaryClient.getRelevantChunks.sendMessageWithRetry(params);
-    return result;
+    return await result;
   }
 }
