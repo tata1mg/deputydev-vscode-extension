@@ -8,11 +8,11 @@ import * as path from 'node:path';
 import * as fs from 'fs';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { Logger } from '../utilities/Logger';
-import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { SESSION_TYPE } from '../constants';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { SearchTerm, UsageTrackingRequest } from '../types';
+import { SearchTerm } from '../types';
 import { AuthService } from '../services/auth/AuthService';
 import { DiffManager } from '../diff/diffManager';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
@@ -51,21 +51,21 @@ function isReadOnly(filePath: string): boolean {
 }
 
 export class InlineChatEditManager {
-  private inlineEditService = new InlineEditService();
+  private readonly inlineEditService = new InlineEditService();
   private range: vscode.Range | undefined;
   private editor: vscode.TextEditor | undefined;
   private startLineOfSelectedText: number | undefined;
-  private endLineOfSelectedText: number | undefined;
-  private context: vscode.ExtensionContext;
-  private outputChannel: vscode.LogOutputChannel;
-  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private readonly context: vscode.ExtensionContext;
+  private readonly outputChannel: vscode.LogOutputChannel;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private selected_text: string | undefined;
   private focus_chunks: string[] | undefined;
   private file_path: string | undefined;
   private focus_files: string[] | undefined;
   private active_repo: string | undefined;
   private relative_file_path: string | undefined;
-  private authService = new AuthService();
+  private readonly authService = new AuthService();
+  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
 
   constructor(
     context: vscode.ExtensionContext,
@@ -76,12 +76,14 @@ export class InlineChatEditManager {
     private readonly diffManager: DiffManager,
     private readonly usageTrackingManager: UsageTrackingManager,
     private readonly errorTrackingManager: ErrorTrackingManager,
+    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
   ) {
     this.context = context;
     this.outputChannel = outputChannel;
     this.logger = SingletonLogger.getInstance();
     this.usageTrackingManager = usageTrackingManager;
     this.errorTrackingManager = errorTrackingManager;
+    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
   }
 
   public async inlineChatEditQuickFixes() {
@@ -234,7 +236,6 @@ export class InlineChatEditManager {
 
       // Get the start and end positions of the selection
       this.startLineOfSelectedText = selection.start.line; // Start line number
-      this.endLineOfSelectedText = selection.end.line; // End line number
 
       // Create a range using the start and end positions
       // Clamp to 0 so we don't go out of bounds at top of file
@@ -322,7 +323,7 @@ export class InlineChatEditManager {
     switch (payload.content.tool_name) {
       case 'related_code_searcher': {
         try {
-          const result = await fetchRelevantChunks({
+          const result = await this.relevantCodeSearcherToolService.runTool({
             repo_path: this.active_repo,
             query: payload.content.tool_input.search_query,
             focus_files: [],

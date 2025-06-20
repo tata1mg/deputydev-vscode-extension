@@ -1,13 +1,11 @@
-import { getSessionId, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
+import { getSessionId, getIsEmbeddingDoneForActiveRepo } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
-import { RawData } from 'ws';
-import { BaseWebSocketClient } from '../../clients/baseClients/baseWebsocketClient';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
-import { CLIENT_VERSION } from '../../config';
+import { BackendClient } from '../../clients/backendClient';
 
 interface StreamEvent {
   type: string;
@@ -15,24 +13,22 @@ interface StreamEvent {
 }
 
 export class QuerySolverService {
-  private logger: ReturnType<typeof SingletonLogger.getInstance>;
-  private context: vscode.ExtensionContext;
-  private DD_HOST_WS: string;
-  private QUERY_SOLVER_ENDPOINT: string;
-  private referenceManager: ReferenceManager;
-  private outputChannel: vscode.LogOutputChannel;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private readonly context: vscode.ExtensionContext;
+  private readonly referenceManager: ReferenceManager;
+  private readonly outputChannel: vscode.LogOutputChannel;
+  private readonly backendClient: BackendClient;
 
-  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
     this.outputChannel = outputChannel;
     this.context = context;
-    const configData = this.context.workspaceState.get('essentialConfigData') as any;
+    const configData = this.context.workspaceState.get('essentialConfigData');
     if (!configData) {
       throw new Error('Config data not found in workspace state');
     }
-    this.DD_HOST_WS = configData.DD_HOST_WS;
-    this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
     this.referenceManager = new ReferenceManager(context, this.outputChannel);
+    this.backendClient = backendClient;
   }
 
   public async *querySolver(payload: Record<string, any>, signal?: AbortSignal): AsyncIterableIterator<any> {
@@ -46,13 +42,11 @@ export class QuerySolverService {
     } catch (err) {
       if (!firstAttemptYielded) {
         this.logger.warn('querySolver failed...', err);
-        // console.warn("⚠️ querySolver failed on first attempt, retrying once...", err);
         await new Promise((res) => setTimeout(res, 200)); // small delay before retry
         for await (const event of this._runQuerySolverAttempt(payload, signal)) {
           yield event;
         }
       } else {
-        // console.error("⚠️ querySolver failed after first attempt", err);
         this.logger.error('querySolver failed', err);
         throw err;
       }
@@ -65,11 +59,9 @@ export class QuerySolverService {
   ): AsyncIterableIterator<any> {
     const authService = new AuthService();
     let authToken = await authService.loadAuthToken();
-    if (!authToken) {
-      throw new Error('Missing auth token. Ensure user is logged in.');
-    }
 
     const currentSessionId = getSessionId();
+    payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;
@@ -79,9 +71,8 @@ export class QuerySolverService {
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
 
-    const handleMessage = (event: RawData): 'RESOLVE' | 'REJECT' | 'WAIT' | 'REJECT_AND_RETRY' => {
+    const handleMessage = (messageData: any): void => {
       try {
-        const messageData = JSON.parse(event.toString());
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
             refreshCurrentToken({
@@ -90,72 +81,51 @@ export class QuerySolverService {
           }
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
-          return 'RESOLVE';
+          this.backendClient.querySolver.close();
+          return;
         } else if (messageData.type === 'STREAM_ERROR') {
-          if (messageData.status == 'NOT_VERIFIED') {
-            streamError = new Error('Session not verified');
-            sendNotVerified();
-            return 'REJECT_AND_RETRY';
-          } else if (messageData.status == 'INVALID_CLIENT_VERSION') {
-            this.logger.error('Invalid client version in querysolver WebSocket stream');
-            streamError = new Error('Invalid client version');
-            sendForceUpgrade({
-              url: messageData.message.client_download_link,
-              upgradeVersion: messageData.message.upgrade_version,
-              currentVersion: CLIENT_VERSION,
-            });
-            return 'REJECT';
+          if (messageData.status) {
+            streamError = new Error(messageData.status);
+            this.backendClient.querySolver.close();
+            return;
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData);
-          return 'REJECT';
+          this.backendClient.querySolver.close();
+          return;
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
-        // console.error("Error parsing WebSocket message:", error);
-        this.logger.error('Error parsing querysolver WebSocket message');
-        // console.error("❌ Error parsing WebSocket message:", error);
-        return 'REJECT';
+        this.logger.error('Error parsing querysolver WebSocket message', error);
+        this.backendClient.querySolver.close();
       }
-      return 'WAIT';
     };
 
-    let websocketClient = new BaseWebSocketClient(
-      this.DD_HOST_WS,
-      this.QUERY_SOLVER_ENDPOINT,
-      authToken,
-      handleMessage,
-      {
-        ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-        'X-Session-Type': SESSION_TYPE,
-      },
-    );
-    websocketClient
-      .send(finalPayload)
-      .then(() => websocketClient.close())
-      .catch((error) => {
-        // console.error("Error sending message to WebSocket:", error);
-        streamError = error;
-        websocketClient.close();
-      });
+    // call the querySolver websocket endpoint
+    try {
+      this.backendClient.querySolver.onMessage.on('message', handleMessage);
+      console.log('Sending querySolver payload:', finalPayload);
+      await this.backendClient.querySolver.sendMessageWithRetry(finalPayload);
+      console.log('querySolver WebSocket stream started successfully');
+    } catch (error: any) {
+      console.log('Error calling querySolver endpoint:', error);
+      streamError = error;
+    }
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        // console.warn('querySolver stream aborted by user');
-        websocketClient.close();
+        this.backendClient.querySolver.close();
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        // this.logger.error("Error in querysolver WebSocket stream:", streamError);
-        // console.error("Error in querysolver WebSocket stream:", streamError);
-        websocketClient.close();
-        this.logger.info('Error in querysolver WebSocket stream:', streamError);
-        if (streamError === 'RETRY_NEEDED') {
-          this.logger.info('Error in querysolver WebSocket stream 1:', streamError);
+        this.backendClient.querySolver.close();
+        console.log('Error in querysolver WebSocket stream:', streamError);
+        if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
+          console.log('Session not verified, waiting for authentication...', isAuthenticated);
           // wait until the user is authenticated or 10 minutes have passed
           const startTime = Date.now();
           const maxWaitTime = 10 * 60 * 1000; // 10 minutes
@@ -167,33 +137,19 @@ export class QuerySolverService {
             throw new Error('Session not verified');
           }
           authToken = await authService.loadAuthToken();
-          websocketClient = new BaseWebSocketClient(
-            this.DD_HOST_WS,
-            this.QUERY_SOLVER_ENDPOINT,
-            authToken,
-            handleMessage,
-            {
-              ...(currentSessionId ? { 'X-Session-ID': currentSessionId.toString() } : {}),
-              'X-Session-Type': SESSION_TYPE,
-            },
-          );
-
-          websocketClient
-            .send(finalPayload)
-            .then(() => websocketClient.close())
-            .catch((error) => {
-              // console.error("Error sending message to WebSocket:", error);
-              streamError = error;
-              websocketClient.close();
-            });
-          continue;
+          streamDone = false;
+          streamError = null;
+          await this.backendClient.querySolver.sendMessageWithRetry({
+            ...finalPayload,
+            auth_token: authToken,
+          });
+          continue; // Retry the querySolver call
         }
 
         throw streamError;
       }
       if (signal?.aborted) {
-        // console.warn('querySolver aborted during loop');
-        websocketClient.close();
+        this.backendClient.querySolver.close();
         return;
       }
 
@@ -204,8 +160,10 @@ export class QuerySolverService {
       }
     }
 
-    websocketClient.close();
+    // Clean up the WebSocket connection
+    this.backendClient.querySolver.close();
   }
+
   /**
    * Ensure the outbound WebSocket message is ≤100 KB; if it is larger,
    * off-load it to S3 and return a lightweight envelope.
@@ -230,7 +188,7 @@ export class QuerySolverService {
         attachment_id,
       };
     } catch (err) {
-      this.logger.error('preparePayload: failed to off-load payload via ReferenceManager');
+      this.logger.error('preparePayload: failed to off-load payload via ReferenceManager', err);
       // Fallback: return original (backend may still reject if >128 KB)
       return original;
     }

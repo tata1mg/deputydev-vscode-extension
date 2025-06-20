@@ -240,8 +240,10 @@ export function showUserLogs() {
   return callCommand('show-logs', {});
 }
 
-export function sendRetryEmbedding() {
-  return callCommand('hit-retry-embedding', {});
+export function hitEmbedding(repoPath: string) {
+  if (repoPath) {
+    return callCommand('hit-embedding', { repoPath });
+  }
 }
 
 // terminal

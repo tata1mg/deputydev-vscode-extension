@@ -191,7 +191,8 @@ export function RetryChip({
       //   "Payload data just before sending:",
       //   JSON.stringify(errorData.payload_to_retry, null, 2)
       // );
-      const payload = errorData.payload_to_retry;
+      const payload: any = errorData.payload_to_retry;
+
       // Call sendChatMessage with the retry flag set to true,
       // passing the stored payload so that UI state updates are skipped.
       sendChatMessage('retry', [], () => {}, undefined, true, payload);
@@ -228,6 +229,7 @@ export function RetryChip({
 import { ChevronRight, ChevronDown } from 'lucide-react';
 import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
+import { useIndexingStore } from '@/stores/indexingDataStore';
 
 export function FileEditedChip({
   isToolUse,
