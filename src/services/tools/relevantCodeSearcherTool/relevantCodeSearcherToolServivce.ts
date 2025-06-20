@@ -1,3 +1,4 @@
+import { BaseWebsocketEndpoint } from '../../../clients/base/baseClient';
 import { BinaryClient } from '../../../clients/binaryClient';
 
 interface RelevantChunksParams {
@@ -22,20 +23,21 @@ export class RelevantCodeSearcherToolService {
     messageData: any,
     resolver: (value: any) => void,
     rejector: (reason?: any) => void,
+    socketConn: BaseWebsocketEndpoint
   ): void {
     try {
       // Check if the response is an array (relevant chunks)
       // Check if response has relevant_chunks key
       if (messageData.relevant_chunks && Array.isArray(messageData.relevant_chunks)) {
         resolver(messageData);
-        this.binaryClient.getRelevantChunks.close();
+        socketConn.close();
       } else {
         rejector(new Error('Unexpected response format'));
-        this.binaryClient.getRelevantChunks.close();
+        socketConn.close();
       }
     } catch (error) {
       rejector(error);
-      this.binaryClient.getRelevantChunks.close();
+      socketConn.close();
     }
   }
 
@@ -48,10 +50,12 @@ export class RelevantCodeSearcherToolService {
       rejector = reject;
     });
 
-    this.binaryClient.getRelevantChunks.onMessage.on('message', (messageData: any) => {
-      this.readRelevantChunkResponse(messageData, resolver, rejector);
+    const socketConn = this.binaryClient.getRelevantChunks();
+
+    socketConn.onMessage.on('message', (messageData: any) => {
+      this.readRelevantChunkResponse(messageData, resolver, rejector, socketConn);
     });
-    await this.binaryClient.getRelevantChunks.sendMessageWithRetry(params);
+    await socketConn.sendMessageWithRetry(params);
     return await result;
   }
 }

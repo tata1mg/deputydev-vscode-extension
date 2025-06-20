@@ -22,8 +22,8 @@ export class BinaryClient extends BaseClient {
   };
 
   // endpoints
-  public updateVectorDB!: BaseWebsocketEndpoint;
-  public getRelevantChunks!: BaseWebsocketEndpoint;
+  public updateVectorDB!: () => BaseWebsocketEndpoint;
+  public getRelevantChunks!: () => BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
     super(httpHost, wsHost, getAuthorizationHeader);

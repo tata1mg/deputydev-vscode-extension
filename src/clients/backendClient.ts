@@ -9,7 +9,7 @@ export class BackendClient extends BaseClient {
   };
 
   // endpoints
-  public querySolver!: BaseWebsocketEndpoint;
+  public querySolver!: () => BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
     super(httpHost, wsHost);

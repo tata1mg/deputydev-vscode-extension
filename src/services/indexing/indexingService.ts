@@ -1,5 +1,6 @@
 import { sendEmbeddingDoneMessage, sendProgress } from '../../utilities/contextManager';
 import { BinaryClient } from '../../clients/binaryClient';
+import { BaseWebsocketEndpoint } from '../../clients/base/baseClient';
 
 export interface UpdateVectorStoreParams {
   repo_path: string;
@@ -17,7 +18,9 @@ export class IndexingService {
 
   public async updateVectorStore(params: UpdateVectorStoreParams): Promise<{ status: string; error?: string }> {
     try {
-      await this.binaryClient.updateVectorDB.sendMessageWithRetry(params);
+      const socketConn = this.binaryClient.updateVectorDB();
+      await socketConn.sendMessageWithRetry(params);
+      socketConn.close();
       return { status: 'sent' };
     } catch (error: any) {
       return { status: 'failed', error: error.message };
@@ -28,6 +31,7 @@ export class IndexingService {
     messageData: any,
     resolver: (value: any) => void,
     rejecter: (reason?: any) => void,
+    socketConn: BaseWebsocketEndpoint
   ): void {
     try {
       if (messageData.task === 'EMBEDDING' && messageData.status === 'COMPLETED') {
@@ -37,7 +41,7 @@ export class IndexingService {
           repo_path: messageData.repo_path as string,
           progress: messageData.progress as number,
         });
-        this.binaryClient.updateVectorDB.close();
+        socketConn.close();
       } else if (messageData.task === 'INDEXING' && messageData.status === 'IN_PROGRESS') {
         sendProgress({
           task: messageData.task as string,
@@ -66,14 +70,14 @@ export class IndexingService {
           indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
           is_partial_state: messageData.is_partial_state as boolean,
         });
-        this.binaryClient.updateVectorDB.close();
+        socketConn.close();
         rejecter(new Error('Indexing failed'));
       } else if (messageData.error_message) {
-        this.binaryClient.updateVectorDB.close();
+        socketConn.close();
         rejecter(new Error(messageData.error_message));
       }
     } catch (error) {
-      this.binaryClient.updateVectorDB.close();
+      socketConn.close();
       rejecter(error);
     }
   }
@@ -101,15 +105,14 @@ export class IndexingService {
           rejecter = reject;
         });
 
-        this.binaryClient.updateVectorDB.onMessage.on('message', (messageData: any) => {
-          this.handleIndexingEvents(messageData, resolver, rejecter);
+        const socketConn = this.binaryClient.updateVectorDB();
+
+        socketConn.onMessage.on('message', (messageData: any) => {
+          this.handleIndexingEvents(messageData, resolver, rejecter, socketConn);
         });
 
-        const triggerResult = await this.updateVectorStore({ ...params, sync: true });
-
-        if (triggerResult.status === 'failed') {
-          throw new Error('Failed to update vector store' + (triggerResult.error ? `: ${triggerResult.error}` : ''));
-        }
+        // Send the initial message to start the indexing process
+        await socketConn.sendMessageWithRetry({...params, sync: true});
 
         return await result;
       } catch (error) {
