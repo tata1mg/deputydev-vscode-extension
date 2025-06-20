@@ -15,8 +15,6 @@ interface StreamEvent {
 export class QuerySolverService {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly context: vscode.ExtensionContext;
-  private readonly DD_HOST_WS: string;
-  private readonly QUERY_SOLVER_ENDPOINT: string;
   private readonly referenceManager: ReferenceManager;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly backendClient: BackendClient;
@@ -25,12 +23,10 @@ export class QuerySolverService {
     this.logger = SingletonLogger.getInstance();
     this.outputChannel = outputChannel;
     this.context = context;
-    const configData = this.context.workspaceState.get('essentialConfigData') as any;
+    const configData = this.context.workspaceState.get('essentialConfigData');
     if (!configData) {
       throw new Error('Config data not found in workspace state');
     }
-    this.DD_HOST_WS = configData.DD_HOST_WS;
-    this.QUERY_SOLVER_ENDPOINT = configData.QUERY_SOLVER_ENDPOINT;
     this.referenceManager = new ReferenceManager(context, this.outputChannel);
     this.backendClient = backendClient;
   }
