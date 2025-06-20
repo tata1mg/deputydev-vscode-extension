@@ -461,16 +461,6 @@ export function ChatUI() {
               </div>
             )}
 
-          {/* {activeRepo ? (
-            <div className="mb-[2px] w-full">
-              <ProgressBar progressBars={progressBars} />
-            </div>
-          ) : (
-            <div className="mb-[4px] w-full text-center text-sm">
-              To proceed, please import a project into your workspace!
-            </div>
-          )} */}
-
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
             {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
