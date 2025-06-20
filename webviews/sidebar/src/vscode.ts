@@ -10,21 +10,21 @@ import {
   ViewType,
   ChatReferenceItem,
   ProfileUiDiv,
-  ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
   Settings,
   URLListItem,
   MCPServer,
   ChangedFile,
-  S3Object,
+  IndexingProgressData,
+  EmbeddingProgressData,
 } from '@/types';
 import {
   logToOutput,
-  getSessions,
   sendWorkspaceRepoChange,
   getGlobalState,
   rejectAllChangesInSession,
+  hitEmbedding,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -34,6 +34,7 @@ import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
 import { useActiveFileStore } from './stores/activeFileStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
+import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
 
@@ -272,7 +273,28 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
+
+  // Get current repos before updating
+  const currentRepos = useWorkspaceStore.getState().workspaceRepos;
+  const currentRepoPaths = new Set(currentRepos.map((repo) => repo.repoPath));
+
+  // Find new repos that weren't there before
+  const newRepos = repos.filter((repo) => !currentRepoPaths.has(repo.repoPath));
+
+  // Update the stores
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
+  useIndexingStore.getState().initializeRepos(repos);
+
+  const inProgressRepos = useIndexingStore
+    .getState()
+    .indexingProgressData.filter((repo) => repo.status === 'In Progress');
+
+  // Hit embedding for new repos
+  if (newRepos.length > 0 && newRepos.length != repos.length && inProgressRepos.length == 0) {
+    newRepos.forEach((newRepo) => {
+      hitEmbedding(newRepo.repoPath);
+    });
+  }
 });
 
 addCommandEventListener('sessions-history', ({ data }: any) => {
@@ -423,27 +445,27 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
 });
 
-addCommandEventListener('progress-bar', ({ data }) => {
-  const progressBarData = data as ProgressBarData;
-  const incomingProgressBarRepo = progressBarData.repo;
-  const currentProgressBars = useChatStore.getState().progressBars;
-  // Check if the repo is present in the currentProgressBars array
-  const isRepoPresent = currentProgressBars.some((bar) => bar.repo === incomingProgressBarRepo);
-  if (!isRepoPresent) {
-    // If the repo is not present, add it to the array
-    useChatStore.setState({
-      progressBars: [...currentProgressBars, progressBarData],
-    });
-  } else {
-    // If the repo is present, update the progress
-    useChatStore.setState({
-      progressBars: currentProgressBars.map((bar) =>
-        bar.repo === incomingProgressBarRepo
-          ? { ...progressBarData } // Replace the existing bar with progressBarData
-          : bar
-      ),
-    });
+addCommandEventListener('indexing-progress', ({ data }) => {
+  const response = data as IndexingProgressData;
+  useIndexingStore.getState().updateOrAppendIndexingData(response);
+  const indexingProgressData = useIndexingStore.getState().indexingProgressData;
+
+  // sequential embedding
+  // If current embedding is completed, find next idle repo and trigger embedding
+  if (response.status === 'Completed') {
+    const nextIdleRepo = indexingProgressData.find(
+      (item) => item.status === 'Idle' && item.repo_path !== response.repo_path
+    );
+
+    if (nextIdleRepo) {
+      hitEmbedding(nextIdleRepo.repo_path);
+    }
   }
+});
+
+addCommandEventListener('embedding-progress', ({ data }) => {
+  const response = data as EmbeddingProgressData;
+  useIndexingStore.getState().updateOrAppendEmbeddingData(response);
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {

@@ -21,12 +21,12 @@ import {
   ChatType,
   ChatUserMessage,
   LLMModels,
-  ProgressBarData,
   S3Object,
 } from '@/types';
 import pick from 'lodash/pick';
 import { persistGlobalStorage, persistStorage } from './lib';
 import { useSettingsStore } from './settingsStore';
+import { useIndexingStore } from './indexingDataStore';
 import { useActiveFileStore } from './activeFileStore';
 
 // =============================================================================
@@ -91,7 +91,7 @@ export const useChatStore = create(
         ChatAutocompleteOptions: initialAutocompleteOptions,
         chipIndexBeingEdited: -1,
         lastToolUseResponse: undefined as { tool_use_id: string; tool_name: string } | undefined,
-        progressBars: [] as ProgressBarData[], // Todo: move these to separate store(s)
+        forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
         enhancingUserQuery: false,

@@ -6,6 +6,7 @@ import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { UpdateVectorStoreParams, IndexingService } from '../services/indexing/indexingService';
+import { IndexingProgressData } from '../types';
 
 export class WorkspaceManager {
   private readonly workspaceRepos: Map<string, string> = new Map();
@@ -203,15 +204,17 @@ export class WorkspaceManager {
    */
   private async sendWebSocketUpdate(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
-    const chatStorage = this.context.workspaceState.get('chat-storage') as string;
-    const parsedChatStorage = JSON.parse(chatStorage);
-    const progressBars = parsedChatStorage?.state?.progressBars as { repo: string; progress: number; status: string }[];
+    const indexingDataStorage = this.context.workspaceState.get('indexing-data-storage') as string;
+    const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
+    const indexingProgressData = parsedIndexingDataStorage?.state?.indexingProgressData as IndexingProgressData[];
 
-    const repoSpecificEmbeddingProgress = progressBars.find((bar) => bar.repo === this.activeRepo);
-    if (repoSpecificEmbeddingProgress) {
+    const repoSpecificIndexingProgress = indexingProgressData.find(
+      (progress) => progress.repo_path === this.activeRepo,
+    );
+    if (repoSpecificIndexingProgress) {
       if (
-        repoSpecificEmbeddingProgress.status === 'In Progress' ||
-        repoSpecificEmbeddingProgress.status === 'Completed'
+        repoSpecificIndexingProgress.status === 'In Progress' ||
+        repoSpecificIndexingProgress.status === 'Completed'
       ) {
         return;
       }

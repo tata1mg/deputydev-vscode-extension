@@ -1,4 +1,4 @@
-import { sendProgress } from '../../utilities/contextManager';
+import { sendEmbeddingDoneMessage, sendProgress } from '../../utilities/contextManager';
 import { BinaryClient } from '../../clients/binaryClient';
 
 export interface UpdateVectorStoreParams {
@@ -31,25 +31,41 @@ export class IndexingService {
   ): void {
     try {
       console.log('Received message from updateVectorDB:', messageData);
-      if (messageData.status === 'In Progress') {
-        sendProgress({
-          repo: messageData.repo_path as string,
-          progress: messageData.progress as number,
+      if (messageData.task === 'Embedding' && messageData.status === 'Completed') {
+        sendEmbeddingDoneMessage({
+          task: messageData.task as string,
           status: messageData.status as string,
-        });
-      } else if (messageData.status === 'Completed') {
-        sendProgress({
-          repo: messageData.repo_path as string,
+          repo_path: messageData.repo_path as string,
           progress: messageData.progress as number,
-          status: messageData.status as string,
         });
         this.binaryClient.updateVectorDB.close();
-        resolver({ status: 'completed' });
-      } else if (messageData.status === 'Failed') {
+      } else if (messageData.task === 'Indexing' && messageData.status === 'In Progress') {
         sendProgress({
-          repo: messageData.repo_path as string,
-          progress: messageData.progress as number,
+          task: messageData.task as string,
           status: messageData.status as string,
+          repo_path: messageData.repo_path as string,
+          progress: messageData.progress as number,
+          indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+          is_partial_state: messageData.is_partial_state as boolean,
+        });
+      } else if (messageData.task === 'Indexing' && messageData.status === 'Completed') {
+        sendProgress({
+          task: messageData.task as string,
+          status: messageData.status as string,
+          repo_path: messageData.repo_path as string,
+          progress: messageData.progress as number,
+          indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+          is_partial_state: messageData.is_partial_state as boolean,
+        });
+        resolver({ status: 'completed' });
+      } else if (messageData.task === 'Indexing' && messageData.status === 'Failed') {
+        sendProgress({
+          task: messageData.task as string,
+          status: messageData.status as string,
+          repo_path: messageData.repo_path as string,
+          progress: messageData.progress as number,
+          indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+          is_partial_state: messageData.is_partial_state as boolean,
         });
         this.binaryClient.updateVectorDB.close();
         rejecter(new Error('Indexing failed'));
@@ -73,9 +89,12 @@ export class IndexingService {
     while (attempts < maxAttempts) {
       try {
         sendProgress({
-          repo: params.repo_path,
-          progress: 0,
+          task: 'Indexing',
           status: 'In Progress',
+          repo_path: params.repo_path,
+          progress: 0,
+          indexing_status: [],
+          is_partial_state: false,
         });
 
         const result = new Promise((resolve, reject) => {
@@ -102,9 +121,12 @@ export class IndexingService {
         attempts++;
         if (attempts === maxAttempts) {
           sendProgress({
-            repo: params.repo_path,
-            progress: 0,
+            task: 'Indexing',
             status: 'Failed',
+            repo_path: params.repo_path,
+            progress: 0,
+            indexing_status: [],
+            is_partial_state: false,
           });
           throw new Error(`Failed to update vector store after ${maxAttempts} attempts: ${error}`);
         }
