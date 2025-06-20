@@ -17,7 +17,7 @@ import {
   CirclePlay,
   ChevronDown,
   RotateCw,
-  FolderGit2,
+  FolderCode,
 } from 'lucide-react';
 import { Settings, URLListItem, SaveUrlRequest } from '../../types';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -408,16 +408,6 @@ export function CustomLoader() {
   );
 }
 
-interface ProgressData {
-  repo: string;
-  progress: number;
-  status: 'Completed' | 'Failed' | 'In Progress';
-}
-
-interface IndexingProgressProps {
-  progress: ProgressData[];
-}
-
 const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, repoPath }) => {
   switch (status) {
     case 'In Progress':
@@ -484,19 +474,22 @@ const IndexingArea: React.FC = () => {
               >
                 <div className="flex h-12 items-center justify-between p-2">
                   <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <FolderGit2 className="h-5 w-5 flex-shrink-0" />
+                    <FolderCode className="h-5 w-5 flex-shrink-0" />
                     <div className="min-w-0 truncate">{repoName}</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
-                      <span className="text-right text-sm text-gray-600 dark:text-gray-400">
+                      {progress.status === 'In Progress' && (
+                        <span className="text-xs text-gray-500">Indexed</span>
+                      )}
+                      <span className="text-right text-xs text-gray-500 dark:text-gray-400">
                         {progress.status === 'Completed'
                           ? 'Indexed'
                           : progress.status === 'Failed'
                             ? 'Failed Indexing'
                             : progress.status === 'Idle'
                               ? 'Index'
-                              : `${Math.round(progress.progress)}%`}
+                              : `${completedFiles}/${totalFiles} files`}
                       </span>
                       {progress.status === 'Completed' && (
                         <span className="text-xs text-gray-500">
