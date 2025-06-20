@@ -21,17 +21,17 @@ export default function ChangedFilesBar() {
   });
 
   return (
-    <div className="flex justify-center pl-3 pr-3">
+    <div className="flex justify-center rounded-t-md pl-3 pr-3">
       <div
         ref={changedFilesBar}
-        className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
+        className="flex w-full flex-col rounded-t-md border border-b-[0.5px] border-[var(--vscode-editorWidget-border)]"
         style={{
           backgroundColor: 'var(--vscode-editor-background)',
         }}
       >
         {showAllChangedFiles && (
           <div
-            className="flex max-h-[150px] overflow-y-auto p-2"
+            className="flex max-h-[150px] overflow-y-auto rounded-t-md p-2"
             style={{
               backgroundColor: 'var(--vscode-editor-background)',
             }}

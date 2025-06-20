@@ -4,7 +4,6 @@ import { AuthenticationManager } from './auth/AuthenticationManager';
 import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
-import { WebviewFocusListener } from './code_syncing/WebviewFocusListener';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
 import { getBinaryHost } from './config';
 import { DiffManager } from './diff/diffManager';
@@ -21,6 +20,7 @@ import { ConfigManager } from './utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
   deleteSessionId,
+  sendVerified,
   setExtensionContext,
   setSidebarProvider,
 } from './utilities/contextManager';
@@ -42,6 +42,8 @@ import { ContinueNewWorkspace } from './terminal/workspace/ContinueNewWorkspace'
 import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { API_ENDPOINTS } from './services/api/endpoints';
 import { binaryApi } from './services/api/axios';
+import { ActiveFileListener } from './code_syncing/ActiveFileListener';
+import { setUserSystemData } from './utilities/getSystemInformation';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isNotCompatibleCheck = isNotCompatible();
@@ -49,7 +51,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
   setExtensionContext(context);
-
+  void setUserSystemData(context);
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
   const ENABLE_OUTPUT_CHANNEL = false;
@@ -133,9 +135,10 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     sidebarProvider,
   );
-
+  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
+  new ActiveFileListener(sidebarProvider, workspaceManager);
 
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
   context.subscriptions.push(pinger);
@@ -153,9 +156,9 @@ export async function activate(context: vscode.ExtensionContext) {
         if (status) {
           configManager.fetchAndStoreConfig();
           sidebarProvider.initiateBinary();
+          sendVerified();
           logger.info('User is authenticated.');
           outputChannel.info('User is authenticated.');
-          sidebarProvider.sendMessageToSidebar('AUTHENTICATED');
           vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
           sidebarProvider.setViewType('chat');
         } else {
@@ -210,10 +213,6 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand('workbench.action.closeWindow');
     }),
   );
-
-  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
-
-  new WebviewFocusListener(context, sidebarProvider, workspaceManager, outputChannel);
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 

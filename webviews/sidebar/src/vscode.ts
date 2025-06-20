@@ -21,7 +21,6 @@ import {
 } from '@/types';
 import {
   logToOutput,
-  getSessions,
   sendWorkspaceRepoChange,
   getGlobalState,
   rejectAllChangesInSession,
@@ -33,8 +32,11 @@ import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
+import { useActiveFileStore } from './stores/activeFileStore';
 import { useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
+import { useForceUpgradeStore } from './stores/forceUpgradeStore';
+import { useAuthStore } from './stores/authStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -117,12 +119,8 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === 'get-workspace-state' || command === 'get-global-state') {
-    // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
-
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // console.log("callCommand: 0.5 seconds elapsed, now sending workspace state request...");
-
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
 
@@ -413,7 +411,8 @@ addCommandEventListener('image-upload-progress', (event) => {
 
 addCommandEventListener('uploaded-image-key', (event) => {
   const { data } = event as { data: { key: string; get_url: string } };
-  useChatStore.setState({ s3Object: data });
+  const currentS3Objects = useChatStore.getState().s3Objects;
+  useChatStore.setState({ s3Objects: [...currentS3Objects, data] });
 });
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
@@ -434,6 +433,8 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     index: lengthOfCurrentEditorReference,
     type: 'code_snippet',
     keyword: response.keyword,
+    // value is file name which we generate from response.path
+    value: response.path.split('/').pop() || '',
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
@@ -442,7 +443,6 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
-  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
 addCommandEventListener('indexing-progress', ({ data }) => {
@@ -473,9 +473,10 @@ addCommandEventListener('profile-ui-data', ({ data }) => {
 });
 
 addCommandEventListener('force-upgrade-data', ({ data }) => {
-  useChatStore.setState({
-    forceUpgradeData: data as { url: string; upgradeVersion: string },
+  useForceUpgradeStore.setState({
+    forceUpgradeData: data as { url: string; upgradeVersion: string; currentVersion: string },
   });
+  useForceUpgradeStore.setState({ showForceUpgrade: true });
   useExtensionStore.setState({ viewType: 'force-upgrade' });
 });
 
@@ -786,4 +787,35 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
   });
 
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
+});
+
+addCommandEventListener('active-file-change', ({ data }) => {
+  const activeFileChangeData = data as {
+    fileUri: string | undefined;
+    startLine?: number;
+    endLine?: number;
+  };
+  const activeFileUri = activeFileChangeData.fileUri;
+  const startLine = activeFileChangeData.startLine;
+  const endLine = activeFileChangeData.endLine;
+  if (activeFileUri) {
+    useActiveFileStore.setState({ activeFileUri, startLine, endLine });
+  } else {
+    useActiveFileStore.setState({
+      activeFileUri: undefined,
+      startLine: undefined,
+      endLine: undefined,
+    });
+  }
+});
+
+addCommandEventListener('auth-response', ({ data }) => {
+  const response = data as string;
+  if (response === 'AUTHENTICATED') {
+    useAuthStore.setState({ isAuthenticated: true });
+    useExtensionStore.setState({ viewType: 'chat' });
+  } else if (response === 'NOT_VERIFIED') {
+    useAuthStore.setState({ isAuthenticated: false });
+    useExtensionStore.setState({ viewType: 'auth' });
+  }
 });

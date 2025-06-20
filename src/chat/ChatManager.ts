@@ -28,6 +28,7 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -303,7 +304,7 @@ export class ChatManager {
       }
       payload.os_name = await getOSName();
       payload.shell = getShell();
-      payload.vscode_env = await getEnvironmentDetails(true);
+      payload.vscode_env = await getEnvironmentDetails(true, payload);
 
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
@@ -717,6 +718,7 @@ export class ChatManager {
       if (response.status === 200) {
         this.outputChannel.info('Web Search API call successful.');
         this.outputChannel.info(`Web Search API result: ${JSON.stringify(response.data)}`);
+        refreshCurrentToken(response.headers);
         return response.data;
       }
     } catch (error: any) {
@@ -758,6 +760,13 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
+    class UnknownToolError extends Error {
+      constructor(toolName: string) {
+        super(`Unknown tool requested: ${toolName}`);
+        this.name = 'UnknownToolError';
+      }
+    }
+
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
       this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
@@ -1034,46 +1043,7 @@ export class ChatManager {
             rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
             break;
           default: {
-            this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
-            // Treat as completed but with a message indicating it's unknown
-            rawResult = {
-              message: `Tool '${toolRequest.tool_name}' is not implemented.`,
-            };
-            // We will still send TOOL_USE_RESULT, but won't recurse apiChat
-            status = 'completed';
-            resultForUI = rawResult; // Send the message back
-            // Send TOOL_USE_RESULT immediately as no continuation payload needed
-            const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
-            if (detectedClientTool) {
-              chunkCallback({
-                name: 'TOOL_CHIP_UPSERT',
-                data: {
-                  toolRequest: {
-                    requestData: parsedContent,
-                    toolName: toolRequest.tool_name,
-                    toolMeta: {
-                      serverName: detectedClientTool.tool_metadata.server_id,
-                      toolName: detectedClientTool.tool_metadata.tool_name,
-                    },
-                    requiresApproval: !detectedClientTool.auto_approve,
-                  },
-                  toolResponse: resultForUI,
-                  toolRunStatus: 'completed',
-                  toolUseId: toolRequest.tool_use_id,
-                },
-              });
-            } else {
-              chunkCallback({
-                name: 'TOOL_USE_RESULT',
-                data: {
-                  tool_name: toolRequest.tool_name,
-                  tool_use_id: toolRequest.tool_use_id,
-                  result_json: resultForUI,
-                  status: status,
-                },
-              });
-            }
-            return; // Exit _runTool early for unknown tools
+            throw new UnknownToolError(toolRequest.tool_name);
           }
         }
       }
@@ -1147,6 +1117,12 @@ export class ChatManager {
       chunkCallback(toolUseResult);
       await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
+      // handle case where unknown tool is requested
+      if (error instanceof UnknownToolError) {
+        this.outputChannel.error(`Unknown tool requested: ${error.message}`);
+        return;
+      }
+
       // raw error in json
       this.logger.error(`Raw error new: ${JSON.stringify(error)}`);
       let errorResponse = error.response?.data;

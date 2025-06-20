@@ -40,7 +40,7 @@ export class WriteToFileTool {
     const { parsedContent, chunkCallback, toolRequest, messageId } = args;
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
-    const diff = wrapContentInDiffBlock(parsedContent.diff);
+    const diff = parsedContent.diff;
 
     if (sessionId) {
       this.usageTrackingManager.trackUsage({
@@ -58,7 +58,7 @@ export class WriteToFileTool {
       const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
         {
           path: parsedContent.path,
-          search_and_replace_blocks: diff,
+          directReplace: diff,
         },
         activeRepo,
         {
@@ -114,14 +114,4 @@ export class WriteToFileTool {
       };
     }
   }
-}
-/**
- * Wraps the provided file content in a SEARCH_AND_REPLACE diff block,
- * which adds the content at the top of the file.
- *
- * @param content - The file content to insert
- * @returns The diff block string
- */
-function wrapContentInDiffBlock(content: string): string {
-  return ['<<<<<<< SEARCH', '=======', content, '>>>>>>> REPLACE'].join('\n');
 }
