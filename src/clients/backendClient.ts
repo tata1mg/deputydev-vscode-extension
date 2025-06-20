@@ -18,6 +18,9 @@ export class BackendClient extends BaseClient {
   }
 
   initEndpoints() {
-    this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER'],undefined,[ForceUpgradeHandler, UnauthenticatedHandler]);
+    this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER'], undefined, [
+      ForceUpgradeHandler,
+      UnauthenticatedHandler,
+    ]);
   }
 }
