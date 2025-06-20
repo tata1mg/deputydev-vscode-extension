@@ -549,7 +549,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
         this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
 
-        if (response.data.status === 'Completed') {
+        if (response.data.status === 'COMPLETED') {
           this.outputChannel.info('Binary initialization completed successfully.');
           this.logger.info('Binary initialization completed successfully.');
           break;
@@ -570,7 +570,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       }
     }
 
-    if (response?.data?.status !== 'Completed') return;
+    if (response?.data?.status !== 'COMPLETED') return;
     // Start services regardless of activeRepo status
     this.startPollingMcpServers();
     this.syncMcpServers();
