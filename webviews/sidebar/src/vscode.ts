@@ -458,7 +458,6 @@ addCommandEventListener('indexing-progress', ({ data }) => {
     );
 
     if (nextIdleRepo) {
-      console.log('*********hitting sequential embedding');
       hitEmbedding(nextIdleRepo.repo_path);
     }
   }
@@ -699,11 +698,6 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
     }
   });
   useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
-
-  console.log(
-    '**************changed files**************',
-    useChangedFilesStore.getState().changedFiles
-  );
 });
 
 addCommandEventListener('all-file-changes-finalized', ({ data }) => {
