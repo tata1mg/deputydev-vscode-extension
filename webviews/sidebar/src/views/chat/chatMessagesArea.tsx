@@ -20,9 +20,12 @@ import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory'
 import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
-import ReferenceChip from './referencechip';
+import ReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { ImageWithDownload } from './chatElements/imageView';
+import QueryReferenceChip from './chatElements/autocomplete/referencechip';
+import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
+import { AskUserInput } from './chatElements/Tools/askUserInput';
 
 export function ChatArea() {
   const {
@@ -56,46 +59,69 @@ export function ChatArea() {
                 }
               }
               return (
-                <div key={index} className="flex items-start gap-2 rounded-md p-2">
-                  <div className="flex h-7 flex-shrink-0 items-center justify-center">
-                    <CircleUserRound className="text-neutral-600" size={20} />
-                  </div>
-                  <div
-                    className="max-w-full flex-1 overflow-hidden rounded-lg border p-3"
-                    style={{
-                      backgroundColor: 'var(--vscode-editor-background)',
-                      borderColor: 'var(--vscode-editorWidget-border)',
-                    }}
-                  >
-                    <p className="space-x-1 space-y-1">
-                      {msg.referenceList?.map((reference, chipIndex) => (
-                        <ReferenceChip
-                          key={chipIndex}
-                          chipIndex={chipIndex}
-                          initialText={reference.keyword}
-                          onDelete={() => {}}
-                          setShowAutoComplete={() => {}}
-                          displayOnly={true}
-                          path={reference.path}
-                          chunks={reference.chunks}
-                          url={reference.url}
-                        />
-                      ))}
+                <div key={index} className="flex flex-col gap-1 rounded-md p-2">
+                  {/* ── 1️⃣ First row: avatar + message bubble ─────────────────────────────── */}
+                  <div className="flex items-start gap-2">
+                    <div className="flex h-7 flex-shrink-0 items-center justify-center">
+                      <CircleUserRound className="text-neutral-600" size={20} />
+                    </div>
 
-                      {/* Embed image inside message bubble */}
-                      {msg.s3Reference && msg.s3Reference.get_url && (
-                        <ImageWithDownload
-                          src={msg.s3Reference.get_url}
-                          alt="Attached content"
-                          Key={msg.s3Reference.key}
-                        />
+                    <div className="max-w-full flex-1 overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
+                      {/* attachments (optional) */}
+                      {msg.s3References?.length > 0 && (
+                        <div className="mb-2 overflow-x-auto">
+                          <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
+                            {msg.s3References.map(
+                              (s3Ref, imgIndex) =>
+                                s3Ref.get_url && (
+                                  <ImageWithDownload
+                                    key={imgIndex}
+                                    src={s3Ref.get_url}
+                                    alt={`Attached content ${imgIndex + 1}`}
+                                    Key={s3Ref.key}
+                                    thumbnail
+                                  />
+                                )
+                            )}
+                          </div>
+                        </div>
                       )}
 
-                      <span className="m-0 whitespace-pre-wrap break-words p-0 font-sans text-[var(--vscode-editor-foreground)]">
+                      {/* main text */}
+                      <span className="whitespace-pre-wrap break-words font-sans text-[var(--vscode-editor-foreground)]">
                         {msg.content.text}
                       </span>
-                    </p>
+                    </div>
                   </div>
+
+                  {/* ── 2️⃣ Second row: reference chips (only rendered if needed) ──────────── */}
+                  {(msg.activeFileReference || (msg.referenceList?.length ?? 0) > 0) && (
+                    <div className="flex items-start gap-2">
+                      {/* empty spacer keeps left edge aligned with the bubble,                  */}
+                      {/* matching avatar width + gap from row 1                                */}
+                      <div className="flex w-[21px] flex-shrink-0" />
+
+                      {/* chip container */}
+                      <div className="flex flex-wrap items-center gap-1">
+                        {msg.activeFileReference && (
+                          <ActiveFileReferenceInChat
+                            activeFileReference={msg.activeFileReference}
+                          />
+                        )}
+
+                        {msg.referenceList?.map((reference, chipIndex) => (
+                          <QueryReferenceChip
+                            key={chipIndex}
+                            value={reference.value}
+                            type={reference.type}
+                            path={reference.path}
+                            chunks={reference.chunks}
+                            url={reference.url}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -154,6 +180,9 @@ export function ChatArea() {
             let contentComponent: JSX.Element;
 
             switch (msg.content.tool_name) {
+              case 'ask_user_input':
+                contentComponent = <AskUserInput input={msg.content.input_params_json} />;
+                break;
               case 'execute_command':
                 contentComponent = (
                   <TerminalPanel

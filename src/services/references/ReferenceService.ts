@@ -11,6 +11,7 @@ import * as path from 'path';
 import FormData from 'form-data';
 import { getMainConfig } from '../../config/configSetGet';
 import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 export class ReferenceService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
@@ -159,10 +160,10 @@ export class ReferenceService {
       if (!payload.name || !payload.type || !payload.size || !payload.content) {
         throw new Error('Invalid payload: missing required fields');
       }
-      if (payload.size > mainConfig['CHAT_FILE_UPLOAD']['MAX_BYTES']) {
+      if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
         throw new Error('File size exceeds the maximum allowed limit');
       }
-      if (!mainConfig['CHAT_FILE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
+      if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
         throw new Error('Invalid file type');
       }
       const authToken = await this.fetchAuthToken();
@@ -180,6 +181,7 @@ export class ReferenceService {
       );
 
       const { download_url, upload_url, attachment_id } = url_response.data.data;
+      refreshCurrentToken(url_response.headers);
 
       const formData = new FormData();
 
@@ -222,6 +224,7 @@ export class ReferenceService {
       const headers = { Authorization: `Bearer ${authToken}` };
 
       const response = await api.post(API_ENDPOINTS.GET_PRESIGNED_GET_URL, { attachment_id: payload.key }, { headers });
+      refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
       this.errorTrackingManager.trackGeneralError(error, 'GET_DOWNLOAD_URL_ERROR', 'BACKEND');
@@ -240,6 +243,7 @@ export class ReferenceService {
       const headers = { Authorization: `Bearer ${authToken}` };
 
       const response = await api.post(API_ENDPOINTS.DELETE_FILE, { attachment_id: payload.key }, { headers });
+      refreshCurrentToken(response.headers);
       return response.data;
     } catch (error) {
       this.errorTrackingManager.trackGeneralError(error, 'DELETE_IMAGE_ERROR', 'BACKEND');

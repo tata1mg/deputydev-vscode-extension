@@ -1,6 +1,6 @@
 import { BaseToolProps } from '@/types';
 import React, { useEffect } from 'react';
-import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { ToolRunStatus } from '@/types';
 import { useState } from 'react';
 import { useThemeStore } from '@/stores/useThemeStore';
@@ -42,6 +42,10 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const [showConsent, setShowConsent] = useState(true);
   const [requestRejected, setRequestRejected] = useState(false);
 
+  // hover background and temporary copy state
+  const [copiedRequest, setCopiedRequest] = useState(false);
+  const [copiedResponse, setCopiedResponse] = useState(false);
+
   useEffect(() => {
     if (toolRequest?.requiresApproval) {
       setShowDropDown(true);
@@ -67,6 +71,9 @@ const BaseTool: React.FC<BaseToolProps> = ({
   const highlighterStyle =
     themeKind === 'light' || themeKind === 'high-contrast-light' ? duotoneLight : dracula;
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
   // base tool chip
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
@@ -113,7 +120,23 @@ const BaseTool: React.FC<BaseToolProps> = ({
         </div>
         {showDropDown && toolRequest && (
           <div className="space-y-4">
-            <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
+            {/* Request JSON with copy */}
+            <div className="relative overflow-x-hidden rounded bg-gray-500/10 p-2">
+              <button
+                onClick={() => {
+                  copyToClipboard(JSON.stringify(toolRequest.requestData, null, 2));
+                  setCopiedRequest(true);
+                  setTimeout(() => setCopiedRequest(false), 2000);
+                }}
+                className="absolute right-2 top-2 rounded p-1 hover:bg-gray-200"
+                title="Copy to clipboard"
+              >
+                {copiedRequest ? (
+                  <CheckCircle className="h-4 w-4 text-green-400" />
+                ) : (
+                  <Copy className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                )}
+              </button>
               <div className="mb-2 font-semibold">Ran with these arguments:</div>
               <div className="word-break: max-h-[200px] w-full overflow-y-auto">
                 <SyntaxHighlighter
@@ -145,8 +168,24 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 </SyntaxHighlighter>
               </div>
             </div>
+            {/* Response JSON with copy */}
             {toolResponse && (
-              <div className="overflow-x-hidden rounded bg-gray-500/10 p-2">
+              <div className="relative overflow-x-hidden rounded bg-gray-500/10 p-2">
+                <button
+                  onClick={() => {
+                    copyToClipboard(JSON.stringify(toolResponse, null, 2));
+                    setCopiedResponse(true);
+                    setTimeout(() => setCopiedResponse(false), 2000);
+                  }}
+                  className="absolute right-2 top-2 rounded p-1 hover:bg-gray-200"
+                  title="Copy to clipboard"
+                >
+                  {copiedResponse ? (
+                    <CheckCircle className="h-4 w-4 text-green-400" />
+                  ) : (
+                    <Copy className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
                 <div className="mb-2 font-semibold">Output</div>
                 <div className="word-break: max-h-[200px] w-full overflow-y-auto">
                   <SyntaxHighlighter
