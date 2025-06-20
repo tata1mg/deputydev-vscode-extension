@@ -399,19 +399,27 @@ export class InlineChatEditManager {
           vscode.window.showInformationMessage('File modified successfully.');
         }
         if (status === 'failed') {
+          const { tool_use_id, tool_input } = payload.content;
           const extraErrorInfo = {
             toolName: 'task_completion',
-            toolUseId: payload.content.tool_use_id,
+            toolUseId: tool_use_id,
           };
+
+          const errorMessage = tool_input.message
+            ? `Inline modify failed. ${tool_input.message}`
+            : 'Inline modify failed. as per LLM response';
+
           this.errorTrackingManager.trackGeneralError(
-            new Error('Inline modify failed. as per LLM response'),
+            new Error(errorMessage),
             'INLINE_MODIFY_FAILED',
             'EXTENSION',
             extraErrorInfo,
           );
-          this.outputChannel.error(`Inline Task failed.`);
+
+          this.outputChannel.error('Inline Task failed.');
           vscode.window.showErrorMessage('Failed to modify the file.');
         }
+
         setTimeout(() => {
           vscode.commands.executeCommand('workbench.action.closeNotification');
         }, 5000); // 5 seconds
