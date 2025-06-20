@@ -5,15 +5,16 @@ import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
 
-import { updateVectorStore, UpdateVectorStoreParams } from '../clients/common/websocketHandlers';
+import { IndexingService, UpdateVectorStoreParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
 export class WorkspaceFileWatcher {
-  private watcher: vscode.FileSystemWatcher | undefined;
-  private activeRepoPath: string;
-  private ignoreMatcher: ReturnType<typeof ignore>;
-  private configManager: ConfigManager;
-  private outputChannel: vscode.LogOutputChannel;
-  private pendingFileChanges: Set<string> = new Set();
+  private readonly watcher: vscode.FileSystemWatcher | undefined;
+  private readonly indexingService: IndexingService;
+  private readonly activeRepoPath: string;
+  private readonly ignoreMatcher: ReturnType<typeof ignore>;
+  private readonly configManager: ConfigManager;
+  private readonly outputChannel: vscode.LogOutputChannel;
+  private readonly pendingFileChanges: Set<string> = new Set();
   private changeTimeout: NodeJS.Timeout | null = null;
   /**
    * Constructs a new WorkspaceFileWatcher.
@@ -21,11 +22,17 @@ export class WorkspaceFileWatcher {
    * @param configManager The configuration manager instance.
    * @param outputChannel The log output channel for logging.
    */
-  constructor(activeRepoPath: string, configManager: ConfigManager, outputChannel: vscode.LogOutputChannel) {
+  constructor(
+    activeRepoPath: string,
+    configManager: ConfigManager,
+    outputChannel: vscode.LogOutputChannel,
+    indexingService: IndexingService,
+  ) {
     this.activeRepoPath = activeRepoPath;
     this.configManager = configManager;
     this.outputChannel = outputChannel;
     this.ignoreMatcher = ignore();
+    this.indexingService = indexingService;
 
     // Load ignore patterns from .gitignore files and configuration.
     this.loadIgnorePatterns();
@@ -170,7 +177,7 @@ export class WorkspaceFileWatcher {
       this.outputChannel.info(`Sending update to WebSocket: ${JSON.stringify(params)}`);
 
       // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
-      updateVectorStore(params);
+      this.indexingService.updateVectorStore(params);
 
       this.outputChannel.info(`Files updated with websockets: ${fileList}`);
       this.pendingFileChanges.clear();

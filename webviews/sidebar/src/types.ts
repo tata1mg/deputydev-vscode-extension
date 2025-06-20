@@ -9,7 +9,7 @@ export type ViewType =
   | 'force-upgrade'
   | 'help'
   | 'faq';
-export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress' | 'Idle';
+export type ProgressStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS' | 'IDLE';
 export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {
   email: string;
