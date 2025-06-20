@@ -25,6 +25,10 @@ export class WebSocketConnection {
   private resolveConnectionReady!: () => void;
   private rejectConnectionReady!: (err: Error) => void;
   private isManuallyClosed = false;
+  private isReconnecting = false;
+  private currentReconnectAttempts = 0;
+
+
 
   constructor(options: WebSocketConnectionOptions) {
     this.options = options;
@@ -60,6 +64,8 @@ export class WebSocketConnection {
       },
     });
 
+    console.log('WebSocket created, setting up event listeners...');
+
     this.socket.on('open', () => {
       this.resolveConnectionReady();
       this.options.onOpen?.();
@@ -88,33 +94,38 @@ export class WebSocketConnection {
       this.options.onError?.(err);
     });
   }
-  private tryReconnect() {
-    console.log('tryReconnect called');
-    if (this.isManuallyClosed) {
-      console.log('Reconnect aborted: connection was manually closed');
-      return;
-    }
+  private async tryReconnect() {
+    if (this.isManuallyClosed || this.isReconnecting) return;
 
-    let currentReconnectAttempts = 0;
+    this.isReconnecting = true;
 
     const maxAttempts = this.options.reconnectAttempts ?? 5;
-    console.log(`Current reconnectAttempts: ${currentReconnectAttempts}, maxAttempts: ${maxAttempts}`);
-    if (currentReconnectAttempts >= maxAttempts) {
-      console.log('Max reconnect attempts reached');
+
+    if (this.currentReconnectAttempts >= maxAttempts) {
       this.rejectConnectionReady(new Error('Max reconnect attempts reached'));
+      this.isReconnecting = false;
       return;
     }
 
-    const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, currentReconnectAttempts++);
-    console.log(`Reconnecting in ${backoff} ms (attempt ${currentReconnectAttempts})`);
+    const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, this.currentReconnectAttempts++);
+    console.log(`Reconnecting in ${backoff} ms (attempt ${this.currentReconnectAttempts})`);
+
     this.reconnectTimer = setTimeout(async () => {
       if (this.isManuallyClosed) {
-        console.log('Reconnect aborted: connection was manually closed');
+        this.isReconnecting = false;
         return;
       }
-      console.log('Attempting to reconnect...');
-      this.createConnectionPromise();
-      await this.initSocket();
+
+      try {
+        this.createConnectionPromise();
+        await this.initSocket();
+        this.currentReconnectAttempts = 0;
+      } catch (err) {
+        console.error('Reconnect failed:', err);
+        this.tryReconnect();  // next attempt
+      } finally {
+        this.isReconnecting = false;
+      }
     }, backoff);
   }
 
@@ -135,28 +146,28 @@ export class WebSocketConnection {
   }
 
   async send(data: object) {
-    if (this.connectionReady === undefined) {
+    if (this.isManuallyClosed) {
+      console.warn('WebSocket was manually closed, reconnecting...');
+      this.isManuallyClosed = false;
+      await this.connect();  // ensure we await full connection before sending
+    }
+
+    if (!this.connectionReady) {
       console.log('Connection not ready, attempting to connect...');
       await this.connect();
     }
 
-    if (this.isManuallyClosed) {
-      // log that websocket was manually closed
-      // reconnect
-      console.warn('WebSocket was manually closed, reconnecting...');
-      this.isManuallyClosed = false;
-      this.tryReconnect();
-    }
-
     try {
-      await this.connectionReady;
+      await this.connectionReady;  // must be fresh
+      if (this.socket.readyState !== WebSocket.OPEN) {
+        throw new Error('Socket is not open');
+      }
       console.log('WebSocket connection is ready, sending message:', data);
       this.socket.send(JSON.stringify(data));
     } catch (err) {
       throw new Error(`Failed to send message: ${err}`);
     }
   }
-
   close() {
     this.isManuallyClosed = true;
     this.stopHeartbeat();
@@ -164,6 +175,7 @@ export class WebSocketConnection {
     if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
       this.socket.close();
     }
+    this.currentReconnectAttempts = 0;
     this.rejectConnectionReady(new Error('WebSocket was manually closed'));
   }
 }

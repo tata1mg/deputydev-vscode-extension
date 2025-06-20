@@ -122,9 +122,11 @@ export class QuerySolverService {
     // call the querySolver websocket endpoint
     try {
       this.backendClient.querySolver.onMessage.on('message', handleMessage);
+      console.log('Sending querySolver payload:', finalPayload);
       await this.backendClient.querySolver.sendMessageWithRetry(finalPayload);
+      console.log('querySolver WebSocket stream started successfully');
     } catch (error: any) {
-      this.logger.error('Error calling querySolver endpoint:', error);
+      console.log('Error calling querySolver endpoint:', error);
       streamError = error;
     }
 
@@ -138,8 +140,8 @@ export class QuerySolverService {
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
         this.backendClient.querySolver.close();
-        this.logger.info('Error in querysolver WebSocket stream:', streamError);
-        if (streamError === 'RETRY_NEEDED') {
+        console.log('Error in querysolver WebSocket stream:', streamError);
+        if (streamError instanceof Error && streamError.message === 'Session not verified') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
           // wait until the user is authenticated or 10 minutes have passed
           const startTime = Date.now();
