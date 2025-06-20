@@ -11,6 +11,13 @@ import {
   ArrowLeft,
   Plus,
   CornerDownLeft,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  CirclePlay,
+  ChevronDown,
+  RotateCw,
+  FolderCode,
 } from 'lucide-react';
 import { Settings, URLListItem, SaveUrlRequest } from '../../types';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -27,9 +34,12 @@ import {
   getGlobalState,
   setShellIntegrationTimeoutMessage,
   setDisableShellIntegrationMessage,
+  hitEmbedding,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { useIndexingStore } from '@/stores/indexingDataStore';
+import { Tooltip } from 'react-tooltip';
 
 const getLocaleTimeString = (dateString: string) => {
   const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
@@ -398,6 +408,145 @@ export function CustomLoader() {
   );
 }
 
+const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, repoPath }) => {
+  switch (status) {
+    case 'In Progress':
+      return <Loader2 className="h-5 w-5 animate-spin text-yellow-400" />;
+    case 'Completed':
+      return <CheckCircle className="h-5 w-5 text-green-400" />;
+    case 'Failed':
+      return (
+        <RotateCw
+          className="h-5 w-5 cursor-pointer text-red-400"
+          data-tooltip-id="indexing-tooltips"
+          data-tooltip-content="Re-index"
+          data-tooltip-place="top-start"
+          onClick={() => {
+            hitEmbedding(repoPath ?? '');
+          }}
+        />
+      );
+    case 'Idle':
+      return (
+        <CirclePlay
+          className="h-5 w-5 cursor-pointer text-green-400"
+          data-tooltip-id="indexing-tooltips"
+          data-tooltip-content="Start Indexing"
+          data-tooltip-place="top-start"
+          onClick={() => {
+            hitEmbedding(repoPath ?? '');
+          }}
+        />
+      );
+    default:
+      return null;
+  }
+};
+
+const IndexingArea: React.FC = () => {
+  const { indexingProgressData } = useIndexingStore();
+  const [expandedRepos, setExpandedRepos] = useState<Record<string, boolean>>({});
+
+  const toggleRepoExpand = (index: number) => {
+    setExpandedRepos((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  return (
+    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto">
+      {indexingProgressData && indexingProgressData.length > 0 ? (
+        <div className="space-y-2">
+          {indexingProgressData.map((progress, index) => {
+            const isExpanded = expandedRepos[index] || false;
+            const repoName = progress.repo_path?.split(/[/\\]/).pop();
+            const totalFiles = progress.indexing_status.length;
+            const completedFiles = progress.indexing_status.filter(
+              (file) => file.status === 'Completed'
+            ).length;
+
+            return (
+              <div
+                key={index}
+                className="overflow-hidden rounded-md"
+                style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
+              >
+                <div className="flex h-12 items-center justify-between p-2">
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <FolderCode className="h-5 w-5 flex-shrink-0" />
+                    <div className="min-w-0 truncate">{repoName}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end">
+                      {progress.status === 'In Progress' && (
+                        <span className="text-xs text-gray-500">Indexed</span>
+                      )}
+                      <span className="text-right text-xs text-gray-500 dark:text-gray-400">
+                        {progress.status === 'Completed'
+                          ? 'Indexed'
+                          : progress.status === 'Failed'
+                            ? 'Failed Indexing'
+                            : progress.status === 'Idle'
+                              ? 'Index'
+                              : `${completedFiles}/${totalFiles} files`}
+                      </span>
+                      {progress.status === 'Completed' && (
+                        <span className="text-xs text-gray-500">
+                          {completedFiles}/{totalFiles} files
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <StatusIcon status={progress.status} repoPath={progress.repo_path} />
+                    </div>
+                    {progress.status !== 'Idle' && (
+                      <ChevronDown
+                        className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 focus:outline-none ${isExpanded ? 'rotate-180 transform' : ''}`}
+                        data-tooltip-id="indexing-tooltips"
+                        data-tooltip-content="Files Progress"
+                        data-tooltip-place="top-start"
+                        onClick={() => toggleRepoExpand(index)}
+                      />
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div
+                    className="p-3 text-sm"
+                    style={{ borderTop: '1px solid var(--vscode-editorWidget-border)' }}
+                  >
+                    <div className="mb-2 font-medium">File Progress:</div>
+                    {progress.indexing_status && progress.indexing_status.length > 0 ? (
+                      <div className="max-h-40 space-y-2 overflow-y-auto">
+                        {progress.indexing_status.map((status, idx) => (
+                          <div key={idx} className="flex items-center justify-between text-sm">
+                            <span className="truncate">{status.file_path}</span>
+                            <div>
+                              <StatusIcon status={status.status} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="italic text-gray-500">
+                        No file progress information available
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="italic text-gray-500">No repositories available</div>
+      )}
+      <Tooltip id="indexing-tooltips" />
+    </div>
+  );
+};
+
 const Setting = () => {
   const {
     terminalOutputLimit,
@@ -602,6 +751,15 @@ const Setting = () => {
       }}
     >
       <div>
+        <h3
+          className="mb-3 text-lg font-semibold"
+          style={{ color: 'var(--vscode-editor-foreground)' }}
+        >
+          Indexing Status
+        </h3>
+        <SettingsCard title="Repositories" description="">
+          <IndexingArea />
+        </SettingsCard>
         <h3
           className="mb-3 text-lg font-semibold"
           style={{ color: 'var(--vscode-editor-foreground)' }}

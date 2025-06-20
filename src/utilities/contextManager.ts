@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
+import { EmbeddingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
 
 // =====================================================================================
@@ -26,10 +27,6 @@ export function setSidebarProvider(provider: SidebarProvider) {
 // State Management (Getters, Setters, Clearers)
 // =====================================================================================
 
-export function getActiveRepo(): string | undefined {
-  return extensionContext?.workspaceState.get<string>('activeRepo');
-}
-
 export function getSessionId(): number | undefined {
   const session = extensionContext?.workspaceState.get<number>('sessionId');
   return session;
@@ -41,8 +38,36 @@ export function setSessionId(value: number) {
   return;
 }
 
+export function sendEmbeddingDoneMessage(embeddingProgressData: {
+  task: string;
+  status: string;
+  repo_path: string;
+  progress: number;
+}) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'embedding-progress',
+    data: embeddingProgressData,
+  });
+}
+
+export function getActiveRepo(): string | undefined {
+  return extensionContext?.workspaceState.get<string>('activeRepo');
+}
 export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
+}
+
+export function getIsEmbeddingDoneForActiveRepo(): boolean {
+  const activeRepo = getActiveRepo();
+  const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
+  const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
+  const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
+  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === activeRepo);
+  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'Completed') {
+    return true;
+  }
+  return false;
 }
 
 export function getUserData() {
@@ -95,6 +120,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('vscode-theme-storage', undefined);
   await extensionContext.workspaceState.update('isAuthenticated', false);
   await extensionContext.workspaceState.update('mcp-storage', undefined);
+  await extensionContext.workspaceState.update('indexing-data-storage', undefined);
   await extensionContext.workspaceState.update('active-file-store', undefined);
 }
 
@@ -147,14 +173,20 @@ export function sendNotVerified() {
   }, 100);
 }
 
-export function sendProgress(progressBarData: { repo: string; progress: number; status: string }) {
+export function sendProgress(indexingProgressData: {
+  task: string;
+  status: string;
+  repo_path: string;
+  progress: number;
+  indexing_status: { file_path: string; status: string }[];
+  is_partial_state: boolean;
+}) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
-    command: 'progress-bar',
-    data: progressBarData,
+    command: 'indexing-progress',
+    data: indexingProgressData,
   });
 }
-
 export function sendVerified() {
   logOutputChannel?.info('User is authenticated, sending verified response, vaibhav');
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
