@@ -20,6 +20,8 @@ export interface ErrorTrackingRequestForBackend {
   session_id?: number;
   user_email?: string;
   error_data: Record<string, any>;
+  user_system_info?: Record<string, any>;
+  stack_trace?: string;
 }
 
 export type ChunkCallback = (data: { name: string; data: unknown }) => void;
