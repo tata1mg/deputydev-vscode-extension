@@ -1,7 +1,4 @@
-import {
-  getSessionId,
-  getIsEmbeddingDoneForActiveRepo,
-} from '../../utilities/contextManager';
+import { getSessionId, getIsEmbeddingDoneForActiveRepo } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
