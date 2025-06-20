@@ -47,6 +47,7 @@ import { BackendClient } from './clients/backendClient';
 import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
+import { setUserSystemData } from './utilities/getSystemInformation';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -56,7 +57,7 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   setExtensionContext(context);
-
+  void setUserSystemData(context);
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
   const ENABLE_OUTPUT_CHANNEL = false;
