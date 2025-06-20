@@ -31,7 +31,7 @@ export class IndexingService {
     messageData: any,
     resolver: (value: any) => void,
     rejecter: (reason?: any) => void,
-    socketConn: BaseWebsocketEndpoint
+    socketConn: BaseWebsocketEndpoint,
   ): void {
     try {
       if (messageData.task === 'EMBEDDING' && messageData.status === 'COMPLETED') {
@@ -112,7 +112,7 @@ export class IndexingService {
         });
 
         // Send the initial message to start the indexing process
-        await socketConn.sendMessageWithRetry({...params, sync: true});
+        await socketConn.sendMessageWithRetry({ ...params, sync: true });
 
         return await result;
       } catch (error) {
