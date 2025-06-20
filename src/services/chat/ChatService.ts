@@ -64,9 +64,6 @@ export class QuerySolverService {
   ): AsyncIterableIterator<any> {
     const authService = new AuthService();
     let authToken = await authService.loadAuthToken();
-    if (!authToken) {
-      throw new Error('Missing auth token. Ensure user is logged in.');
-    }
 
     const currentSessionId = getSessionId();
     const finalPayload = await this.preparePayload(payload);
@@ -143,6 +140,7 @@ export class QuerySolverService {
         console.log('Error in querysolver WebSocket stream:', streamError);
         if (streamError instanceof Error && streamError.message === 'Session not verified') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
+          console.log('Session not verified, waiting for authentication...', isAuthenticated);
           // wait until the user is authenticated or 10 minutes have passed
           const startTime = Date.now();
           const maxWaitTime = 10 * 60 * 1000; // 10 minutes
@@ -154,7 +152,9 @@ export class QuerySolverService {
             throw new Error('Session not verified');
           }
           authToken = await authService.loadAuthToken();
-          this.backendClient.querySolver.sendMessageWithRetry({
+          streamDone = false;
+          streamError = null;
+          await this.backendClient.querySolver.sendMessageWithRetry({
             ...finalPayload,
             auth_token: authToken,
           });
