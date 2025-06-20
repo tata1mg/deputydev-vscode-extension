@@ -311,7 +311,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   TerminalRegistry.cleanup();
   deleteSessionId();
 }
