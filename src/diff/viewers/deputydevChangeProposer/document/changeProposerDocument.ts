@@ -20,7 +20,7 @@ export class ChangeProposerDocument implements vscode.CustomDocument {
       }
       return monacoLanguage;
     } catch (error) {
-      console.error(`Failed to get language for ${filePath}:`, error);
+      // console.error(`Failed to get language for ${filePath}:`, error);
       return 'plaintext';
     }
   }

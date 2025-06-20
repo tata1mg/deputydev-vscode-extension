@@ -187,7 +187,7 @@ export class ErrorTrackingManager {
         responseData: cleanedResponseData,
       };
     } else if (error instanceof Error) {
-      console.log('Error tracking:', error);
+      // console.log('Error tracking:', error);
       errorData = {
         errorName: error.name,
         errorMessage: error.message,
