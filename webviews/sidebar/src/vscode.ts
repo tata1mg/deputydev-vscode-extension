@@ -287,7 +287,7 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
   const inProgressRepos = useIndexingStore
     .getState()
-    .indexingProgressData.filter((repo) => repo.status === 'In Progress');
+    .indexingProgressData.filter((repo) => repo.status === 'IN_PROGRESS');
 
   // Hit embedding for new repos
   if (newRepos.length > 0 && newRepos.length != repos.length && inProgressRepos.length == 0) {
@@ -452,9 +452,9 @@ addCommandEventListener('indexing-progress', ({ data }) => {
 
   // sequential embedding
   // If current embedding is completed, find next idle repo and trigger embedding
-  if (response.status === 'Completed') {
+  if (response.status === 'COMPLETED') {
     const nextIdleRepo = indexingProgressData.find(
-      (item) => item.status === 'Idle' && item.repo_path !== response.repo_path
+      (item) => item.status === 'IDLE' && item.repo_path !== response.repo_path
     );
 
     if (nextIdleRepo) {

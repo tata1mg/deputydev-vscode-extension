@@ -5,38 +5,37 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
-import {
-  updateVectorStoreWithResponse,
-  updateVectorStore,
-  UpdateVectorStoreParams,
-} from '../clients/common/websocketHandlers';
+import { UpdateVectorStoreParams, IndexingService } from '../services/indexing/indexingService';
 import { IndexingProgressData } from '../types';
 
 export class WorkspaceManager {
-  private workspaceRepos: Map<string, string> = new Map();
-  private context: vscode.ExtensionContext;
+  private readonly workspaceRepos: Map<string, string> = new Map();
+  private readonly context: vscode.ExtensionContext;
   private activeRepo: string | undefined; // Active repo stored as its folder path.
-  private sidebarProvider: SidebarProvider;
-  private outputChannel: vscode.LogOutputChannel;
+  private readonly sidebarProvider: SidebarProvider;
+  private readonly outputChannel: vscode.LogOutputChannel;
   private fileWatcher?: WorkspaceFileWatcher;
-  private configManager: ConfigManager;
+  private readonly configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
   private readonly _onDidSendRepos = new vscode.EventEmitter<{
     repos: { repoPath: string; repoName: string }[];
     activeRepo: string | null;
   }>();
   public readonly onDidSendRepos = this._onDidSendRepos.event;
+  private readonly indexingService: IndexingService;
 
   constructor(
     context: vscode.ExtensionContext,
     sidebarProvider: SidebarProvider,
     outputChannel: vscode.LogOutputChannel,
     configManager: ConfigManager,
+    indexingService: IndexingService,
   ) {
     this.context = context;
     this.sidebarProvider = sidebarProvider;
     this.outputChannel = outputChannel;
     this.configManager = configManager;
+    this.indexingService = indexingService;
 
     // Subscribe to repo change events from SidebarProvider
     this.sidebarProvider.onDidChangeRepo((newRepoPath) => {
@@ -131,7 +130,12 @@ export class WorkspaceManager {
     // If activeRepo is defined, create a new file watcher.
     if (this.activeRepo) {
       this.outputChannel.info(`Creating file watcher for active repo: ${this.activeRepo}`);
-      this.fileWatcher = new WorkspaceFileWatcher(this.activeRepo, this.configManager, this.outputChannel);
+      this.fileWatcher = new WorkspaceFileWatcher(
+        this.activeRepo,
+        this.configManager,
+        this.outputChannel,
+        this.indexingService,
+      );
       this.outputChannel.info(`Initialized file watcher for active repo: ${this.activeRepo}`);
     } else {
       this.outputChannel.info('No active repository defined. File watcher not initialized.');
@@ -172,13 +176,6 @@ export class WorkspaceManager {
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeWorkspaceFolders(() => {
         this.updateWorkspaceRepos();
-        // vscode.window.showInformationMessage(
-        //   `Workspace repositories updated: ${
-        //     Array.from(this.workspaceRepos.entries())
-        //       .map(([repoPath, repoName]) => `${repoName} (${repoPath})`)
-        //       .join(', ') || 'None'
-        //   }`,
-        // );
       }),
     );
   }
@@ -216,8 +213,8 @@ export class WorkspaceManager {
     );
     if (repoSpecificIndexingProgress) {
       if (
-        repoSpecificIndexingProgress.status === 'In Progress' ||
-        repoSpecificIndexingProgress.status === 'Completed'
+        repoSpecificIndexingProgress.status === 'IN_PROGRESS' ||
+        repoSpecificIndexingProgress.status === 'COMPLETED'
       ) {
         return;
       }
@@ -225,7 +222,8 @@ export class WorkspaceManager {
 
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
-    await updateVectorStoreWithResponse(params)
+    await this.indexingService
+      .updateVectorStoreWithResponse(params)
       .then((response) => {})
       .catch((error) => {
         this.outputChannel.info('Embedding failed 3 times...');

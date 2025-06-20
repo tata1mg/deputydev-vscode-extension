@@ -40,19 +40,19 @@ const RepoSelector = () => {
     );
 
     switch (currentIndexingProgressData?.status) {
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return (
           <div className="flex h-3 w-3 items-center justify-center pl-1">
             <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
           </div>
         );
-      case 'Completed':
+      case 'COMPLETED':
         return (
           <div className="flex h-3 w-3 items-center justify-center pl-1">
             <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]" />
           </div>
         );
-      case 'Failed':
+      case 'FAILED':
         return (
           <div className="flex h-3 w-3 items-center justify-center pl-1">
             <button
@@ -77,11 +77,11 @@ const RepoSelector = () => {
       (repo) => repo.repo_path === activeRepo
     );
     switch (currentIndexingProgressData?.status) {
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return `${Math.round(currentIndexingProgressData?.progress ?? 0)}% Indexed`;
-      case 'Completed':
+      case 'COMPLETED':
         return 'Indexing Completed';
-      case 'Failed':
+      case 'FAILED':
         return 'Indexing Failed, Retry';
       default:
         return 'Not indexed';
