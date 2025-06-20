@@ -660,8 +660,15 @@ export class ChatManager {
     }
   }
 
-  async _runGrepSearch(directoryPath: string, repoPath: string, searchTerms?: string[]): Promise<any> {
-    this.outputChannel.info(`Running grep search tool for ${directoryPath}`);
+  async _runGrepSearch(
+    search_path: string,
+    repoPath: string,
+    query: string,
+    searchPath: string,
+    case_insensitive?: boolean,
+    use_regex?: boolean,
+  ): Promise<any> {
+    this.outputChannel.info(`Running grep search tool for ${search_path}`);
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
     try {
@@ -669,12 +676,13 @@ export class ChatManager {
         API_ENDPOINTS.GREP_SEARCH,
         {
           repo_path: repoPath,
-          directory_path: directoryPath,
-          search_terms: searchTerms,
+          directory_path: search_path,
+          search_term: query,
+          case_insensitive: case_insensitive || false,
+          use_regex: use_regex || false,
         },
         { headers },
       );
-
       this.outputChannel.info('Grep search API call successful.');
       this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
       return response.data;
@@ -1007,9 +1015,12 @@ export class ChatManager {
           case 'grep_search':
             this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
             rawResult = await this._runGrepSearch(
-              parsedContent.directory_path,
+              parsedContent.search_path,
               active_repo,
-              parsedContent.search_terms,
+              parsedContent.query,
+              parsedContent.search_path,
+              parsedContent.case_insensitive,
+              parsedContent.use_regex,
             );
             break;
           case 'public_url_content_reader':
