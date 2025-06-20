@@ -46,7 +46,6 @@ import { AutocompleteMenu } from './chatElements/autocomplete/autocomplete';
 import InputReferenceChip from './chatElements/autocomplete/inputReferenceChip';
 import FeaturesBar from './chatElements/features_bar';
 import ModelSelector from './chatElements/modelSelector';
-import ProgressBar from './chatElements/progressBar';
 import RepoSelector from './chatElements/RepoSelector';
 import { ChatArea } from './chatMessagesArea';
 import ChangedFilesBar from './chatElements/changedFilesBar';
@@ -63,7 +62,6 @@ export function ChatUI() {
     cancelChat,
     showSessionsBox,
     ChatAutocompleteOptions,
-    progressBars,
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
@@ -86,9 +84,7 @@ export function ChatUI() {
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
-    const activeProgress = progressBars.find((bar) => bar.repo === activeRepo);
-    return activeProgress?.status !== 'Completed';
-  }, [activeRepo, progressBars]);
+  }, [activeRepo]);
 
   // const [repoSelectorDisabled] = useState(false);
   const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
@@ -487,18 +483,16 @@ export function ChatUI() {
                   Develop with DeputyDev
                 </h1> */}
               </div>
-              {!repoSelectorEmbedding && (
-                <div className="h-[128px] px-4 fade-in">
-                  <div className="flex items-center gap-2">
-                    <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
-                    <Check className="mb-1 animate-pulse text-sm text-green-500" />
-                  </div>
-                  <p className="text-md">
-                    Ask questions about your repository or instantly generate code, tests, and
-                    documentation
-                  </p>
+              <div className="h-[128px] px-4 fade-in">
+                <div className="flex items-center gap-2">
+                  <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
+                  <Check className="mb-1 animate-pulse text-sm text-green-500" />
                 </div>
-              )}
+                <p className="text-md">
+                  Ask questions about your repository or instantly generate code, tests, and
+                  documentation
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -533,16 +527,6 @@ export function ChatUI() {
                 </p>
               </div>
             )}
-
-          {activeRepo ? (
-            <div className="mb-[2px] w-full">
-              <ProgressBar progressBars={progressBars} />
-            </div>
-          ) : (
-            <div className="mb-[4px] w-full text-center text-xs">
-              To proceed, please import a project into your workspace!
-            </div>
-          )}
 
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">

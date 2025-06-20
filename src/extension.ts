@@ -5,7 +5,7 @@ import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
-import { getBinaryHost } from './config';
+import { getBinaryHost, getBinaryWsHost } from './config';
 import { DiffManager } from './diff/diffManager';
 import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
 import { SidebarProvider } from './panels/SidebarProvider';
@@ -15,7 +15,7 @@ import { HistoryService } from './services/history/HistoryService';
 import { ProfileUiService } from './services/profileUi/profileUiService';
 import { UsageTrackingManager } from './analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from './analyticsTracking/ErrorTrackingManager';
-import { isNotCompatible } from './utilities/checkOsVersion';
+import { checkIfExtensionIsCompatible } from './utilities/checkOsVersion';
 import { ConfigManager } from './utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
@@ -43,13 +43,19 @@ import { updateTerminalSettings } from './utilities/setDefaultSettings';
 import { API_ENDPOINTS } from './services/api/endpoints';
 import { binaryApi } from './services/api/axios';
 import { ActiveFileListener } from './code_syncing/ActiveFileListener';
+import { BackendClient } from './clients/backendClient';
+import { BinaryClient } from './clients/binaryClient';
+import { IndexingService } from './services/indexing/indexingService';
+import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
 
 export async function activate(context: vscode.ExtensionContext) {
-  const isNotCompatibleCheck = isNotCompatible();
-  if (isNotCompatibleCheck) {
+  const isCompatible = checkIfExtensionIsCompatible();
+  if (!isCompatible) {
+    // If extension is not compatible, stop activation
     return;
   }
+
   setExtensionContext(context);
   void setUserSystemData(context);
   await clearWorkspaceStorage();
@@ -73,6 +79,25 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // 3. Core Services Initialization
   const serverManager = new ServerManager(context, outputChannel, logger, configManager);
+  await serverManager.ensureBinaryExists();
+  await serverManager.startServer();
+  outputChannel.info('this binary host now is ' + getBinaryHost());
+
+  // initialize backend client with essential config
+  const essentialConfigs = configManager.getAllConfigEssentials();
+  const backendClient = new BackendClient(
+    essentialConfigs['HOST_AND_TIMEOUT']['HOST'],
+    essentialConfigs['DD_HOST_WS'],
+    {
+      QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
+    },
+  );
+
+  const binaryClient = new BinaryClient(
+    getBinaryHost(), // This will be the binary host URL
+    getBinaryWsHost(), // This will be the binary WebSocket host URL
+  );
+
   const authenticationManager = new AuthenticationManager(context, configManager, logger);
   const authService = new AuthService();
   const historyService = new HistoryService();
@@ -84,9 +109,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const userQueryEnhancerService = new UserQueryEnhancerService(errorTrackingManager);
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
-
-  // 4. Diff View Manager Initialization
-  const inlineDiffEnable = vscode.workspace.getConfiguration('deputydev').get('inlineDiff.enable');
+  const indexingService = new IndexingService(binaryClient);
+  const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService(binaryClient);
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -104,6 +128,8 @@ export async function activate(context: vscode.ExtensionContext) {
     mcpManager,
     usageTrackingManager,
     errorTrackingManager,
+    backendClient,
+    relevantCodeSearcherToolService,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
@@ -127,6 +153,7 @@ export async function activate(context: vscode.ExtensionContext) {
     userQueryEnhancerService,
     errorTrackingManager,
     continueNewWorkspace,
+    indexingService,
   );
   diffManager.setSidebarProvider(sidebarProvider);
   context.subscriptions.push(
@@ -135,7 +162,13 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
     sidebarProvider,
   );
-  const workspaceManager = new WorkspaceManager(context, sidebarProvider, outputChannel, configManager);
+  const workspaceManager = new WorkspaceManager(
+    context,
+    sidebarProvider,
+    outputChannel,
+    configManager,
+    indexingService,
+  );
   // sidebarProvider.setViewType("loader");
   new ThemeManager(sidebarProvider, logger);
   new ActiveFileListener(sidebarProvider, workspaceManager);
@@ -143,10 +176,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
   context.subscriptions.push(pinger);
   (async () => {
-    // sidebarProvider.setViewType("loader");
-    await serverManager.ensureBinaryExists();
-    await serverManager.startServer();
-    outputChannel.info('this binary host now is ' + getBinaryHost());
     pinger.start();
 
     authenticationManager
@@ -203,6 +232,7 @@ export async function activate(context: vscode.ExtensionContext) {
     diffManager,
     usageTrackingManager,
     errorTrackingManager,
+    relevantCodeSearcherToolService,
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();

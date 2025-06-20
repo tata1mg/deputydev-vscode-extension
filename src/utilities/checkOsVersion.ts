@@ -2,7 +2,7 @@ import * as os from 'os';
 import { execSync } from 'child_process';
 import * as vscode from 'vscode';
 
-function isNotCompatible(): boolean {
+function checkIfExtensionIsCompatible(): boolean {
   const platform = os.platform(); // 'darwin', 'linux', 'win32', etc.
   const arch = os.arch();
 
@@ -10,7 +10,7 @@ function isNotCompatible(): boolean {
     vscode.window.showWarningMessage(
       "DeputyDev is now available on Windows (x64)! ARM-based Windows devices aren't supported yet—but we're working on it. Stay tuned!",
     );
-    return true;
+    return false;
   }
 
   // Windows: Check for Docker
@@ -22,7 +22,7 @@ function isNotCompatible(): boolean {
       vscode.window.showWarningMessage(
         'DeputyDev requires Docker Desktop to be installed on Windows. Please install Docker Desktop and ensure it is available in your PATH.',
       );
-      return true;
+      return false;
     }
   }
 
@@ -34,7 +34,7 @@ function isNotCompatible(): boolean {
         vscode.window.showWarningMessage(
           'DeputyDev requires macOS 14.1 or later. Please update your OS to use this extension.',
         );
-        return true;
+        return false;
       }
     } catch (err) {
       // console.error('Error reading macOS version:', err);
@@ -49,7 +49,7 @@ function isNotCompatible(): boolean {
       vscode.window.showWarningMessage(
         'DeputyDev requires Linux kernel 6.8 or later. Please update your OS to use this extension.',
       );
-      return true;
+      return false;
     }
   }
 
@@ -62,16 +62,16 @@ function isNotCompatible(): boolean {
       vscode.window.showWarningMessage(
         `DeputyDev requires Git version 2.36.0 or later. You have ${gitVersion}. Please update Git to continue.`,
       );
-      return true;
+      return false;
     }
   } catch (err) {
     vscode.window.showWarningMessage(
       'Git is not installed or not available in PATH. Please install Git (version 2.36.0 or later) to use this extension.',
     );
-    return true;
+    return false;
   }
 
-  return false;
+  return true;
 }
 
-export { isNotCompatible };
+export { checkIfExtensionIsCompatible };
