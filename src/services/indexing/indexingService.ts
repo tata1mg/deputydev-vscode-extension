@@ -31,7 +31,7 @@ export class IndexingService {
   ): void {
     try {
       console.log('Received message from updateVectorDB:', messageData);
-      if (messageData.task === 'Embedding' && messageData.status === 'COMPLETED') {
+      if (messageData.task === 'EMBEDDING' && messageData.status === 'COMPLETED') {
         sendEmbeddingDoneMessage({
           task: messageData.task as string,
           status: messageData.status as string,
@@ -39,7 +39,7 @@ export class IndexingService {
           progress: messageData.progress as number,
         });
         this.binaryClient.updateVectorDB.close();
-      } else if (messageData.task === 'Indexing' && messageData.status === 'IN_PROGRESS') {
+      } else if (messageData.task === 'INDEXING' && messageData.status === 'IN_PROGRESS') {
         sendProgress({
           task: messageData.task as string,
           status: messageData.status as string,
@@ -48,7 +48,7 @@ export class IndexingService {
           indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
           is_partial_state: messageData.is_partial_state as boolean,
         });
-      } else if (messageData.task === 'Indexing' && messageData.status === 'COMPLETED') {
+      } else if (messageData.task === 'INDEXING' && messageData.status === 'COMPLETED') {
         sendProgress({
           task: messageData.task as string,
           status: messageData.status as string,
@@ -58,7 +58,7 @@ export class IndexingService {
           is_partial_state: messageData.is_partial_state as boolean,
         });
         resolver({ status: 'completed' });
-      } else if (messageData.task === 'Indexing' && messageData.status === 'FAILED') {
+      } else if (messageData.task === 'INDEXING' && messageData.status === 'FAILED') {
         sendProgress({
           task: messageData.task as string,
           status: messageData.status as string,
@@ -89,7 +89,7 @@ export class IndexingService {
     while (attempts < maxAttempts) {
       try {
         sendProgress({
-          task: 'Indexing',
+          task: 'INDEXING',
           status: 'IN_PROGRESS',
           repo_path: params.repo_path,
           progress: 0,
@@ -121,7 +121,7 @@ export class IndexingService {
         attempts++;
         if (attempts === maxAttempts) {
           sendProgress({
-            task: 'Indexing',
+            task: 'INDEXING',
             status: 'FAILED',
             repo_path: params.repo_path,
             progress: 0,

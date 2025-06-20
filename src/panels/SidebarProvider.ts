@@ -534,7 +534,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     };
     if (activeRepo) {
       sendProgress({
-        task: 'Indexing',
+        task: 'INDEXING',
         status: 'IN_PROGRESS',
         repo_path: activeRepo,
         progress: 0,
