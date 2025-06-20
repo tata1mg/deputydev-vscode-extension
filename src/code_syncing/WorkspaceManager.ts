@@ -10,6 +10,7 @@ import {
   updateVectorStore,
   UpdateVectorStoreParams,
 } from '../clients/common/websocketHandlers';
+import { IndexingProgressData } from '../types';
 
 export class WorkspaceManager {
   private workspaceRepos: Map<string, string> = new Map();
@@ -206,15 +207,17 @@ export class WorkspaceManager {
    */
   private async sendWebSocketUpdate(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
-    const chatStorage = this.context.workspaceState.get('chat-storage') as string;
-    const parsedChatStorage = JSON.parse(chatStorage);
-    const progressBars = parsedChatStorage?.state?.progressBars as { repo: string; progress: number; status: string }[];
+    const indexingDataStorage = this.context.workspaceState.get('indexing-data-storage') as string;
+    const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
+    const indexingProgressData = parsedIndexingDataStorage?.state?.indexingProgressData as IndexingProgressData[];
 
-    const repoSpecificEmbeddingProgress = progressBars.find((bar) => bar.repo === this.activeRepo);
-    if (repoSpecificEmbeddingProgress) {
+    const repoSpecificIndexingProgress = indexingProgressData.find(
+      (progress) => progress.repo_path === this.activeRepo,
+    );
+    if (repoSpecificIndexingProgress) {
       if (
-        repoSpecificEmbeddingProgress.status === 'In Progress' ||
-        repoSpecificEmbeddingProgress.status === 'Completed'
+        repoSpecificIndexingProgress.status === 'In Progress' ||
+        repoSpecificIndexingProgress.status === 'Completed'
       ) {
         return;
       }
@@ -223,14 +226,7 @@ export class WorkspaceManager {
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await updateVectorStoreWithResponse(params)
-      .then((response) => {
-        // this.sidebarProvider.sendMessageToSidebar({
-        //   id: uuidv4(),
-        //   command: 'repo-selector-state',
-        //   data: false
-        // });
-        // this.outputChannel.info(`📡 📡📡 WebSocket response: ${JSON.stringify(response)}`);
-      })
+      .then((response) => {})
       .catch((error) => {
         this.outputChannel.info('Embedding failed 3 times...');
       });

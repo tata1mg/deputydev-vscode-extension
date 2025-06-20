@@ -124,9 +124,12 @@ export const updateVectorStoreWithResponse = async (params: UpdateVectorStorePar
   while (attempts < 3) {
     try {
       sendProgress({
-        repo: params.repo_path,
-        progress: 0,
+        task: 'Indexing',
         status: 'In Progress',
+        repo_path: params.repo_path,
+        progress: 0,
+        indexing_status: [],
+        is_partial_state: false,
       });
       const result = await client.send({
         ...params,
@@ -140,9 +143,12 @@ export const updateVectorStoreWithResponse = async (params: UpdateVectorStorePar
       // console.error(`❌ Error updating vector store (attempt ${attempts}):`, error);
       if (attempts === 3) {
         sendProgress({
-          repo: params.repo_path,
-          progress: 0,
+          task: 'Indexing',
           status: 'Failed',
+          repo_path: params.repo_path,
+          progress: 0,
+          indexing_status: [],
+          is_partial_state: false,
         });
         logger.error('Error updating vector store after 3 attempts');
         throw new Error(`Failed to update vector store after 3 attempts: ${error}`);

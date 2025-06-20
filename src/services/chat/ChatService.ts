@@ -1,4 +1,9 @@
-import { getSessionId, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
+import {
+  getSessionId,
+  sendNotVerified,
+  getIsEmbeddingDoneForActiveRepo,
+  sendForceUpgrade,
+} from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from 'ws';
@@ -70,6 +75,7 @@ export class QuerySolverService {
     }
 
     const currentSessionId = getSessionId();
+    payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;

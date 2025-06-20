@@ -1,5 +1,5 @@
 import { WebSocket, RawData } from 'ws';
-import { sendProgress } from '../../utilities/contextManager';
+import { sendEmbeddingDoneMessage, sendProgress } from '../../utilities/contextManager';
 import { CLIENT_VERSION, CLIENT, WS_TIMEOUT } from '../../config';
 
 export class WebSocketClient {
@@ -45,27 +45,44 @@ export class WebSocketClient {
         if (messageData.relevant_chunks && Array.isArray(messageData.relevant_chunks)) {
           this.resolveResponse(messageData);
           this.close();
-        } else if (messageData.status === 'In Progress') {
-          sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+        } else if (messageData.task === 'Embedding' && messageData.status === 'Completed') {
+          sendEmbeddingDoneMessage({
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+          });
+          this.close();
+        } else if (messageData.task === 'Indexing' && messageData.status === 'In Progress') {
+          sendProgress({
+            task: messageData.task as string,
+            status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
         }
         // Check if the response is an object (update vector store)
-        else if (messageData.status === 'Completed') {
+        else if (messageData.task === 'Indexing' && messageData.status === 'Completed') {
           sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
           this.resolveResponse(messageData.status);
-          this.close();
-        } else if (messageData.status === 'Failed') {
+          // this.close();
+        } else if (messageData.task === 'Indexing' && messageData.status === 'Failed') {
           sendProgress({
-            repo: messageData.repo_path as string,
-            progress: messageData.progress as number,
+            task: messageData.task as string,
             status: messageData.status as string,
+            repo_path: messageData.repo_path as string,
+            progress: messageData.progress as number,
+            indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
+            is_partial_state: messageData.is_partial_state as boolean,
           });
           this.rejectResponse(new Error('WebSocket request timed out'));
           this.close();
