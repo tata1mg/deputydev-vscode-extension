@@ -102,7 +102,7 @@ export class BaseClient {
     method: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
-  ): BaseHttpEndpoint {
+  ): () => BaseHttpEndpoint {
     if (!this.httpHost) {
       throw new Error('HTTP host is not defined');
     }
@@ -112,14 +112,14 @@ export class BaseClient {
         await middleware.handleHttpResponse(data);
       };
     });
-    return new BaseHttpEndpoint(this.httpHost, endpoint, method, extraHeadersFetcher, httpResponseHandlers);
+    return () => new BaseHttpEndpoint(this.httpHost as string, endpoint, method, extraHeadersFetcher, httpResponseHandlers);
   }
 
   createWebsocketEndpoint(
     endpoint: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
-  ): BaseWebsocketEndpoint {
+  ): () => BaseWebsocketEndpoint {
     if (!this.wsHost) {
       throw new Error('WebSocket host is not defined');
     }
@@ -138,6 +138,6 @@ export class BaseClient {
       };
     });
 
-    return new BaseWebsocketEndpoint(this.wsHost, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
+    return () => new BaseWebsocketEndpoint(this.wsHost as string, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
   }
 }
