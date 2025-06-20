@@ -275,8 +275,28 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
+
+  // Get current repos before updating
+  const currentRepos = useWorkspaceStore.getState().workspaceRepos;
+  const currentRepoPaths = new Set(currentRepos.map((repo) => repo.repoPath));
+
+  // Find new repos that weren't there before
+  const newRepos = repos.filter((repo) => !currentRepoPaths.has(repo.repoPath));
+
+  // Update the stores
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
   useIndexingStore.getState().initializeRepos(repos);
+
+  const inProgressRepos = useIndexingStore
+    .getState()
+    .indexingProgressData.filter((repo) => repo.status === 'In Progress');
+
+  // Hit embedding for new repos
+  if (newRepos.length > 0 && newRepos.length != repos.length && inProgressRepos.length == 0) {
+    newRepos.forEach((newRepo) => {
+      hitEmbedding(newRepo.repoPath);
+    });
+  }
 });
 
 addCommandEventListener('sessions-history', ({ data }: any) => {
