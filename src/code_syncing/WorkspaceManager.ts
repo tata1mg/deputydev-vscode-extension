@@ -213,8 +213,8 @@ export class WorkspaceManager {
     );
     if (repoSpecificIndexingProgress) {
       if (
-        repoSpecificIndexingProgress.status === 'In Progress' ||
-        repoSpecificIndexingProgress.status === 'Completed'
+        repoSpecificIndexingProgress.status === 'IN_PROGRESS' ||
+        repoSpecificIndexingProgress.status === 'COMPLETED'
       ) {
         return;
       }

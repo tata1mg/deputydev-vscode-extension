@@ -7,7 +7,7 @@ export type ViewType =
   | 'profile'
   | 'error'
   | 'force-upgrade';
-export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress';
+export type ProgressStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS';
 export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {
   email: string;

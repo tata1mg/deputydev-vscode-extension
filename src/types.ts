@@ -157,7 +157,7 @@ export interface MCPServerToolApprovePayload {
   server_name: string;
 }
 
-export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress' | 'Idle';
+export type ProgressStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS' | 'IDLE';
 
 export interface IndexingStatusData {
   file_path: string;
