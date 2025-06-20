@@ -71,6 +71,8 @@ export class QuerySolverService {
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
 
+    const socketConn = this.backendClient.querySolver();
+
     const handleMessage = (messageData: any): void => {
       try {
         if (messageData.type === 'STREAM_START') {
@@ -81,47 +83,45 @@ export class QuerySolverService {
           }
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
-          this.backendClient.querySolver.close();
+          socketConn.close();
           return;
         } else if (messageData.type === 'STREAM_ERROR') {
           if (messageData.status) {
             streamError = new Error(messageData.status);
-            this.backendClient.querySolver.close();
+            socketConn.close();
             return;
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData);
-          this.backendClient.querySolver.close();
+          socketConn.close();
           return;
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
-        this.backendClient.querySolver.close();
+        socketConn.close();
       }
     };
 
     // call the querySolver websocket endpoint
     try {
-      this.backendClient.querySolver.onMessage.on('message', handleMessage);
-      console.log('Sending querySolver payload:', finalPayload);
-      await this.backendClient.querySolver.sendMessageWithRetry(finalPayload);
-      console.log('querySolver WebSocket stream started successfully');
+      socketConn.onMessage.on('message', handleMessage);
+      await socketConn.sendMessageWithRetry(finalPayload);
     } catch (error: any) {
-      console.log('Error calling querySolver endpoint:', error);
+      this.logger.error('Error calling querySolver endpoint:', error);
       streamError = error;
     }
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        this.backendClient.querySolver.close();
+        socketConn.close();
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        this.backendClient.querySolver.close();
+        socketConn.close();
         console.log('Error in querysolver WebSocket stream:', streamError);
         if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
@@ -139,7 +139,7 @@ export class QuerySolverService {
           authToken = await authService.loadAuthToken();
           streamDone = false;
           streamError = null;
-          await this.backendClient.querySolver.sendMessageWithRetry({
+          await socketConn.sendMessageWithRetry({
             ...finalPayload,
             auth_token: authToken,
           });
@@ -149,7 +149,7 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        this.backendClient.querySolver.close();
+        socketConn.close();
         return;
       }
 
@@ -161,7 +161,7 @@ export class QuerySolverService {
     }
 
     // Clean up the WebSocket connection
-    this.backendClient.querySolver.close();
+    socketConn.close();
   }
 
   /**
