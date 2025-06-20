@@ -102,6 +102,7 @@ export const useChatStore = create(
         imageUploadProgress: 0,
         s3Object: {} as S3Object,
         showGeneratingEffect: false,
+        setCancelButtonStatus:false
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
@@ -120,6 +121,7 @@ export const useChatStore = create(
               enhancedUserQuery: '',
               enhancingUserQuery: false,
               showGeneratingEffect: false,
+              setCancelButtonStatus: false,
             });
           },
 
