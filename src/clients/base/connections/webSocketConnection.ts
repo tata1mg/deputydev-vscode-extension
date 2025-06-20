@@ -28,8 +28,6 @@ export class WebSocketConnection {
   private isReconnecting = false;
   private currentReconnectAttempts = 0;
 
-
-
   constructor(options: WebSocketConnectionOptions) {
     this.options = options;
     this.url = `${options.baseUrl}${options.endpoint}`;
@@ -122,7 +120,7 @@ export class WebSocketConnection {
         this.currentReconnectAttempts = 0;
       } catch (err) {
         console.error('Reconnect failed:', err);
-        this.tryReconnect();  // next attempt
+        this.tryReconnect(); // next attempt
       } finally {
         this.isReconnecting = false;
       }
@@ -149,7 +147,7 @@ export class WebSocketConnection {
     if (this.isManuallyClosed) {
       console.warn('WebSocket was manually closed, reconnecting...');
       this.isManuallyClosed = false;
-      await this.connect();  // ensure we await full connection before sending
+      await this.connect(); // ensure we await full connection before sending
     }
 
     if (!this.connectionReady) {
@@ -158,7 +156,7 @@ export class WebSocketConnection {
     }
 
     try {
-      await this.connectionReady;  // must be fresh
+      await this.connectionReady; // must be fresh
       if (this.socket.readyState !== WebSocket.OPEN) {
         throw new Error('Socket is not open');
       }
