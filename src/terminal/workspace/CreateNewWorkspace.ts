@@ -25,10 +25,18 @@ export async function createNewWorkspaceFn(
     return;
   }
   const folderUri = selectedFolder[0];
+  const alreadyAdded = vscode.workspace.workspaceFolders?.some((wf) => wf.uri.toString() === folderUri.toString());
 
   updateWorkspaceToolStatus({ tool_use_id, status: 'completed' });
   await new Promise((r) => setTimeout(r, 100));
   const isMultiRootWorkspaceFlag = isMultiRootWorkspace();
+
+  if (alreadyAdded) {
+    // The folder is already in the workspace: trigger your update immediately
+    updateCurrentWorkspaceDD();
+    return; // Stop here, no need to add the folder or set up event listeners
+  }
+
   if (isMultiRootWorkspaceFlag) {
     // ——— WE ARE ALREADY IN A WORKSPACE ———
     // skip copying chat/session (no restart will happen),

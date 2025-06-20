@@ -4,6 +4,7 @@ import { combine, persist } from 'zustand/middleware';
 import { apiChat, apiStopChat, logToOutput, showErrorMessage } from '@/commandApi';
 
 import {
+  ActiveFileChatReferenceItem,
   AutocompleteOption,
   BaseToolProps,
   ChatAssistantMessage,
@@ -20,12 +21,13 @@ import {
   ChatType,
   ChatUserMessage,
   LLMModels,
-  ProgressBarData,
   S3Object,
 } from '@/types';
 import pick from 'lodash/pick';
 import { persistGlobalStorage, persistStorage } from './lib';
 import { useSettingsStore } from './settingsStore';
+import { useIndexingStore } from './indexingDataStore';
+import { useActiveFileStore } from './activeFileStore';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -89,7 +91,6 @@ export const useChatStore = create(
         ChatAutocompleteOptions: initialAutocompleteOptions,
         chipIndexBeingEdited: -1,
         lastToolUseResponse: undefined as { tool_use_id: string; tool_name: string } | undefined,
-        progressBars: [] as ProgressBarData[], // Todo: move these to separate store(s)
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
@@ -100,7 +101,7 @@ export const useChatStore = create(
         activeModel: '',
         search_web: false,
         imageUploadProgress: 0,
-        s3Object: {} as S3Object,
+        s3Objects: [] as S3Object[],
         showGeneratingEffect: false,
         setCancelButtonStatus:false
       },
@@ -118,6 +119,7 @@ export const useChatStore = create(
               showAllSessions: false,
               currentEditorReference: [],
               lastToolUseResponse: undefined,
+              s3Objects: [],
               enhancedUserQuery: '',
               enhancingUserQuery: false,
               showGeneratingEffect: false,
@@ -129,7 +131,7 @@ export const useChatStore = create(
             message: string,
             editorReferences: ChatReferenceItem[],
             chunkCallback: (data: { name: string; data: any }) => void,
-            s3Reference?: S3Object,
+            s3References: S3Object[] = [],
             retryChat?: boolean,
             retry_payload?: any,
             create_new_workspace_payload?: any
@@ -141,15 +143,32 @@ export const useChatStore = create(
               stream = apiChat(create_new_workspace_payload);
             } else {
               const { history, lastToolUseResponse } = get();
+              let activeFileChatReferenceItem: ActiveFileChatReferenceItem | undefined = undefined;
+
+              const {
+                activeFileUri,
+                startLine: activeStartLine,
+                endLine: activeEndLine,
+                disableActiveFile,
+              } = useActiveFileStore.getState();
+              if (!disableActiveFile && activeFileUri) {
+                activeFileChatReferenceItem = {
+                  type: 'file',
+                  activeFileUri: activeFileUri,
+                  startLine: activeStartLine,
+                  endLine: activeEndLine,
+                };
+              }
 
               // Create the user message
               const userMessage: ChatUserMessage = {
                 type: 'TEXT_BLOCK',
                 content: { text: message },
                 referenceList: editorReferences,
-                s3Reference: s3Reference,
+                s3References: s3References,
                 actor: 'USER',
                 lastMessageSentTime: useChatStore.getState().lastMessageSentTime,
+                activeFileReference: activeFileChatReferenceItem,
               };
 
               if (!retryChat) {
@@ -185,7 +204,19 @@ export const useChatStore = create(
                 isLoading: true,
                 showSkeleton: true,
               });
-              // delete copyS3Reference.get_url
+              const activeFile = useActiveFileStore.getState().activeFileUri;
+              const startLine = useActiveFileStore.getState().startLine;
+              const endLine = useActiveFileStore.getState().endLine;
+              const activeFileReference: {
+                active_file: string;
+                start_line?: number;
+                end_line?: number;
+              } = {
+                active_file: activeFile || '',
+                start_line: startLine,
+                end_line: endLine,
+              };
+
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
@@ -197,7 +228,8 @@ export const useChatStore = create(
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                attachments: s3Reference?.key ? [{ attachment_id: s3Reference.key }] : [],
+                attachments: s3References.map((ref) => ({ attachment_id: ref.key })),
+                ...(disableActiveFile === false && { active_file_reference: activeFileReference }),
               };
 
               // If a tool response was stored, add it to the payload
@@ -622,32 +654,23 @@ export const useChatStore = create(
                       tool_use_id: string;
                       write_mode: boolean;
                     };
-                    if (toolData.tool_name === 'ask_user_input') {
-                      // For ask_user_input, create an assistant message.
-                      set({
-                        current: {
-                          type: 'TEXT_BLOCK',
-                          content: { text: '' },
-                          actor: 'ASSISTANT',
-                        },
-                      });
-                    } else {
-                      // For normal tools, create a tool use message.
-                      const newToolMsg: ChatToolUseMessage = {
-                        type: 'TOOL_USE_REQUEST',
-                        content: {
-                          tool_name: toolData.tool_name || '',
-                          tool_use_id: toolData.tool_use_id || '',
-                          input_params_json: '',
-                          result_json: '',
-                          status: 'pending',
-                          write_mode: toolData.write_mode,
-                        },
-                      };
-                      set((state) => ({
-                        history: [...state.history, newToolMsg],
-                      }));
-                    }
+
+                    // For normal tools, create a tool use message.
+                    const newToolMsg: ChatToolUseMessage = {
+                      type: 'TOOL_USE_REQUEST',
+                      content: {
+                        tool_name: toolData.tool_name || '',
+                        tool_use_id: toolData.tool_use_id || '',
+                        input_params_json: '',
+                        result_json: '',
+                        status: 'pending',
+                        write_mode: toolData.write_mode,
+                      },
+                    };
+                    set((state) => ({
+                      history: [...state.history, newToolMsg],
+                    }));
+
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
@@ -660,21 +683,6 @@ export const useChatStore = create(
                       tool_use_id: string;
                     };
                     switch (tool_name) {
-                      case 'ask_user_input':
-                        set((state) => ({
-                          current: state.current
-                            ? {
-                                ...state.current,
-                                content: {
-                                  text: (state.current.content.text + delta)
-                                    .replace(/^\{"prompt":\s*"/, '') // Remove `{"prompt": "`
-                                    .replace(/"}$/, ''), // Remove trailing `"}`
-                                },
-                              }
-                            : state.current,
-                        }));
-                        break;
-
                       default:
                         set((state) => {
                           const newHistory = state.history.map((msg) => {
@@ -708,19 +716,6 @@ export const useChatStore = create(
                     };
 
                     switch (tool_name) {
-                      case 'ask_user_input':
-                        // Finalize the assistant message.
-                        set((state) => {
-                          if (!state.current) return state;
-                          const finalText = state.current.content?.text;
-                          return {
-                            history: [...state.history, { ...state.current, text: finalText }],
-                            current: undefined,
-                            lastToolUseResponse: { tool_use_id, tool_name },
-                          };
-                        });
-                        break;
-
                       default:
                         set((state) => {
                           const newHistory = state.history.map((msg) => {
@@ -953,7 +948,10 @@ export const useChatStore = create(
                       });
                       return { history: newHistory };
                     });
-                    if (toolResultData.status !== 'aborted') {
+                    if (
+                      toolResultData.status !== 'aborted' &&
+                      toolResultData.tool_name !== 'ask_user_input'
+                    ) {
                       useChatStore.setState({ showGeneratingEffect: true });
                     }
 

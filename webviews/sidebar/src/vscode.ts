@@ -10,20 +10,33 @@ import {
   ViewType,
   ChatReferenceItem,
   ProfileUiDiv,
-  ProgressBarData,
   ThemeKind,
   ChatToolUseMessage,
   Settings,
   URLListItem,
   MCPServer,
+  ChangedFile,
+  IndexingProgressData,
+  EmbeddingProgressData,
 } from '@/types';
-import { logToOutput, getSessions, sendWorkspaceRepoChange, getGlobalState } from './commandApi';
+import {
+  logToOutput,
+  sendWorkspaceRepoChange,
+  getGlobalState,
+  rejectAllChangesInSession,
+  hitEmbedding,
+} from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
+import { useActiveFileStore } from './stores/activeFileStore';
+import { useChangedFilesStore } from './stores/changedFilesStore';
+import { useIndexingStore } from './stores/indexingDataStore';
+import { useForceUpgradeStore } from './stores/forceUpgradeStore';
+import { useAuthStore } from './stores/authStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -106,12 +119,8 @@ export function callCommand(
   const id = uuidv4();
 
   if (command === 'get-workspace-state' || command === 'get-global-state') {
-    // console.log("callCommand: waiting 0.5 seconds before sending workspace state request...");
-
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        // console.log("callCommand: 0.5 seconds elapsed, now sending workspace state request...");
-
         // Create the resolver only when we actually send the request
         resolvers[id] = { resolve, reject };
 
@@ -234,6 +243,8 @@ addCommandEventListener('new-chat', async () => {
     useChatStore.getState().clearChat();
     callCommand('delete-session-id', null);
   }
+  rejectAllChangesInSession(useChangedFilesStore.getState().filesChangedSessionId);
+  useChangedFilesStore.setState({ changedFiles: [] });
 });
 
 addCommandEventListener('set-view-type', ({ data }) => {
@@ -262,7 +273,28 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
+
+  // Get current repos before updating
+  const currentRepos = useWorkspaceStore.getState().workspaceRepos;
+  const currentRepoPaths = new Set(currentRepos.map((repo) => repo.repoPath));
+
+  // Find new repos that weren't there before
+  const newRepos = repos.filter((repo) => !currentRepoPaths.has(repo.repoPath));
+
+  // Update the stores
   useWorkspaceStore.getState().setWorkspaceRepos(repos, activeRepo);
+  useIndexingStore.getState().initializeRepos(repos);
+
+  const inProgressRepos = useIndexingStore
+    .getState()
+    .indexingProgressData.filter((repo) => repo.status === 'IN_PROGRESS');
+
+  // Hit embedding for new repos
+  if (newRepos.length > 0 && newRepos.length != repos.length && inProgressRepos.length == 0) {
+    newRepos.forEach((newRepo) => {
+      hitEmbedding(newRepo.repoPath);
+    });
+  }
 });
 
 addCommandEventListener('sessions-history', ({ data }: any) => {
@@ -372,11 +404,6 @@ addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
   useSettingsStore.setState({ urls: data as URLListItem[] });
 });
 
-addCommandEventListener('session-chats-history', ({ data }) => {
-  useExtensionStore.setState({ viewType: 'chat' });
-  useChatStore.setState({ history: data as ChatMessage[] });
-});
-
 addCommandEventListener('image-upload-progress', (event) => {
   const { data } = event as { data: { progress: number } };
   useChatStore.setState({ imageUploadProgress: data.progress as number });
@@ -384,7 +411,8 @@ addCommandEventListener('image-upload-progress', (event) => {
 
 addCommandEventListener('uploaded-image-key', (event) => {
   const { data } = event as { data: { key: string; get_url: string } };
-  useChatStore.setState({ s3Object: data });
+  const currentS3Objects = useChatStore.getState().s3Objects;
+  useChatStore.setState({ s3Objects: [...currentS3Objects, data] });
 });
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
@@ -405,6 +433,8 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     index: lengthOfCurrentEditorReference,
     type: 'code_snippet',
     keyword: response.keyword,
+    // value is file name which we generate from response.path
+    value: response.path.split('/').pop() || '',
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
@@ -413,30 +443,29 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     currentEditorReference: [...currentEditorReference, chatReferenceItem],
   });
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
-  // console.dir(useChatStore.getState().currentEditorReference, { depth: null });
 });
 
-addCommandEventListener('progress-bar', ({ data }) => {
-  const progressBarData = data as ProgressBarData;
-  const incomingProgressBarRepo = progressBarData.repo;
-  const currentProgressBars = useChatStore.getState().progressBars;
-  // Check if the repo is present in the currentProgressBars array
-  const isRepoPresent = currentProgressBars.some((bar) => bar.repo === incomingProgressBarRepo);
-  if (!isRepoPresent) {
-    // If the repo is not present, add it to the array
-    useChatStore.setState({
-      progressBars: [...currentProgressBars, progressBarData],
-    });
-  } else {
-    // If the repo is present, update the progress
-    useChatStore.setState({
-      progressBars: currentProgressBars.map((bar) =>
-        bar.repo === incomingProgressBarRepo
-          ? { ...progressBarData } // Replace the existing bar with progressBarData
-          : bar
-      ),
-    });
+addCommandEventListener('indexing-progress', ({ data }) => {
+  const response = data as IndexingProgressData;
+  useIndexingStore.getState().updateOrAppendIndexingData(response);
+  const indexingProgressData = useIndexingStore.getState().indexingProgressData;
+
+  // sequential embedding
+  // If current embedding is completed, find next idle repo and trigger embedding
+  if (response.status === 'COMPLETED') {
+    const nextIdleRepo = indexingProgressData.find(
+      (item) => item.status === 'IDLE' && item.repo_path !== response.repo_path
+    );
+
+    if (nextIdleRepo) {
+      hitEmbedding(nextIdleRepo.repo_path);
+    }
   }
+});
+
+addCommandEventListener('embedding-progress', ({ data }) => {
+  const response = data as EmbeddingProgressData;
+  useIndexingStore.getState().updateOrAppendEmbeddingData(response);
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {
@@ -444,9 +473,10 @@ addCommandEventListener('profile-ui-data', ({ data }) => {
 });
 
 addCommandEventListener('force-upgrade-data', ({ data }) => {
-  useChatStore.setState({
-    forceUpgradeData: data as { url: string; upgradeVersion: string },
+  useForceUpgradeStore.setState({
+    forceUpgradeData: data as { url: string; upgradeVersion: string; currentVersion: string },
   });
+  useForceUpgradeStore.setState({ showForceUpgrade: true });
   useExtensionStore.setState({ viewType: 'force-upgrade' });
 });
 
@@ -639,6 +669,78 @@ addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   });
 });
 
+addCommandEventListener('file-diff-applied', ({ data }) => {
+  const { fileName, filePath, repoPath, addedLines, removedLines, sessionId } = data as ChangedFile;
+
+  useChangedFilesStore.setState((state) => {
+    // Check if file with same path and repo already exists
+    const existingFileIndex = state.changedFiles.findIndex(
+      (file) => file.filePath === filePath && file.repoPath === repoPath
+    );
+
+    const newFile = {
+      fileName,
+      filePath,
+      repoPath,
+      addedLines,
+      removedLines,
+      sessionId,
+      accepted: false,
+    };
+
+    if (existingFileIndex >= 0) {
+      // Update existing file
+      const updatedFiles = [...state.changedFiles];
+      updatedFiles[existingFileIndex] = newFile;
+      return { changedFiles: updatedFiles };
+    } else {
+      // Add new file
+      return { changedFiles: [...state.changedFiles, newFile] };
+    }
+  });
+  useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
+});
+
+addCommandEventListener('all-file-changes-finalized', ({ data }) => {
+  const { filePath, repoPath } = data as {
+    filePath: string;
+    repoPath: string;
+  };
+
+  useChangedFilesStore.setState((state) => {
+    // Filter out the file that was accepted
+    const updatedFiles = state.changedFiles.filter(
+      (file) => !(file.filePath === filePath && file.repoPath === repoPath)
+    );
+
+    return { changedFiles: updatedFiles };
+  });
+});
+
+addCommandEventListener('all-file-changes-rejected', ({ data }) => {
+  const { filePath, repoPath } = data as {
+    filePath: string;
+    repoPath: string;
+  };
+
+  useChangedFilesStore.setState((state) => {
+    // Filter out the file that was accepted
+    const updatedFiles = state.changedFiles.filter(
+      (file) => !(file.filePath === filePath && file.repoPath === repoPath)
+    );
+
+    return { changedFiles: updatedFiles };
+  });
+});
+
+addCommandEventListener('all-session-changes-finalized', ({ data }) => {
+  useChangedFilesStore.setState({ changedFiles: [] });
+});
+
+addCommandEventListener('all-session-changes-rejected', ({ data }) => {
+  useChangedFilesStore.setState({ changedFiles: [] });
+});
+
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
   const selectedServer = useMcpStore.getState().selectedServer;
@@ -686,7 +788,41 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
 
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
+
 addCommandEventListener('set-cancel-button-status',({data})=>{
   console.log("*** Cancel button status ***",data)
   useChatStore.setState({setCancelButtonStatus: data as boolean})
 });
+
+
+addCommandEventListener('active-file-change', ({ data }) => {
+  const activeFileChangeData = data as {
+    fileUri: string | undefined;
+    startLine?: number;
+    endLine?: number;
+  };
+  const activeFileUri = activeFileChangeData.fileUri;
+  const startLine = activeFileChangeData.startLine;
+  const endLine = activeFileChangeData.endLine;
+  if (activeFileUri) {
+    useActiveFileStore.setState({ activeFileUri, startLine, endLine });
+  } else {
+    useActiveFileStore.setState({
+      activeFileUri: undefined,
+      startLine: undefined,
+      endLine: undefined,
+    });
+  }
+});
+
+addCommandEventListener('auth-response', ({ data }) => {
+  const response = data as string;
+  if (response === 'AUTHENTICATED') {
+    useAuthStore.setState({ isAuthenticated: true });
+    useExtensionStore.setState({ viewType: 'chat' });
+  } else if (response === 'NOT_VERIFIED') {
+    useAuthStore.setState({ isAuthenticated: false });
+    useExtensionStore.setState({ viewType: 'auth' });
+  }
+});
+

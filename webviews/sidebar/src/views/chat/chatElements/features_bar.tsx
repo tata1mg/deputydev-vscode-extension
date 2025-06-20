@@ -99,22 +99,17 @@ export default function FeaturesBar() {
   };
 
   return (
-    <div className="flex justify-center pl-3 pr-3">
+    <div className="flex justify-center rounded-t-md pl-3 pr-3">
       <div
         ref={featuresBarRef}
-        className="flex w-full flex-col rounded-t-md border-l-2 border-r-2 border-t-2 border-gray-700"
+        className="flex w-full flex-col rounded-t-md border border-b-[0.5px] border-[var(--vscode-editorWidget-border)]"
         style={{
           backgroundColor: 'var(--vscode-editor-background)',
         }}
       >
         {/* ALL MCP SERVERS */}
         {showAllMCPServers && !showMCPServerTools && (
-          <div
-            className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto"
-            style={{
-              backgroundColor: 'var(--vscode-editor-background)',
-            }}
-          >
+          <div className="flex max-h-[150px] cursor-pointer flex-col justify-between overflow-y-auto rounded-t-md bg-[var(--vscode-editor-background)]">
             {mcpServers.map((server, index) => (
               <div key={index} className="flex justify-between">
                 <button
@@ -167,7 +162,7 @@ export default function FeaturesBar() {
         {showMCPServerTools && selectedServer && (
           <div>
             <div
-              className="flex justify-between"
+              className="flex justify-between rounded-t-md"
               style={{
                 backgroundColor: 'var(--vscode-editor-background)',
               }}
@@ -209,7 +204,7 @@ export default function FeaturesBar() {
               </div>
             </div>
             <div
-              className="h-full max-h-[150px] overflow-y-auto p-2 text-xs"
+              className="h-full max-h-[150px] overflow-y-auto p-2 text-[0.7rem]"
               style={{
                 backgroundColor: 'var(--vscode-editor-background)',
               }}
@@ -244,7 +239,7 @@ export default function FeaturesBar() {
             )}
             <div className="flex max-w-[85%] gap-2">
               <button
-                className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden"
+                className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-xs"
                 onClick={() => handleShowMCPServers()}
                 data-tooltip-id="mcp-tooltips"
                 data-tooltip-content={`MCP (${mcpServers.length} Available MCP Servers)`}
@@ -253,7 +248,7 @@ export default function FeaturesBar() {
                 <div>
                   <Server className="h-4 w-4 hover:cursor-pointer hover:bg-slate-700 hover:bg-opacity-5" />
                 </div>
-                <div className="overflow-hidden text-ellipsis whitespace-nowrap text-xs">
+                <div className="overflow-hidden text-ellipsis whitespace-nowrap text-[0.7rem]">
                   {mcpServers.length} Available MCP Servers
                 </div>
               </button>

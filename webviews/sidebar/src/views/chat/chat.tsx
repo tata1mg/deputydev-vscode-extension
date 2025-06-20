@@ -1,47 +1,55 @@
 // file: webview-ui/src/components/Chat.tsx
 import {
-  Check,
-  Sparkles,
-  CornerDownLeft,
-  Loader2,
-  CircleStop,
-  Globe,
   AtSign,
+  Check,
+  CircleStop,
+  CornerDownLeft,
+  Globe,
   Image,
+  Loader2,
+  Sparkles,
   X,
 } from 'lucide-react';
-import { use, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Tooltip } from 'react-tooltip';
 import {
   initialAutocompleteOptions,
   useChatSettingStore,
   useChatStore,
 } from '../../stores/chatStore';
 import { ChatTypeToggle } from './chatElements/chatTypeToggle';
-import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
-import RepoSelector from './chatElements/RepoSelector';
-import { ChatArea } from './chatMessagesArea';
 import {
+  enhanceUserQuery,
+  getSavedUrls,
   keywordSearch,
   keywordTypeSearch,
   logToOutput,
-  getSavedUrls,
-  urlSearch,
-  enhanceUserQuery,
-  uploadFileToS3,
   showVsCodeMessageBox,
+  uploadFileToS3,
+  urlSearch,
+  getWorkspaceState,
 } from '@/commandApi';
+import { useMcpStore } from '@/stores/mcpStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { AutocompleteOption, ChatReferenceItem, ChatUserMessage } from '@/types';
+import {
+  AutocompleteOption,
+  ChatReferenceItem,
+  ChatReferenceItemTypes,
+  ChatUserMessage,
+} from '@/types';
 import { isEqual as lodashIsEqual } from 'lodash';
 import '../../styles/markdown-body.css';
-import { AutocompleteMenu } from './autocomplete';
-import ProgressBar from './chatElements/progressBar';
-import ReferenceChip from './referencechip';
-import ModelSelector from './chatElements/modelSelector';
+import ActiveFileReferenceChip from './chatElements/autocomplete/ActiveFileReferenceChip';
+import { AutocompleteMenu } from './chatElements/autocomplete/autocomplete';
+import InputReferenceChip from './chatElements/autocomplete/inputReferenceChip';
 import FeaturesBar from './chatElements/features_bar';
-import { useMcpStore } from '@/stores/mcpStore';
+import ModelSelector from './chatElements/modelSelector';
+import RepoSelector from './chatElements/RepoSelector';
+import { ChatArea } from './chatMessagesArea';
+import ChangedFilesBar from './chatElements/changedFilesBar';
+import { useChangedFilesStore } from '@/stores/changedFilesStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -54,7 +62,6 @@ export function ChatUI() {
     cancelChat,
     showSessionsBox,
     ChatAutocompleteOptions,
-    progressBars,
     selectedOptionIndex,
     enhancingUserQuery,
     enhancedUserQuery,
@@ -65,6 +72,7 @@ export function ChatUI() {
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
   const { showAllMCPServers, showMCPServerTools } = useMcpStore();
+  const { changedFiles } = useChangedFilesStore();
 
   const deputyDevLogo =
     themeKind === 'light' || themeKind === 'high-contrast-light'
@@ -77,9 +85,7 @@ export function ChatUI() {
 
   const repoSelectorEmbedding = useMemo(() => {
     if (!activeRepo) return true;
-    const activeProgress = progressBars.find((bar) => bar.repo === activeRepo);
-    return activeProgress?.status !== 'Completed';
-  }, [activeRepo, progressBars]);
+  }, [activeRepo]);
 
   // const [repoSelectorDisabled] = useState(false);
   const setUserInput = (val: string) => useChatStore.setState({ userInput: val });
@@ -90,10 +96,12 @@ export function ChatUI() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const backspaceCountRef = useRef(0);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [showBiggerImage, setShowBiggerImage] = useState<boolean>(false);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [expandedImageIndex, setExpandedImageIndex] = useState<number>(-1);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const [maxSize, setMaxSize] = useState<number>(5 * 1024 * 1024); // Default 5MB
+  const [maxFiles, setMaxFiles] = useState<number>(5); // Default 5 files
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -131,7 +139,7 @@ export function ChatUI() {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${Math.max(70, Math.min(el.scrollHeight, 300))}px`;
+    el.style.height = `${Math.max(50, Math.min(el.scrollHeight, 300))}px`;
   };
 
   const handleSend = async () => {
@@ -144,7 +152,7 @@ export function ChatUI() {
 
     const resetTextareaHeight = () => {
       if (textareaRef.current) {
-        textareaRef.current.style.height = '70px';
+        textareaRef.current.style.height = '50px';
       }
     };
 
@@ -152,17 +160,17 @@ export function ChatUI() {
 
     const message = userInput.trim();
     const editorReferences = [...useChatStore.getState().currentEditorReference];
-    const s3Reference = useChatStore.getState().s3Object;
+    const s3References = [...useChatStore.getState().s3Objects];
     setUserInput('');
-    setImagePreview(null);
+    setImagePreviews([]);
     fileInputRef.current!.value = '';
     timeoutRef.current = null;
-    useChatStore.setState({ s3Object: undefined });
+    useChatStore.setState({ s3Objects: [] });
     useChatStore.setState({ currentEditorReference: [] });
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {}, s3Reference);
+      await sendChatMessage(message, editorReferences, () => {}, s3References);
     } catch (error) {
       // Handle error if needed
     }
@@ -262,29 +270,37 @@ export function ChatUI() {
     }
   };
   const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (chipEditMode) {
-      const value = e.target.value.split('@')[1];
-      const valueArr = value.split(': ');
-      if (['file', 'directory', 'function', 'class'].includes(valueArr[0].toLowerCase())) {
-        setShowAutocomplete(true);
-        keywordTypeSearch({
-          type: valueArr[0].toLowerCase(),
-          keyword: valueArr[1],
-        });
-      } else if (valueArr[0].toLowerCase() === 'url') {
-        setShowAutocomplete(true);
-        valueArr[1] &&
-          urlSearch({
-            keyword: valueArr[1].trim(),
+    const input = e.target.value;
+    const atIdx = input.indexOf('@');
+
+    if (chipEditMode && atIdx !== -1) {
+      const afterAt = input.slice(atIdx + 1);
+      if (afterAt) {
+        const [rawType, ...rest] = afterAt.split(':');
+        const keywordType = rawType?.trim().toLowerCase();
+        const keyword = rest.join(':').trim();
+
+        if (['file', 'directory', 'function', 'class'].includes(keywordType)) {
+          setShowAutocomplete(true);
+          keywordTypeSearch({
+            type: keywordType,
+            keyword,
           });
-      } else {
-        setShowAutocomplete(true);
-        if (value !== '' && !value.startsWith('url:')) {
-          keywordSearch({ keyword: value });
+        } else if (keywordType === 'url') {
+          setShowAutocomplete(true);
+          if (keyword) {
+            urlSearch({ keyword });
+          }
+        } else {
+          setShowAutocomplete(true);
+          if (afterAt && !afterAt.startsWith('url:')) {
+            keywordSearch({ keyword: afterAt });
+          }
         }
       }
     }
-    if (e.target.value.endsWith('@')) {
+
+    if (input.endsWith('@')) {
       useChatStore.setState({
         ChatAutocompleteOptions: initialAutocompleteOptions,
       });
@@ -292,7 +308,8 @@ export function ChatUI() {
       setShowAutocomplete(true);
       setChipEditMode(true);
     }
-    setUserInput(e.target.value);
+
+    setUserInput(input);
   };
 
   const handleChipDelete = (index: number) => {
@@ -315,32 +332,57 @@ export function ChatUI() {
     } else {
       const allChips = [...useChatStore.getState().currentEditorReference];
       const chipIndexBeingEdited = useChatStore.getState().chipIndexBeingEdited;
-      if (chipIndexBeingEdited == -1) {
-        const newChatRefrenceItem: ChatReferenceItem = {
-          index: allChips.length,
-          type: option.icon,
-          keyword: option.icon + ': ' + option.value,
-          path: option.description,
-          chunks: option.chunks,
-          value: option.value,
-          url: option.url,
-        };
-        useChatStore.setState({
-          currentEditorReference: [...allChips, newChatRefrenceItem],
-        });
+
+      const isDuplicate = allChips.some(
+        (chip) =>
+          chip.type === option.icon &&
+          chip.value === option.value &&
+          chip.path === option.description &&
+          lodashIsEqual(chip.chunks, option.chunks)
+      );
+
+      if (chipIndexBeingEdited === -1) {
+        if (!isDuplicate) {
+          const newChatRefrenceItem: ChatReferenceItem = {
+            index: allChips.length,
+            type: option.icon as ChatReferenceItemTypes,
+            keyword: option.icon + ': ' + option.value,
+            path: option.description,
+            chunks: option.chunks,
+            value: option.value,
+            url: option.url,
+          };
+          useChatStore.setState({
+            currentEditorReference: [...allChips, newChatRefrenceItem],
+          });
+        } else {
+          logToOutput('info', `Duplicate chip detected. Skipping addition.`);
+        }
+        setShowAutocomplete(false);
+        setUserInput(userInput.split('@')[0]);
+        setChipEditMode(false);
+      } else if (allChips[chipIndexBeingEdited]) {
+        allChips[chipIndexBeingEdited].keyword = option.icon + ': ' + option.value;
+        allChips[chipIndexBeingEdited].type = option.icon as ChatReferenceItemTypes;
+        allChips[chipIndexBeingEdited].path = option.description;
+        allChips[chipIndexBeingEdited].chunks = option.chunks;
+        allChips[chipIndexBeingEdited].value = option.value;
+
+        useChatStore.setState({ currentEditorReference: allChips });
         setShowAutocomplete(false);
         setUserInput(userInput.split('@')[0]);
         setChipEditMode(false);
       } else {
-        allChips[chipIndexBeingEdited].keyword = option.icon + ': ' + option.value;
-        allChips[chipIndexBeingEdited].type = option.icon;
-        allChips[chipIndexBeingEdited].path = option.description;
-        allChips[chipIndexBeingEdited].chunks = option.chunks;
-        allChips[chipIndexBeingEdited].value = option.value;
+        logToOutput(
+          'error',
+          `No chip found with index ${chipIndexBeingEdited}. Cannot update the chip.`
+        );
       }
     }
+
     useChatStore.setState({ chipIndexBeingEdited: -1 });
     useChatStore.setState({ selectedOptionIndex: -1 });
+
     setTimeout(() => {
       const textarea = textareaRef.current;
       if (textarea) {
@@ -402,6 +444,30 @@ export function ChatUI() {
       }, 150);
     }
   }, [messages, current?.content?.text, isAutoScrollEnabled]);
+
+  useEffect(() => {
+    const fetchImageUploadConfig = async () => {
+      try {
+        const mainConfig = await getWorkspaceState({ key: 'configData' });
+        if (mainConfig) {
+          const maxSize = mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES'];
+          const maxFiles = mainConfig['CHAT_IMAGE_UPLOAD']['MAX_FILES'];
+
+          if (maxFiles && typeof maxFiles === 'number') {
+            setMaxFiles(maxFiles);
+          }
+          if (maxSize && typeof maxSize === 'number') {
+            setMaxSize(maxSize);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch image upload config:', error);
+      }
+    };
+
+    fetchImageUploadConfig();
+  }, []);
+
   return (
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
@@ -419,24 +485,22 @@ export function ChatUI() {
                   Develop with DeputyDev
                 </h1> */}
               </div>
-              {!repoSelectorEmbedding && (
-                <div className="h-[128px] px-4 fade-in">
-                  <div className="flex items-center gap-2">
-                    <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
-                    <Check className="mb-1 animate-pulse text-sm text-green-500" />
-                  </div>
-                  <p className="text-md">
-                    Ask questions about your repository or instantly generate code, tests, and
-                    documentation
-                  </p>
+              <div className="h-[128px] px-4 fade-in">
+                <div className="flex items-center gap-2">
+                  <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
+                  <Check className="mb-1 animate-pulse text-sm text-green-500" />
                 </div>
-              )}
+                <p className="text-md">
+                  Ask questions about your repository or instantly generate code, tests, and
+                  documentation
+                </p>
+              </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mb-[160px] h-full overflow-auto px-4">
+      <div className="mb-[180px] h-full overflow-auto px-4">
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
@@ -457,125 +521,134 @@ export function ChatUI() {
           {messages.length === 0 &&
             !showAutocomplete &&
             !showAllMCPServers &&
-            !showMCPServerTools && (
+            !showMCPServerTools &&
+            changedFiles.length === 0 && (
               <div className="px-4">
-                <p className="mb-1 mt-4 text-center text-xs text-gray-500">
+                <p className="mb-1 mt-4 text-center text-[0.7rem] text-gray-500">
                   DeputyDev is powered by AI. It can make mistakes. Please double check all output.
                 </p>
               </div>
             )}
 
-          {activeRepo ? (
-            <div className="mb-[2px] w-full">
-              <ProgressBar progressBars={progressBars} />
-            </div>
-          ) : (
-            <div className="mb-[4px] w-full text-center text-sm">
-              To proceed, please import a project into your workspace!
-            </div>
-          )}
-
           {/* The textarea remains enabled even when a response is pending */}
           <div className="relative w-full">
-            {!showAutocomplete && <FeaturesBar />}
+            {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
+            {!showAutocomplete && changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
             <div
-              className={`mb-1 flex flex-wrap items-center gap-1 rounded bg-[--deputydev-input-background] p-2 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
+              className={`mb-1 flex flex-wrap items-center gap-0.5 rounded bg-[--deputydev-input-background] p-2 pb-6 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
             >
+              <ActiveFileReferenceChip />
               {useChatStore.getState().currentEditorReference?.map((chip) => (
-                <ReferenceChip
+                <InputReferenceChip
                   key={chip.index}
                   chipIndex={chip.index}
-                  initialText={chip.keyword}
+                  path={chip.path}
+                  text={chip.keyword}
+                  type={chip.type}
+                  value={chip.value}
                   onDelete={() => {
                     handleChipDelete(chip.index);
                   }}
-                  autoEdit={
-                    !chip.noEdit &&
-                    chip.index === useChatStore.getState().currentEditorReference.length - 1
-                  }
-                  setShowAutoComplete={setShowAutocomplete}
                   chunks={chip.chunks}
                   url={chip.url}
                 />
               ))}
 
-              {imagePreview && (
-                <div
-                  className={`group relative mb-2 transition-all duration-500 ease-in-out ${
-                    showBiggerImage ? 'h-48 w-48' : 'h-12 w-12'
-                  }`}
-                >
-                  <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
-                    <img
-                      onClick={() => {
-                        if (!showBiggerImage) {
-                          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              {imagePreviews.length > 0 && (
+                <div className="mb-2 flex max-w-full flex-wrap gap-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div
+                      key={index}
+                      className={`group relative transition-all duration-500 ease-in-out ${
+                        expandedImageIndex === index ? 'h-32 w-32' : 'h-12 w-12'
+                      }`}
+                    >
+                      <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                        <img
+                          onClick={() => {
+                            if (expandedImageIndex !== index) {
+                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                              setExpandedImageIndex(index);
+                              timeoutRef.current = window.setTimeout(() => {
+                                setExpandedImageIndex(-1);
+                              }, 5000);
+                            } else {
+                              setExpandedImageIndex(-1);
+                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                            }
+                          }}
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
+                        />
 
-                          timeoutRef.current = window.setTimeout(() => {
-                            setShowBiggerImage(false);
-                          }, 5000);
-                        }
-                        setShowBiggerImage(!showBiggerImage);
-                      }}
-                      src={imagePreview}
-                      alt="Preview"
-                      className="h-full w-full object-cover transition-opacity hover:opacity-90"
-                    />
-
-                    {/* Circular loader overlay */}
-                    {imageUploadProgress !== null && imageUploadProgress < 100 && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-                        <svg
-                          className="h-6 w-6 animate-spin text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                          ></path>
-                        </svg>
+                        {/* Circular loader overlay */}
+                        {imageUploadProgress !== null &&
+                          imageUploadProgress < 100 &&
+                          index === imagePreviews.length - 1 && (
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                              <svg
+                                className="h-4 w-4 animate-spin text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                ></path>
+                              </svg>
+                            </div>
+                          )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Remove button */}
-                  <button
-                    onClick={() => {
-                      useChatStore.setState({ s3Object: undefined });
-                      setImagePreview(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = ''; // Clear file input value
-                      }
-                    }}
-                    className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                    title="Remove image"
-                    aria-label="Remove image"
-                  >
-                    <X className="h-3 w-3" strokeWidth={3} />
-                  </button>
+                      {/* Remove button */}
+                      <button
+                        onClick={() => {
+                          const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                          const newS3Objects = useChatStore
+                            .getState()
+                            .s3Objects.filter((_, i) => i !== index);
+                          setImagePreviews(newPreviews);
+                          useChatStore.setState({ s3Objects: newS3Objects });
+
+                          // Reset expanded state if needed
+                          if (expandedImageIndex === index) {
+                            setExpandedImageIndex(-1);
+                          } else if (expandedImageIndex > index) {
+                            setExpandedImageIndex(expandedImageIndex - 1);
+                          }
+
+                          // Clear file input if no images left
+                          if (newPreviews.length === 0 && fileInputRef.current) {
+                            fileInputRef.current.value = '';
+                          }
+                        }}
+                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        title={`Remove image ${index + 1}`}
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        <X className="h-2.5 w-2.5" strokeWidth={3} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
 
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`no-scrollbar relative max-h-[300px] min-h-[70px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-4 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder={
-                  useChatStore.getState().currentEditorReference?.length
-                    ? ''
-                    : 'Ask DeputyDev to do anything, @ to mention'
-                }
+                className={`no-scrollbar relative max-h-[300px] min-h-[50px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                placeholder={'Ask DeputyDev to do anything, @ to mention'}
                 value={userInput}
                 onChange={handleTextAreaChange}
                 onKeyDown={handleTextAreaKeyDown}
@@ -656,24 +729,60 @@ export function ChatUI() {
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 id="image-upload"
                 ref={fileInputRef}
                 style={{ display: 'none' }}
-                disabled={imagePreview !== null}
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-                    if (file.size > maxSize) {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    const currentCount = imagePreviews.length;
+                    const availableSlots = maxFiles - currentCount;
+
+                    // If no slots available, don't process any files
+                    if (availableSlots <= 0) {
                       showVsCodeMessageBox(
                         'error',
-                        'File size exceeds 5MB. Please upload a smaller file.'
+                        `Maximum ${maxFiles} images allowed. Please remove some images before uploading new ones.`
                       );
                       return;
                     }
-                    const previewUrl = URL.createObjectURL(file);
-                    setImagePreview(previewUrl);
-                    uploadFileToS3(file);
+
+                    // Select only the files that can fit within the limit
+                    const filesToProcess = files.slice(0, availableSlots);
+                    const remainingFiles = files.length - filesToProcess.length;
+
+                    // Show message if some files were not selected
+                    if (currentCount + files.length > maxFiles) {
+                      showVsCodeMessageBox(
+                        'warning',
+                        `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
+                      );
+                    }
+
+                    // Check file sizes
+                    const oversizedFiles = filesToProcess.filter((file) => file.size > maxSize);
+                    if (oversizedFiles.length > 0) {
+                      showVsCodeMessageBox(
+                        'error',
+                        `${oversizedFiles.length} file(s) exceed ${maxSize / 1048576} MB limit. Please upload smaller files.`
+                      );
+                      return;
+                    }
+
+                    // Create previews for all valid files
+                    const newPreviews: string[] = [];
+                    filesToProcess.forEach((file) => {
+                      const previewUrl = URL.createObjectURL(file);
+                      newPreviews.push(previewUrl);
+                    });
+
+                    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+                    // Upload all files
+                    filesToProcess.forEach((file) => {
+                      uploadFileToS3(file);
+                    });
                   }
                 }}
               />
@@ -681,13 +790,18 @@ export function ChatUI() {
               <label
                 htmlFor="image-upload"
                 className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
-                  imagePreview !== null ? 'cursor-not-allowed' : 'cursor-pointer'
+                  imagePreviews.length >= maxFiles
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer'
                 }`}
                 data-tooltip-id="upload-tooltip"
                 data-tooltip-content={
-                  imagePreview !== null ? 'Max 1 image allowed' : 'Upload Image'
+                  imagePreviews.length >= maxFiles
+                    ? `Maximum ${maxFiles} images allowed`
+                    : `Upload Images (${imagePreviews.length}/${maxFiles})`
                 }
                 data-tooltip-place="top-start"
+                style={{ pointerEvents: imagePreviews.length >= maxFiles ? 'none' : 'auto' }}
               >
                 <Image className="h-4 w-4" />
               </label>
@@ -739,7 +853,7 @@ export function ChatUI() {
           </div>
         </div>
 
-        {/* Chat Type Toggle and RepoSelector */}
+        {/* Chat Type Toggle and model selector */}
         <div className="flex items-center justify-between gap-2 text-xs">
           <ModelSelector />
           <ChatTypeToggle />

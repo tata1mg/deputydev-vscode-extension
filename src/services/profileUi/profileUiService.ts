@@ -34,7 +34,6 @@ export class ProfileUiService {
         },
       });
       refreshCurrentToken(response.headers);
-      // console.log("response for profileui",response)
       return response.data.data;
     } catch (error) {
       this.logger.error('Error fetching user profile data');

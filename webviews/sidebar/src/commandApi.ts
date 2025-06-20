@@ -72,6 +72,26 @@ export function updateSavedUrl(payload: { id: string; name: string; isSettings?:
 
 // accept/reject file
 
+export function acceptAllChangesInSession(sessionId: number) {
+  return callCommand('accept-all-changes-in-session', { sessionId });
+}
+
+export function rejectAllChangesInSession(sessionId: number) {
+  return callCommand('reject-all-changes-in-session', { sessionId });
+}
+
+export function acceptAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('accept-all-changes-in-file', { filePath, repoPath, sessionId });
+}
+
+export function rejectAllChangesInFile(filePath: string, repoPath: string, sessionId: number) {
+  return callCommand('reject-all-changes-in-file', { filePath, repoPath, sessionId });
+}
+
+export function openDiffViewer(filePath: string, repoPath: string) {
+  return callCommand('open-diff-viewer-for-file', { filePath, repoPath });
+}
+
 /**
  * @param path: fs path
  */
@@ -86,8 +106,12 @@ export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
 }
 
-export function openFile(path: string) {
-  return callCommand('open-file', { path });
+export function openFile(path: string, startLine?: number, endLine?: number) {
+  return callCommand('open-file', { path, startLine, endLine });
+}
+
+export function revealFolderInExplorer(folderPath: string) {
+  return callCommand('reveal-folder-in-explorer', { folderPath });
 }
 
 export function createOrOpenFile(path: string) {
@@ -113,6 +137,10 @@ export function rejectGenerateCode() {
 
 export function logToOutput(type: 'info' | 'warn' | 'error', message: string) {
   return callCommand('log-to-output', { type, message });
+}
+
+export function logToLogFile(type: 'info' | 'warn' | 'error', message: string) {
+  return callCommand('log-to-log-file', { type, message });
 }
 
 export function showErrorMessage(message: string) {
@@ -167,10 +195,6 @@ export function fetchClientVersion() {
   return callCommand('get-client-version', {});
 }
 
-export function sendWebviewFocusState(isFocused: boolean) {
-  return callCommand('webview-focus-state', { focused: isFocused });
-}
-
 export function getSessions(limit: number, offset: number) {
   return callCommand('get-sessions', { limit, offset });
 }
@@ -216,8 +240,10 @@ export function showUserLogs() {
   return callCommand('show-logs', {});
 }
 
-export function sendRetryEmbedding() {
-  return callCommand('hit-retry-embedding', {});
+export function hitEmbedding(repoPath: string) {
+  if (repoPath) {
+    return callCommand('hit-embedding', { repoPath });
+  }
 }
 
 // terminal
