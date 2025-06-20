@@ -13,7 +13,6 @@ import {
   CornerDownLeft,
   Loader2,
   CheckCircle,
-  XCircle,
   CirclePlay,
   ChevronDown,
   RotateCw,
@@ -31,7 +30,6 @@ import {
   urlSearch,
   createOrOpenFile,
   setGlobalState,
-  getGlobalState,
   setShellIntegrationTimeoutMessage,
   setDisableShellIntegrationMessage,
   hitEmbedding,
@@ -410,11 +408,11 @@ export function CustomLoader() {
 
 const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, repoPath }) => {
   switch (status) {
-    case 'In Progress':
+    case 'IN_PROGRESS':
       return <Loader2 className="h-5 w-5 animate-spin text-yellow-400" />;
-    case 'Completed':
+    case 'COMPLETED':
       return <CheckCircle className="h-5 w-5 text-green-400" />;
-    case 'Failed':
+    case 'FAILED':
       return (
         <RotateCw
           className="h-5 w-5 cursor-pointer text-red-400"
@@ -426,7 +424,7 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
           }}
         />
       );
-    case 'Idle':
+    case 'IDLE':
       return (
         <CirclePlay
           className="h-5 w-5 cursor-pointer text-green-400"
@@ -463,7 +461,7 @@ const IndexingArea: React.FC = () => {
             const repoName = progress.repo_path?.split(/[/\\]/).pop();
             const totalFiles = progress.indexing_status.length;
             const completedFiles = progress.indexing_status.filter(
-              (file) => file.status === 'Completed'
+              (file) => file.status === 'COMPLETED'
             ).length;
 
             return (
@@ -479,19 +477,19 @@ const IndexingArea: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end">
-                      {progress.status === 'In Progress' && (
+                      {progress.status === 'IN_PROGRESS' && (
                         <span className="text-xs text-gray-500">Indexed</span>
                       )}
                       <span className="text-right text-xs text-gray-500 dark:text-gray-400">
-                        {progress.status === 'Completed'
+                        {progress.status === 'COMPLETED'
                           ? 'Indexed'
-                          : progress.status === 'Failed'
+                          : progress.status === 'FAILED'
                             ? 'Failed Indexing'
-                            : progress.status === 'Idle'
+                            : progress.status === 'IDLE'
                               ? 'Index'
                               : `${completedFiles}/${totalFiles} files`}
                       </span>
-                      {progress.status === 'Completed' && (
+                      {progress.status === 'COMPLETED' && (
                         <span className="text-xs text-gray-500">
                           {completedFiles}/{totalFiles} files
                         </span>
@@ -500,7 +498,7 @@ const IndexingArea: React.FC = () => {
                     <div>
                       <StatusIcon status={progress.status} repoPath={progress.repo_path} />
                     </div>
-                    {progress.status !== 'Idle' && (
+                    {progress.status !== 'IDLE' && (
                       <ChevronDown
                         className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 focus:outline-none ${isExpanded ? 'rotate-180 transform' : ''}`}
                         data-tooltip-id="indexing-tooltips"

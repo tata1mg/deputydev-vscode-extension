@@ -64,7 +64,7 @@ export function getIsEmbeddingDoneForActiveRepo(): boolean {
   const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
   const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
   const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === activeRepo);
-  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'Completed') {
+  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'COMPLETED') {
     return true;
   }
   return false;

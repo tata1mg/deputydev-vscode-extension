@@ -27,7 +27,7 @@ export const useIndexingStore = create<
           .filter((repo) => !existingPaths.has(repo.repoPath))
           .map((repo) => ({
             task: 'Indexing',
-            status: 'Idle' as ProgressStatus,
+            status: 'IDLE' as ProgressStatus,
             repo_path: repo.repoPath,
             progress: 0,
             indexing_status: [],
