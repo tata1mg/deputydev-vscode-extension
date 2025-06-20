@@ -21,7 +21,9 @@ import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-ki
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { Session } from '@/types';
+import { ChatMessage, Session } from '@/types';
+import useExtensionStore from '@/stores/useExtensionStore';
+import { useChatStore } from '@/stores/chatStore';
 
 type SortableItemProps = {
   session: {
@@ -361,7 +363,9 @@ export default function History() {
   );
 
   const handleGetSessionChats = async (sessionId: number) => {
-    getSessionChats(sessionId);
+    const data = await getSessionChats(sessionId);
+    useExtensionStore.setState({ viewType: 'chat' });
+    useChatStore.setState({ history: data as ChatMessage[] });
   };
 
   const handlePinUnpinSession = async (

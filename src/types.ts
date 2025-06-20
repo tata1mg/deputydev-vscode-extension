@@ -1,3 +1,9 @@
+export enum AuthStatus {
+  AUTHENTICATED = 'AUTHENTICATED',
+  VERIFIED = 'VERIFIED',
+  EXPIRED = 'EXPIRED',
+}
+
 export type UsageTrackingRequest = {
   eventType: string;
   eventData: Record<string, any>;
@@ -5,6 +11,7 @@ export type UsageTrackingRequest = {
 };
 
 export interface ErrorTrackingRequestForBackend {
+  error_id: string;
   error_type: string;
   client_version: string;
   repo_name?: string;
@@ -13,6 +20,8 @@ export interface ErrorTrackingRequestForBackend {
   session_id?: number;
   user_email?: string;
   error_data: Record<string, any>;
+  user_system_info?: Record<string, any>;
+  stack_trace?: string;
 }
 
 export type ChunkCallback = (data: { name: string; data: unknown }) => void;
@@ -28,7 +37,7 @@ export type Chunk = {
 
 type ChatReferenceItem = {
   index: number;
-  type: 'file' | 'directory' | 'function' | 'keyword' | string;
+  type: 'file' | 'directory' | 'function' | 'keyword' | 'url' | 'code_snippet' | 'class';
   keyword: string;
   path: string;
   chunks: Chunk[];
@@ -80,6 +89,11 @@ export interface ChatPayload {
   shell: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
+  active_file_reference?: {
+    active_file: string;
+    start_line?: number;
+    end_line?: number;
+  };
 }
 
 export interface SearchTerm {
@@ -142,3 +156,26 @@ export interface MCPServerToolApprovePayload {
   tool_name: string;
   server_name: string;
 }
+
+export type ProgressStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS' | 'IDLE';
+
+export interface IndexingStatusData {
+  file_path: string;
+  status: ProgressStatus;
+}
+
+export type IndexingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+  indexing_status: IndexingStatusData[];
+  is_partial_state: boolean;
+};
+
+export type EmbeddingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+};

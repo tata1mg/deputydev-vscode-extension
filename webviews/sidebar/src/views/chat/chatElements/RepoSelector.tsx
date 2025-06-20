@@ -1,92 +1,162 @@
 import { useWorkspaceStore } from '../../../stores/workspaceStore';
-import { sendWorkspaceRepoChange } from '@/commandApi';
+import { hitEmbedding, sendWorkspaceRepoChange } from '@/commandApi';
 import { useChatStore } from '../../../stores/chatStore';
-import * as Tooltip from '@radix-ui/react-tooltip'; // Import Radix Tooltip components
+import { useIndexingStore } from '@/stores/indexingDataStore';
+import { ChevronDown, RefreshCw } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 const RepoSelector = () => {
   const { workspaceRepos, activeRepo, setActiveRepo } = useWorkspaceStore();
   const { history: messages, isLoading } = useChatStore();
+  const { indexingProgressData } = useIndexingStore();
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Determine if the selector should be disabled
   const disableRepoSelector = isLoading || messages.length > 0;
+  const activeRepoData = workspaceRepos.find((repo) => repo.repoPath === activeRepo);
 
-  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedRepoPath = event.target.value;
-    const selectedRepo = workspaceRepos.find((repo) => repo.repoPath === selectedRepoPath);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
 
-    if (selectedRepo) {
-      setActiveRepo(selectedRepoPath);
-      sendWorkspaceRepoChange({ repoPath: selectedRepoPath }); // Notify VS Code about the change
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (repoPath: string) => {
+    if (repoPath !== activeRepo) {
+      setActiveRepo(repoPath);
+      sendWorkspaceRepoChange({ repoPath });
+    }
+    setIsOpen(false);
+  };
+
+  const IndexingStatusIcon: React.FC = () => {
+    const currentIndexingProgressData = indexingProgressData.find(
+      (repo) => repo.repo_path === activeRepo
+    );
+
+    switch (currentIndexingProgressData?.status) {
+      case 'IN_PROGRESS':
+        return (
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
+          </div>
+        );
+      case 'COMPLETED':
+        return (
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]" />
+          </div>
+        );
+      case 'FAILED':
+        return (
+          <div className="flex h-3 w-3 items-center justify-center pl-1">
+            <button
+              className="inline-flex items-center justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                hitEmbedding(activeRepo ?? '');
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <RefreshCw className="h-3 w-3 cursor-pointer text-red-400 hover:text-red-500" />
+            </button>
+          </div>
+        );
+      default:
+        return <div className="h-3 w-3 pl-1" />;
     }
   };
 
-  // Common class names for the wrapper div
-  const wrapperBaseClasses = `relative inline-flex w-[107px] items-center gap-1 px-1 py-0.5 text-sm`;
-  // Conditional classes based on the disabled state
-  const wrapperConditionalClasses = disableRepoSelector
-    ? 'opacity-50 p-0 cursor-not-allowed' // Disabled styles
-    : 'hover:bg-[var(--deputydev-input-background)]'; // Enabled hover style
+  const getTooltipContent = () => {
+    const currentIndexingProgressData = indexingProgressData.find(
+      (repo) => repo.repo_path === activeRepo
+    );
+    switch (currentIndexingProgressData?.status) {
+      case 'IN_PROGRESS':
+        return `${Math.round(currentIndexingProgressData?.progress ?? 0)}% Indexed`;
+      case 'COMPLETED':
+        return 'Indexing Completed';
+      case 'FAILED':
+        return 'Indexing Failed, Retry';
+      default:
+        return 'Not indexed';
+    }
+  };
 
-  const selectElement = (
-    <select
-      className="w-full cursor-pointer text-ellipsis whitespace-nowrap bg-inherit text-xs focus:outline-none"
-      value={activeRepo || ''}
-      onChange={handleChange}
-      disabled={disableRepoSelector}
-      // Add pointer-events: none specifically to the select when disabled
-      // to ensure the wrapper div receives hover events for the tooltip trigger.
-      style={disableRepoSelector ? { pointerEvents: 'none' } : {}}
-    >
-      {workspaceRepos.length === 0 ? (
-        <option value="" disabled>
-          No repositories available
-        </option>
-      ) : (
-        workspaceRepos.map((repo) => (
-          <option key={repo.repoPath} value={repo.repoPath}>
-            {repo.repoName}
-          </option>
-        ))
-      )}
-    </select>
-  );
-
-  // If the selector is disabled, wrap it with the Radix Tooltip
-  if (disableRepoSelector) {
+  if (workspaceRepos.length === 0) {
     return (
-      <Tooltip.Provider delayDuration={200}>
-        {' '}
-        {/* Optional: Add a small delay */}
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            {/* The trigger is the wrapper div */}
-            <div className={`${wrapperBaseClasses} ${wrapperConditionalClasses}`}>
-              {selectElement}
-            </div>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="top" // Or "bottom", "left", "right"
-              align="center" // Adjust alignment as needed
-              className="z-50 ml-3 max-w-[300px] break-words rounded-md px-2 py-1.5 text-xs shadow-md" // Added z-index just in case
-              style={{
-                backgroundColor: 'var(--vscode-editorHoverWidget-background)',
-                color: 'var(--vscode-editorHoverWidget-foreground)',
-                border: '1px solid var(--vscode-editorHoverWidget-border)',
-              }}
-            >
-              Create new chat to select new repo.
-              <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Tooltip.Provider>
+      <div className="ml-1 flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-3 py-1 text-xs opacity-50">
+        No repositories
+      </div>
     );
   }
 
-  // If the selector is enabled, render it without the tooltip wrapper
   return (
-    <div className={`${wrapperBaseClasses} ${wrapperConditionalClasses}`}>{selectElement}</div>
+    <div className="relative" ref={dropdownRef}>
+      <div className="group relative">
+        <button
+          onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
+          disabled={disableRepoSelector}
+          className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] p-1 text-xs ${
+            disableRepoSelector
+              ? 'cursor-not-allowed opacity-50'
+              : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
+          }`}
+        >
+          <IndexingStatusIcon />
+          <div className="flex items-center gap-1">
+            <span className="max-w-[70px] truncate">
+              {activeRepoData?.repoName ?? 'Select Repo'}
+            </span>
+            <ChevronDown
+              className={`h-3 w-3 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            />
+          </div>
+        </button>
+        {disableRepoSelector && (
+          <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground] opacity-0 transition-opacity group-hover:opacity-100">
+            Create new chat to select new repo
+            <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[--vscode-toolbar-hoverBackground]"></div>
+          </div>
+        )}
+        {!disableRepoSelector && (
+          <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground] opacity-0 transition-opacity group-hover:opacity-100">
+            {getTooltipContent()}
+            <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[--vscode-toolbar-hoverBackground]"></div>
+          </div>
+        )}
+      </div>
+
+      {isOpen && (
+        <div
+          className="absolute bottom-full left-0 z-50 mb-1 w-full min-w-[160px] rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg"
+          style={{
+            maxHeight: '250px',
+            overflowY: 'auto',
+          }}
+        >
+          {workspaceRepos.map((repo) => (
+            <button
+              key={repo.repoPath}
+              className={`flex w-full cursor-pointer items-center px-2 py-1 text-xs ${
+                activeRepo === repo.repoPath
+                  ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
+                  : 'text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]'
+              }`}
+              onClick={() => handleSelect(repo.repoPath)}
+            >
+              <span className="flex-1 truncate text-left">{repo.repoName}</span>
+              {activeRepo === repo.repoPath && <span className="ml-2 text-xs">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

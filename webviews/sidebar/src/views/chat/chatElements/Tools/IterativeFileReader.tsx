@@ -68,7 +68,7 @@ export function IterativeFileReader({
           {filePath && fileName && (
             <button
               className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
-              onClick={() => openFile(filePath)}
+              onClick={() => openFile(filePath, startLine, endLine)}
               title={filePath}
             >
               {fileName}

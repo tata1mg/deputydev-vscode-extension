@@ -9,17 +9,32 @@ export type ViewType =
   | 'force-upgrade'
   | 'help'
   | 'faq';
-export type ProgressStatus = 'Completed' | 'Failed' | 'In Progress';
+export type ProgressStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS' | 'IDLE';
 export type ThemeKind = 'dark' | 'light' | 'high-contrast' | 'high-contrast-light' | 'unknown';
 export type UserData = {
   email: string;
   userName: string;
 };
 
-export type ProgressBarData = {
-  repo: string;
-  progress: number;
+export interface IndexingStatusData {
+  file_path: string;
   status: ProgressStatus;
+}
+
+export type IndexingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
+  indexing_status: IndexingStatusData[];
+  is_partial_state: boolean;
+};
+
+export type EmbeddingProgressData = {
+  task: string;
+  status: ProgressStatus;
+  repo_path: string;
+  progress: number;
 };
 
 export type ProfileUiDiv = {
@@ -61,15 +76,32 @@ export type Chunk = {
   meta_info?: any;
 };
 
+export type ChatReferenceItemTypes =
+  | 'file'
+  | 'directory'
+  | 'function'
+  | 'keyword'
+  | 'code_snippet'
+  | 'url'
+  | 'code_snippet'
+  | 'class';
+
 export type ChatReferenceItem = {
   index: number;
-  type: 'file' | 'directory' | 'function' | 'keyword' | string;
+  type: ChatReferenceItemTypes;
   keyword: string;
   path: string;
   chunks: Chunk[];
   value?: string;
   noEdit?: boolean;
   url?: string;
+};
+
+export type ActiveFileChatReferenceItem = {
+  type: ChatReferenceItemTypes;
+  activeFileUri: string;
+  startLine?: number;
+  endLine?: number;
 };
 
 export type ChatType = 'ask' | 'write';
@@ -106,7 +138,8 @@ export type ChatUserMessage = {
     focus_items?: ChatReferenceItem[];
   };
   referenceList: ChatReferenceItem[];
-  s3Reference?: S3Object;
+  activeFileReference?: ActiveFileChatReferenceItem;
+  s3References: S3Object[];
   actor: 'USER';
   lastMessageSentTime?: Date | null;
 };
@@ -136,7 +169,7 @@ export interface ChatToolUseMessage {
   content: {
     tool_name: string;
     tool_use_id: string;
-    input_params_json: { prompt: string } | string;
+    input_params_json: string;
     tool_input_json?: { prompt: string } | string;
     result_json: string;
     status: 'pending' | 'completed' | 'error' | 'aborted';
@@ -352,4 +385,24 @@ export interface MCPStorage {
 export interface S3Object {
   key?: string;
   get_url?: string;
+}
+
+export interface ChangedFile {
+  fileName: string;
+  filePath: string;
+  repoPath: string;
+  addedLines: number;
+  removedLines: number;
+  sessionId: number;
+  accepted: boolean;
+}
+
+export interface ChangedFilesStorage {
+  changedFiles: ChangedFile[];
+  filesChangedSessionId: number;
+}
+
+export interface IndexingDataStorage {
+  indexingProgressData: IndexingProgressData[];
+  embeddingProgressData: EmbeddingProgressData[];
 }

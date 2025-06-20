@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = 'VSCODE_EXT';
-export const CLIENT_VERSION = '6.0.0';
+export const CLIENT_VERSION = '8.0.0';
 export const DD_HOST = 'https://api.deputydev.ai';
 // export const DD_HOST = 'http://localhost:8084';
 
@@ -31,3 +31,8 @@ export function getBinaryWsHost(): string {
   const port = getBinaryPort();
   return `ws://127.0.0.1:${port}`;
 }
+
+import * as os from 'os';
+import * as path from 'path';
+const HOME_DIR = os.homedir();
+export const MCP_CONFIG_PATH = path.join(HOME_DIR, '.deputydev', 'mcp_settings.json');

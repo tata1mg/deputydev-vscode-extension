@@ -1,8 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { fetchRelevantChunks } from '../clients/common/websocketHandlers';
+import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
+import { v4 as uuidv4 } from 'uuid';
+
 import { SESSION_TYPE } from '../constants';
 import { DiffManager } from '../diff/diffManager';
 import { MCPManager } from '../mcp/mcpManager';
@@ -15,7 +17,7 @@ import { QuerySolverService } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { HistoryService } from '../services/history/HistoryService';
 import { getShell } from '../terminal/utils/shell';
-import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest, ToolUseResult } from '../types';
+import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
@@ -26,19 +28,21 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
+import { BackendClient } from '../clients/backendClient';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
   autoAcceptNextTime: boolean;
 }
 export class ChatManager {
-  private querySolverService = new QuerySolverService(this.context);
+  private readonly querySolverService = new QuerySolverService(this.context, this.outputChannel, this.backendClient);
   private sidebarProvider?: SidebarProvider; // Optional at first
-  private historyService = new HistoryService();
-  private focusChunksService = new FocusChunksService();
-  private authService = new AuthService();
+  private readonly historyService = new HistoryService();
+  private readonly focusChunksService = new FocusChunksService();
+  private readonly authService = new AuthService();
   private currentAbortController: AbortController | null = null;
-  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public _onToolUseApprove = new vscode.EventEmitter<{
     toolUseId: string;
@@ -47,25 +51,29 @@ export class ChatManager {
   }>();
   public onTerminalApprove = this._onTerminalApprove.event;
   public onToolUseApprovalEvent = this._onToolUseApprove.event;
-  private terminalExecutor: TerminalExecutor;
+  private readonly terminalExecutor: TerminalExecutor;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
+  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
   // private mcpManager: MCPManager;
 
   onStarted: () => void = () => {};
   onError: (error: Error) => void = () => {};
   constructor(
-    private context: vscode.ExtensionContext,
-    private outputChannel: vscode.LogOutputChannel,
-    private diffManager: DiffManager,
-    private apiErrorHandler: ApiErrorHandler,
-    private mcpManager: MCPManager,
-    private usageTrackingManager: UsageTrackingManager,
-    private errorTrackingManager: ErrorTrackingManager,
+    private readonly context: vscode.ExtensionContext,
+    private readonly outputChannel: vscode.LogOutputChannel,
+    private readonly diffManager: DiffManager,
+    private readonly apiErrorHandler: ApiErrorHandler,
+    private readonly mcpManager: MCPManager,
+    private readonly usageTrackingManager: UsageTrackingManager,
+    private readonly errorTrackingManager: ErrorTrackingManager,
+    private readonly backendClient: BackendClient,
+    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
+    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
   }
 
   // Method to set the sidebar provider later
@@ -301,7 +309,7 @@ export class ChatManager {
       }
       payload.os_name = await getOSName();
       payload.shell = getShell();
-      payload.vscode_env = await getEnvironmentDetails(true);
+      payload.vscode_env = await getEnvironmentDetails(true, payload);
 
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
@@ -475,19 +483,34 @@ export class ChatManager {
                       sessionId: sessionId,
                     });
                   }
-                  const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiff(
+                  const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
                     {
                       path: currentDiffRequest.filepath,
                       incrementalUdiff: currentDiffRequest.raw_diff,
                     },
                     activeRepo,
-                    true,
                     {
                       usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
                       usageTrackingSessionId: getSessionId() || null,
                     },
                     payload.write_mode,
+                    sessionId as number,
                   );
+
+                  if (diffApplySuccess) {
+                    this.sidebarProvider?.sendMessageToSidebar({
+                      id: uuidv4(),
+                      command: 'file-diff-applied',
+                      data: {
+                        addedLines,
+                        removedLines,
+                        filePath: currentDiffRequest.filepath,
+                        fileName: path.basename(currentDiffRequest.filepath),
+                        repoPath: activeRepo,
+                        sessionId: sessionId,
+                      },
+                    });
+                  }
 
                   this.sidebarProvider?.sendMessageToSidebar({
                     id: messageId,
@@ -637,8 +660,15 @@ export class ChatManager {
     }
   }
 
-  async _runGrepSearch(directoryPath: string, repoPath: string, searchTerms?: string[]): Promise<any> {
-    this.outputChannel.info(`Running grep search tool for ${directoryPath}`);
+  async _runGrepSearch(
+    search_path: string,
+    repoPath: string,
+    query: string,
+    searchPath: string,
+    case_insensitive?: boolean,
+    use_regex?: boolean,
+  ): Promise<any> {
+    this.outputChannel.info(`Running grep search tool for ${search_path}`);
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
     try {
@@ -646,12 +676,13 @@ export class ChatManager {
         API_ENDPOINTS.GREP_SEARCH,
         {
           repo_path: repoPath,
-          directory_path: directoryPath,
-          search_terms: searchTerms,
+          directory_path: search_path,
+          search_term: query,
+          case_insensitive: case_insensitive || false,
+          use_regex: use_regex || false,
         },
         { headers },
       );
-
       this.outputChannel.info('Grep search API call successful.');
       this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
       return response.data;
@@ -700,6 +731,7 @@ export class ChatManager {
       if (response.status === 200) {
         this.outputChannel.info('Web Search API call successful.');
         this.outputChannel.info(`Web Search API result: ${JSON.stringify(response.data)}`);
+        refreshCurrentToken(response.headers);
         return response.data;
       }
     } catch (error: any) {
@@ -741,6 +773,13 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
+    class UnknownToolError extends Error {
+      constructor(toolName: string) {
+        super(`Unknown tool requested: ${toolName}`);
+        this.name = 'UnknownToolError';
+      }
+    }
+
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
     if (this.currentAbortController?.signal.aborted) {
       this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
@@ -976,9 +1015,12 @@ export class ChatManager {
           case 'grep_search':
             this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
             rawResult = await this._runGrepSearch(
-              parsedContent.directory_path,
+              parsedContent.search_path,
               active_repo,
-              parsedContent.search_terms,
+              parsedContent.query,
+              parsedContent.search_path,
+              parsedContent.case_insensitive,
+              parsedContent.use_regex,
             );
             break;
           case 'public_url_content_reader':
@@ -1017,46 +1059,7 @@ export class ChatManager {
             rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
             break;
           default: {
-            this.outputChannel.warn(`Unknown tool requested: ${toolRequest.tool_name}`);
-            // Treat as completed but with a message indicating it's unknown
-            rawResult = {
-              message: `Tool '${toolRequest.tool_name}' is not implemented.`,
-            };
-            // We will still send TOOL_USE_RESULT, but won't recurse apiChat
-            status = 'completed';
-            resultForUI = rawResult; // Send the message back
-            // Send TOOL_USE_RESULT immediately as no continuation payload needed
-            const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
-            if (detectedClientTool) {
-              chunkCallback({
-                name: 'TOOL_CHIP_UPSERT',
-                data: {
-                  toolRequest: {
-                    requestData: parsedContent,
-                    toolName: toolRequest.tool_name,
-                    toolMeta: {
-                      serverName: detectedClientTool.tool_metadata.server_id,
-                      toolName: detectedClientTool.tool_metadata.tool_name,
-                    },
-                    requiresApproval: !detectedClientTool.auto_approve,
-                  },
-                  toolResponse: resultForUI,
-                  toolRunStatus: 'completed',
-                  toolUseId: toolRequest.tool_use_id,
-                },
-              });
-            } else {
-              chunkCallback({
-                name: 'TOOL_USE_RESULT',
-                data: {
-                  tool_name: toolRequest.tool_name,
-                  tool_use_id: toolRequest.tool_use_id,
-                  result_json: resultForUI,
-                  status: status,
-                },
-              });
-            }
-            return; // Exit _runTool early for unknown tools
+            throw new UnknownToolError(toolRequest.tool_name);
           }
         }
       }
@@ -1130,6 +1133,12 @@ export class ChatManager {
       chunkCallback(toolUseResult);
       await this.apiChat(continuationPayload, chunkCallback);
     } catch (error: any) {
+      // handle case where unknown tool is requested
+      if (error instanceof UnknownToolError) {
+        this.outputChannel.error(`Unknown tool requested: ${error.message}`);
+        return;
+      }
+
       // raw error in json
       this.logger.error(`Raw error new: ${JSON.stringify(error)}`);
       let errorResponse = error.response?.data;
@@ -1268,7 +1277,7 @@ export class ChatManager {
     this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
 
     try {
-      const result = await fetchRelevantChunks({
+      const result = await this.relevantCodeSearcherToolService.runTool({
         repo_path: repoPath,
         query: query,
         focus_files: [], // Explicitly empty based on original logic
