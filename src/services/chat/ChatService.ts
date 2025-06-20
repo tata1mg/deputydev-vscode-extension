@@ -1,4 +1,7 @@
-import { getSessionId } from '../../utilities/contextManager';
+import {
+  getSessionId,
+  getIsEmbeddingDoneForActiveRepo,
+} from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
@@ -65,6 +68,7 @@ export class QuerySolverService {
     let authToken = await authService.loadAuthToken();
 
     const currentSessionId = getSessionId();
+    payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;
