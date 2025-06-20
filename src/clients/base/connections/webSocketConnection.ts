@@ -48,12 +48,10 @@ export class WebSocketConnection {
   private async initSocket() {
     let latestExtraHeaders = {};
     try {
-      console.log('Fetching extra headers...');
       latestExtraHeaders = (await this.options.extraHeadersFetcher?.()) || {};
     } catch (error: any) {
       this.options.onError?.(error);
     }
-    console.log('Connecting to WebSocket at:', this.url);
     this.socket = new WebSocket(this.url, {
       headers: {
         'X-Client': CLIENT,
@@ -61,8 +59,6 @@ export class WebSocketConnection {
         ...(latestExtraHeaders || {}),
       },
     });
-
-    console.log('WebSocket created, setting up event listeners...');
 
     this.socket.on('open', () => {
       this.resolveConnectionReady();
@@ -73,7 +69,6 @@ export class WebSocketConnection {
     this.socket.on('message', (event: RawData) => {
       try {
         const data = JSON.parse(event.toString());
-        console.log('Received WebSocket message:', data);
         this.options.onMessage?.(data);
       } catch (err) {
         this.options.onError?.(new Error(`Failed to parse WebSocket message: ${err}`));
@@ -106,7 +101,6 @@ export class WebSocketConnection {
     }
 
     const backoff = (this.options.reconnectBackoffMs ?? 1000) * Math.pow(2, this.currentReconnectAttempts++);
-    console.log(`Reconnecting in ${backoff} ms (attempt ${this.currentReconnectAttempts})`);
 
     this.reconnectTimer = setTimeout(async () => {
       if (this.isManuallyClosed) {
@@ -151,7 +145,6 @@ export class WebSocketConnection {
     }
 
     if (!this.connectionReady) {
-      console.log('Connection not ready, attempting to connect...');
       await this.connect();
     }
 
@@ -160,7 +153,6 @@ export class WebSocketConnection {
       if (this.socket.readyState !== WebSocket.OPEN) {
         throw new Error('Socket is not open');
       }
-      console.log('WebSocket connection is ready, sending message:', data);
       this.socket.send(JSON.stringify(data));
     } catch (err) {
       throw new Error(`Failed to send message: ${err}`);

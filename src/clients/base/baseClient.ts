@@ -35,7 +35,6 @@ export class BaseWebsocketEndpoint {
       endpoint: endpoint,
       extraHeadersFetcher: extraHeadersFetcher,
       onMessage: async (data) => {
-        console.log('Received message in baseClient:', data);
         await this.handleMessageForDefaultHandlersAndEmit(data);
       },
       onOpen: () => {
@@ -55,7 +54,6 @@ export class BaseWebsocketEndpoint {
 
   async handleMessageForDefaultHandlersAndEmit(data: any): Promise<void> {
     await Promise.all(this.defaultMessageHandlers.map((handler) => handler(data)));
-    console.log('Emitting message event with data:', data);
     this.onMessage.emit('message', data);
   }
 

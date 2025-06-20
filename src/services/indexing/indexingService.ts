@@ -30,7 +30,6 @@ export class IndexingService {
     rejecter: (reason?: any) => void,
   ): void {
     try {
-      console.log('Received message from updateVectorDB:', messageData);
       if (messageData.task === 'EMBEDDING' && messageData.status === 'COMPLETED') {
         sendEmbeddingDoneMessage({
           task: messageData.task as string,
@@ -103,18 +102,14 @@ export class IndexingService {
         });
 
         this.binaryClient.updateVectorDB.onMessage.on('message', (messageData: any) => {
-          console.log('Received message from updateVectorDB:', messageData);
           this.handleIndexingEvents(messageData, resolver, rejecter);
         });
 
         const triggerResult = await this.updateVectorStore({ ...params, sync: true });
-        console.log(`Trigger result for repo: ${params.repo_path}:`, triggerResult);
 
         if (triggerResult.status === 'failed') {
           throw new Error('Failed to update vector store' + (triggerResult.error ? `: ${triggerResult.error}` : ''));
         }
-
-        console.log(`Waiting for response from updateVectorDB for repo: ${params.repo_path}`);
 
         return await result;
       } catch (error) {
