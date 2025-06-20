@@ -1,4 +1,4 @@
-import { getSessionId, sendForceUpgrade, sendNotVerified } from '../../utilities/contextManager';
+import { getSessionId } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
 import { BackendClient } from '../../clients/backendClient';
-import { CLIENT_VERSION } from '../../config';
 
 interface StreamEvent {
   type: string;
@@ -88,19 +87,8 @@ export class QuerySolverService {
           this.backendClient.querySolver.close();
           return;
         } else if (messageData.type === 'STREAM_ERROR') {
-          if (messageData.status == 'NOT_VERIFIED') {
-            streamError = new Error('Session not verified');
-            sendNotVerified();
-            this.backendClient.querySolver.close();
-            return;
-          } else if (messageData.status == 'INVALID_CLIENT_VERSION') {
-            this.logger.error('Invalid client version in querysolver WebSocket stream');
-            streamError = new Error('Invalid client version');
-            sendForceUpgrade({
-              url: messageData.message.client_download_link,
-              upgradeVersion: messageData.message.upgrade_version,
-              currentVersion: CLIENT_VERSION,
-            });
+          if (messageData.status) {
+            streamError = new Error(messageData.status);
             this.backendClient.querySolver.close();
             return;
           }
@@ -138,7 +126,7 @@ export class QuerySolverService {
       if (streamError) {
         this.backendClient.querySolver.close();
         console.log('Error in querysolver WebSocket stream:', streamError);
-        if (streamError instanceof Error && streamError.message === 'Session not verified') {
+        if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
           console.log('Session not verified, waiting for authentication...', isAuthenticated);
           // wait until the user is authenticated or 10 minutes have passed

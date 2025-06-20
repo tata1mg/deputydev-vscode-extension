@@ -1,4 +1,6 @@
 import { BaseClient, BaseWebsocketEndpoint } from './base/baseClient';
+import { ForceUpgradeHandler } from './handlerMiddlewares/forceUpgradeHandlerMiddleware';
+import { UnauthenticatedHandler } from './handlerMiddlewares/unauthenticatedHandlerMiddleware';
 
 export class BackendClient extends BaseClient {
   // Default endpoints can be set here if needed
@@ -16,6 +18,6 @@ export class BackendClient extends BaseClient {
   }
 
   initEndpoints() {
-    this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER']);
+    this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER'],undefined,[ForceUpgradeHandler, UnauthenticatedHandler]);
   }
 }

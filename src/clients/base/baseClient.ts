@@ -1,12 +1,14 @@
 import { EventEmitter } from 'events';
 import { WebSocketConnection } from './connections/webSocketConnection';
+import { BaseHandlerMiddleware } from './baseHandlerMiddleware';
 
 export class BaseHttpEndpoint {
   constructor(
-    public httpHost: string,
-    public endpoint: string,
-    public method: string,
-    public defaultExtraHeaders: Record<string, string>,
+    httpHost: string,
+    endpoint: string,
+    method: string,
+    extraHeadersFetcher?: () => Promise<Record<string, string>>,
+    messageHandlers: Array<(response: any) => Promise<void>> = [],
   ) {}
 }
 
@@ -55,11 +57,6 @@ export class BaseWebsocketEndpoint {
     await Promise.all(this.defaultMessageHandlers.map((handler) => handler(data)));
     console.log('Emitting message event with data:', data);
     this.onMessage.emit('message', data);
-    console.log('Message event emitted successfully');
-    // Emit 'message' event asynchronously
-    // setImmediate(() => {
-
-    // });
   }
 
   close(): void {
@@ -87,32 +84,43 @@ export class BaseWebsocketEndpoint {
 export class BaseClient {
   private readonly httpHost?: string;
   private readonly wsHost?: string;
-  private readonly defaultWebsocketMessageHandlers!: Array<(data: any) => Promise<void>>;
+  private readonly defaultHandlerMiddlewares!: Array<BaseHandlerMiddleware>;
   private readonly extraHeadersFetcher?: () => Promise<Record<string, string>>;
 
   constructor(
     httpHost?: string,
     wsHost?: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
-    defaultWebsocketMessageHandlers: Array<(data: any) => Promise<void>> = [],
+    defaultHandlerMiddlewares: Array<BaseHandlerMiddleware> = [],
   ) {
     this.httpHost = httpHost?.endsWith('/') ? httpHost.slice(0, -1) : httpHost;
     this.wsHost = wsHost?.endsWith('/') ? wsHost.slice(0, -1) : wsHost;
-    this.defaultWebsocketMessageHandlers = defaultWebsocketMessageHandlers;
+    this.defaultHandlerMiddlewares = defaultHandlerMiddlewares;
     this.extraHeadersFetcher = extraHeadersFetcher;
   }
 
-  createHttpEndpoint(endpoint: string, method: string, defaultExtraHeaders: Record<string, string>): BaseHttpEndpoint {
+  createHttpEndpoint(
+    endpoint: string,
+    method: string,
+    extraHeadersFetcher?: () => Promise<Record<string, string>>,
+    handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
+  ): BaseHttpEndpoint {
     if (!this.httpHost) {
       throw new Error('HTTP host is not defined');
     }
-    return new BaseHttpEndpoint(this.httpHost, endpoint, method, defaultExtraHeaders);
+
+    const httpResponseHandlers = [...this.defaultHandlerMiddlewares, ...handlerMiddlewares].map((middleware) => {
+      return async (data: any) => {
+        await middleware.handleHttpResponse(data);
+      };
+    });
+    return new BaseHttpEndpoint(this.httpHost, endpoint, method, extraHeadersFetcher, httpResponseHandlers);
   }
 
   createWebsocketEndpoint(
     endpoint: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
-    messageHandlers: Array<(data: any) => Promise<void>> = [],
+    handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
   ): BaseWebsocketEndpoint {
     if (!this.wsHost) {
       throw new Error('WebSocket host is not defined');
@@ -125,9 +133,13 @@ export class BaseClient {
       return { ...headers, ...extraHeaders };
     };
 
-    return new BaseWebsocketEndpoint(this.wsHost, endpoint, combinedExtraHeadersFetcher, [
-      ...messageHandlers,
-      ...this.defaultWebsocketMessageHandlers,
-    ]);
+    // create list of websocket handlers
+    const websocketHandlers = [...this.defaultHandlerMiddlewares, ...handlerMiddlewares].map((middleware) => {
+      return async (data: any) => {
+        await middleware.handleWsMessage(data);
+      };
+    });
+
+    return new BaseWebsocketEndpoint(this.wsHost, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
   }
 }
