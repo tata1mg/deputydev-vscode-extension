@@ -101,6 +101,13 @@ export function terminalProcessCompleted(data: { toolUseId: string; exitCode: nu
   });
 }
 
+export function setCancelButtonStatus(Status: boolean){
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'set-cancel-button-status',
+    data: Status,
+  });
+}
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
@@ -119,6 +126,7 @@ export function getIconPathObject(): vscode.Uri | { light: vscode.Uri; dark: vsc
     dark: vscode.Uri.joinPath(extensionContext.extensionUri, 'assets', 'DD_logo_dark.png'),
   };
 }
+
 
 export async function clearWorkspaceStorage(isLogout: boolean = false) {
   if (!extensionContext) {

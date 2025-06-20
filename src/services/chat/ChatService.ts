@@ -1,4 +1,4 @@
-import { getSessionId, sendNotVerified } from '../../utilities/contextManager';
+import { getSessionId, sendNotVerified, setCancelButtonStatus } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { RawData } from 'ws';
@@ -81,6 +81,7 @@ export class QuerySolverService {
               new_session_data: messageData.new_session_data,
             });
           }
+          setCancelButtonStatus(true);
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
           return 'RESOLVE';

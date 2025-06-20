@@ -686,3 +686,7 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
 
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
+addCommandEventListener('set-cancel-button-status',({data})=>{
+  console.log("*** Cancel button status ***",data)
+  useChatStore.setState({setCancelButtonStatus: data as boolean})
+});

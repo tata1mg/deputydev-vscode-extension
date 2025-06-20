@@ -59,6 +59,7 @@ export function ChatUI() {
     enhancingUserQuery,
     enhancedUserQuery,
     imageUploadProgress,
+    setCancelButtonStatus
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -137,6 +138,7 @@ export function ChatUI() {
     if (enhancingUserQuery) {
       return;
     }
+    useChatStore.setState({setCancelButtonStatus:false});
     useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
@@ -714,6 +716,7 @@ export function ChatUI() {
                 <button
                   className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                   onClick={cancelChat}
+                  disabled={!setCancelButtonStatus}
                 >
                   <CircleStop className="h-4 w-4 text-red-500" />
                 </button>
