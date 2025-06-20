@@ -112,7 +112,8 @@ export class BaseClient {
         await middleware.handleHttpResponse(data);
       };
     });
-    return () => new BaseHttpEndpoint(this.httpHost as string, endpoint, method, extraHeadersFetcher, httpResponseHandlers);
+    return () =>
+      new BaseHttpEndpoint(this.httpHost as string, endpoint, method, extraHeadersFetcher, httpResponseHandlers);
   }
 
   createWebsocketEndpoint(
@@ -138,6 +139,7 @@ export class BaseClient {
       };
     });
 
-    return () => new BaseWebsocketEndpoint(this.wsHost as string, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
+    return () =>
+      new BaseWebsocketEndpoint(this.wsHost as string, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
   }
 }
