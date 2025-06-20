@@ -23,7 +23,7 @@ export class RelevantCodeSearcherToolService {
     messageData: any,
     resolver: (value: any) => void,
     rejector: (reason?: any) => void,
-    socketConn: BaseWebsocketEndpoint
+    socketConn: BaseWebsocketEndpoint,
   ): void {
     try {
       // Check if the response is an array (relevant chunks)
