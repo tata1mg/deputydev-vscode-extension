@@ -66,8 +66,6 @@ export function setCancelButtonStatus(Status: boolean){
     data: Status,
   });
 }
-export function getActiveRepo(): string | undefined {
-  return extensionContext?.workspaceState.get<string>('activeRepo');
 
 export function getIsEmbeddingDoneForActiveRepo(): boolean {
   const activeRepo = getActiveRepo();
