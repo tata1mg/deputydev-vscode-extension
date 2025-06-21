@@ -790,7 +790,6 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
 });
 
 addCommandEventListener('set-cancel-button-status',({data})=>{
-  console.log("*** Cancel button status ***",data)
   useChatStore.setState({setCancelButtonStatus: data as boolean})
 });
 
