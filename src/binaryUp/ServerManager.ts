@@ -77,14 +77,18 @@ export class ServerManager {
     });
   }
 
-  private async recursivelyHashPath(targetPath: string, secretKey: string, relativeTo: string = targetPath): Promise<crypto.Hmac> {
+  private async recursivelyHashPath(
+    targetPath: string,
+    secretKey: string,
+    relativeTo: string = targetPath,
+  ): Promise<crypto.Hmac> {
     const hmac = crypto.createHmac('sha256', secretKey);
     const queue: string[] = [targetPath];
 
     while (queue.length) {
       const current = queue.pop()!;
       const stat = fs.statSync(current);
-      let relPath = path.relative(relativeTo, current);
+      const relPath = path.relative(relativeTo, current);
       if (stat.isDirectory()) {
         const entries = fs.readdirSync(current).sort();
         for (const entry of entries.reverse()) {
