@@ -52,7 +52,6 @@ export class ServerManager {
     }
   }
 
-
   private hmacSha256File(filePath: string, secretKey: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const hmac = crypto.createHmac('sha256', secretKey);
@@ -78,17 +77,33 @@ export class ServerManager {
     });
   }
 
+  private async recursivelyHashPath(targetPath: string, secretKey: string, relativeTo: string = targetPath): Promise<crypto.Hmac> {
+    const hmac = crypto.createHmac('sha256', secretKey);
+    const queue: string[] = [targetPath];
+
+    while (queue.length) {
+      const current = queue.pop()!;
+      const stat = fs.statSync(current);
+      let relPath = path.relative(relativeTo, current);
+      if (stat.isDirectory()) {
+        const entries = fs.readdirSync(current).sort();
+        for (const entry of entries.reverse()) {
+          queue.push(path.join(current, entry));
+        }
+        hmac.update('DIR:' + relPath);
+      } else if (stat.isFile()) {
+        hmac.update('FILE:' + relPath);
+        const fileBuffer = fs.readFileSync(current);
+        hmac.update(fileBuffer);
+      }
+    }
+    return hmac;
+  }
+
   private async getChecksumForBinaryFile(binaryFilePath: string, secretKey: string): Promise<string> {
-
     try {
-      // create the tar path
-      const tarPath = path.join(this.binaryPath, 'binary.tar');
-      await this.tarAppUncompressed(binaryFilePath, tarPath);
-      const mac = await this.hmacSha256File(tarPath, secretKey);
-
-      // Optional: delete the tar file after use
-      fs.unlinkSync(tarPath);
-      return mac;
+      const hmac = await this.recursivelyHashPath(binaryFilePath, secretKey);
+      return hmac.digest('hex');
     } catch (err) {
       console.error('Error:', err);
       return '';
@@ -107,7 +122,10 @@ export class ServerManager {
     const expectedChecksum = this.getBinaryFileChecksum();
     this.outputChannel.appendLine(`Expected checksum: ${expectedChecksum}`);
     this.outputChannel.appendLine(`Calculating checksum for binary file...`);
-    const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath, this.essential_config['BINARY']['password']);
+    const actualChecksum = await this.getChecksumForBinaryFile(
+      binaryFilePath,
+      this.essential_config['BINARY']['password'],
+    );
     this.outputChannel.appendLine(`Actual checksum: ${actualChecksum}`);
     if (actualChecksum !== expectedChecksum) {
       this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
@@ -168,7 +186,7 @@ export class ServerManager {
     this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
     // Always delete this.binaryPath_root and its contents (non‑blocking)
-    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => { });
+    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
     this.logger.info(`Deleted existing BinaryPath`);
 
     // Ensure the directory for the output path exists
@@ -196,7 +214,7 @@ export class ServerManager {
             this.outputChannel.appendLine('Download completed successfully.');
             resolve();
           } catch (err) {
-            await fsp.unlink(outputPath).catch(() => { });
+            await fsp.unlink(outputPath).catch(() => {});
             this.outputChannel.appendLine(`Error during download: ${err}`);
             this.logger.error(`Error during download: ${err}`);
             reject(err);
@@ -259,7 +277,7 @@ export class ServerManager {
     await fsp.chmod(binaryPath, 0o755);
 
     // cleanup
-    await fsp.unlink(encPath).catch(() => { });
+    await fsp.unlink(encPath).catch(() => {});
     this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
   }
   /** Check if the port is available */
