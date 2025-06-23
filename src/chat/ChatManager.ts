@@ -30,6 +30,7 @@ import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
 import { BackendClient } from '../clients/backendClient';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { resolveDirectoryRelative } from '../utilities/path';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -644,7 +645,7 @@ export class ChatManager {
         API_ENDPOINTS.ITERATIVELY_READ_FILE,
         {
           repo_path: repoPath,
-          file_path: filePath,
+          file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
           start_line: startLine,
           end_line: endLine,
         },
@@ -664,7 +665,6 @@ export class ChatManager {
     search_path: string,
     repoPath: string,
     query: string,
-    searchPath: string,
     case_insensitive?: boolean,
     use_regex?: boolean,
   ): Promise<any> {
@@ -676,7 +676,7 @@ export class ChatManager {
         API_ENDPOINTS.GREP_SEARCH,
         {
           repo_path: repoPath,
-          directory_path: search_path,
+          directory_path: resolveDirectoryRelative(search_path), // Ensures the search path is always absolute
           search_term: query,
           case_insensitive: case_insensitive || false,
           use_regex: use_regex || false,
@@ -1018,7 +1018,6 @@ export class ChatManager {
               parsedContent.search_path,
               active_repo,
               parsedContent.query,
-              parsedContent.search_path,
               parsedContent.case_insensitive,
               parsedContent.use_regex,
             );
@@ -1310,7 +1309,7 @@ export class ChatManager {
     repoPath: string,
     params: { directory?: string; search_terms?: string[] },
   ): Promise<any> {
-    const directory = params.directory;
+    const directory = resolveDirectoryRelative(params.directory);
     const searchTerms = params.search_terms; // Optional
     this.outputChannel.info(
       `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,

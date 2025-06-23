@@ -430,11 +430,12 @@ export class InlineChatEditManager {
           this.outputChannel.info(
             `Running iterative_file_reader with params in inline editor: ${JSON.stringify(payload.content.tool_input)}`,
           );
+          const toolInput = payload.content.tool_input;
           const iterativeFileReaderResult = await this.chatService._runIterativeFileReader(
             this.active_repo,
-            payload.content.tool_input.file_path,
-            payload.content.tool_input.start_line,
-            payload.content.tool_input.end_line,
+            toolInput.path,
+            toolInput.start_line,
+            toolInput.end_line,
           );
           const toolResponse =
             'Iterative file reader result: \n ' + JSON.stringify(iterativeFileReaderResult.data.chunk);
