@@ -52,31 +52,6 @@ export class ServerManager {
     }
   }
 
-  private hmacSha256File(filePath: string, secretKey: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const hmac = crypto.createHmac('sha256', secretKey);
-      const stream = fs.createReadStream(filePath);
-
-      stream.on('data', (chunk) => hmac.update(chunk));
-      stream.on('end', () => resolve(hmac.digest('hex')));
-      stream.on('error', reject);
-    });
-  }
-
-  private tarAppUncompressed(appPath: string, outputTarPath: string): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const baseName = path.basename(appPath);
-      const dirName = path.dirname(appPath);
-      // Deterministic tar: sorted files, neutral ownership. On macOS (BSD tar), --uid/--gid supported, --sort/--mtime not available.
-      // Use find + sort for sorted inclusion.
-      const cmd = `cd "${dirName}" && find "${baseName}" -type f | sort | tar -cf "${outputTarPath}" --uid=0 --gid=0 -T -`;
-      child_process.exec(cmd, (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        resolve(outputTarPath);
-      });
-    });
-  }
-
   private async recursivelyHashPath(
     targetPath: string,
     secretKey: string,
