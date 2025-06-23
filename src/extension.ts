@@ -5,7 +5,7 @@ import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
-import { getBinaryHost, getBinaryWsHost } from './config';
+import { ENABLE_OUTPUT_CHANNEL, getBinaryHost, getBinaryWsHost } from './config';
 import { DiffManager } from './diff/diffManager';
 import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
 import { SidebarProvider } from './panels/SidebarProvider';
@@ -57,10 +57,10 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   setExtensionContext(context);
-  void setUserSystemData(context);
+  setUserSystemData(context);
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = false;
+
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 
@@ -79,9 +79,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // 3. Core Services Initialization
   const serverManager = new ServerManager(context, outputChannel, logger, configManager);
-  await serverManager.ensureBinaryExists();
-  await serverManager.startServer();
-  outputChannel.info('this binary host now is ' + getBinaryHost());
 
   // initialize backend client with essential config
   const essentialConfigs = configManager.getAllConfigEssentials();
@@ -91,11 +88,6 @@ export async function activate(context: vscode.ExtensionContext) {
     {
       QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
     },
-  );
-
-  const binaryClient = new BinaryClient(
-    getBinaryHost(), // This will be the binary host URL
-    getBinaryWsHost(), // This will be the binary WebSocket host URL
   );
 
   const authenticationManager = new AuthenticationManager(context, configManager, logger);
@@ -109,8 +101,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const userQueryEnhancerService = new UserQueryEnhancerService(errorTrackingManager);
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
-  const indexingService = new IndexingService(binaryClient);
-  const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService(binaryClient);
+  const indexingService = new IndexingService();
+  const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -176,6 +168,17 @@ export async function activate(context: vscode.ExtensionContext) {
   const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
   context.subscriptions.push(pinger);
   (async () => {
+    await serverManager.ensureBinaryExists();
+    await serverManager.startServer();
+    outputChannel.info('this binary host now is ' + getBinaryHost());
+
+    const binaryClient = new BinaryClient(
+      getBinaryHost(), // This will be the binary host URL
+      getBinaryWsHost(), // This will be the binary WebSocket host URL
+    );
+    indexingService.init(binaryClient);
+    relevantCodeSearcherToolService.init(binaryClient);
+
     pinger.start();
 
     authenticationManager

@@ -13,9 +13,9 @@ interface RelevantChunksParams {
 }
 
 export class RelevantCodeSearcherToolService {
-  private readonly binaryClient: BinaryClient;
+  private binaryClient!: BinaryClient;
 
-  constructor(binaryClient: BinaryClient) {
+  public init(binaryClient: BinaryClient): void {
     this.binaryClient = binaryClient;
   }
 
