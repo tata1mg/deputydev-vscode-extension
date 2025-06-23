@@ -5,7 +5,7 @@ import { BackgroundPinger } from './binaryUp/BackgroundPinger';
 import { ServerManager } from './binaryUp/ServerManager';
 import { ChatManager } from './chat/ChatManager';
 import { WorkspaceManager } from './code_syncing/WorkspaceManager';
-import { getBinaryHost, getBinaryWsHost } from './config';
+import { ENABLE_OUTPUT_CHANNEL, getBinaryHost, getBinaryWsHost } from './config';
 import { DiffManager } from './diff/diffManager';
 import { InlineChatEditManager } from './inlineChatEdit/inlineChatEdit';
 import { SidebarProvider } from './panels/SidebarProvider';
@@ -57,10 +57,11 @@ export async function activate(context: vscode.ExtensionContext) {
   }
 
   setExtensionContext(context);
-  void setUserSystemData(context);
+  setUserSystemData(context);
   await clearWorkspaceStorage();
   await updateTerminalSettings(context);
-  const ENABLE_OUTPUT_CHANNEL = false;
+
+  
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
   const logger = new Logger();
 

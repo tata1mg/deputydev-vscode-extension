@@ -51,11 +51,34 @@ export class ServerManager {
     }
   }
 
-  /** Check if the binary already exists */
+  private async calculateFileChecksum(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('sha256');
+      const stream = fs.createReadStream(filePath);
+      stream.on('error', err => reject(err));
+      stream.on('data', chunk => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+    });
+  }
+
   private async isBinaryAvailable(): Promise<boolean> {
-    const servicePath = this.getServiceExecutablePath();
-    this.outputChannel.appendLine(`Checking for binary at: ${servicePath}`);
-    return await this.pathExists(servicePath);
+    const binaryFilePath = this.getBinaryFilePath();
+    this.outputChannel.appendLine(`Checking for binary at: ${binaryFilePath}`);
+    const exists = await this.pathExists(binaryFilePath);
+    if (!exists) {
+      return false;
+    }
+    // Checksum verification
+    const expectedChecksum = this.getBinaryFileChecksum();
+    const actualChecksum = await this.calculateFileChecksum(binaryFilePath);
+    if (actualChecksum !== expectedChecksum) {
+      this.outputChannel.appendLine(
+        `Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`
+      );
+      return false;
+    }
+    this.outputChannel.appendLine("Checksum verification succeeded.");
+    return true;
   }
 
   /** Ensure the binary exists and is extracted */
@@ -64,8 +87,9 @@ export class ServerManager {
       this.outputChannel.appendLine('Server binary already exists.');
       return true;
     }
-    this.logger.warn(`Binary not found. Downloading and extracting...`);
-    this.outputChannel.appendLine('Binary not found. Downloading and extracting...');
+
+    this.logger.warn(`Binary not found or corrupted. Downloading and extracting...`);
+    this.outputChannel.appendLine('Binary not found or corrupted. Downloading and extracting...');
     return await this.downloadAndExtractBinary();
   }
 
@@ -108,7 +132,7 @@ export class ServerManager {
     this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
     // Always delete this.binaryPath_root and its contents (non‑blocking)
-    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
+    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => { });
     this.logger.info(`Deleted existing BinaryPath`);
 
     // Ensure the directory for the output path exists
@@ -136,7 +160,7 @@ export class ServerManager {
             this.outputChannel.appendLine('Download completed successfully.');
             resolve();
           } catch (err) {
-            await fsp.unlink(outputPath).catch(() => {});
+            await fsp.unlink(outputPath).catch(() => { });
             this.outputChannel.appendLine(`Error during download: ${err}`);
             this.logger.error(`Error during download: ${err}`);
             reject(err);
@@ -199,7 +223,7 @@ export class ServerManager {
     await fsp.chmod(binaryPath, 0o755);
 
     // cleanup
-    await fsp.unlink(encPath).catch(() => {});
+    await fsp.unlink(encPath).catch(() => { });
     this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
   }
   /** Check if the port is available */
@@ -335,6 +359,14 @@ export class ServerManager {
   private getServiceExecutablePath(): string {
     const service_path = this.essential_config['BINARY']['service_path'];
     return path.join(this.binaryPath_root, service_path);
+  }
+
+  private getBinaryFilePath(): string {
+    return path.join(this.binaryPath_root, this.essential_config['BINARY']['FILE_NAME']);
+  }
+
+  private getBinaryFileChecksum(): string {
+    return this.essential_config['BINARY']['FILE_CHECKSUM'];
   }
 
   /** Delay utility */
