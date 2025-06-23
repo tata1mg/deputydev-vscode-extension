@@ -16,13 +16,13 @@ import { Logger } from '../utilities/Logger';
 import { pipeline as streamPipeline } from 'stream/promises';
 
 export class ServerManager {
-  private context: vscode.ExtensionContext;
-  private outputChannel: vscode.OutputChannel;
-  private logger: Logger;
-  private configManager: ConfigManager;
-  private essential_config: any;
-  private binaryPath_root: string;
-  private binaryPath: string;
+  private readonly context: vscode.ExtensionContext;
+  private readonly outputChannel: vscode.OutputChannel;
+  private readonly logger: Logger;
+  private readonly configManager: ConfigManager;
+  private readonly essential_config: any;
+  private readonly binaryPath_root: string;
+  private readonly binaryPath: string;
   private currentPort: number | null = null;
 
   constructor(
@@ -51,11 +51,66 @@ export class ServerManager {
     }
   }
 
-  /** Check if the binary already exists */
+  private async recursivelyHashPath(
+    targetPath: string,
+    secretKey: string,
+    relativeTo: string = targetPath,
+  ): Promise<crypto.Hmac> {
+    const hmac = crypto.createHmac('sha256', secretKey);
+    const queue: string[] = [targetPath];
+
+    while (queue.length) {
+      const current = queue.pop()!;
+      const stat = fs.statSync(current);
+      const relPath = path.relative(relativeTo, current);
+      if (stat.isDirectory()) {
+        const entries = fs.readdirSync(current).sort();
+        for (const entry of entries.reverse()) {
+          queue.push(path.join(current, entry));
+        }
+        hmac.update('DIR:' + relPath);
+      } else if (stat.isFile()) {
+        hmac.update('FILE:' + relPath);
+        const fileBuffer = fs.readFileSync(current);
+        hmac.update(fileBuffer);
+      }
+    }
+    return hmac;
+  }
+
+  private async getChecksumForBinaryFile(binaryFilePath: string, secretKey: string): Promise<string> {
+    try {
+      const hmac = await this.recursivelyHashPath(binaryFilePath, secretKey);
+      return hmac.digest('hex');
+    } catch (err) {
+      console.error('Error:', err);
+      return '';
+    }
+  }
+
   private async isBinaryAvailable(): Promise<boolean> {
-    const servicePath = this.getServiceExecutablePath();
-    this.outputChannel.appendLine(`Checking for binary at: ${servicePath}`);
-    return await this.pathExists(servicePath);
+    const binaryFilePath = this.getBinaryFilePath();
+    this.outputChannel.appendLine(`Checking for binary at: ${binaryFilePath}`);
+    const exists = await this.pathExists(binaryFilePath);
+    if (!exists) {
+      this.outputChannel.appendLine('Binary file does not exist.');
+      return false;
+    }
+    // Checksum verification
+    const expectedChecksum = this.getBinaryFileChecksum();
+    this.outputChannel.appendLine(`Expected checksum: ${expectedChecksum}`);
+    this.outputChannel.appendLine(`Calculating checksum for binary file...`);
+    const actualChecksum = await this.getChecksumForBinaryFile(
+      binaryFilePath,
+      this.essential_config['BINARY']['password'],
+    );
+    this.outputChannel.appendLine(`Actual checksum: ${actualChecksum}`);
+    if (actualChecksum !== expectedChecksum) {
+      this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
+      return false;
+    }
+    this.outputChannel.appendLine('Checksum verification succeeded.');
+    return true;
   }
 
   /** Ensure the binary exists and is extracted */
@@ -64,8 +119,9 @@ export class ServerManager {
       this.outputChannel.appendLine('Server binary already exists.');
       return true;
     }
-    this.logger.warn(`Binary not found. Downloading and extracting...`);
-    this.outputChannel.appendLine('Binary not found. Downloading and extracting...');
+
+    this.logger.warn(`Binary not found or corrupted. Downloading and extracting...`);
+    this.outputChannel.appendLine('Binary not found or corrupted. Downloading and extracting...');
     return await this.downloadAndExtractBinary();
   }
 
@@ -335,6 +391,14 @@ export class ServerManager {
   private getServiceExecutablePath(): string {
     const service_path = this.essential_config['BINARY']['service_path'];
     return path.join(this.binaryPath_root, service_path);
+  }
+
+  private getBinaryFilePath(): string {
+    return path.join(this.binaryPath_root, this.essential_config['BINARY']['file_path']);
+  }
+
+  private getBinaryFileChecksum(): string {
+    return this.essential_config['BINARY']['file_checksum'];
   }
 
   /** Delay utility */
