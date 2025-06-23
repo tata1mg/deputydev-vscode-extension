@@ -14,15 +14,16 @@ import { ConfigManager } from '../utilities/ConfigManager';
 import { loaderMessage } from '../utilities/contextManager';
 import { Logger } from '../utilities/Logger';
 import { pipeline as streamPipeline } from 'stream/promises';
+import * as child_process from 'child_process';
 
 export class ServerManager {
-  private context: vscode.ExtensionContext;
-  private outputChannel: vscode.OutputChannel;
-  private logger: Logger;
-  private configManager: ConfigManager;
-  private essential_config: any;
-  private binaryPath_root: string;
-  private binaryPath: string;
+  private readonly context: vscode.ExtensionContext;
+  private readonly outputChannel: vscode.OutputChannel;
+  private readonly logger: Logger;
+  private readonly configManager: ConfigManager;
+  private readonly essential_config: any;
+  private readonly binaryPath_root: string;
+  private readonly binaryPath: string;
   private currentPort: number | null = null;
 
   constructor(
@@ -51,14 +52,47 @@ export class ServerManager {
     }
   }
 
-  private async calculateFileChecksum(filePath: string): Promise<string> {
+
+  private hmacSha256File(filePath: string, secretKey: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const hash = crypto.createHash('sha256');
+      const hmac = crypto.createHmac('sha256', secretKey);
       const stream = fs.createReadStream(filePath);
-      stream.on('error', (err) => reject(err));
-      stream.on('data', (chunk) => hash.update(chunk));
-      stream.on('end', () => resolve(hash.digest('hex')));
+
+      stream.on('data', (chunk) => hmac.update(chunk));
+      stream.on('end', () => resolve(hmac.digest('hex')));
+      stream.on('error', reject);
     });
+  }
+
+  private tarAppUncompressed(appPath: string, outputTarPath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const baseName = path.basename(appPath);
+      const dirName = path.dirname(appPath);
+      // Deterministic tar: sorted files, neutral ownership. On macOS (BSD tar), --uid/--gid supported, --sort/--mtime not available.
+      // Use find + sort for sorted inclusion.
+      const cmd = `cd "${dirName}" && find "${baseName}" -type f | sort | tar -cf "${outputTarPath}" --uid=0 --gid=0 -T -`;
+      child_process.exec(cmd, (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
+        resolve(outputTarPath);
+      });
+    });
+  }
+
+  private async getChecksumForBinaryFile(binaryFilePath: string, secretKey: string): Promise<string> {
+
+    try {
+      // create the tar path
+      const tarPath = path.join(this.binaryPath, 'binary.tar');
+      await this.tarAppUncompressed(binaryFilePath, tarPath);
+      const mac = await this.hmacSha256File(tarPath, secretKey);
+
+      // Optional: delete the tar file after use
+      fs.unlinkSync(tarPath);
+      return mac;
+    } catch (err) {
+      console.error('Error:', err);
+      return '';
+    }
   }
 
   private async isBinaryAvailable(): Promise<boolean> {
@@ -66,11 +100,15 @@ export class ServerManager {
     this.outputChannel.appendLine(`Checking for binary at: ${binaryFilePath}`);
     const exists = await this.pathExists(binaryFilePath);
     if (!exists) {
+      this.outputChannel.appendLine('Binary file does not exist.');
       return false;
     }
     // Checksum verification
     const expectedChecksum = this.getBinaryFileChecksum();
-    const actualChecksum = await this.calculateFileChecksum(binaryFilePath);
+    this.outputChannel.appendLine(`Expected checksum: ${expectedChecksum}`);
+    this.outputChannel.appendLine(`Calculating checksum for binary file...`);
+    const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath, this.essential_config['BINARY']['password']);
+    this.outputChannel.appendLine(`Actual checksum: ${actualChecksum}`);
     if (actualChecksum !== expectedChecksum) {
       this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
       return false;
@@ -130,7 +168,7 @@ export class ServerManager {
     this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
     // Always delete this.binaryPath_root and its contents (non‑blocking)
-    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
+    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => { });
     this.logger.info(`Deleted existing BinaryPath`);
 
     // Ensure the directory for the output path exists
@@ -158,7 +196,7 @@ export class ServerManager {
             this.outputChannel.appendLine('Download completed successfully.');
             resolve();
           } catch (err) {
-            await fsp.unlink(outputPath).catch(() => {});
+            await fsp.unlink(outputPath).catch(() => { });
             this.outputChannel.appendLine(`Error during download: ${err}`);
             this.logger.error(`Error during download: ${err}`);
             reject(err);
@@ -221,7 +259,7 @@ export class ServerManager {
     await fsp.chmod(binaryPath, 0o755);
 
     // cleanup
-    await fsp.unlink(encPath).catch(() => {});
+    await fsp.unlink(encPath).catch(() => { });
     this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
   }
   /** Check if the port is available */
@@ -360,11 +398,11 @@ export class ServerManager {
   }
 
   private getBinaryFilePath(): string {
-    return path.join(this.binaryPath_root, this.essential_config['BINARY']['FILE_NAME']);
+    return path.join(this.binaryPath_root, this.essential_config['BINARY']['file_path']);
   }
 
   private getBinaryFileChecksum(): string {
-    return this.essential_config['BINARY']['FILE_CHECKSUM'];
+    return this.essential_config['BINARY']['file_checksum'];
   }
 
   /** Delay utility */
