@@ -87,3 +87,46 @@ export async function openFile(file_path: string, startLine?: number, endLine?: 
     editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
   }
 }
+
+/**
+ * Resolve a directory path against a repo root,
+ * but always return it relative to that root.
+ *
+ * @param directory - Either an absolute path or a path relative to the repo.
+ * @returns A normalized path relative to the repo root ('.' if it is the root).
+ * @throws If no repo is open or the input is invalid.
+ */
+export function resolveDirectoryRelative(directory?: string): string {
+  const repoPath = getActiveRepo();
+  if (!repoPath) {
+    throw new Error('No active repository found. Please open a workspace folder.');
+  }
+  if (typeof directory !== 'string' || !directory.trim()) {
+    throw new TypeError('directory must be a non-empty string');
+  }
+
+  // Ensure repoPath is absolute
+  const repoRoot = path.resolve(repoPath);
+  if (!path.isAbsolute(repoRoot)) {
+    throw new Error(`repoPath must be absolute, got "${repoPath}"`);
+  }
+
+  // Determine absolute path from the input
+  let absPath: string;
+  if (path.isAbsolute(directory)) {
+    absPath = path.normalize(directory);
+  } else {
+    absPath = path.resolve(repoRoot, directory);
+  }
+
+  // Compute the path relative to repoRoot
+  const rel = path.relative(repoRoot, absPath);
+
+  // If it's exactly the same as the repo root, return '.'
+  if (rel === '') {
+    return '.';
+  }
+
+  // Normalize separators to forward-slashes for consistency
+  return rel.replace(/\\/g, '/');
+}

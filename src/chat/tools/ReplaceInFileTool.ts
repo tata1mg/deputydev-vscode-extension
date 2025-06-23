@@ -10,6 +10,7 @@ import { AuthService } from '../../services/auth/AuthService';
 import { calculateDiffMetric } from '../../utilities/calculateDiffLinesNo';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { resolveDirectoryRelative } from '../../utilities/path';
 
 interface ApplyDiffArgs {
   parsedContent: {
@@ -41,12 +42,12 @@ export class ReplaceInFile {
     const { parsedContent, chunkCallback, toolRequest, messageId } = args;
     const activeRepo = getActiveRepo() ?? '';
     const sessionId = getSessionId();
-
+    const relativePath = resolveDirectoryRelative(parsedContent.path);
     if (sessionId) {
       this.usageTrackingManager.trackUsage({
         eventType: 'GENERATED',
         eventData: {
-          file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
+          file_path: relativePath,
           lines: calculateDiffMetric(parsedContent.diff),
           source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
         },
@@ -56,7 +57,7 @@ export class ReplaceInFile {
     try {
       const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
         {
-          path: parsedContent.path,
+          path: relativePath,
           search_and_replace_blocks: parsedContent.diff,
         },
         activeRepo,
@@ -74,8 +75,8 @@ export class ReplaceInFile {
           data: {
             addedLines,
             removedLines,
-            filePath: parsedContent.path,
-            fileName: path.basename(parsedContent.path),
+            filePath: relativePath,
+            fileName: path.basename(relativePath),
             repoPath: activeRepo,
             sessionId: sessionId,
           },

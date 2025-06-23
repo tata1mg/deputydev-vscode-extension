@@ -9,6 +9,7 @@ import { DiffManager } from '../../diff/diffManager';
 import { AuthService } from '../../services/auth/AuthService';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { resolveDirectoryRelative } from '../../utilities/path';
 
 interface ApplyDiffArgs {
   parsedContent: {
@@ -41,12 +42,12 @@ export class WriteToFileTool {
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
     const diff = parsedContent.diff;
-
+    const relativePath = resolveDirectoryRelative(parsedContent.path);
     if (sessionId) {
       this.usageTrackingManager.trackUsage({
         eventType: 'GENERATED',
         eventData: {
-          file_path: vscode.workspace.asRelativePath(vscode.Uri.parse(parsedContent.path)),
+          file_path: relativePath,
           lines: parsedContent.diff.split('\n').length,
           source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
         },
@@ -57,7 +58,7 @@ export class WriteToFileTool {
     try {
       const { diffApplySuccess, addedLines, removedLines } = await this.diffManager.applyDiffForSession(
         {
-          path: parsedContent.path,
+          path: relativePath,
           directReplace: diff,
         },
         activeRepo,
@@ -75,8 +76,8 @@ export class WriteToFileTool {
           data: {
             addedLines,
             removedLines,
-            filePath: parsedContent.path,
-            fileName: path.basename(parsedContent.path),
+            filePath: relativePath,
+            fileName: path.basename(relativePath),
             repoPath: activeRepo,
             sessionId: sessionId,
           },

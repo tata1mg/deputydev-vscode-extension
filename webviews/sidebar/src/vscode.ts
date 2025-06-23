@@ -513,10 +513,10 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     .find(
       (msg) => msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
     );
-
+  const newRepoPath = useWorkspaceStore.getState().activeRepo;
   // Create the base message
   let baseMessage = `
-    - Workspace Created Successfully, and now we are inside new Workspace.
+    - Workspace Created Successfully, and now we are inside new Workspace${newRepoPath ? `, with directory: ${newRepoPath}` : ''}.
     - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
@@ -608,10 +608,10 @@ addCommandEventListener('update-workspace-dd', () => {
       logToOutput('error', 'No TOOL_USE_REQUEST message found for creating a new workspace.');
       return;
     }
-
+    const newRepoPath = useWorkspaceStore.getState().activeRepo;
     // Create the base message
     let baseMessage = `
-    - Workspace Created Successfully, and now we are inside new Workspace.
+    - Workspace Created Successfully, and now we are inside new Workspace${newRepoPath ? `, with directory: ${newRepoPath}` : ''}.
     - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
     - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
     - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
