@@ -4,6 +4,7 @@ import { useChatStore } from '../../../stores/chatStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { ChevronDown, RefreshCw } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
 const RepoSelector = () => {
   const { workspaceRepos, activeRepo, setActiveRepo } = useWorkspaceStore();
@@ -72,25 +73,9 @@ const RepoSelector = () => {
     }
   };
 
-  const getTooltipContent = () => {
-    const currentIndexingProgressData = indexingProgressData.find(
-      (repo) => repo.repo_path === activeRepo
-    );
-    switch (currentIndexingProgressData?.status) {
-      case 'IN_PROGRESS':
-        return `${Math.round(currentIndexingProgressData?.progress ?? 0)}% Indexed`;
-      case 'COMPLETED':
-        return 'Indexing Completed';
-      case 'FAILED':
-        return 'Indexing Failed, Retry';
-      default:
-        return 'Not indexed';
-    }
-  };
-
   if (workspaceRepos.length === 0) {
     return (
-      <div className="ml-1 flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-3 py-1 text-xs opacity-50">
+      <div className="ml-1 flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-2 py-0.5 text-xs opacity-50">
         No repositories
       </div>
     );
@@ -98,39 +83,57 @@ const RepoSelector = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="group relative">
-        <button
-          onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
-          disabled={disableRepoSelector}
-          className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] p-1 text-xs ${
-            disableRepoSelector
-              ? 'cursor-not-allowed opacity-50'
-              : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
-          }`}
-        >
-          <IndexingStatusIcon />
-          <div className="flex items-center gap-1">
-            <span className="max-w-[70px] truncate">
-              {activeRepoData?.repoName ?? 'Select Repo'}
-            </span>
-            <ChevronDown
-              className={`h-3 w-3 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-            />
-          </div>
-        </button>
-        {disableRepoSelector && (
-          <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground] opacity-0 transition-opacity group-hover:opacity-100">
-            Create new chat to select new repo
-            <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[--vscode-toolbar-hoverBackground]"></div>
-          </div>
-        )}
-        {!disableRepoSelector && (
-          <div className="absolute bottom-full left-1/2 z-50 mb-1 -translate-x-1/2 transform whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground] opacity-0 transition-opacity group-hover:opacity-100">
-            {getTooltipContent()}
-            <div className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-[--vscode-toolbar-hoverBackground]"></div>
-          </div>
-        )}
-      </div>
+      <Tooltip.Provider>
+        <Tooltip.Root>
+          <Tooltip.Trigger asChild>
+            <button
+              onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
+              disabled={disableRepoSelector}
+              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-2 py-0.5 text-xs ${
+                disableRepoSelector
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
+              }`}
+            >
+              <IndexingStatusIcon />
+              <div className="flex items-center gap-1">
+                <span className="max-w-[70px] truncate">
+                  {activeRepoData?.repoName ?? 'Select Repo'}
+                </span>
+                <ChevronDown
+                  className={`h-3 w-3 opacity-70 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                />
+              </div>
+            </button>
+          </Tooltip.Trigger>
+          <Tooltip.Portal>
+            <Tooltip.Content
+              side="top"
+              align="center"
+              className="whitespace-nowrap rounded bg-[--vscode-toolbar-hoverBackground] px-2 py-1 text-xs text-[--vscode-foreground]"
+            >
+              {disableRepoSelector
+                ? 'Create new chat to select new repo'
+                : `${Math.round(
+                    indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.progress ??
+                      0
+                  )}% ${
+                    indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
+                    'COMPLETED'
+                      ? 'Indexed'
+                      : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
+                            ?.status === 'COMPLETED'
+                        ? 'Indexing Completed'
+                        : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
+                              ?.status === 'FAILED'
+                          ? 'Indexing Failed, Retry'
+                          : 'Not indexed'
+                  }`}
+              <Tooltip.Arrow offset={10} className="fill-[--vscode-toolbar-hoverBackground]" />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        </Tooltip.Root>
+      </Tooltip.Provider>
 
       {isOpen && (
         <div
@@ -143,7 +146,7 @@ const RepoSelector = () => {
           {workspaceRepos.map((repo) => (
             <button
               key={repo.repoPath}
-              className={`flex w-full cursor-pointer items-center px-2 py-1 text-xs ${
+              className={`flex w-full cursor-pointer items-center px-2 py-0.5 text-xs ${
                 activeRepo === repo.repoPath
                   ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
                   : 'text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]'
