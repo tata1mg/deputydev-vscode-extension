@@ -55,8 +55,8 @@ export class ServerManager {
     return new Promise((resolve, reject) => {
       const hash = crypto.createHash('sha256');
       const stream = fs.createReadStream(filePath);
-      stream.on('error', err => reject(err));
-      stream.on('data', chunk => hash.update(chunk));
+      stream.on('error', (err) => reject(err));
+      stream.on('data', (chunk) => hash.update(chunk));
       stream.on('end', () => resolve(hash.digest('hex')));
     });
   }
@@ -72,12 +72,10 @@ export class ServerManager {
     const expectedChecksum = this.getBinaryFileChecksum();
     const actualChecksum = await this.calculateFileChecksum(binaryFilePath);
     if (actualChecksum !== expectedChecksum) {
-      this.outputChannel.appendLine(
-        `Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`
-      );
+      this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
       return false;
     }
-    this.outputChannel.appendLine("Checksum verification succeeded.");
+    this.outputChannel.appendLine('Checksum verification succeeded.');
     return true;
   }
 
@@ -132,7 +130,7 @@ export class ServerManager {
     this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
     // Always delete this.binaryPath_root and its contents (non‑blocking)
-    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => { });
+    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
     this.logger.info(`Deleted existing BinaryPath`);
 
     // Ensure the directory for the output path exists
@@ -160,7 +158,7 @@ export class ServerManager {
             this.outputChannel.appendLine('Download completed successfully.');
             resolve();
           } catch (err) {
-            await fsp.unlink(outputPath).catch(() => { });
+            await fsp.unlink(outputPath).catch(() => {});
             this.outputChannel.appendLine(`Error during download: ${err}`);
             this.logger.error(`Error during download: ${err}`);
             reject(err);
@@ -223,7 +221,7 @@ export class ServerManager {
     await fsp.chmod(binaryPath, 0o755);
 
     // cleanup
-    await fsp.unlink(encPath).catch(() => { });
+    await fsp.unlink(encPath).catch(() => {});
     this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
   }
   /** Check if the port is available */
