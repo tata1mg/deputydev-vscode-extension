@@ -14,7 +14,6 @@ import { ConfigManager } from '../utilities/ConfigManager';
 import { loaderMessage } from '../utilities/contextManager';
 import { Logger } from '../utilities/Logger';
 import { pipeline as streamPipeline } from 'stream/promises';
-import * as child_process from 'child_process';
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
