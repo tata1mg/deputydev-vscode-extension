@@ -832,7 +832,7 @@ export function ChatUI() {
                   onClick={cancelChat}
                   disabled={!setCancelButtonStatus}
                 >
-                  <CircleStop className="h-4 w-4 text-red-500" />
+                  <CircleStop className={`h-4 w-4 ${setCancelButtonStatus?"text-red-500":"text-stone-600"} `} />
                 </button>
               ) : (
                 <button
