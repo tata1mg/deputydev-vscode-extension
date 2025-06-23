@@ -113,7 +113,7 @@ export class WebSocketConnection {
         await this.initSocket();
         this.currentReconnectAttempts = 0;
       } catch (err) {
-        console.error('Reconnect failed:', err);
+        // console.error('Reconnect failed:', err);
         this.tryReconnect(); // next attempt
       } finally {
         this.isReconnecting = false;
@@ -139,7 +139,7 @@ export class WebSocketConnection {
 
   async send(data: object) {
     if (this.isManuallyClosed) {
-      console.warn('WebSocket was manually closed, reconnecting...');
+      // console.warn('WebSocket was manually closed, reconnecting...');
       this.isManuallyClosed = false;
       await this.connect(); // ensure we await full connection before sending
     }
