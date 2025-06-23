@@ -459,7 +459,7 @@ export function ChatUI() {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch image upload config:', error);
+        // console.error('Failed to fetch image upload config:', error);
       }
     };
 
