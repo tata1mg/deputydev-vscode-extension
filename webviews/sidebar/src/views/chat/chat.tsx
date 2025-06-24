@@ -833,7 +833,7 @@ export function ChatUI() {
                   disabled={!setCancelButtonStatus}
                   {...(!setCancelButtonStatus && {
                     "data-tooltip-id":"cancel-button-tooltip",
-                    "data-tooltip-content":"Cancel Button is disabled, Waiting for Query Response",
+                    "data-tooltip-content":"Hold on... registering your query",
                     "data-tooltip-place":"top-start"
                   })}
 
