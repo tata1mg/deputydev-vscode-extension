@@ -827,12 +827,18 @@ export function ChatUI() {
               )}
 
               {isLoading ? (
-                <button
+                 <button
                   className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                   onClick={cancelChat}
                   disabled={!setCancelButtonStatus}
+                  {...(!setCancelButtonStatus && {
+                    "data-tooltip-id":"cancel-button-tooltip",
+                    "data-tooltip-content":"Cancel Button is disabled, Waiting for Query Response",
+                    "data-tooltip-place":"top-start"
+                  })}
+
                 >
-                  <CircleStop className={`h-4 w-4 ${setCancelButtonStatus?"text-red-500":"text-stone-600"} `} />
+                  <CircleStop className={`h-4 w-4 text-red-500 ${!setCancelButtonStatus && "opacity-50"} `} />
                 </button>
               ) : (
                 <button
@@ -850,6 +856,7 @@ export function ChatUI() {
             <Tooltip id="repo-tooltip" />
             <Tooltip id="sparkles-tooltip" />
             <Tooltip id="upload-tooltip" />
+            <Tooltip id="cancel-button-tooltip" />
           </div>
         </div>
 
