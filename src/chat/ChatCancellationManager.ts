@@ -5,6 +5,8 @@ import { getSessionId } from '../utilities/contextManager';
 import { SESSION_TYPE } from '../constants';
 import { CLIENT, CLIENT_VERSION } from '../config';
 import { Logger } from '../utilities/Logger';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { API_ENDPOINTS } from '../services/api/endpoints';
 
 interface CancellableTask {
   abortController: AbortController;
@@ -46,7 +48,7 @@ export async function cancelChat() : Promise<void> {
     }
 
 
-    const response = await api.post('/end_user/v2/code-gen/cancel', {}, {
+    const response = await api.post(API_ENDPOINTS.CANCEL_CHAT, {}, {
       headers: {
         Authorization: `Bearer ${authToken}`,
         'Content-Type': 'application/json',
@@ -56,6 +58,7 @@ export async function cancelChat() : Promise<void> {
         'X-Client-Version': CLIENT_VERSION
       }
     });
+    refreshCurrentToken(response.headers)
   } catch (error) {
     logger.error(' Backend cancellation failed:', error);
   }
