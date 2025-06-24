@@ -46,4 +46,5 @@ export const API_ENDPOINTS = {
   GET_PRESIGNED_GET_URL: '/end_user/v1/file-upload/get-presigned-get-url',
   DELETE_FILE: '/end_user/v1/file-upload/delete-file',
   APPROVE_MCP_TOOL: '/v1/mcp/servers/tool/approve',
+  CANCEL_CHAT: '/end_user/v2/code-gen/cancel'
 };
