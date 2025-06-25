@@ -103,7 +103,7 @@ export const useChatStore = create(
         imageUploadProgress: 0,
         s3Objects: [] as S3Object[],
         showGeneratingEffect: false,
-        setCancelButtonStatus:false
+        setCancelButtonStatus: false,
       },
       (set, get) => {
         // Helper to generate an incremental message ID.
