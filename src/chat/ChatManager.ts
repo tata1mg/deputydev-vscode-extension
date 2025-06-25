@@ -562,6 +562,7 @@ export class ChatManager {
       }
       const extraErrorInfo = {
         chat_payload: truncatePayloadValues(payload, 100),
+        error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
       };
       this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
       // Send error details back to the UI for potential retry
@@ -1141,6 +1142,7 @@ export class ChatManager {
       // raw error in json
       this.logger.error(`Raw error new: ${JSON.stringify(error)}`);
       let errorResponse = error.response?.data;
+      this.logger.error(`Error running tool ${JSON.stringify(errorResponse)}`);
       if (!errorResponse) {
         errorResponse = {
           error_code: 500,

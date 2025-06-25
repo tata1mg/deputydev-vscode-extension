@@ -12,12 +12,13 @@ export class ApiErrorHandler {
       const axiosError = error as AxiosError<any>;
       const errorHeaders = axiosError.response?.headers;
       const errorData = axiosError.response?.data;
-      const errorCode = errorData?.meta?.error_code || axiosError.code || errorData.error_code;
-      const errorName = errorData?.meta?.error_name || axiosError.name || errorData.error_type;
-      const message = errorData?.meta?.message || axiosError.message || errorData.error_message;
+      const errorCode = errorData?.error_code ||errorData?.meta?.error_code || axiosError.code ;
+      const errorType =  errorData.error_type || errorData?.meta?.error_name || axiosError.name;
+      const errorSubType = errorData?.error_subtype ;
+      const message =  errorData?.error_message || errorData?.meta?.message || axiosError.message;
       const stack = errorData.traceback || errorData?.meta?.stack || axiosError.stack;
       logger.error(
-        `API Error | name=${errorName} | code=${errorCode} | message="${message}" | method=${axiosError.config?.method} | url=${axiosError.config?.url} | status=${axiosError.response?.status}`,
+        `API Error | name=${errorType} | code=${errorCode} | subtype=${errorSubType} | message="${message}" | method=${axiosError.config?.method} | url=${axiosError.config?.url} | status=${axiosError.response?.status}`,
       );
       logger.error(`API Error | data=${JSON.stringify(errorData)}`);
       logger.error(`API Error | stack=${stack}`);
