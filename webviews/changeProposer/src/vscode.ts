@@ -6,7 +6,6 @@ type Resolver = {
   chunk?: (data: unknown) => void;
 };
 
-
 type EventListener = (data: { id: string; command: string; data: unknown }) => void;
 
 const vscode = acquireVsCodeApi();
