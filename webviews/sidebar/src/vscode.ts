@@ -789,10 +789,9 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
   useChatStore.setState({ history: updatedHistory as ChatMessage[] });
 });
 
-addCommandEventListener('set-cancel-button-status',({data})=>{
-  useChatStore.setState({setCancelButtonStatus: data as boolean})
+addCommandEventListener('set-cancel-button-status', ({ data }) => {
+  useChatStore.setState({ setCancelButtonStatus: data as boolean });
 });
-
 
 addCommandEventListener('active-file-change', ({ data }) => {
   const activeFileChangeData = data as {
@@ -824,4 +823,3 @@ addCommandEventListener('auth-response', ({ data }) => {
     useExtensionStore.setState({ viewType: 'auth' });
   }
 });
-
