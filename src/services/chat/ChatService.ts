@@ -1,4 +1,5 @@
-import { getSessionId, getIsEmbeddingDoneForActiveRepo } from '../../utilities/contextManager';
+
+import { getSessionId, sendNotVerified,getIsEmbeddingDoneForActiveRepo, setCancelButtonStatus } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
@@ -81,6 +82,7 @@ export class QuerySolverService {
               new_session_data: messageData.new_session_data,
             });
           }
+          setCancelButtonStatus(true);
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
           socketConn.close();

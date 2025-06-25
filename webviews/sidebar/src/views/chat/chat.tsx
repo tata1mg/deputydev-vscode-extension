@@ -66,6 +66,7 @@ export function ChatUI() {
     enhancingUserQuery,
     enhancedUserQuery,
     imageUploadProgress,
+    setCancelButtonStatus
   } = useChatStore();
   const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
@@ -145,6 +146,7 @@ export function ChatUI() {
     if (enhancingUserQuery) {
       return;
     }
+    useChatStore.setState({setCancelButtonStatus:false});
     useChatStore.setState({ lastMessageSentTime: new Date() });
     if (!userInput.trim() || isLoading || repoSelectorEmbedding) return;
 
@@ -825,11 +827,18 @@ export function ChatUI() {
               )}
 
               {isLoading ? (
-                <button
+                 <button
                   className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                   onClick={cancelChat}
+                  disabled={!setCancelButtonStatus}
+                  {...(!setCancelButtonStatus && {
+                    "data-tooltip-id":"cancel-button-tooltip",
+                    "data-tooltip-content":"Hold on... registering your query",
+                    "data-tooltip-place":"top-start"
+                  })}
+
                 >
-                  <CircleStop className="h-4 w-4 text-red-500" />
+                  <CircleStop className={`h-4 w-4 text-red-500 ${!setCancelButtonStatus && "opacity-50"} `} />
                 </button>
               ) : (
                 <button
@@ -847,6 +856,7 @@ export function ChatUI() {
             <Tooltip id="repo-tooltip" />
             <Tooltip id="sparkles-tooltip" />
             <Tooltip id="upload-tooltip" />
+            <Tooltip id="cancel-button-tooltip" />
           </div>
         </div>
 
