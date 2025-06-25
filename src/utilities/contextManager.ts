@@ -58,6 +58,14 @@ export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
 }
 
+export function setCancelButtonStatus(Status: boolean) {
+  sidebarProvider?.sendMessageToSidebar({
+    id: uuidv4(),
+    command: 'set-cancel-button-status',
+    data: Status,
+  });
+}
+
 export function getIsEmbeddingDoneForActiveRepo(): boolean {
   const activeRepo = getActiveRepo();
   const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
@@ -161,6 +169,7 @@ export function sendLastChatData(data: string) {
 }
 
 export function sendNotVerified() {
+  logOutputChannel?.info('User is not authenticated, Please sign in');
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
   extensionContext?.workspaceState.update('isAuthenticated', false);
   // delay for 0.1 second
@@ -188,7 +197,7 @@ export function sendProgress(indexingProgressData: {
   });
 }
 export function sendVerified() {
-  logOutputChannel?.info('User is authenticated, sending verified response, vaibhav');
+  logOutputChannel?.info('User is authenticated, sending verified response');
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
   extensionContext?.workspaceState.update('isAuthenticated', true);
   sidebarProvider?.sendMessageToSidebar({
