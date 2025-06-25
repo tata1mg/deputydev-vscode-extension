@@ -1,5 +1,9 @@
-
-import { getSessionId, sendNotVerified,getIsEmbeddingDoneForActiveRepo, setCancelButtonStatus } from '../../utilities/contextManager';
+import {
+  getSessionId,
+  sendNotVerified,
+  getIsEmbeddingDoneForActiveRepo,
+  setCancelButtonStatus,
+} from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
@@ -94,7 +98,7 @@ export class QuerySolverService {
             return;
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
-          streamError = new Error(messageData);
+          streamError = new Error(messageData.message);
           socketConn.close();
           return;
         }
