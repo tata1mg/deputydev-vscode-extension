@@ -94,7 +94,7 @@ export class QuerySolverService {
             return;
           }
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
-          streamError = new Error(messageData);
+          streamError = new Error(messageData.message);
           socketConn.close();
           return;
         }
