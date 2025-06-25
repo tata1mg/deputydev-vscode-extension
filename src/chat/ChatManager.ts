@@ -31,6 +31,7 @@ import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
 import { BackendClient } from '../clients/backendClient';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { resolveDirectoryRelative } from '../utilities/path';
+import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -41,6 +42,7 @@ export class ChatManager {
   private sidebarProvider?: SidebarProvider; // Optional at first
   private readonly historyService = new HistoryService();
   private readonly focusChunksService = new FocusChunksService();
+  private readonly directoryStructureService = new DirectoryStructureService();
   private readonly authService = new AuthService();
   private currentAbortController: AbortController | null = null;
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -113,58 +115,84 @@ export class ChatManager {
     this.outputChannel.info('Stopping deputydev binary service...');
   }
 
-  async getFocusChunks(data: ChatPayload): Promise<string[]> {
+  async getFocusChunks(data: ChatPayload): Promise<{
+    focusChunksResult: Array<any>;
+    directoryResults: Array<any>;
+  }> {
     const active_repo = getActiveRepo();
     if (!active_repo) {
       throw new Error('Active repository is not defined.');
     }
 
-    const finalResult: Array<any> = [];
+    const focusChunksResult: Array<any> = [];
+    const directoryResults: Array<any> = [];
+
     this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
+
     try {
-      // wait for all the async operations to finish
       await Promise.all(
         (data.referenceList ?? []).map(async (element) => {
-          let chunkDetails: Array<Chunk> = [];
-          if (element.chunks !== null) {
-            chunkDetails = chunkDetails.concat(element.chunks);
-          }
+          const isDirectory = element.type === 'directory';
 
-          this.outputChannel.info(`chunks: ${JSON.stringify(chunkDetails)}`);
+          // Always fetch directory structure if it's a directory
+          if (isDirectory) {
+            const directoryPayload = {
+              auth_token: await this.authService.loadAuthToken?.(),
+              repo_path: active_repo,
+              directory_path: element.path,
+            };
 
-          // Call the external function to fetch relevant chunks.
-          const result = chunkDetails.length
-            ? await this.focusChunksService.getFocusChunks({
-                auth_token: await this.authService.loadAuthToken(),
-                repo_path: active_repo,
-                chunks: chunkDetails,
-                search_item_name: element.value,
-                search_item_type: element.type,
-                search_item_path: element.path,
-              })
-            : [];
+            const directoryStructure = await this.directoryStructureService.getDirectoryStructure(directoryPayload);
 
-          const finalChunkInfos: Array<any> = [];
-          if (result.length) {
-            result.forEach((chunkInfoWithHash: any) => {
-              const chunkInfo = chunkInfoWithHash.chunk_info;
-              finalChunkInfos.push(chunkInfo);
+            directoryResults.push({
+              path: element.path,
+              value: element.value,
+              structure: directoryStructure,
             });
           }
+          if (element.type == 'directory') {
+            focusChunksResult.push({
+              type: element.type,
+              value: element.value,
+              chunks: [],
+              path: element.path,
+            });
+          }
+          // Process chunks if present (even for directories)
+          else if (element.chunks && element.chunks.length > 0) {
+            const chunkDetails: Array<Chunk> = element.chunks;
 
-          finalResult.push({
-            type: element.type,
-            value: element.value,
-            chunks: finalChunkInfos || null,
-            path: element.path,
-          });
+            const result = await this.focusChunksService.getFocusChunks({
+              auth_token: await this.authService.loadAuthToken(),
+              repo_path: active_repo,
+              chunks: chunkDetails,
+              search_item_name: element.value,
+              search_item_type: element.type,
+              search_item_path: element.path,
+            });
+
+            const finalChunkInfos: Array<any> = result.map((chunkInfoWithHash: any) => chunkInfoWithHash.chunk_info);
+
+            focusChunksResult.push({
+              type: element.type,
+              value: element.value,
+              chunks: finalChunkInfos || [],
+              path: element.path,
+            });
+          }
         }),
       );
 
-      return finalResult;
+      return {
+        focusChunksResult,
+        directoryResults,
+      };
     } catch (error) {
-      this.outputChannel.error(`Error fetching focus chunks: ${error}`);
-      return [];
+      this.outputChannel.error(`Error fetching focus chunks or directory structure: ${error}`);
+      return {
+        focusChunksResult: [],
+        directoryResults: [],
+      };
     }
   }
 
@@ -291,11 +319,13 @@ export class ChatManager {
           payload.previous_query_ids = relevantHistoryQueryIds;
         }
       }
-
+      // if (payload.referenceList.)
       if (payload.referenceList) {
-        const focus_chunks = await this.getFocusChunks(payload);
-        payload.focus_items = focus_chunks;
+        const { focusChunksResult, directoryResults } = await this.getFocusChunks(payload);
+        payload.focus_items = focusChunksResult;
+        payload.directory_items = directoryResults;
       }
+
       delete payload.referenceList;
 
       delete payload.message_id; // Backend doesn't need this directly

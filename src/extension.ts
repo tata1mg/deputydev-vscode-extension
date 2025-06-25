@@ -20,6 +20,7 @@ import { ConfigManager } from './utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
   deleteSessionId,
+  sendNotVerified,
   sendVerified,
   setExtensionContext,
   setSidebarProvider,
@@ -190,23 +191,15 @@ export async function activate(context: vscode.ExtensionContext) {
           sidebarProvider.initiateBinary();
           sendVerified();
           logger.info('User is authenticated.');
-          outputChannel.info('User is authenticated.');
-          vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
-          sidebarProvider.setViewType('chat');
         } else {
           logger.info('User is not authenticated.');
-          outputChannel.info('User is not authenticated.');
-          sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED');
-          sidebarProvider.setViewType('auth');
-          vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+          sendNotVerified();
         }
       })
       .catch((error) => {
         logger.error(`Authentication failed, Please try again`);
         outputChannel.error(`Authentication failed: ${error}`);
-        sidebarProvider.sendMessageToSidebar('NOT_AUTHENTICATED');
-        sidebarProvider.setViewType('auth');
-        vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
+        sendNotVerified();
       });
   })();
 
@@ -246,8 +239,6 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.commands.executeCommand('workbench.action.closeWindow');
     }),
   );
-
-  const relevantPaths = workspaceManager.getWorkspaceRepos();
 
   // add button click
   context.subscriptions.push(
