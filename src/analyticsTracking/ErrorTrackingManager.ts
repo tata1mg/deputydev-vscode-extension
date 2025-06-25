@@ -64,6 +64,11 @@ export class ErrorTrackingManager {
     if (error instanceof AxiosError) {
       let cleanedResponseData = error.response?.data;
 
+      // do not track handled tool errors
+      if (cleanedResponseData && cleanedResponseData.error_type === 'HANDLED_TOOL_ERROR') {
+        return;
+      }
+
       if (cleanedResponseData && typeof cleanedResponseData === 'object') {
         if ('traceback' in cleanedResponseData) {
           // Use backend traceback as stack_trace
