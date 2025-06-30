@@ -249,6 +249,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const relevantPaths = workspaceManager.getWorkspaceRepos();
 
+  // Code review button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.OpenCodeReview', () => {
+      sidebarProvider.setViewType('code-review');
+    }),
+  );
+
   // add button click
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {

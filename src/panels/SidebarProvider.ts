@@ -827,6 +827,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   setViewType(
     viewType:
       | 'chat'
+      | 'code-review'
       | 'setting'
       | 'history'
       | 'auth'
