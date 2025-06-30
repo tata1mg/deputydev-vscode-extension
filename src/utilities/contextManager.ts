@@ -58,8 +58,7 @@ export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
 }
 
-
-export function setCancelButtonStatus(Status: boolean){
+export function setCancelButtonStatus(Status: boolean) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'set-cancel-button-status',
@@ -77,7 +76,6 @@ export function getIsEmbeddingDoneForActiveRepo(): boolean {
     return true;
   }
   return false;
-
 }
 
 export function getUserData() {
@@ -95,12 +93,9 @@ export function getIconPathObject(): vscode.Uri | { light: vscode.Uri; dark: vsc
   };
 }
 
-
-
 export function getUserSystemData(): Record<string, any> | undefined {
   return extensionContext?.globalState.get('user-system-data');
 }
-
 
 export async function clearWorkspaceStorage(isLogout: boolean = false) {
   if (!extensionContext) {

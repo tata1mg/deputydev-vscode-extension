@@ -22,16 +22,16 @@ export function PageTransition({ children, key, direction = 'right' }: PageTrans
           x: 0,
           transition: {
             duration: 0.4, // Increased from 0.2 to 0.4 seconds
-            ease: [0.2, 0, 0.1, 1] // Smoother easing function
-          }
+            ease: [0.2, 0, 0.1, 1], // Smoother easing function
+          },
         }}
         exit={{
           opacity: 0,
           x: exitX,
           transition: {
             duration: 0.3, // Slightly faster exit
-            ease: [0.4, 0, 0.2, 1] // Slightly different easing for exit
-          }
+            ease: [0.4, 0, 0.2, 1], // Slightly different easing for exit
+          },
         }}
         className="h-full w-full"
       >
