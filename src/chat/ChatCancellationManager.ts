@@ -15,7 +15,7 @@ interface CancellableTask {
 
 const activeApiChatTasks = new Set<CancellableTask>();
 const authService = new AuthService();
-const logger = new Logger()
+const logger = new Logger();
 
 export function registerApiChatTask(task: CancellableTask) {
   activeApiChatTasks.add(task);
@@ -35,7 +35,7 @@ export function cancelAllApiChats() {
   activeApiChatTasks.clear();
 }
 
-export async function cancelChat() : Promise<void> {
+export async function cancelChat(): Promise<void> {
   try {
     const authToken = await authService.loadAuthToken();
     if (!authToken) {
@@ -47,18 +47,21 @@ export async function cancelChat() : Promise<void> {
       return;
     }
 
-
-    const response = await api.post(API_ENDPOINTS.CANCEL_CHAT, {}, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-        'Content-Type': 'application/json',
-        'X-Session-ID': sessionId.toString(),
-        'X-Session-Type': SESSION_TYPE,
-        'X-Client': CLIENT,
-        'X-Client-Version': CLIENT_VERSION
-      }
-    });
-    refreshCurrentToken(response.headers)
+    const response = await api.post(
+      API_ENDPOINTS.CANCEL_CHAT,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'X-Session-ID': sessionId.toString(),
+          'X-Session-Type': SESSION_TYPE,
+          'X-Client': CLIENT,
+          'X-Client-Version': CLIENT_VERSION,
+        },
+      },
+    );
+    refreshCurrentToken(response.headers);
   } catch (error) {
     logger.error(' Backend cancellation failed:', error);
   }
