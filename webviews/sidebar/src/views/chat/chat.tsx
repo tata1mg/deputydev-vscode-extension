@@ -60,7 +60,6 @@ export function ChatUI() {
     isLoading,
     sendChatMessage,
     cancelChat,
-    showSessionsBox,
     ChatAutocompleteOptions,
     selectedOptionIndex,
     enhancingUserQuery,
@@ -68,7 +67,6 @@ export function ChatUI() {
     imageUploadProgress,
     setCancelButtonStatus,
   } = useChatStore();
-  const { chatType, setChatType } = useChatSettingStore();
   const { activeRepo } = useWorkspaceStore();
   const { themeKind } = useThemeStore();
   const { showAllMCPServers, showMCPServerTools } = useMcpStore();
@@ -155,9 +153,6 @@ export function ChatUI() {
         textareaRef.current.style.height = '50px';
       }
     };
-
-    useChatStore.setState({ showSessionsBox: false });
-
     const message = userInput.trim();
     const editorReferences = [...useChatStore.getState().currentEditorReference];
     const s3References = [...useChatStore.getState().s3Objects];
@@ -472,7 +467,7 @@ export function ChatUI() {
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
         {/* Past Sessions */}
-        {showSessionsBox && messages.length === 0 && (
+        {messages.length === 0 && (
           <div>
             <div>
               <div className="mb-12 mt-8">
@@ -509,7 +504,7 @@ export function ChatUI() {
       <div className="absolute bottom-0 left-0 right-0 mx-2 mb-0 mt-3.5">
         <div className="">
           {showAutocomplete && (
-            <div className="w-full">
+            <div className="mb-1 w-full">
               <AutocompleteMenu
                 showAddNewButton={showAddNewButton}
                 options={ChatAutocompleteOptions}
