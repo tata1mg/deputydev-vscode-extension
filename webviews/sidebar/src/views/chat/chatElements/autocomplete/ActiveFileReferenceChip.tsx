@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useActiveFileStore } from '@/stores/activeFileStore';
 import { Eye, EyeOff, File } from 'lucide-react';
 import clsx from 'clsx';

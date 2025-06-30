@@ -166,13 +166,7 @@ export function RetryChip({
   retry: boolean;
   payload_to_retry: unknown;
 }) {
-  const {
-    history: messages,
-    sendChatMessage,
-    current,
-    showSkeleton,
-    showSessionsBox,
-  } = useChatStore();
+  const { history: messages, sendChatMessage } = useChatStore();
 
   // Retry function defined within ChatArea component
   const retryChat = () => {

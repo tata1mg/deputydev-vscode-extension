@@ -51,7 +51,6 @@ import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSe
 import { setUserSystemData } from './utilities/getSystemInformation';
 
 export async function activate(context: vscode.ExtensionContext) {
-  await context.workspaceState.update('disable-shell-integration', true); // TODO: Remove this after hackathon.
   const isCompatible = checkIfExtensionIsCompatible();
   if (!isCompatible) {
     // If extension is not compatible, stop activation
@@ -167,7 +166,17 @@ export async function activate(context: vscode.ExtensionContext) {
   new ThemeManager(sidebarProvider, logger);
   new ActiveFileListener(sidebarProvider, workspaceManager);
 
-  const pinger = new BackgroundPinger(context, sidebarProvider, serverManager, outputChannel, logger, configManager);
+  const pinger = new BackgroundPinger(
+    context,
+    sidebarProvider,
+    serverManager,
+    outputChannel,
+    logger,
+    configManager,
+    authenticationManager,
+    indexingService,
+    relevantCodeSearcherToolService,
+  );
   context.subscriptions.push(pinger);
   (async () => {
     await serverManager.ensureBinaryExists();

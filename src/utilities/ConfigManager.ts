@@ -10,6 +10,7 @@ import { Logger } from './Logger';
 import { Settings } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 
 export class ConfigManager {
   private context: vscode.ExtensionContext;
@@ -23,6 +24,7 @@ export class ConfigManager {
   private _onDidUpdateConfig = new vscode.EventEmitter<void>();
   public readonly onDidUpdateConfig = this._onDidUpdateConfig.event;
   private apiErrorHandler = new ApiErrorHandler();
+  private errorTrackingManager = new ErrorTrackingManager();
 
   constructor(context: vscode.ExtensionContext, logger: Logger, outputChannel: vscode.LogOutputChannel) {
     this.context = context;
@@ -100,6 +102,7 @@ export class ConfigManager {
       }
     } catch (error: any) {
       this.apiErrorHandler.handleApiError(error);
+      this.errorTrackingManager.trackGeneralError(error, 'MAIN_CONFIG_FETCHING_ERROR', 'BACKEND');
       this.logger.error(`Error fetching main config`);
       // this.outputChannel.error(`Error fetching CONFIG: ${error}`);
     }
@@ -162,6 +165,8 @@ export class ConfigManager {
       });
       refreshCurrentToken(response.headers);
     } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      this.errorTrackingManager.trackGeneralError(error, 'SYNCING_USER_SETTING_ERROR', 'BACKEND');
       this.logger.error(`Error saving settings`);
     }
   }
@@ -179,7 +184,6 @@ export class ConfigManager {
         headers,
       });
       if (response.data && response.data.is_success) {
-        refreshCurrentToken(response.headers);
         const settings = response.data.data;
         this.context.workspaceState.update('dd-settings', settings);
         sendMessage({
@@ -188,8 +192,11 @@ export class ConfigManager {
           data: settings,
         });
       }
+      refreshCurrentToken(response.headers);
       return null;
     } catch (error) {
+      this.apiErrorHandler.handleApiError(error);
+      this.errorTrackingManager.trackGeneralError(error, 'USER_SETTING_INITIALIZING_ERROR', 'BACKEND');
       this.logger.error(`Error fetching settings`);
       return null;
     }

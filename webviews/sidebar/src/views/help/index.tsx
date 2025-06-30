@@ -147,7 +147,7 @@ export default function DeputyDevHelpPage() {
                 },
                 {
                   title: 'Model Switching',
-                  content: 'Choose between Gemini 2.5 Pro and GPT-4',
+                  content: 'Choose between Gemini 2.5 Pro, Claude 4 sonnet, gpt-4.1',
                 },
               ].map((feature) => (
                 <div
