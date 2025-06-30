@@ -61,6 +61,12 @@
     ],
     "commands": [
       {
+        "command": "deputydev.OpenCodeReview",
+        "category": "DeputyDev",
+        "title": "Open Code Review",
+        "icon": "$(code)"
+      },
+      {
         "command": "deputydev.editThisCode",
         "category": "DeputyDev",
         "title": "Edit this code"
@@ -181,6 +187,11 @@
           "command": "deputydev.SettingsButtonClick",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@4"
+        },
+        {
+          "command": "deputydev.OpenCodeReview",
+          "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
+          "group": "navigation@5"
         },
         {
           "command": "deputydev.ViewLogs",

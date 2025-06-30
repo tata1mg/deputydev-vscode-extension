@@ -1,5 +1,6 @@
 export type ViewType =
   | 'chat'
+  | 'code-review'
   | 'setting'
   | 'loader'
   | 'history'
