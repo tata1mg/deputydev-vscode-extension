@@ -677,31 +677,17 @@ export class ChatManager {
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      if (startLine && endLine){
-        const response = await binaryApi().post(
-          API_ENDPOINTS.ITERATIVELY_READ_FILE,
-          {
-            repo_path: repoPath,
-            file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
-            start_line: startLine,
-            end_line: endLine,
-          },
-          { headers },
-        );
-        return response.data
-      }
-      else{
-         const response = await binaryApi().post(
-          API_ENDPOINTS.ITERATIVELY_READ_FILE,
-          {
-            repo_path: repoPath,
-            file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
-          },
-          { headers },
-        );
-        return response.data
-      }
-
+      const response = await binaryApi().post(
+        API_ENDPOINTS.ITERATIVELY_READ_FILE,
+        {
+          repo_path: repoPath,
+          file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
+          start_line: startLine,
+          end_line: endLine,
+        },
+        { headers },
+      );
+      return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
       this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
