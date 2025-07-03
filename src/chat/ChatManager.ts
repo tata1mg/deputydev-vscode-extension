@@ -667,7 +667,12 @@ export class ChatManager {
     }
   }
 
-  async _runIterativeFileReader(repoPath: string, filePath: string, startLine?: number , endLine?: number): Promise<any> {
+  async _runIterativeFileReader(
+    repoPath: string,
+    filePath: string,
+    startLine?: number,
+    endLine?: number,
+  ): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
@@ -677,15 +682,14 @@ export class ChatManager {
         {
           repo_path: repoPath,
           file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
-          start_line: startLine? startLine:NaN,
-          end_line: endLine? startLine:NaN,
-
+          start_line: startLine ? startLine : NaN,
+          end_line: endLine ? startLine : NaN,
         },
         { headers },
       );
 
       this.outputChannel.info('Iterative file reader API call successful.');
-      return response.data
+      return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
       this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
@@ -1040,8 +1044,8 @@ export class ChatManager {
             rawResult = await this._runIterativeFileReader(
               active_repo,
               parsedContent.file_path,
-              parsedContent.start_line? parsedContent.start_line:NaN,
-              parsedContent.end_line? parsedContent.end_line:NaN,
+              parsedContent.start_line ? parsedContent.start_line : NaN,
+              parsedContent.end_line ? parsedContent.end_line : NaN,
             );
             break;
           case 'grep_search':
