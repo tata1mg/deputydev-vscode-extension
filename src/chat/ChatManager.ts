@@ -677,19 +677,31 @@ export class ChatManager {
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.ITERATIVELY_READ_FILE,
-        {
-          repo_path: repoPath,
-          file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
-          start_line: startLine ? startLine : NaN,
-          end_line: endLine ? startLine : NaN,
-        },
-        { headers },
-      );
+      if (startLine && endLine){
+        const response = await binaryApi().post(
+          API_ENDPOINTS.ITERATIVELY_READ_FILE,
+          {
+            repo_path: repoPath,
+            file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
+            start_line: startLine,
+            end_line: endLine,
+          },
+          { headers },
+        );
+        return response.data
+      }
+      else{
+         const response = await binaryApi().post(
+          API_ENDPOINTS.ITERATIVELY_READ_FILE,
+          {
+            repo_path: repoPath,
+            file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
+          },
+          { headers },
+        );
+        return response.data
+      }
 
-      this.outputChannel.info('Iterative file reader API call successful.');
-      return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
       this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
@@ -1044,8 +1056,8 @@ export class ChatManager {
             rawResult = await this._runIterativeFileReader(
               active_repo,
               parsedContent.file_path,
-              parsedContent.start_line ? parsedContent.start_line : NaN,
-              parsedContent.end_line ? parsedContent.end_line : NaN,
+              parsedContent.start_line,
+              parsedContent.end_line,
             );
             break;
           case 'grep_search':
