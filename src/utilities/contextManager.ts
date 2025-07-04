@@ -239,7 +239,7 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
 }
 
 export async function getContextRepositories(): Promise<
-  Array<{ repoPath: string; repoName: string; rootDirectoryContext: string }>
+  Array<{ repo_path: string; repo_name: string; root_directory_context: string }>
 > {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -254,9 +254,9 @@ export async function getContextRepositories(): Promise<
       return !activeRepo || folder.uri.fsPath !== activeRepo;
     })
     .map(async (folder) => ({
-      repoPath: folder.uri.fsPath,
-      repoName: path.basename(folder.uri.fsPath),
-      rootDirectoryContext: await getRootContext(folder.uri.fsPath),
+      repo_path: folder.uri.fsPath,
+      repo_name: path.basename(folder.uri.fsPath),
+      root_directory_context: await getRootContext(folder.uri.fsPath),
     }));
 
   return Promise.all(repoPromises);
