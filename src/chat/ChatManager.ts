@@ -341,6 +341,7 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
       payload.vscode_env = await getEnvironmentDetails(true, payload);
+      console.log("*********env*******", payload.vscode_env);
 
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
@@ -1028,19 +1029,28 @@ export class ChatManager {
         // Execute the specific tool function
         switch (toolRequest.tool_name) {
           case 'related_code_searcher':
-            rawResult = await this._runRelatedCodeSearcher(parsedContent);
+            rawResult = await this._runRelatedCodeSearcher(
+              parsedContent.repo_path || active_repo,
+              parsedContent
+            );
             break;
           case 'focused_snippets_searcher':
-            rawResult = await this._runFocusedSnippetsSearcher(parsedContent);
+            rawResult = await this._runFocusedSnippetsSearcher(
+              parsedContent.repo_path || active_repo,
+              parsedContent
+            );
             break;
           case 'file_path_searcher':
             this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runFilePathSearcher(parsedContent);
+            rawResult = await this._runFilePathSearcher(
+              parsedContent.repo_path || active_repo,
+              parsedContent
+            );
             break;
           case 'iterative_file_reader':
             this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
             rawResult = await this._runIterativeFileReader(
-              parsedContent.repo_path,
+              parsedContent.repo_path || active_repo,
               parsedContent.file_path,
               parsedContent.start_line,
               parsedContent.end_line,
@@ -1050,7 +1060,7 @@ export class ChatManager {
             this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
             rawResult = await this._runGrepSearch(
               parsedContent.search_path,
-              parsedContent.repo_path,
+              parsedContent.repo_path || active_repo,
               parsedContent.query,
               parsedContent.case_insensitive,
               parsedContent.use_regex,
@@ -1297,10 +1307,9 @@ export class ChatManager {
 
   // --- Specific Tool Implementations ---
 
-  private async _runRelatedCodeSearcher(params: {
+  private async _runRelatedCodeSearcher(repo_path: string, params: {
     search_query?: string;
     paths?: string[];
-    repo_path: string;
   }): Promise<any> {
     const query = params.search_query || '';
     // const focusFiles = params.paths || []; // Currently unused based on original code?
@@ -1313,7 +1322,7 @@ export class ChatManager {
 
     try {
       const result = await this.relevantCodeSearcherToolService.runTool({
-        repo_path: params.repo_path,
+        repo_path: repo_path,
         query: query,
         focus_files: [], // Explicitly empty based on original logic
         focus_directories: [],
@@ -1331,27 +1340,26 @@ export class ChatManager {
     }
   }
 
-  private async _runFocusedSnippetsSearcher(params: { search_terms?: SearchTerm[]; repo_path: string }): Promise<any> {
+  private async _runFocusedSnippetsSearcher(repo_path: string, params: { search_terms?: SearchTerm[]; }): Promise<any> {
     const searchTerms = params.search_terms;
     if (!searchTerms || !searchTerms.length) {
       throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
     }
     this.outputChannel.info(`Executing focused_snippets_searcher with ${searchTerms.length} terms.`);
     // return this._fetchBatchChunksSearch(repoPath, searchTerms);
-    return this._fetchBatchChunksSearch(params.repo_path, searchTerms);
+    return this._fetchBatchChunksSearch(repo_path, searchTerms);
   }
 
-  private async _runFilePathSearcher(params: {
+  private async _runFilePathSearcher(repo_path: string, params: {
     directory?: string;
     search_terms?: string[];
-    repo_path: string;
   }): Promise<any> {
     const directory = resolveDirectoryRelative(params.directory);
     const searchTerms = params.search_terms; // Optional
     this.outputChannel.info(
       `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
     );
-    return this._fetchFilePathSearch(params.repo_path, directory || '', searchTerms);
+    return this._fetchFilePathSearch(repo_path, directory || '', searchTerms);
   }
 
   async apiClearChat() {

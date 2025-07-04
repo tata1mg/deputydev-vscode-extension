@@ -65,13 +65,14 @@ export class QuerySolverService {
   ): AsyncIterableIterator<any> {
     const authService = new AuthService();
     let authToken = await authService.loadAuthToken();
-    const contextRepositories = await getContextRepositories();
+    const repositories = await getContextRepositories();
+    console.log("*********context repos**********", repositories);
 
     const currentSessionId = getSessionId();
     payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
 
     // adding context of repositories present in workspace except active repository in payload.
-    payload['context_repositories'] = contextRepositories || [];
+    payload['repositories'] = repositories || [];
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;
