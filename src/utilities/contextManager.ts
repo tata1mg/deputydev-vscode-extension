@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { EmbeddingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 // =====================================================================================
 // Module State
@@ -233,4 +236,80 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
     command: 'update-workspace-tool-status',
     data: data,
   });
+}
+
+export async function getContextRepositories(): Promise<
+  Array<{ repoPath: string; repoName: string; rootDirectoryContext: string }>
+> {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return [];
+  }
+  const activeRepo = getActiveRepo();
+
+  // Filter out the active repo and map the rest
+  const repoPromises = folders
+    .filter((folder) => {
+      // Include only if it's not the active repo
+      return !activeRepo || folder.uri.fsPath !== activeRepo;
+    })
+    .map(async (folder) => ({
+      repoPath: folder.uri.fsPath,
+      repoName: path.basename(folder.uri.fsPath),
+      rootDirectoryContext: await getRootContext(folder.uri.fsPath),
+    }));
+
+  return Promise.all(repoPromises);
+}
+
+export async function getRootContext(repoPath: string): Promise<string> {
+  const isDesktop = arePathsEqual(repoPath, path.join(os.homedir(), 'Desktop'));
+  if (isDesktop) {
+    return '';
+  } else {
+    try {
+      const all = await fs.promises.readdir(repoPath, { withFileTypes: true });
+      const rootFilesAndFolders = all.map((dirent) => {
+        if (dirent.isDirectory()) {
+          return dirent.name + '/';
+        }
+        return dirent.name;
+      });
+      if (rootFilesAndFolders.length > 0) {
+        return rootFilesAndFolders.join('\n');
+      } else {
+        return '';
+      }
+    } catch (e: any) {
+      return '';
+    }
+  }
+}
+
+function normalizePath(p: string): string {
+  // normalize resolve ./.. segments, removes duplicate slashes, and standardizes path separators
+  let normalized = path.normalize(p);
+  // however it doesn't remove trailing slashes
+  // remove trailing slash, except for root paths
+  if (normalized.length > 1 && (normalized.endsWith('/') || normalized.endsWith('\\'))) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+export function arePathsEqual(path1?: string, path2?: string): boolean {
+  if (!path1 && !path2) {
+    return true;
+  }
+  if (!path1 || !path2) {
+    return false;
+  }
+
+  path1 = normalizePath(path1);
+  path2 = normalizePath(path2);
+
+  if (process.platform === 'win32') {
+    return path1.toLowerCase() === path2.toLowerCase();
+  }
+  return path1 === path2;
 }
