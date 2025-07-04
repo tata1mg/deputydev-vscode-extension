@@ -109,32 +109,5 @@ export async function getEnvironmentDetails(
     }
   }
 
-  // --- (Optional) Working Directory Files (root-level only, no ignore) ---
-  if (includeFileDetails) {
-    details += `\n\n# Current Working Directory Root Files & Folders\n`;
-
-    const isDesktop = arePathsEqual(cwd, path.join(os.homedir(), 'Desktop'));
-    if (isDesktop) {
-      details += '(Desktop files not shown automatically. Use file_path_searcher to explore if needed.)';
-    } else {
-      try {
-        const all = await fs.promises.readdir(cwd, { withFileTypes: true });
-        const rootFilesAndFolders = all.map((dirent) => {
-          if (dirent.isDirectory()) {
-            return dirent.name + '/';
-          }
-          return dirent.name;
-        });
-        if (rootFilesAndFolders.length > 0) {
-          details += rootFilesAndFolders.join('\n');
-        } else {
-          details += '(No files or folders in this directory)';
-        }
-      } catch (e: any) {
-        details += `(Could not list files: ${e.message})`;
-      }
-    }
-  }
-
   return `<environment_details>\n${details.trim()}\n</environment_details>`;
 }
