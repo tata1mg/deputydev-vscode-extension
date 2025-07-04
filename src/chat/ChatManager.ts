@@ -341,7 +341,6 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
       payload.vscode_env = await getEnvironmentDetails(true, payload);
-      console.log("*********env*******", payload.vscode_env);
 
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
@@ -1029,23 +1028,14 @@ export class ChatManager {
         // Execute the specific tool function
         switch (toolRequest.tool_name) {
           case 'related_code_searcher':
-            rawResult = await this._runRelatedCodeSearcher(
-              parsedContent.repo_path || active_repo,
-              parsedContent
-            );
+            rawResult = await this._runRelatedCodeSearcher(parsedContent.repo_path || active_repo, parsedContent);
             break;
           case 'focused_snippets_searcher':
-            rawResult = await this._runFocusedSnippetsSearcher(
-              parsedContent.repo_path || active_repo,
-              parsedContent
-            );
+            rawResult = await this._runFocusedSnippetsSearcher(parsedContent.repo_path || active_repo, parsedContent);
             break;
           case 'file_path_searcher':
             this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runFilePathSearcher(
-              parsedContent.repo_path || active_repo,
-              parsedContent
-            );
+            rawResult = await this._runFilePathSearcher(parsedContent.repo_path || active_repo, parsedContent);
             break;
           case 'iterative_file_reader':
             this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
@@ -1307,10 +1297,13 @@ export class ChatManager {
 
   // --- Specific Tool Implementations ---
 
-  private async _runRelatedCodeSearcher(repo_path: string, params: {
-    search_query?: string;
-    paths?: string[];
-  }): Promise<any> {
+  private async _runRelatedCodeSearcher(
+    repo_path: string,
+    params: {
+      search_query?: string;
+      paths?: string[];
+    },
+  ): Promise<any> {
     const query = params.search_query || '';
     // const focusFiles = params.paths || []; // Currently unused based on original code?
     const currentSessionId = getSessionId();
@@ -1340,7 +1333,7 @@ export class ChatManager {
     }
   }
 
-  private async _runFocusedSnippetsSearcher(repo_path: string, params: { search_terms?: SearchTerm[]; }): Promise<any> {
+  private async _runFocusedSnippetsSearcher(repo_path: string, params: { search_terms?: SearchTerm[] }): Promise<any> {
     const searchTerms = params.search_terms;
     if (!searchTerms || !searchTerms.length) {
       throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
@@ -1350,10 +1343,13 @@ export class ChatManager {
     return this._fetchBatchChunksSearch(repo_path, searchTerms);
   }
 
-  private async _runFilePathSearcher(repo_path: string, params: {
-    directory?: string;
-    search_terms?: string[];
-  }): Promise<any> {
+  private async _runFilePathSearcher(
+    repo_path: string,
+    params: {
+      directory?: string;
+      search_terms?: string[];
+    },
+  ): Promise<any> {
     const directory = resolveDirectoryRelative(params.directory);
     const searchTerms = params.search_terms; // Optional
     this.outputChannel.info(

@@ -66,7 +66,6 @@ export class QuerySolverService {
     const authService = new AuthService();
     let authToken = await authService.loadAuthToken();
     const repositories = await getContextRepositories();
-    console.log("*********context repos**********", repositories);
 
     const currentSessionId = getSessionId();
     payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
