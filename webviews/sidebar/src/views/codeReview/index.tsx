@@ -1,5 +1,14 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChevronUp, ChevronDown, ArrowRight, GitBranch, Check } from 'lucide-react';
+import {
+  ChevronUp,
+  ChevronDown,
+  ArrowRight,
+  GitBranch,
+  Check,
+  User,
+  Users,
+  Pen,
+} from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,6 +27,8 @@ interface FileChange {
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
+  const [showReviewOptions, setShowReviewOptions] = useState(false);
+  const [showAgents, setShowAgents] = useState(false);
 
   const sourceBranch = 'feature/new-feature';
   const targetBranch = 'main';
@@ -103,6 +114,7 @@ export default function CodeReview() {
             >
               <GitBranch className="mr-1.5 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span className="font-mono text-sm">{sourceBranch}</span>
+              <Pen className="ml-1.5 h-3.5 w-3.5 cursor-pointer text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
             </div>
             <ArrowRight className="mx-2 h-4 w-4 text-gray-400" />
             <div
@@ -218,10 +230,112 @@ export default function CodeReview() {
           </div>
 
           {/* Review Button */}
-          <div className="flex justify-center">
-            <button className="cursor-pointer rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-4 py-2 text-center font-mono text-sm transition-colors hover:bg-[var(--vscode-list-hoverBackground)]">
-              Review All Changes
-            </button>
+          <div className="relative">
+            <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-4 py-2">
+              <div className="flex items-center gap-2">
+                <span>Review All Changes</span>
+                <div className="flex items-center gap-1">
+                  <ChevronDown
+                    className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
+                    onClick={() => {
+                      setShowReviewOptions(!showReviewOptions);
+                      setShowAgents(false);
+                    }}
+                  />
+                  <div className="h-5 w-px bg-[var(--vscode-editorWidget-border)]"></div>
+                </div>
+              </div>
+              <button
+                className="flex cursor-pointer items-center gap-2"
+                onClick={() => {
+                  setShowAgents(!showAgents);
+                  setShowReviewOptions(false);
+                }}
+              >
+                <span>Select Agents</span>
+                <Users className="h-4 w-4 text-[var(--vscode-foreground)]" />
+              </button>
+            </div>
+
+            {/* Review Options Dropdown */}
+            <AnimatePresence>
+              {showReviewOptions && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{
+                    opacity: 1,
+                    height: 'auto',
+                    transition: {
+                      opacity: { duration: 0.2 },
+                      height: { duration: 0.3, ease: 'easeInOut' },
+                    },
+                  }}
+                  exit={{
+                    opacity: 0,
+                    height: 0,
+                    transition: {
+                      opacity: { duration: 0.15 },
+                      height: { duration: 0.25, ease: 'easeInOut' },
+                    },
+                  }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
+                    <div className="max-h-48 overflow-y-auto">
+                      {['Review Uncommitted', 'Review Committed', 'Review All Changes'].map(
+                        (option) => (
+                          <div
+                            key={option}
+                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                          >
+                            {option}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Agents Selection Dropdown */}
+            <AnimatePresence>
+              {showAgents && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{
+                    opacity: 1,
+                    height: 'auto',
+                    transition: {
+                      opacity: { duration: 0.2 },
+                      height: { duration: 0.3, ease: 'easeInOut' },
+                    },
+                  }}
+                  exit={{
+                    opacity: 0,
+                    height: 0,
+                    transition: {
+                      opacity: { duration: 0.15 },
+                      height: { duration: 0.25, ease: 'easeInOut' },
+                    },
+                  }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
+                    <div className="max-h-48 overflow-y-auto">
+                      {['Security', 'Error', 'Suggestion'].map((agent) => (
+                        <div
+                          key={agent}
+                          className="flex w-full cursor-pointer items-center gap-2 p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                        >
+                          <span className="truncate">{agent}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
