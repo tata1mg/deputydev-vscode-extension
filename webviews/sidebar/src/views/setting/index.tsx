@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
-import { ChatTypeToggle } from '../chat/chatElements/chatTypeToggle';
 import {
   X,
   Link,
@@ -552,14 +551,12 @@ const Setting = () => {
     shellCommandTimeout,
     isYoloModeOn,
     commandsToDeny,
-    chatType,
     urls,
     setTerminalOutputLimit,
     setShellIntegrationTimeout,
     setShellCommandTimeout,
     setIsYoloModeOn,
     setCommandsToDeny,
-    setChatType,
     disableShellIntegration,
     setDisableShellIntegration,
   } = useSettingsStore();
@@ -615,7 +612,6 @@ const Setting = () => {
   }, [safeUrls]);
   useEffect(() => {
     const settings: Settings = {
-      default_mode: chatType,
       terminal_settings: {
         enable_yolo_mode: isYoloModeOn,
         command_deny_list: commandsToDeny,
@@ -639,7 +635,6 @@ const Setting = () => {
       value: shellIntegrationTimeout,
     });
   }, [
-    chatType,
     terminalOutputLimit,
     shellIntegrationTimeout,
     shellCommandTimeout,
@@ -764,14 +759,6 @@ const Setting = () => {
         >
           General Settings
         </h3>
-        <SettingsCard
-          title="Default Mode"
-          description={
-            "When 'Act' mode is turned on. DeputyDev will be able to make changes to your code."
-          }
-        >
-          <ChatTypeToggle chatType={chatType} setChatType={setChatType} isSetting={true} />
-        </SettingsCard>
         <SettingsCard
           title="DeputyDev Rules"
           description={
