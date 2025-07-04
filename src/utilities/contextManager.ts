@@ -144,11 +144,15 @@ export function sendMessageToSidebarDirect(command: string, message: any) {
   });
 }
 
-export function loaderMessage(showMsg: boolean) {
+export function loaderMessage(showLoader: boolean, phase: string, progress?: number) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'loader-message',
-    data: showMsg,
+    data: {
+      showLoader: showLoader,
+      phase: phase,
+      progress: progress !== undefined ? progress : 0,
+    },
   });
 }
 
