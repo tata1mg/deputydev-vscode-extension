@@ -1297,9 +1297,11 @@ export class ChatManager {
 
   // --- Specific Tool Implementations ---
 
-  private async _runRelatedCodeSearcher(
-    params: { search_query?: string; paths?: string[]; repo_path: string },
-  ): Promise<any> {
+  private async _runRelatedCodeSearcher(params: {
+    search_query?: string;
+    paths?: string[];
+    repo_path: string;
+  }): Promise<any> {
     const query = params.search_query || '';
     // const focusFiles = params.paths || []; // Currently unused based on original code?
     const currentSessionId = getSessionId();
@@ -1329,7 +1331,7 @@ export class ChatManager {
     }
   }
 
-  private async _runFocusedSnippetsSearcher(params: { search_terms?: SearchTerm[], repo_path: string }): Promise<any> {
+  private async _runFocusedSnippetsSearcher(params: { search_terms?: SearchTerm[]; repo_path: string }): Promise<any> {
     const searchTerms = params.search_terms;
     if (!searchTerms || !searchTerms.length) {
       throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
@@ -1339,9 +1341,11 @@ export class ChatManager {
     return this._fetchBatchChunksSearch(params.repo_path, searchTerms);
   }
 
-  private async _runFilePathSearcher(
-    params: { directory?: string; search_terms?: string[]; repo_path: string },
-  ): Promise<any> {
+  private async _runFilePathSearcher(params: {
+    directory?: string;
+    search_terms?: string[];
+    repo_path: string;
+  }): Promise<any> {
     const directory = resolveDirectoryRelative(params.directory);
     const searchTerms = params.search_terms; // Optional
     this.outputChannel.info(
