@@ -17,7 +17,6 @@ export async function getEnvironmentDetails(
   if (!cwd) {
     return '<environment_details>\n(No active repo found)\n</environment_details>';
   }
-  details += `# Current Working Directory\n${cwd}`;
 
   // --- VSCode Visible Files (Filtered by cwd) ---
   details += '\n\n# VSCode Visible Files';

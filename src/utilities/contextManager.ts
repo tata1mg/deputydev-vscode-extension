@@ -239,7 +239,7 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
 }
 
 export async function getContextRepositories(): Promise<
-  Array<{ repo_path: string; repo_name: string; root_directory_context: string }>
+  Array<{ repo_path: string; repo_name: string; root_directory_context: string, is_working_repository: boolean }>
 > {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -249,14 +249,11 @@ export async function getContextRepositories(): Promise<
 
   // Filter out the active repo and map the rest
   const repoPromises = folders
-    .filter((folder) => {
-      // Include only if it's not the active repo
-      return !activeRepo || folder.uri.fsPath !== activeRepo;
-    })
     .map(async (folder) => ({
       repo_path: folder.uri.fsPath,
       repo_name: path.basename(folder.uri.fsPath),
       root_directory_context: await getRootContext(folder.uri.fsPath),
+      is_working_repository: folder.uri.fsPath === activeRepo ? true : false
     }));
 
   return Promise.all(repoPromises);
