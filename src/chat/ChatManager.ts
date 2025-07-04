@@ -667,7 +667,12 @@ export class ChatManager {
     }
   }
 
-  async _runIterativeFileReader(repoPath: string, filePath: string, startLine: number, endLine: number): Promise<any> {
+  async _runIterativeFileReader(
+    repoPath: string,
+    filePath: string,
+    startLine?: number,
+    endLine?: number,
+  ): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
@@ -682,8 +687,6 @@ export class ChatManager {
         },
         { headers },
       );
-
-      this.outputChannel.info('Iterative file reader API call successful.');
       return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
