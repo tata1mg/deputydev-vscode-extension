@@ -38,20 +38,12 @@ const RepoSelector = () => {
     useWorkspaceStore.setState({
       contextRepositories: contextRepositories.filter((repo) => repo.repoPath !== repoPath),
     });
-    console.log(
-      'Updated contextRepositories after removing',
-      useWorkspaceStore.getState().contextRepositories
-    );
   };
 
   const addRepoToContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
       contextRepositories: [...contextRepositories, { repoPath, repoName }],
     });
-    console.log(
-      'Updated contextRepositories after adding',
-      useWorkspaceStore.getState().contextRepositories
-    );
   };
 
   const IndexingStatusIcon: React.FC = () => {
