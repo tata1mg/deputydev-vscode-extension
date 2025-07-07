@@ -242,8 +242,8 @@ export async function getContextRepositories(): Promise<
   Array<{ repo_path: string; repo_name: string; root_directory_context: string; is_working_repository: boolean }>
 > {
   const workspaceStorage = extensionContext?.workspaceState.get('workspace-storage') as string;
-  const parsedWorkspace = JSON.parse(workspaceStorage);
-  const contextRepositories = parsedWorkspace?.state?.contextRepositories as { repoPath: string; repoName: string }[];
+  const parsedWorkspace = workspaceStorage ? JSON.parse(workspaceStorage) : {};
+  const contextRepositories = parsedWorkspace?.state?.contextRepositories as { repoPath: string; repoName: string }[] || [];
   const activeRepo = getActiveRepo();
 
   // Filter out the active repo and map the rest
