@@ -27,7 +27,7 @@ import {
   hitEmbedding,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
-import { useLoaderViewStore } from './stores/useLoaderViewStore';
+import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
 import { useUserProfileStore } from './stores/useUserProfileStore';
 import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
@@ -224,21 +224,11 @@ export function removeCommandEventListener(command: string, listener: EventListe
 
 addCommandEventListener('new-chat', async () => {
   const currentViewType = useExtensionStore.getState().viewType;
-  const currentDefaultChatType = useSettingsStore.getState().chatType;
-  const history = useChatStore.getState().history;
-  if (history.length === 0) {
-    useChatSettingStore.setState({
-      chatType: currentDefaultChatType,
-    });
-  }
   if (currentViewType !== 'chat') {
     useExtensionStore.setState({ viewType: 'chat' });
   } else {
     useChatSettingStore.setState({
       chatSource: 'new-chat',
-    });
-    useChatSettingStore.setState({
-      chatType: currentDefaultChatType,
     });
     useChatStore.getState().clearChat();
     callCommand('delete-session-id', null);
@@ -350,7 +340,6 @@ addCommandEventListener('initialize-settings-response', async ({ data }) => {
   useSettingsStore.setState({
     isYoloModeOn: settings.terminal_settings.enable_yolo_mode,
     commandsToDeny: settings.terminal_settings.command_deny_list,
-    chatType: settings.default_mode,
     terminalOutputLimit: await getGlobalState({ key: 'terminal-output-limit' }),
     shellIntegrationTimeout: await getGlobalState({
       key: 'terminal-shell-limit',
@@ -361,9 +350,6 @@ addCommandEventListener('initialize-settings-response', async ({ data }) => {
     disableShellIntegration: await getGlobalState({
       key: 'disable-shell-integration',
     }),
-  });
-  useChatSettingStore.setState({
-    chatType: settings.default_mode,
   });
 });
 
@@ -481,8 +467,16 @@ addCommandEventListener('force-upgrade-data', ({ data }) => {
 });
 
 addCommandEventListener('loader-message', ({ data }) => {
-  const loaderMessage = data as boolean;
-  useLoaderViewStore.setState({ loaderViewState: loaderMessage });
+  const loaderMessage = data as {
+    showLoader: boolean;
+    phase: LoaderPhase;
+    progress: number;
+  };
+  useLoaderViewStore.setState({
+    loaderViewState: loaderMessage.showLoader,
+    phase: loaderMessage.phase,
+    progress: loaderMessage.progress,
+  });
 });
 
 addCommandEventListener('theme-change', ({ data }) => {
@@ -501,12 +495,6 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     history: lastChatDataParsed.history as ChatMessage[],
   });
   useChatStore.setState({ isLoading: true });
-  useChatStore.setState({
-    showSessionsBox: lastChatDataParsed.showSessionsBox,
-  });
-  useChatStore.setState({
-    showAllSessions: lastChatDataParsed.showAllSessions,
-  });
   useChatStore.setState({ showSkeleton: true });
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()

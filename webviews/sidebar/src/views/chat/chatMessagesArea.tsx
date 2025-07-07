@@ -28,13 +28,7 @@ import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileRef
 import { AskUserInput } from './chatElements/Tools/askUserInput';
 
 export function ChatArea() {
-  const {
-    history: messages,
-    current,
-    showSkeleton,
-    showSessionsBox,
-    showGeneratingEffect,
-  } = useChatStore();
+  const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
   const queryIdMap = new Map();
@@ -536,7 +530,7 @@ export function ChatArea() {
         }
       })}
       {showGeneratingEffect && !showSkeleton && <GeneratingLoader text="Generating" />}
-      {showSkeleton && showSessionsBox === false && <Shimmer />}
+      {showSkeleton && <Shimmer />}
       {current && typeof current.content?.text === 'string' && (
         <div
           key="streaming"

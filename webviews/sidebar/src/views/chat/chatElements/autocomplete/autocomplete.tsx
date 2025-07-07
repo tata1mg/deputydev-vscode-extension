@@ -350,7 +350,9 @@ const AutocompleteListItem: FC<AutocompleteListItemProps> = ({
 }) => {
   return (
     <li
-      className={`relative flex cursor-pointer items-start justify-between gap-3 rounded-sm px-3 py-2 transition-all duration-150 ${isSelected && 'bg-[var(--deputydev-active-selection-background)] text-[--vscode-list-activeSelectionForeground]'}`}
+      className={`relative flex cursor-pointer items-start justify-between gap-3 rounded-sm px-3 py-2 transition-all duration-150 ${
+        isSelected ? 'bg-[var(--vscode-list-activeSelectionBackground)]' : ''
+      } bg-[--vscode-editorWidget-background] text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]`}
       onClick={(e) => {
         e.preventDefault();
         onSelect(option);
@@ -459,7 +461,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
     }
 
     return (
-      <ul className="space-y-1 p-1" ref={listRef}>
+      <ul className="space-y-1 bg-[var(--vscode-editorWidget-background)] p-1" ref={listRef}>
         {options.length === 0 && (
           <li className="py-2 text-center text-xs opacity-70">No results found</li>
         )}
