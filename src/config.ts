@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = 'VSCODE_EXT';
-export const CLIENT_VERSION = '8.0.2';
+export const CLIENT_VERSION = '8.2.0';
 export const DD_HOST = 'https://api.deputydev.ai';
 // export const DD_HOST = 'http://localhost:8084';
 export const ENABLE_OUTPUT_CHANNEL = false;

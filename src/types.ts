@@ -82,6 +82,7 @@ export interface ChatPayload {
   };
   previous_query_ids?: number[];
   focus_items?: Array<any>;
+  directory_items?: Array<any>;
   deputy_dev_rules?: string;
   is_inline?: boolean;
   vscode_env?: string;
@@ -129,7 +130,6 @@ export interface SaveUrlRequest {
 }
 
 export interface Settings {
-  default_mode: 'ask' | 'write';
   terminal_settings: {
     enable_yolo_mode: boolean;
     command_deny_list: string[];

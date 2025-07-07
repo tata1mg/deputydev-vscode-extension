@@ -144,11 +144,15 @@ export function sendMessageToSidebarDirect(command: string, message: any) {
   });
 }
 
-export function loaderMessage(showMsg: boolean) {
+export function loaderMessage(showLoader: boolean, phase: string, progress?: number) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'loader-message',
-    data: showMsg,
+    data: {
+      showLoader: showLoader,
+      phase: phase,
+      progress: progress !== undefined ? progress : 0,
+    },
   });
 }
 
@@ -169,6 +173,7 @@ export function sendLastChatData(data: string) {
 }
 
 export function sendNotVerified() {
+  logOutputChannel?.info('User is not authenticated, Please sign in');
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', false);
   extensionContext?.workspaceState.update('isAuthenticated', false);
   // delay for 0.1 second
@@ -196,7 +201,7 @@ export function sendProgress(indexingProgressData: {
   });
 }
 export function sendVerified() {
-  logOutputChannel?.info('User is authenticated, sending verified response, vaibhav');
+  logOutputChannel?.info('User is authenticated, sending verified response');
   vscode.commands.executeCommand('setContext', 'deputydev.isAuthenticated', true);
   extensionContext?.workspaceState.update('isAuthenticated', true);
   sidebarProvider?.sendMessageToSidebar({
