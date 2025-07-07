@@ -8,6 +8,8 @@ import {
   User,
   Users,
   Pen,
+  ChevronRight as ChevronRightIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useState } from 'react';
@@ -24,11 +26,65 @@ interface FileChange {
   comments: number;
 }
 
+interface Comment {
+  id: string;
+  text: string;
+  line: number;
+}
+
+interface FileWithComments {
+  path: string;
+  comments: number;
+}
+
+interface Review {
+  id: string;
+  title: string;
+  date: string;
+  files: FileWithComments[];
+  fileComments: Record<string, Comment[]>; // This allows any string key with Comment[] values
+}
+
+const mockReviews: Review[] = [
+  {
+    id: '1',
+    title: 'Review 1',
+    date: '2025-07-05',
+    files: [
+      { path: 'src/components/Button.tsx', comments: 3 },
+      { path: 'src/utils/helpers.ts', comments: 1 },
+    ],
+    fileComments: {
+      'src/components/Button.tsx': [
+        { id: 'c1', text: 'Consider extracting this into a separate component', line: 23 },
+        { id: 'c2', text: 'Missing prop validation', line: 45 },
+        { id: 'c3', text: 'This could be optimized', line: 67 },
+      ],
+      'src/utils/helpers.ts': [{ id: 'c4', text: 'Add error handling here', line: 12 }],
+    },
+  },
+  {
+    id: '2',
+    title: 'Review 2',
+    date: '2025-07-01',
+    files: [{ path: 'src/App.tsx', comments: 2 }],
+    fileComments: {
+      'src/App.tsx': [
+        { id: 'c5', text: 'Consider using context for state management', line: 10 },
+        { id: 'c6', text: 'Add loading state', line: 25 },
+      ],
+    },
+  },
+];
+
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('reviews');
+  const [expandedReview, setExpandedReview] = useState<string | null>(null);
+  const [expandedFile, setExpandedFile] = useState<string | null>(null);
 
   const sourceBranch = 'feature/new-feature';
   const targetBranch = 'main';
@@ -88,6 +144,15 @@ export default function CodeReview() {
       ? 'https://onemg.gumlet.io/dd_logo_dark_name_14_04.png'
       : 'https://onemg.gumlet.io/dd_logo_with_name_10_04.png';
 
+  const toggleReview = (reviewId: string) => {
+    setExpandedReview(expandedReview === reviewId ? null : reviewId);
+    setExpandedFile(null);
+  };
+
+  const toggleFile = (filePath: string) => {
+    setExpandedFile(expandedFile === filePath ? null : filePath);
+  };
+
   return (
     <PageTransition direction="right">
       <div className="relative flex h-full flex-col dark:bg-gray-900">
@@ -114,7 +179,6 @@ export default function CodeReview() {
             >
               <GitBranch className="mr-1.5 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span className="font-mono text-sm">{sourceBranch}</span>
-              <Pen className="ml-1.5 h-3.5 w-3.5 cursor-pointer text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
             </div>
             <ArrowRight className="mx-2 h-4 w-4 text-gray-400" />
             <div
@@ -125,6 +189,7 @@ export default function CodeReview() {
             >
               <GitBranch className="mr-1.5 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
               <span className="font-mono text-sm">{targetBranch}</span>
+              <Pen className="ml-1.5 h-3.5 w-3.5 cursor-pointer text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
             </div>
           </div>
         </div>
@@ -336,6 +401,172 @@ export default function CodeReview() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Reviews Panel */}
+          <div className="mt-2 flex h-full flex-col">
+            {/* Filter Tabs */}
+            <div
+              className="flex w-full rounded-t-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+              style={{
+                boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+              }}
+            >
+              {['reviews', 'agent', 'tags'].map((filter) => (
+                <button
+                  key={filter}
+                  className={`relative flex-1 px-4 py-2 text-center text-sm font-medium transition-colors duration-200 ${
+                    activeFilter === filter
+                      ? 'text-[var(--vscode-textLink-foreground)]'
+                      : 'text-[var(--vscode-foreground)] hover:bg-[var(--vscode-list-hoverBackground)]'
+                  }`}
+                  onClick={() => setActiveFilter(filter)}
+                >
+                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  {activeFilter === filter && (
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--vscode-textLink-foreground)]"
+                      layoutId="activeTab"
+                      transition={{
+                        type: 'spring',
+                        bounce: 0.2,
+                        duration: 0.6,
+                      }}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Reviews List */}
+            <div
+              className="flex-1 overflow-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+              style={{
+                boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+              }}
+            >
+              {mockReviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="m-2 rounded border border-[var(--vscode-editorWidget-border)] transition-colors hover:border-[var(--vscode-focusBorder)]"
+                >
+                  {/* Review Header */}
+                  <div
+                    className="flex cursor-pointer items-center justify-between rounded bg-[var(--vscode-editor-background)] p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                    onClick={() => toggleReview(review.id)}
+                  >
+                    <div className="flex items-center">
+                      <motion.div
+                        animate={{ rotate: expandedReview === review.id ? 0 : -180 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronRightIcon size={16} />
+                      </motion.div>
+                      <span className="ml-2 font-medium">{review.title}</span>
+                      <span className="ml-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                        {review.date}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[var(--vscode-descriptionForeground)]">
+                      {review.files.length} files •{' '}
+                      {review.files.reduce((sum, file) => sum + file.comments, 0)} comments
+                    </div>
+                  </div>
+
+                  {/* Files List */}
+                  <AnimatePresence>
+                    {expandedReview === review.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{
+                          opacity: 1,
+                          height: 'auto',
+                          transition: {
+                            opacity: { duration: 0.2 },
+                            height: { duration: 0.3, ease: 'easeInOut' },
+                          },
+                        }}
+                        exit={{
+                          opacity: 0,
+                          height: 0,
+                          transition: {
+                            opacity: { duration: 0.15 },
+                            height: { duration: 0.25, ease: 'easeInOut' },
+                          },
+                        }}
+                        className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)]"
+                      >
+                        {review.files.map((file) => (
+                          <div key={file.path} className="pl-6">
+                            <div
+                              className="flex cursor-pointer items-center justify-between p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFile(file.path);
+                              }}
+                            >
+                              <div className="flex items-center">
+                                <motion.div
+                                  animate={{ rotate: expandedFile === file.path ? 0 : -90 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <ChevronRightIcon size={14} />
+                                </motion.div>
+                                <span className="ml-2 text-sm">{file.path}</span>
+                              </div>
+                              <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
+                                <MessageSquare size={12} className="mr-1" />
+                                {file.comments}
+                              </div>
+                            </div>
+
+                            {/* Comments List */}
+                            <AnimatePresence>
+                              {expandedFile === file.path && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{
+                                    opacity: 1,
+                                    height: 'auto',
+                                    transition: {
+                                      opacity: { duration: 0.2 },
+                                      height: { duration: 0.3, ease: 'easeInOut' },
+                                    },
+                                  }}
+                                  exit={{
+                                    opacity: 0,
+                                    height: 0,
+                                    transition: {
+                                      opacity: { duration: 0.15 },
+                                      height: { duration: 0.25, ease: 'easeInOut' },
+                                    },
+                                  }}
+                                  className="overflow-hidden"
+                                >
+                                  {(review.fileComments as Record<string, Comment[]>)[
+                                    file.path
+                                  ]?.map((comment) => (
+                                    <div
+                                      key={comment.id}
+                                      className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-3 pl-6 pr-3 text-sm"
+                                    >
+                                      <div className="mb-1 text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Line {comment.line}
+                                      </div>
+                                      <div>{comment.text}</div>
+                                    </div>
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
