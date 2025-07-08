@@ -54,8 +54,8 @@ const ModelSelector = () => {
               whileTap={{ scale: 0.98 }}
             >
               <motion.span
-                animate={{ rotate: isOpen ? 360 : 0 }}
-                transition={{ duration: 1, ease: 'easeInOut' }}
+                animate={{ rotate: isOpen ? -180 : 0 }}
+                transition={{ duration: 0.75, ease: 'easeInOut' }}
               >
                 <Box className="h-3 w-3" />
               </motion.span>
