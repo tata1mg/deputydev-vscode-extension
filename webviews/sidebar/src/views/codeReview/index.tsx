@@ -85,6 +85,7 @@ export default function CodeReview() {
   const [activeFilter, setActiveFilter] = useState('reviews');
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [selectedReviewOption, setSelectedReviewOption] = useState('Review All Changes');
 
   const sourceBranch = 'feature/new-feature';
   const targetBranch = 'main';
@@ -178,7 +179,7 @@ export default function CodeReview() {
               }}
             >
               <GitBranch className="mr-1.5 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-              <span className="font-mono text-sm">{sourceBranch}</span>
+              <span className="truncate font-mono text-sm">{sourceBranch}</span>
             </div>
             <ArrowRight className="mx-2 h-4 w-4 text-gray-400" />
             <div
@@ -188,7 +189,7 @@ export default function CodeReview() {
               }}
             >
               <GitBranch className="mr-1.5 h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-              <span className="font-mono text-sm">{targetBranch}</span>
+              <span className="truncate font-mono text-sm">{targetBranch}</span>
               <Pen className="ml-1.5 h-3.5 w-3.5 cursor-pointer text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
             </div>
           </div>
@@ -204,7 +205,7 @@ export default function CodeReview() {
             }}
           >
             <motion.div
-              className="flex cursor-pointer items-center justify-between border-b border-[var(--vscode-editorWidget-border)] p-3"
+              className={`flex cursor-pointer items-center justify-between p-3 ${showFilesToReview && 'border-b border-[var(--vscode-editorWidget-border)]'}`}
               onClick={() => setShowFilesToReview(!showFilesToReview)}
               whileHover={{ backgroundColor: 'var(--vscode-list-hoverBackground)' }}
               initial={false}
@@ -296,20 +297,7 @@ export default function CodeReview() {
 
           {/* Review Button */}
           <div className="relative">
-            <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-4 py-2">
-              <div className="flex items-center gap-2">
-                <span>Review All Changes</span>
-                <div className="flex items-center gap-1">
-                  <ChevronDown
-                    className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
-                    onClick={() => {
-                      setShowReviewOptions(!showReviewOptions);
-                      setShowAgents(false);
-                    }}
-                  />
-                  <div className="h-5 w-px bg-[var(--vscode-editorWidget-border)]"></div>
-                </div>
-              </div>
+            <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <button
                 className="flex cursor-pointer items-center gap-2"
                 onClick={() => {
@@ -317,9 +305,22 @@ export default function CodeReview() {
                   setShowReviewOptions(false);
                 }}
               >
-                <span>Select Agents</span>
                 <Users className="h-4 w-4 text-[var(--vscode-foreground)]" />
+                <span>Select Agents</span>
               </button>
+              <div className="h-5 w-px bg-[var(--vscode-editorWidget-border)]"></div>
+              <div className="flex items-center gap-2">
+                <span>{selectedReviewOption}</span>
+                <div className="flex items-center gap-1">
+                  <ChevronDown
+                    className={`h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
+                    onClick={() => {
+                      setShowReviewOptions(!showReviewOptions);
+                      setShowAgents(false);
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Review Options Dropdown */}
@@ -351,7 +352,11 @@ export default function CodeReview() {
                         (option) => (
                           <div
                             key={option}
-                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                            className="cursor-pointer p-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                            onClick={() => {
+                              setSelectedReviewOption(option);
+                              setShowReviewOptions(false);
+                            }}
                           >
                             {option}
                           </div>
@@ -391,7 +396,7 @@ export default function CodeReview() {
                       {['Security', 'Error', 'Suggestion'].map((agent) => (
                         <div
                           key={agent}
-                          className="flex w-full cursor-pointer items-center gap-2 p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                          className="flex w-full cursor-pointer items-center gap-2 p-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                         >
                           <span className="truncate">{agent}</span>
                         </div>
@@ -448,11 +453,11 @@ export default function CodeReview() {
               {mockReviews.map((review) => (
                 <div
                   key={review.id}
-                  className="m-2 rounded border border-[var(--vscode-editorWidget-border)] transition-colors hover:border-[var(--vscode-focusBorder)]"
+                  className="m-1 rounded border border-[var(--vscode-editorWidget-border)] text-sm transition-colors hover:border-[var(--vscode-focusBorder)]"
                 >
                   {/* Review Header */}
                   <div
-                    className="flex cursor-pointer items-center justify-between rounded bg-[var(--vscode-editor-background)] p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                    className="flex cursor-pointer items-center justify-between rounded bg-[var(--vscode-editor-background)] p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
                     onClick={() => toggleReview(review.id)}
                   >
                     <div className="flex items-center">
@@ -460,10 +465,10 @@ export default function CodeReview() {
                         animate={{ rotate: expandedReview === review.id ? 0 : -180 }}
                         transition={{ duration: 0.2 }}
                       >
-                        <ChevronRightIcon size={16} />
+                        <ChevronRightIcon size={14} />
                       </motion.div>
-                      <span className="ml-2 font-medium">{review.title}</span>
-                      <span className="ml-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                      <span className="ml-1.5 font-medium">{review.title}</span>
+                      <span className="ml-1.5 text-xs text-[var(--vscode-descriptionForeground)]">
                         {review.date}
                       </span>
                     </div>
@@ -494,12 +499,12 @@ export default function CodeReview() {
                             height: { duration: 0.25, ease: 'easeInOut' },
                           },
                         }}
-                        className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)]"
+                        className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
                       >
                         {review.files.map((file) => (
-                          <div key={file.path} className="pl-6">
+                          <div key={file.path} className="pl-4">
                             <div
-                              className="flex cursor-pointer items-center justify-between p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                              className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleFile(file.path);
@@ -510,12 +515,12 @@ export default function CodeReview() {
                                   animate={{ rotate: expandedFile === file.path ? 0 : -90 }}
                                   transition={{ duration: 0.2 }}
                                 >
-                                  <ChevronRightIcon size={14} />
+                                  <ChevronRightIcon size={12} />
                                 </motion.div>
-                                <span className="ml-2 text-sm">{file.path}</span>
+                                <span className="ml-1.5 truncate">{file.path}</span>
                               </div>
                               <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
-                                <MessageSquare size={12} className="mr-1" />
+                                <MessageSquare size={10} className="mr-0.5" />
                                 {file.comments}
                               </div>
                             </div>
@@ -548,12 +553,12 @@ export default function CodeReview() {
                                   ]?.map((comment) => (
                                     <div
                                       key={comment.id}
-                                      className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-3 pl-6 pr-3 text-sm"
+                                      className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs"
                                     >
-                                      <div className="mb-1 text-xs text-[var(--vscode-descriptionForeground)]">
+                                      <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
                                         Line {comment.line}
                                       </div>
-                                      <div>{comment.text}</div>
+                                      <div className="leading-tight">{comment.text}</div>
                                     </div>
                                   ))}
                                 </motion.div>
