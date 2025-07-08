@@ -190,7 +190,24 @@ const RepoSelector = () => {
               transition={{ delay: 0.1 }}
             >
               <span className="text-xs">Select to add in context</span>
-              <Info className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100" />
+              <Tooltip.Provider>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <Info className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100" />
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="z-50 max-w-[250px] rounded-md bg-[var(--vscode-editorHoverWidget-background)] px-3 py-2 text-xs text-[var(--vscode-editorHoverWidget-foreground)] shadow-lg"
+                      side="top"
+                      sideOffset={5}
+                    >
+                      DeputyDev can now access context from multiple repositories. Select the repos
+                      you want to include. The active repo is where DeputyDev will apply changes.
+                      <Tooltip.Arrow className="fill-[var(--vscode-editorHoverWidget-background)]" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </Tooltip.Provider>
             </motion.div>
             <motion.div
               className="flex w-full items-center justify-end gap-2 border-t border-t-[var(--vscode-editorWidget-border)] py-1 pl-2 pr-1"
