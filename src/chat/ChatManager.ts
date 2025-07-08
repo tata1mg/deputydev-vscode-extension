@@ -619,9 +619,6 @@ export class ChatManager {
     }
   }
 
-
-
-
   /**
    * Calls the backend API for batch chunk search (focused_snippets_searcher).
    */
@@ -857,7 +854,6 @@ export class ChatManager {
     }
   }
 
-
   private async _runToolInternal(
     toolRequest: ToolRequest,
     messageId: string | undefined,
@@ -891,8 +887,6 @@ export class ChatManager {
       }
     }
   }
-
-
 
   /**
    * Send all collected tool responses to the backend in a single batch call
@@ -929,11 +923,6 @@ export class ChatManager {
 
     await this.apiChat(batchPayload, chunkCallback);
   }
-
-  /**
-   * Check if the current operation has been aborted.
-   */
-
 
   private _isAborted(): boolean {
     const aborted = this.currentAbortController?.signal.aborted;
