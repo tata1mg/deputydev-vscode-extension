@@ -29,7 +29,7 @@ const RepoSelector = () => {
 
   const handleSelect = (repoPath: string) => {
     if (repoPath !== activeRepo) {
-      useWorkspaceStore.setState({contextRepositories: []});
+      useWorkspaceStore.setState({ contextRepositories: [] });
       setActiveRepo(repoPath);
       sendWorkspaceRepoChange({ repoPath });
     }
@@ -41,13 +41,13 @@ const RepoSelector = () => {
       return;
     }
     useWorkspaceStore.setState((state) => ({
-      contextRepositories: state.contextRepositories.filter(repo => repo.repoPath === activeRepo)
+      contextRepositories: state.contextRepositories.filter((repo) => repo.repoPath === activeRepo),
     }));
-  }
+  };
 
   const handleSelectAll = () => {
-    useWorkspaceStore.setState({contextRepositories: workspaceRepos});
-  }
+    useWorkspaceStore.setState({ contextRepositories: workspaceRepos });
+  };
 
   const removeRepoFromContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
@@ -115,10 +115,11 @@ const RepoSelector = () => {
             <button
               onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
               disabled={disableRepoSelector}
-              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${disableRepoSelector
-                ? 'cursor-not-allowed opacity-50'
-                : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
-                }`}
+              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${
+                disableRepoSelector
+                  ? 'cursor-not-allowed opacity-50'
+                  : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
+              }`}
             >
               <IndexingStatusIcon />
               <div className="flex items-center gap-1">
@@ -146,19 +147,20 @@ const RepoSelector = () => {
                 (disableRepoSelector
                   ? 'Create new chat to select new repo'
                   : `${Math.round(
-                    indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                      ?.progress ?? 0
-                  )}% ${indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                    'COMPLETED'
-                    ? 'Indexing Completed'
-                    : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                      ?.status === 'IN_PROGRESS'
-                      ? 'Indexed'
-                      : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                        ?.status === 'FAILED'
-                        ? 'Indexing Failed, Retry'
-                        : 'Indexed'
-                  }`)}
+                      indexingProgressData.find((repo) => repo.repo_path === activeRepo)
+                        ?.progress ?? 0
+                    )}% ${
+                      indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
+                      'COMPLETED'
+                        ? 'Indexing Completed'
+                        : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
+                              ?.status === 'IN_PROGRESS'
+                          ? 'Indexed'
+                          : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
+                                ?.status === 'FAILED'
+                            ? 'Indexing Failed, Retry'
+                            : 'Indexed'
+                    }`)}
               <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
             </Tooltip.Content>
           </Tooltip.Portal>
@@ -166,20 +168,20 @@ const RepoSelector = () => {
       </Tooltip.Provider>
 
       {isOpen && (
-        <div className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[80%] min-w-[260px] max-w-[400px] rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg">
-          <div className='p-1 flex justify-between items-center'>
-            <span className='text-xs'>Select to add in context</span>
-            <Info className='h-4 w-4 text-[--vscode-descriptionForeground] hover:text-[--vscode-foreground] transition-colors' />
+        <div className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[180%] rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg">
+          <div className="flex items-center justify-between py-1 pl-2 pr-1">
+            <span className="text-xs">Select to add in context</span>
+            <Info className="h-4 w-4 text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground]" />
           </div>
-          <div className='w-full flex gap-2 justify-end items-center py-0.5 px-1 border-t border-b border-t-[var(--vscode-editorWidget-border)] border-b-[var(--vscode-editorWidget-border)]'>
+          <div className="flex w-full items-center justify-end gap-2 border-t border-t-[var(--vscode-editorWidget-border)] py-1 pl-2 pr-1">
             <span
-              className="text-[8px] cursor-pointer text-[--vscode-descriptionForeground] hover:text-[--vscode-foreground] transition-colors"
+              className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground]"
               onClick={handleClearAll}
             >
               Clear All
             </span>
             <span
-              className="text-[8px] cursor-pointer text-[--vscode-descriptionForeground] hover:text-[--vscode-foreground] transition-colors"
+              className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground]"
               onClick={handleSelectAll}
             >
               Select All
@@ -194,15 +196,16 @@ const RepoSelector = () => {
             {workspaceRepos.map((repo) => (
               <button
                 key={repo.repoPath}
-                className={`flex w-full cursor-pointer items-center p-1 text-xs ${activeRepo === repo.repoPath
-                  ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
-                  : 'text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]'
-                  }`}
+                className={`flex w-full cursor-pointer items-center py-1 pl-2 pr-1 text-xs ${
+                  activeRepo === repo.repoPath
+                    ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
+                    : 'text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]'
+                }`}
                 onClick={() => handleSelect(repo.repoPath)}
               >
                 <span className="flex-1 truncate text-left">{repo.repoName}</span>
                 {activeRepo === repo.repoPath && (
-                  <div className='flex items-center justify-center ml-2 text-xs bg-green-600 p-0.5 border border-green-600 rounded-sm max-h-4'>
+                  <div className="ml-2 flex max-h-4 items-center justify-center rounded-sm border border-green-600 bg-green-600 p-0.5 text-[8px]">
                     <span>ACTIVE</span>
                   </div>
                 )}
@@ -213,13 +216,13 @@ const RepoSelector = () => {
                         {repo.repoPath === activeRepo ? (
                           <div className="h-5 w-5 opacity-50">
                             <Square className="absolute h-5 w-5 text-gray-400" />
-                            <Check className="absolute h-4 w-4 left-0.5 top-0.5 text-green-400" />
+                            <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
                           </div>
                         ) : (
                           <div className="cursor-pointer">
                             <Square className="absolute h-5 w-5 text-gray-400" />
                             {contextRepositories.some((r) => r.repoPath === repo.repoPath) && (
-                              <Check className="absolute h-4 w-4 left-0.5 top-0.5 text-green-400" />
+                              <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
                             )}
                             <div
                               className="absolute inset-0"
@@ -250,9 +253,11 @@ const RepoSelector = () => {
                         {repo.repoPath === activeRepo
                           ? 'Active repository is always in context'
                           : contextRepositories.some((r) => r.repoPath === repo.repoPath)
-                          ? 'Remove this repo from context'
-                          : 'Add this repo to context'}
-                        <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
+                            ? 'Remove this repo from context'
+                            : 'Add this repo to context'}
+                        <Tooltip.Arrow
+                          style={{ fill: 'var(--vscode-editorHoverWidget-background)' }}
+                        />
                       </Tooltip.Content>
                     </Tooltip.Portal>
                   </Tooltip.Root>
