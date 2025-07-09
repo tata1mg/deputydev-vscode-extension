@@ -723,10 +723,9 @@ export class ChatManager {
     } catch (error: any) {
       // This will be removed ASAP, its just for now for EMPTY_TOOL_RESPONSE error type.
       try {
-        this.logger.error(`Error calling Grep search API`);
         this.apiErrorHandler.handleApiError(error);
       } catch (error: any) {
-        const errorData: any = JSON.stringify(error.response.data);
+        const errorData: any = error.response.data;
         if (
           errorData &&
           errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&
