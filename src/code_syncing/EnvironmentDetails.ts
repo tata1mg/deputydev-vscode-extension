@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getActiveRepo } from '../utilities/contextManager';
+import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
 import { arePathsEqual } from '../utilities/path';
 import { ChatPayload } from '../types';
 const PREVIEW_LINES = 100; // Number of lines to preview in the active file
@@ -14,17 +14,17 @@ export async function getEnvironmentDetails(
 
   // --- Get Current Working Directory ---
   const cwd = getActiveRepo();
+  const contextRepositories = getRepositoriesForContext();
   if (!cwd) {
     return '<environment_details>\n(No active repo found)\n</environment_details>';
   }
 
-  // --- VSCode Visible Files (Filtered by cwd) ---
+  // --- VSCode Visible Files (Filtered by context repositories) ---
   details += '\n\n# VSCode Visible Files';
   const visibleFilePaths = vscode.window.visibleTextEditors
     ?.map((editor) => editor.document?.uri?.fsPath)
     .filter(Boolean)
-    .filter((absolutePath) => absolutePath.startsWith(cwd)) // Only include files in cwd
-    .map((absolutePath) => path.relative(cwd, absolutePath).replace(/\\/g, '/'));
+    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)))
 
   if (visibleFilePaths && visibleFilePaths.length > 0) {
     details += `\n${visibleFilePaths.join('\n')}`;
@@ -32,14 +32,13 @@ export async function getEnvironmentDetails(
     details += '\n(No visible files in this workspace)';
   }
 
-  // --- VSCode Open Tabs (Filtered by cwd) ---
+  // --- VSCode Open Tabs (Filtered by context repositories) ---
   details += '\n\n# VSCode Open Tabs';
   const openTabPaths = vscode.window.tabGroups.all
     .flatMap((group) => group.tabs)
     .map((tab) => (tab.input as vscode.TabInputText)?.uri?.fsPath)
     .filter(Boolean)
-    .filter((absolutePath) => absolutePath.startsWith(cwd)) // Only include files in cwd
-    .map((absolutePath) => path.relative(cwd, absolutePath).replace(/\\/g, '/'));
+    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)))
 
   if (openTabPaths && openTabPaths.length > 0) {
     details += `\n${openTabPaths.join('\n')}`;

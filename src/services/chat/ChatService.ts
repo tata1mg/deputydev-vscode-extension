@@ -67,6 +67,8 @@ export class QuerySolverService {
     let authToken = await authService.loadAuthToken();
     const repositories = await getContextRepositories();
 
+    console.log("*************", payload['vscode_env']);
+
     const currentSessionId = getSessionId();
     payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
 
