@@ -31,7 +31,7 @@ const RepoSelector = () => {
   const handleSelect = (repoPath: string) => {
     if (repoPath !== activeRepo) {
       useWorkspaceStore.setState({ contextRepositories: [] });
-      updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+      updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
       setActiveRepo(repoPath);
       sendWorkspaceRepoChange({ repoPath });
     }
@@ -40,32 +40,32 @@ const RepoSelector = () => {
   const handleClearAll = () => {
     if (!activeRepo) {
       useWorkspaceStore.setState({ contextRepositories: [] });
-      updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+      updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
       return;
     }
     useWorkspaceStore.setState((state) => ({
       contextRepositories: state.contextRepositories.filter((repo) => repo.repoPath === activeRepo),
     }));
-    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+    updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
   };
 
   const handleSelectAll = () => {
     useWorkspaceStore.setState({ contextRepositories: workspaceRepos });
-    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+    updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
   };
 
   const removeRepoFromContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
       contextRepositories: contextRepositories.filter((repo) => repo.repoPath !== repoPath),
     });
-    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+    updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
   };
 
   const addRepoToContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
       contextRepositories: [...contextRepositories, { repoPath, repoName }],
     });
-    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+    updateContextRepositories({ contextRepositories: useWorkspaceStore.getState().contextRepositories });
   };
 
   const IndexingStatusIcon: React.FC = () => {
@@ -122,11 +122,10 @@ const RepoSelector = () => {
             <motion.button
               onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
               disabled={disableRepoSelector}
-              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${
-                disableRepoSelector
-                  ? 'cursor-not-allowed opacity-50'
-                  : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
-              }`}
+              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${disableRepoSelector
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
+                }`}
               whileTap={{ scale: 0.98 }}
             >
               <IndexingStatusIcon />
@@ -221,18 +220,18 @@ const RepoSelector = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
             >
-              <span
-                className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground]"
+              <button
+                className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground] outline-none"
                 onClick={handleClearAll}
               >
                 Clear All
-              </span>
-              <span
-                className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground]"
+              </button>
+              <button
+                className="cursor-pointer text-[8px] text-[--vscode-descriptionForeground] transition-colors hover:text-[--vscode-foreground] outline-none"
                 onClick={handleSelectAll}
               >
                 Select All
-              </span>
+              </button>
             </motion.div>
             <motion.div
               style={{
@@ -244,19 +243,29 @@ const RepoSelector = () => {
               transition={{ delay: 0.2 }}
             >
               {workspaceRepos.map((repo, index) => (
-                <motion.button
+                <motion.div
                   key={repo.repoPath}
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 + index * 0.02 }}
-                  className={`flex w-full cursor-pointer items-center py-1 pl-2 pr-1 text-xs ${
-                    activeRepo === repo.repoPath
-                      ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
-                      : 'text-[--vscode-foreground] hover:bg-[--vscode-list-hoverBackground]'
-                  }`}
-                  onClick={() => handleSelect(repo.repoPath)}
+                  className={`flex w-full items-center pr-1 text-xs ${activeRepo === repo.repoPath
+                    ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
+                    : ''
+                    }`}
                 >
-                  <span className="flex-1 truncate text-left">{repo.repoName}</span>
+                  <div
+                    className={`flex-1 py-1 pl-2 text-left w-full text-[--vscode-foreground] cursor-pointer ${
+                      activeRepo !== repo.repoPath
+                        ? 'hover:bg-[--vscode-list-hoverBackground] hover:text-[--vscode-list-activeSelectionForeground]'
+                        : ''
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelect(repo.repoPath);
+                    }}
+                  >
+                    {repo.repoName}
+                  </div>
                   {activeRepo === repo.repoPath && (
                     <div className="ml-2 flex max-h-4 items-center justify-center rounded-sm border border-green-600 bg-green-600 p-0.5 text-[8px]">
                       <span>ACTIVE</span>
@@ -268,22 +277,20 @@ const RepoSelector = () => {
                         <div className="relative ml-2 h-5 w-5">
                           {repo.repoPath === activeRepo ? (
                             <div className="h-5 w-5 opacity-50">
-                              <Square className="absolute h-5 w-5 text-gray-400" />
+                              <Square className="absolute h-5 w-5 text-[--vscode-descriptionForeground] outline-none" />
                               <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
                             </div>
                           ) : (
-                            <div className="cursor-pointer">
-                              <Square className="absolute h-5 w-5 text-gray-400" />
+                            <div>
+                              <Square className="absolute h-5 w-5 hover:opacity-50" />
                               {contextRepositories.some((r) => r.repoPath === repo.repoPath) && (
                                 <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
                               )}
                               <div
-                                className="absolute inset-0"
+                                className="absolute inset-0 cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (
-                                    contextRepositories.some((r) => r.repoPath === repo.repoPath)
-                                  ) {
+                                  if (contextRepositories.some((r) => r.repoPath === repo.repoPath)) {
                                     removeRepoFromContext(repo.repoPath, repo.repoName);
                                   } else {
                                     addRepoToContext(repo.repoPath, repo.repoName);
@@ -317,7 +324,7 @@ const RepoSelector = () => {
                       </Tooltip.Portal>
                     </Tooltip.Root>
                   </Tooltip.Provider>
-                </motion.button>
+                </motion.div>
               ))}
             </motion.div>
           </motion.div>
