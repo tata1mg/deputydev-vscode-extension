@@ -843,6 +843,7 @@ export class ChatManager {
       } else {
         // Single tool execution with immediate API call
         await this._runToolInternal(requests[0], messageId, chunkCallback, clientTools, true);
+        await this._sendBatchedToolResponses([result], messageId, chunkCallback, clientTools);
       }
     } catch (error: any) {
       this.outputChannel.error(`Error during tool execution: ${error.message}`, error);
@@ -901,6 +902,9 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>
   ): Promise<void> {
+      this.outputChannel.warn('No successful tool results to send to backend');
+      return;
+    }
     this.outputChannel.info(`Sending batch of ${toolResults.length} tool responses to backend`);
 
     const environmentDetails = await getEnvironmentDetails(true);
@@ -1164,10 +1168,11 @@ export class ChatManager {
       write_mode: toolRequest.write_mode,
       is_tool_response: true,
       tool_use_response: {
+      batch_tool_responses: [{
         tool_name: toolRequest.tool_name,
         tool_use_id: toolRequest.tool_use_id,
         response: this._structureToolResponse(toolRequest.tool_name, result),
-      },
+      }],
       os_name: await getOSName(),
       shell: getShell(),
       vscode_env: environmentDetails,
@@ -1185,10 +1190,11 @@ export class ChatManager {
       is_tool_response: true,
       tool_use_failed: true,
       tool_use_response: {
+      batch_tool_responses: [{
         tool_name: toolRequest.tool_name,
         tool_use_id: toolRequest.tool_use_id,
         response: errorResponse,
-      },
+      }],
       os_name: await getOSName(),
       shell: getShell(),
       vscode_env: environmentDetails,

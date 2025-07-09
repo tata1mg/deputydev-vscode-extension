@@ -81,11 +81,6 @@ export interface ChatPayload {
     tool_use_id: string;
     response: any;
   }>;
-  tool_use_response?: {
-    tool_name: string;
-    tool_use_id?: string;
-    response: any;
-  };
   previous_query_ids?: number[];
   focus_items?: Array<any>;
   directory_items?: Array<any>;
@@ -136,7 +131,6 @@ export interface SaveUrlRequest {
 }
 
 export interface Settings {
-  default_mode: 'ask' | 'write';
   terminal_settings: {
     enable_yolo_mode: boolean;
     command_deny_list: string[];
