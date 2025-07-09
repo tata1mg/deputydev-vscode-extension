@@ -25,6 +25,7 @@ import {
   getGlobalState,
   rejectAllChangesInSession,
   hitEmbedding,
+  updateContextRepositories,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -279,6 +280,8 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
       ],
     });
   }
+
+  updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
 
   // Get current repos before updating
   const currentRepos = useWorkspaceStore.getState().workspaceRepos;

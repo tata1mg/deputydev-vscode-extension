@@ -54,6 +54,10 @@ export function sendEmbeddingDoneMessage(embeddingProgressData: {
   });
 }
 
+export function getRepositoriesForContext(): {repoPath: string; repoName: string}[] | undefined {
+  return extensionContext?.workspaceState.get<{repoPath: string; repoName: string}[]>('contextRepositories');
+}
+
 export function getActiveRepo(): string | undefined {
   return extensionContext?.workspaceState.get<string>('activeRepo');
 }
@@ -133,6 +137,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('mcp-storage', undefined);
   await extensionContext.workspaceState.update('indexing-data-storage', undefined);
   await extensionContext.workspaceState.update('active-file-store', undefined);
+  await extensionContext.workspaceState.update('contextRepositories', undefined);
 }
 
 // =====================================================================================
@@ -241,10 +246,12 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
 export async function getContextRepositories(): Promise<
   Array<{ repo_path: string; repo_name: string; root_directory_context: string; is_working_repository: boolean }>
 > {
-  const workspaceStorage = extensionContext?.workspaceState.get('workspace-storage') as string;
-  const parsedWorkspace = workspaceStorage ? JSON.parse(workspaceStorage) : {};
-  const contextRepositories =
-    (parsedWorkspace?.state?.contextRepositories as { repoPath: string; repoName: string }[]) || [];
+  const contextRepositories = getRepositoriesForContext();
+
+  if (!contextRepositories) {
+    return [];
+  }
+
   const activeRepo = getActiveRepo();
 
   // Filter out the active repo and map the rest

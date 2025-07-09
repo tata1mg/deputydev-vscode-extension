@@ -642,7 +642,7 @@ export function ChatUI() {
               <textarea
                 ref={textareaRef}
                 rows={1}
-                className={`no-scrollbar relative max-h-[300px] min-h-[50px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                className={`no-scrollbar relative max-h-[300px] min-h-[80px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
                 placeholder={'Ask DeputyDev to do anything, @ to mention'}
                 value={userInput}
                 onChange={handleTextAreaChange}

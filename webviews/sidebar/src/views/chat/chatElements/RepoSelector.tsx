@@ -1,5 +1,5 @@
 import { useWorkspaceStore } from '../../../stores/workspaceStore';
-import { hitEmbedding, sendWorkspaceRepoChange } from '@/commandApi';
+import { hitEmbedding, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
 import { useChatStore } from '../../../stores/chatStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { ChevronDown, RefreshCw, Square, Check, Info } from 'lucide-react';
@@ -31,6 +31,7 @@ const RepoSelector = () => {
   const handleSelect = (repoPath: string) => {
     if (repoPath !== activeRepo) {
       useWorkspaceStore.setState({ contextRepositories: [] });
+      updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
       setActiveRepo(repoPath);
       sendWorkspaceRepoChange({ repoPath });
     }
@@ -39,27 +40,32 @@ const RepoSelector = () => {
   const handleClearAll = () => {
     if (!activeRepo) {
       useWorkspaceStore.setState({ contextRepositories: [] });
+      updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
       return;
     }
     useWorkspaceStore.setState((state) => ({
       contextRepositories: state.contextRepositories.filter((repo) => repo.repoPath === activeRepo),
     }));
+    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
   };
 
   const handleSelectAll = () => {
     useWorkspaceStore.setState({ contextRepositories: workspaceRepos });
+    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
   };
 
   const removeRepoFromContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
       contextRepositories: contextRepositories.filter((repo) => repo.repoPath !== repoPath),
     });
+    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
   };
 
   const addRepoToContext = (repoPath: string, repoName: string) => {
     useWorkspaceStore.setState({
       contextRepositories: [...contextRepositories, { repoPath, repoName }],
     });
+    updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
   };
 
   const IndexingStatusIcon: React.FC = () => {
@@ -181,7 +187,7 @@ const RepoSelector = () => {
               stiffness: 300,
               mass: 0.5,
             }}
-            className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[180%] origin-bottom rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg"
+            className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-auto min-w-[200px] max-w-[90vw] origin-bottom rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg"
           >
             <motion.div
               className="flex items-center justify-between py-1 pl-2 pr-1"
