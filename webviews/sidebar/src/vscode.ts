@@ -281,7 +281,9 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
     });
   }
 
-  updateContextRepositories({contextRepositories: useWorkspaceStore.getState().contextRepositories});
+  updateContextRepositories({
+    contextRepositories: useWorkspaceStore.getState().contextRepositories,
+  });
 
   // Get current repos before updating
   const currentRepos = useWorkspaceStore.getState().workspaceRepos;

@@ -106,7 +106,12 @@ export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
 }
 
-export function openFile(path: string, startLine?: number, endLine?: number, forActiveFile?: boolean) {
+export function openFile(
+  path: string,
+  startLine?: number,
+  endLine?: number,
+  forActiveFile?: boolean
+) {
   return callCommand('open-file', { path, startLine, endLine, forActiveFile });
 }
 

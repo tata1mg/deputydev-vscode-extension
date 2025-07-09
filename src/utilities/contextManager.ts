@@ -54,8 +54,8 @@ export function sendEmbeddingDoneMessage(embeddingProgressData: {
   });
 }
 
-export function getRepositoriesForContext(): {repoPath: string; repoName: string}[] | undefined {
-  return extensionContext?.workspaceState.get<{repoPath: string; repoName: string}[]>('contextRepositories');
+export function getRepositoriesForContext(): { repoPath: string; repoName: string }[] | undefined {
+  return extensionContext?.workspaceState.get<{ repoPath: string; repoName: string }[]>('contextRepositories');
 }
 
 export function getActiveRepo(): string | undefined {
