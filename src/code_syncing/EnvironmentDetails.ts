@@ -16,19 +16,38 @@ export async function getEnvironmentDetails(
   const cwd = getActiveRepo();
   const contextRepositories = getRepositoriesForContext();
   if (!cwd) {
-    return '<environment_details>\n(No active repo found)\n</environment_details>';
+    return '<environment_details>\n(No active repository found)\n</environment_details>';
   }
 
-  // --- VSCode Visible Files (Filtered by context repositories) ---
+  // --- VSCode Visible Files (Filtered by context repositories and grouped by repo name) ---
   details += '\n\n# VSCode Visible Files';
   const visibleFilePaths = vscode.window.visibleTextEditors
     ?.map((editor) => editor.document?.uri?.fsPath)
-    .filter(Boolean)
-    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)));
+    .filter(Boolean);
 
-  if (visibleFilePaths && visibleFilePaths.length > 0) {
-    details += `\n${visibleFilePaths.join('\n')}`;
-  } else {
+  // Group visible files by repository
+  const visibleFilesByRepo: { [repoName: string]: string[] } = {};
+  contextRepositories?.forEach((repo) => {
+    visibleFilesByRepo[repo.repoName] = [];
+  });
+
+  visibleFilePaths?.forEach((path) => {
+    const repo = contextRepositories?.find((repo) => path.startsWith(repo.repoPath));
+    if (repo) {
+      visibleFilesByRepo[repo.repoName].push(path);
+    }
+  });
+
+  // Output grouped by repository
+  let hasVisibleFiles = false;
+  for (const [repoName, paths] of Object.entries(visibleFilesByRepo)) {
+    if (paths.length > 0) {
+      hasVisibleFiles = true;
+      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Path: ${path}`).join('\n')}`;
+    }
+  }
+
+  if (!hasVisibleFiles) {
     details += '\n(No visible files in this workspace)';
   }
 
@@ -60,7 +79,7 @@ export async function getEnvironmentDetails(
     const paths = openTabsByRepo[repoName];
     if (paths.length > 0) {
       foundTabs = true;
-      details += `\n\n## Repo: ${repoName}\n${paths.join('\n')}`;
+      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Path: ${path}`).join('\n')}`;
     }
   }
 
