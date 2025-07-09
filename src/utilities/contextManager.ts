@@ -2,6 +2,9 @@ import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { EmbeddingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 // =====================================================================================
 // Module State
@@ -49,6 +52,10 @@ export function sendEmbeddingDoneMessage(embeddingProgressData: {
     command: 'embedding-progress',
     data: embeddingProgressData,
   });
+}
+
+export function getRepositoriesForContext(): { repoPath: string; repoName: string }[] | undefined {
+  return extensionContext?.workspaceState.get<{ repoPath: string; repoName: string }[]>('contextRepositories');
 }
 
 export function getActiveRepo(): string | undefined {
@@ -130,6 +137,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('mcp-storage', undefined);
   await extensionContext.workspaceState.update('indexing-data-storage', undefined);
   await extensionContext.workspaceState.update('active-file-store', undefined);
+  await extensionContext.workspaceState.update('contextRepositories', undefined);
 }
 
 // =====================================================================================
@@ -233,4 +241,78 @@ export function updateWorkspaceToolStatus(data: { tool_use_id: string; status: s
     command: 'update-workspace-tool-status',
     data: data,
   });
+}
+
+export async function getContextRepositories(): Promise<
+  Array<{ repo_path: string; repo_name: string; root_directory_context: string; is_working_repository: boolean }>
+> {
+  const contextRepositories = getRepositoriesForContext();
+
+  if (!contextRepositories) {
+    return [];
+  }
+
+  const activeRepo = getActiveRepo();
+
+  // Filter out the active repo and map the rest
+  const repoPromises = contextRepositories.map(async (repo) => ({
+    repo_path: repo.repoPath,
+    repo_name: repo.repoName,
+    root_directory_context: await getRootContext(repo.repoPath),
+    is_working_repository: repo.repoPath === activeRepo ? true : false,
+  }));
+
+  return Promise.all(repoPromises);
+}
+
+export async function getRootContext(repoPath: string): Promise<string> {
+  const isDesktop = arePathsEqual(repoPath, path.join(os.homedir(), 'Desktop'));
+  if (isDesktop) {
+    return '';
+  } else {
+    try {
+      const all = await fs.promises.readdir(repoPath, { withFileTypes: true });
+      const rootFilesAndFolders = all.map((dirent) => {
+        if (dirent.isDirectory()) {
+          return dirent.name + '/';
+        }
+        return dirent.name;
+      });
+      if (rootFilesAndFolders.length > 0) {
+        return rootFilesAndFolders.join('\n');
+      } else {
+        return '';
+      }
+    } catch (e: any) {
+      return '';
+    }
+  }
+}
+
+function normalizePath(p: string): string {
+  // normalize resolve ./.. segments, removes duplicate slashes, and standardizes path separators
+  let normalized = path.normalize(p);
+  // however it doesn't remove trailing slashes
+  // remove trailing slash, except for root paths
+  if (normalized.length > 1 && (normalized.endsWith('/') || normalized.endsWith('\\'))) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized;
+}
+
+export function arePathsEqual(path1?: string, path2?: string): boolean {
+  if (!path1 && !path2) {
+    return true;
+  }
+  if (!path1 || !path2) {
+    return false;
+  }
+
+  path1 = normalizePath(path1);
+  path2 = normalizePath(path2);
+
+  if (process.platform === 'win32') {
+    return path1.toLowerCase() === path2.toLowerCase();
+  }
+  return path1 === path2;
 }
