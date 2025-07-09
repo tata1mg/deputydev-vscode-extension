@@ -43,7 +43,7 @@ export async function getEnvironmentDetails(
   for (const [repoName, paths] of Object.entries(visibleFilesByRepo)) {
     if (paths.length > 0) {
       hasVisibleFiles = true;
-      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Path: ${path}`).join('\n')}`;
+      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Absolute Path: ${path}`).join('\n')}`;
     }
   }
 
@@ -79,7 +79,7 @@ export async function getEnvironmentDetails(
     const paths = openTabsByRepo[repoName];
     if (paths.length > 0) {
       foundTabs = true;
-      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Path: ${path}`).join('\n')}`;
+      details += `\n\n## Repository: ${repoName}\n${paths.map((path) => `Absolute Path: ${path}`).join('\n')}`;
     }
   }
 
