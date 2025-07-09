@@ -842,7 +842,7 @@ export class ChatManager {
         this.outputChannel.info(`Completed parallel execution of ${requests.length} tools`);
       } else {
         // Single tool execution with immediate API call
-        await this._runToolInternal(requests[0], messageId, chunkCallback, clientTools, true);
+        result = await this._runToolInternal(requests[0], messageId, chunkCallback, clientTools, true);
         await this._sendBatchedToolResponses([result], messageId, chunkCallback, clientTools);
       }
     } catch (error: any) {
