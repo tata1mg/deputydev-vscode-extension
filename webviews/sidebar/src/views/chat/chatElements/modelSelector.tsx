@@ -99,7 +99,7 @@ const ModelSelector = () => {
               stiffness: 300,
               mass: 0.5,
             }}
-            className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[120%] origin-bottom rounded-md border border-[--vscode-dropdown-border] bg-[--vscode-dropdown-background] shadow-lg"
+            className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[120%] origin-bottom rounded-md border border-[--vscode-commandCenter-inactiveBorder] bg-[--vscode-dropdown-background] shadow-lg"
           >
             <motion.div
               className="max-h-60 overflow-y-auto py-1"

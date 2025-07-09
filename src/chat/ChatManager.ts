@@ -721,8 +721,23 @@ export class ChatManager {
       this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
       return response.data;
     } catch (error: any) {
-      this.logger.error(`Error calling Grep search API`);
-      this.apiErrorHandler.handleApiError(error);
+      // This will be removed ASAP, its just for now for EMPTY_TOOL_RESPONSE error type.
+      try {
+        this.logger.error(`Error calling Grep search API`);
+        this.apiErrorHandler.handleApiError(error);
+      } catch (error: any) {
+        const errorData: any = JSON.stringify(error.response.data);
+        if (
+          errorData &&
+          errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&
+          errorData.error_type === 'HANDLED_TOOL_ERROR'
+        ) {
+          return { data: [] };
+        } else {
+          this.logger.error(`Error calling Grep search API`);
+          this.apiErrorHandler.handleApiError(error);
+        }
+      }
     }
   }
 
