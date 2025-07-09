@@ -24,7 +24,7 @@ export async function getEnvironmentDetails(
   const visibleFilePaths = vscode.window.visibleTextEditors
     ?.map((editor) => editor.document?.uri?.fsPath)
     .filter(Boolean)
-    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)))
+    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)));
 
   if (visibleFilePaths && visibleFilePaths.length > 0) {
     details += `\n${visibleFilePaths.join('\n')}`;
@@ -32,17 +32,39 @@ export async function getEnvironmentDetails(
     details += '\n(No visible files in this workspace)';
   }
 
-  // --- VSCode Open Tabs (Filtered by context repositories) ---
+  // --- VSCode Open Tabs (Filtered by context repositories and grouped by repo name) ---
   details += '\n\n# VSCode Open Tabs';
+
   const openTabPaths = vscode.window.tabGroups.all
     .flatMap((group) => group.tabs)
     .map((tab) => (tab.input as vscode.TabInputText)?.uri?.fsPath)
     .filter(Boolean)
-    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)))
+    .filter((absolutePath) => contextRepositories?.some((repo) => absolutePath.startsWith(repo.repoPath)));
 
-  if (openTabPaths && openTabPaths.length > 0) {
-    details += `\n${openTabPaths.join('\n')}`;
-  } else {
+  // Group open tab paths by repo name
+  const openTabsByRepo: { [repoName: string]: string[] } = {};
+  contextRepositories?.forEach((repo) => {
+    openTabsByRepo[repo.repoName] = [];
+  });
+  openTabPaths.forEach((path) => {
+    const repo = contextRepositories?.find((repo) => path.startsWith(repo.repoPath));
+    if (repo) openTabsByRepo[repo.repoName].push(path);
+  });
+
+  // Sort repos by name
+  const sortedRepoNames = Object.keys(openTabsByRepo).sort();
+
+  // Output grouped and sorted by repo name
+  let foundTabs = false;
+  for (const repoName of sortedRepoNames) {
+    const paths = openTabsByRepo[repoName];
+    if (paths.length > 0) {
+      foundTabs = true;
+      details += `\n\n## Repo: ${repoName}\n${paths.join('\n')}`;
+    }
+  }
+
+  if (!foundTabs) {
     details += '\n(No open tabs in this workspace)';
   }
 
