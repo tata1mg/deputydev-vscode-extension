@@ -125,7 +125,7 @@ export async function getEnvironmentDetails(
         const excerpt = lines.slice(start_line - 1, end_line).join('\n');
         details +=
           `\n\n# Active File Selection\n` +
-          `Path: ${absolutePath}\n` +
+          `Absolute Path: ${absolutePath}\n` +
           `Total lines in file: ${totalLines}\n\n` +
           `Lines below are ${start_line}-${end_line} (as selected in the user's editor):\n` +
           `${excerpt}\n` +
@@ -137,14 +137,14 @@ export async function getEnvironmentDetails(
         const excerpt = lines.slice(0, previewLineCount).join('\n');
         details +=
           `\n\n# Active File Preview\n` +
-          `Path: ${absolutePath}\n` +
+          `Absolute Path: ${absolutePath}\n` +
           `First ${previewLineCount} line${previewLineCount !== 1 ? 's' : ''} of ${totalLines} total lines in the active file:\n` +
           `${excerpt}\n` +
           `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
           `If your task needs more context, you can read further using the available tools.)`;
       }
     } catch (e: any) {
-      details += `\n\n# Active File Preview\n(Path: ${absolutePath})\n`;
+      details += `\n\n# Active File Preview\n(Absolute Path: ${absolutePath})\n`;
     }
   }
 
