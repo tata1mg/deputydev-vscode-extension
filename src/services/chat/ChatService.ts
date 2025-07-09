@@ -3,6 +3,7 @@ import {
   sendNotVerified,
   getIsEmbeddingDoneForActiveRepo,
   setCancelButtonStatus,
+  getContextRepositories,
 } from '../../utilities/contextManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { AuthService } from '../auth/AuthService';
@@ -64,9 +65,13 @@ export class QuerySolverService {
   ): AsyncIterableIterator<any> {
     const authService = new AuthService();
     let authToken = await authService.loadAuthToken();
+    const repositories = await getContextRepositories();
 
     const currentSessionId = getSessionId();
     payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
+
+    // adding context of repositories present in workspace except active repository in payload.
+    payload['repositories'] = repositories || [];
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;
