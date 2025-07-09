@@ -52,37 +52,36 @@ export class ServerManager {
     }
   }
 
-  private async recursivelyHashPath(
-    targetPath: string,
-    secretKey: string,
-    relativeTo: string = targetPath,
-  ): Promise<crypto.Hmac> {
-    const hmac = crypto.createHmac('sha256', secretKey);
+  private async recursivelyHashPath(targetPath: string, relativeTo: string = targetPath): Promise<crypto.Hash> {
+    const hash = crypto.createHash('sha256');
     const queue: string[] = [targetPath];
 
-    while (queue.length) {
-      const current = queue.pop()!;
+    while (queue.length > 0) {
+      const current = queue.pop() as string;
       const stat = fs.statSync(current);
       const relPath = path.relative(relativeTo, current);
+
       if (stat.isDirectory()) {
-        const entries = fs.readdirSync(current).sort();
-        for (const entry of entries.reverse()) {
+        const entries = fs.readdirSync(current).sort().reverse();
+        for (const entry of entries) {
           queue.push(path.join(current, entry));
         }
-        hmac.update('DIR:' + relPath);
+        hash.update(relPath);
       } else if (stat.isFile()) {
-        hmac.update('FILE:' + relPath);
+        if (/\/\._/.test(relPath)) continue; // Skip AppleDouble files anywhere in the tree
+        hash.update(relPath);
         const fileBuffer = fs.readFileSync(current);
-        hmac.update(fileBuffer);
+        hash.update(fileBuffer);
       }
     }
-    return hmac;
+
+    return hash;
   }
 
-  private async getChecksumForBinaryFile(binaryFilePath: string, secretKey: string): Promise<string> {
+  public async getChecksumForBinaryFile(binaryFilePath: string): Promise<string> {
     try {
-      const hmac = await this.recursivelyHashPath(binaryFilePath, secretKey);
-      return hmac.digest('hex');
+      const hash = await this.recursivelyHashPath(binaryFilePath);
+      return hash.digest('hex');
     } catch (err) {
       console.error('Error:', err);
       return '';
@@ -101,10 +100,7 @@ export class ServerManager {
     const expectedChecksum = this.getBinaryFileChecksum();
     this.outputChannel.appendLine(`Expected checksum: ${expectedChecksum}`);
     this.outputChannel.appendLine(`Calculating checksum for binary file...`);
-    const actualChecksum = await this.getChecksumForBinaryFile(
-      binaryFilePath,
-      this.essential_config['BINARY']['password'],
-    );
+    const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath);
     this.outputChannel.appendLine(`Actual checksum: ${actualChecksum}`);
     if (actualChecksum !== expectedChecksum) {
       this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
@@ -149,7 +145,7 @@ export class ServerManager {
       await this.downloadFile(fileUrl, downloadPath);
       this.logger.info(`Downloaded binary`);
       this.outputChannel.appendLine('Downloaded binary.');
-      await this.decryptAndExtract(downloadPath, this.binaryPath);
+      await this.extractTarGz(downloadPath, this.binaryPath);
       this.logger.info(`Extracted binary`);
       return true;
     } catch (err) {
@@ -223,64 +219,25 @@ export class ServerManager {
     });
   }
 
-  /** Decrypt and extract a tar.gz using streaming pipeline */
-  private async decryptAndExtract(encPath: string, extractTo: string): Promise<void> {
-    const password = this.essential_config['BINARY']['password'];
-    const SALT_LENGTH = 16;
-    const IV_LENGTH = 16;
-    const KEY_LENGTH = 32;
-    const HMAC_LENGTH = 32;
-    const ITERATIONS = 100_000;
-
+  /** Extract a tar.gz using streaming pipeline */
+  private async extractTarGz(tarPath: string, extractTo: string): Promise<void> {
     loaderMessage(true, 'extracting', 0);
-
-    // Read header + footer only
-    const fd = await fsp.open(encPath, 'r');
-    const headerBuf = Buffer.alloc(SALT_LENGTH + IV_LENGTH);
-    await fd.read(headerBuf, 0, headerBuf.length, 0);
-
-    const stats = await fd.stat();
-    const tailPos = stats.size - HMAC_LENGTH;
-    const hmacBuf = Buffer.alloc(HMAC_LENGTH);
-    await fd.read(hmacBuf, 0, HMAC_LENGTH, tailPos);
-    await fd.close();
-
-    const salt = headerBuf.subarray(0, SALT_LENGTH);
-    const iv = headerBuf.subarray(SALT_LENGTH);
-    const key = crypto.pbkdf2Sync(password, salt, ITERATIONS, KEY_LENGTH, 'sha256');
-
-    const expectedHmac = hmacBuf;
-    const hmac = crypto.createHmac('sha256', key);
 
     await fsp.mkdir(extractTo, { recursive: true });
 
-    const cipherStream = createReadStream(encPath, {
-      start: SALT_LENGTH + IV_LENGTH,
-      end: tailPos - 1, // exclude HMAC footer
-    });
+    // Extract tar.gz using streaming pipeline
+    const tarStream = createReadStream(tarPath);
+    await streamPipeline(tarStream, tar.x({ cwd: extractTo }));
 
-    cipherStream.on('data', (chunk) => hmac.update(chunk));
-
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-
-    await streamPipeline(cipherStream, decipher, tar.x({ cwd: extractTo }));
-
-    // Verify HMAC after stream finished
-    const calculatedHmac = hmac.digest();
-    if (!crypto.timingSafeEqual(calculatedHmac, expectedHmac)) {
-      vscode.window.showErrorMessage('Decryption failed: HMAC does not match. File may be tampered.');
-      this.logger.error('HMAC verification failed. File may be tampered.');
-      throw new Error('HMAC verification failed. File may be tampered.');
-    }
-
-    // set executable permissions
+    // Set executable permissions on the main binary
     const binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['service_path']);
     await fsp.chmod(binaryPath, 0o755);
 
-    // cleanup
-    await fsp.unlink(encPath).catch(() => {});
-    this.outputChannel.appendLine(`✅ Decrypt and extract completed successfully.`);
+    // Cleanup downloaded tarball
+    await fsp.unlink(tarPath).catch(() => {});
+    this.outputChannel.appendLine(`✅ Extract completed successfully.`);
   }
+
   /** Check if the port is available */
   private async isPortAvailable(port: number): Promise<boolean> {
     return new Promise((resolve) => {
