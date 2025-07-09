@@ -617,8 +617,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   private async updateContextRepositories(data: any) {
-    this.setWorkspaceState({key: 'contextRepositories', value: data.contextRepositories});
-    this._onDidChangeContextRepos.fire("");
+    this.setWorkspaceState({ key: 'contextRepositories', value: data.contextRepositories });
+    this._onDidChangeContextRepos.fire('');
   }
 
   private async setWorkspaceRepo(data: any) {

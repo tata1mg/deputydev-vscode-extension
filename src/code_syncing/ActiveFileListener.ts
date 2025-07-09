@@ -39,7 +39,7 @@ export class ActiveFileListener implements vscode.Disposable {
 
     this.sideBarProvider.onDidChangeContextRepos(() => {
       this.sendActiveFile(this.latestEditor);
-    })
+    });
 
     /* --------------- initial state --------------- */
     this.latestEditor = vscode.window.activeTextEditor;
@@ -112,7 +112,11 @@ export class ActiveFileListener implements vscode.Disposable {
       const activeRepo = getActiveRepo();
       let absPath: string | undefined;
 
-      if (!isUnsupported && activeRepo && (contextRepositories?.some(repo => filePath.startsWith(repo.repoPath)) || filePath.startsWith(activeRepo))) {
+      if (
+        !isUnsupported &&
+        activeRepo &&
+        (contextRepositories?.some((repo) => filePath.startsWith(repo.repoPath)) || filePath.startsWith(activeRepo))
+      ) {
         absPath = filePath;
       }
 
