@@ -48,4 +48,5 @@ export const API_ENDPOINTS = {
   DELETE_FILE: '/end_user/v1/file-upload/delete-file',
   APPROVE_MCP_TOOL: '/v1/mcp/servers/tool/approve',
   CANCEL_CHAT: '/end_user/v2/code-gen/cancel',
+  NEW_REVIEW: '/v1/review/new',
 };

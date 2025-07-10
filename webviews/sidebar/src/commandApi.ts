@@ -340,3 +340,9 @@ export function deleteImage(key: string) {
 export function downloadImageFile(key: string) {
   return callCommand('download-image-file', { key });
 }
+
+// Code Review
+
+export function newReview(data: { targetBranch: string; reviewType: string }) {
+  return callCommand('new-review', data);
+}
