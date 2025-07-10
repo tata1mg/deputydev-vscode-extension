@@ -49,6 +49,7 @@ import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
+import { ReviewService } from './services/review/ReviewService';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -104,6 +105,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const mcpService = new MCPService();
   const indexingService = new IndexingService();
   const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
+  const reviewService = new ReviewService();
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -147,6 +149,7 @@ export async function activate(context: vscode.ExtensionContext) {
     errorTrackingManager,
     continueNewWorkspace,
     indexingService,
+    reviewService,
   );
   diffManager.setSidebarProvider(sidebarProvider);
   context.subscriptions.push(

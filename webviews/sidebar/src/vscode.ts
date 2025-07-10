@@ -18,6 +18,7 @@ import {
   ChangedFile,
   IndexingProgressData,
   EmbeddingProgressData,
+  NewReview,
 } from '@/types';
 import {
   logToOutput,
@@ -38,6 +39,7 @@ import { useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
+import { useCodeReviewStore } from './stores/codeReviewStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -831,4 +833,11 @@ addCommandEventListener('auth-response', ({ data }) => {
     useAuthStore.setState({ isAuthenticated: false });
     useExtensionStore.setState({ viewType: 'auth' });
   }
+});
+
+// Code Review
+addCommandEventListener('new-review-created', ({ data }) => {
+  useCodeReviewStore.setState({ new_review: data as NewReview });
+
+  console.log('New review*************', useCodeReviewStore.getState().new_review);
 });

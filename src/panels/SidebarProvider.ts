@@ -32,6 +32,7 @@ import {
 import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
 import { fileExists, openFile } from '../utilities/path';
+import { ReviewService } from '../services/review/ReviewService';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -63,6 +64,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly continueWorkspace: ContinueNewWorkspace,
     private readonly indexingService: IndexingService,
+    private readonly reviewService: ReviewService,
   ) {}
 
   public resolveWebviewView(
@@ -102,6 +104,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       };
       // Depending on `command`, handle each case
       switch (command) {
+        // Code Review
+        case 'new-review':
+          this.newReview(data);
+          break;
+
+        // Code Generation
         case 'api-chat':
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
@@ -992,6 +1000,27 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this._view.webview.postMessage(message);
     } else {
       this.pendingMessages.push(message);
+    }
+  }
+
+  public async newReview(data: any) {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) {
+      return;
+    }
+    const result = await this.reviewService.newReview(activeRepo, data.targetBranch, data.reviewType);
+    if (result) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'new-review-created',
+        data: result.data,
+      });
+    } else {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'new-review-error',
+        data: { error: 'Failed to create new review' },
+      });
     }
   }
 }
