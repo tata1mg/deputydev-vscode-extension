@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { CheckCircle, Loader2, XCircle, RotateCw } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { openFile } from '@/commandApi';
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore, useChatSettingStore } from '@/stores/chatStore';
 import { SnippetReference } from './CodeBlockStyle';
+import ModelSelector from './modelSelector';
 
 /**
  *
@@ -174,6 +175,10 @@ export function RetryChip({
     showSessionsBox,
   } = useChatStore();
 
+  // Get the last message to check if it's a throttling error
+  const lastMsg = messages[messages.length - 1];
+  const isThrottlingError = lastMsg?.type === 'ERROR' && (lastMsg as any).is_throttling;
+
   // Retry function defined within ChatArea component
   const retryChat = () => {
     if (!messages.length) {
@@ -185,12 +190,7 @@ export function RetryChip({
     // console.log("Last message:", JSON.stringify(lastMsg));
 
     if (lastMsg.type === 'ERROR') {
-      // The error message should have the payload to retry stored in 'payload_to_retry'
-      const errorData = lastMsg; // Assuming type ChatErrorMessage
-      // console.log(
-      //   "Payload data just before sending:",
-      //   JSON.stringify(errorData.payload_to_retry, null, 2)
-      // );
+      const errorData = lastMsg;
       const payload: any = errorData.payload_to_retry;
 
       // Call sendChatMessage with the retry flag set to true,
@@ -354,6 +354,128 @@ export function FileEditedChip({
           <SnippetReference snippet={{ content: diff, language }} />
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Component for suggesting model changes when throttling occurs
+ */
+export function ModelSuggestionChip() {
+  const { llmModels } = useChatStore();
+  const { activeModel } = useChatSettingStore();
+
+  // Suggest all other models except the current one
+  const alternativeModels = llmModels.filter(
+    (model) => model.name !== activeModel
+  );
+
+  // Placeholder: UI to be implemented later
+  return null;
+}
+
+/**
+ *  ChatMessage: UI for throttling errors with retry-after, message, retry, and model switch
+ */
+export function ThrottledChatMessage({
+  retryAfterSeconds = 0,
+  onRetry,
+  onModelChangeAndRetry,
+  currentModel,
+}: {
+  retryAfterSeconds?: number;
+  onRetry: () => void;
+  onModelChangeAndRetry: (modelName: string) => void;
+  currentModel: string;
+}) {
+  const { llmModels } = useChatStore();
+  const { activeModel } = useChatSettingStore();
+  const [secondsLeft, setSecondsLeft] = useState(retryAfterSeconds);
+  const [selectedModel, setSelectedModel] = useState(currentModel);
+
+  useEffect(() => {
+    setSelectedModel(currentModel);
+  }, [currentModel]);
+
+  useEffect(() => {
+    setSecondsLeft(retryAfterSeconds);
+    if (retryAfterSeconds > 0) {
+      const interval = setInterval(() => {
+        setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [retryAfterSeconds]);
+
+  // Remove auto-retry on timer end
+  // useEffect(() => {
+  //   if (secondsLeft === 0) {
+  //     onRetry();
+  //   }
+  // }, [secondsLeft]);
+
+  // Only show models that are not throttled (if 'throttled' property exists), otherwise fallback to all except current
+  const availableModels = llmModels.some((m) => 'throttled' in m)
+    ? llmModels.filter((m) => !(m as any).throttled)
+    : llmModels;
+
+  function formatTime(secs: number) {
+    if (secs < 60) return `${secs}s left`;
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}m ${s}s left`;
+  }
+
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedModel(e.target.value);
+    useChatSettingStore.setState({ activeModel: e.target.value });
+    onModelChangeAndRetry(e.target.value); // Immediately retry and close popup
+  };
+
+  // Retry button only retries the current model
+  const handleTryAgain = () => {
+    onRetry();
+  };
+
+  return (
+    <div className="mt-2 flex w-full items-center justify-center">
+      <div className="w-full max-w-md rounded border-[1px] border-yellow-500/40 bg-[var(--vscode-editorWidget-background)] px-2 py-2 text-sm shadow-md">
+        {/* Top strip: Throttling time */}
+        <div className="w-full rounded-t bg-yellow-500/10 px-3 py-1 text-center text-xs font-semibold text-yellow-500 border-b border-yellow-500/20">
+          Throttling: {formatTime(secondsLeft)}
+        </div>
+        {/* Main error message */}
+        <div className="flex items-center gap-2 mt-3 mb-4 justify-center">
+          <StatusIcon status="error" />
+          <span className="text-white-400 font-medium">This chat is currently being throttled. Please retry or switch to a different model.</span>
+        </div>
+        {/* Model selector and Try Again button */}
+        <div className="flex flex-row items-center justify-center gap-2 mt-2">
+          <select
+            className="rounded border border-gray-400 bg-[var(--vscode-input-background)] px-2 py-1 text-xs text-[var(--vscode-input-foreground)] focus:outline-none min-w-[120px] h-5"
+            value={selectedModel}
+            onChange={handleModelChange}
+            style={{ height: '26px' }}
+          >
+            {(llmModels.some((m) => 'throttled' in m)
+              ? llmModels.filter((model) => model.name !== currentModel && !(model as any).throttled)
+              : llmModels.filter((model) => model.name !== currentModel)
+            ).map((model) => (
+              <option key={model.name} value={model.name}>
+                {model.display_name}
+              </option>
+            ))}
+          </select>
+          <button
+            className="flex items-center justify-center rounded border border-white-400/60 bg-transparent p-1.5 text-white-400 hover:bg-white-400/10 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed h-5"
+            onClick={handleTryAgain}
+            title="Retry"
+            style={{ height: '26px', width: '26px' }}
+          >
+            <RotateCw className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
