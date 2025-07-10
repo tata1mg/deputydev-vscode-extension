@@ -19,7 +19,7 @@ export default function ActiveFileReferenceInChat({ activeFileReference }: Props
   const displayText = `${filename}${lineInfo ? `:${lineInfo}` : ''}`;
 
   const handleClick = () => {
-    openFile(activeFileUri, startLine, endLine);
+    openFile(activeFileUri, startLine, endLine, true);
   };
 
   return (

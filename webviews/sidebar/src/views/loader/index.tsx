@@ -23,16 +23,24 @@ const QUOTES = [
   "Legacy code is tomorrow's inheritance",
   'Every programmer was once a beginner',
 ];
+
 export default function Loader() {
-  const { loaderViewState } = useLoaderViewStore();
+  const { loaderViewState, phase, progress } = useLoaderViewStore();
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [animate, setAnimate] = useState(true);
 
   useEffect(() => {
     if (!loaderViewState) return;
 
+    setCurrentQuoteIndex((prev) => {
+      let next;
+      do {
+        next = Math.floor(Math.random() * QUOTES.length);
+      } while (next === prev);
+      return next;
+    });
     const interval = setInterval(() => {
-      setAnimate(false); // trigger scale out
+      setAnimate(false);
       setTimeout(() => {
         setCurrentQuoteIndex((prev) => {
           let next;
@@ -41,15 +49,15 @@ export default function Loader() {
           } while (next === prev);
           return next;
         });
-        setAnimate(true); // trigger scale in
-      }, 300); // match with transition duration
+        setAnimate(true);
+      }, 300);
     }, 3000);
 
     return () => clearInterval(interval);
   }, [loaderViewState]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-4 text-center">
       <div className="mb-6 flex justify-center">
         <div
           className="inline-block h-16 w-16 animate-spin rounded-full border-4 border-current border-t-transparent"
@@ -74,6 +82,22 @@ export default function Loader() {
             }`}
           >
             "{QUOTES[currentQuoteIndex]}"
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0">
+            <div className="mt-4 text-center text-sm text-gray-500">
+              {phase}
+              {phase === 'downloading' && <span className="ml-2">({progress}%)</span>}
+            </div>
+
+            {phase === 'downloading' && (
+              <div className="h-1 w-full bg-gray-200">
+                <div
+                  className="h-full bg-[--vscode-progressBar-background] transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            )}
           </div>
         </>
       ) : (

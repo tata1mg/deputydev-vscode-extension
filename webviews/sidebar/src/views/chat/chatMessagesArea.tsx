@@ -576,7 +576,7 @@ export function ChatArea() {
         }
       })}
       {showGeneratingEffect && !showSkeleton && <GeneratingLoader text="Generating" />}
-      {showSkeleton && showSessionsBox === false && <Shimmer />}
+      {showSkeleton && <Shimmer />}
       {current && typeof current.content?.text === 'string' && (
         <div
           key="streaming"

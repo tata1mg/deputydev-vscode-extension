@@ -294,6 +294,7 @@ export type WorkspaceRepo = {
 };
 
 export interface WorkspaceStore {
+  contextRepositories: WorkspaceRepo[];
   workspaceRepos: WorkspaceRepo[];
   activeRepo: string | null;
   setWorkspaceRepos: (repos: WorkspaceRepo[], activeRepo: string | null) => void;
@@ -313,7 +314,6 @@ export interface SaveUrlRequest {
 }
 
 export interface Settings {
-  default_mode: 'ask' | 'write';
   terminal_settings: {
     enable_yolo_mode: boolean;
     command_deny_list: string[];

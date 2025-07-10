@@ -167,13 +167,7 @@ export function RetryChip({
   retry: boolean;
   payload_to_retry: unknown;
 }) {
-  const {
-    history: messages,
-    sendChatMessage,
-    current,
-    showSkeleton,
-    showSessionsBox,
-  } = useChatStore();
+  const { history: messages, sendChatMessage } = useChatStore();
 
   // Get the last message to check if it's a throttling error
   const lastMsg = messages[messages.length - 1];
