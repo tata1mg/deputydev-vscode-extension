@@ -14,10 +14,11 @@ import { ConfigManager } from '../utilities/ConfigManager';
 import { loaderMessage } from '../utilities/contextManager';
 import { Logger } from '../utilities/Logger';
 import { pipeline as streamPipeline } from 'stream/promises';
+import { withLock } from './withLock';
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
-  private readonly outputChannel: vscode.OutputChannel;
+  private readonly outputChannel: vscode.LogOutputChannel;
   private readonly logger: Logger;
   private readonly configManager: ConfigManager;
   private readonly essential_config: any;
@@ -27,7 +28,7 @@ export class ServerManager {
 
   constructor(
     context: vscode.ExtensionContext,
-    outputChannel: vscode.OutputChannel,
+    outputChannel: vscode.LogOutputChannel,
     logger: Logger,
     configManager: ConfigManager,
   ) {
@@ -114,15 +115,21 @@ export class ServerManager {
   }
 
   /** Ensure the binary exists and is extracted */
+  /** Ensure the binary exists and is extracted – guarded by lock */
   public async ensureBinaryExists(): Promise<boolean> {
-    if (await this.isBinaryAvailable()) {
-      this.outputChannel.appendLine('Server binary already exists.');
-      return true;
-    }
+    const lockPath = path.join(this.context.globalStorageUri.fsPath, 'binary.lock');
 
-    this.logger.warn(`Binary not found or corrupted. Downloading and extracting...`);
-    this.outputChannel.appendLine('Binary not found or corrupted. Downloading and extracting...');
-    return await this.downloadAndExtractBinary();
+    return await withLock(lockPath, async () => {
+      // 🔒 Critical section starts — only one window gets here at a time
+      if (await this.isBinaryAvailable()) {
+        this.outputChannel.appendLine('Server binary already exists.');
+        return true;
+      }
+
+      this.logger.warn(`Binary not found or corrupted. Downloading and extracting...`);
+      this.outputChannel.appendLine('Binary not found or corrupted. Downloading and extracting...');
+      return await this.downloadAndExtractBinary();
+    });
   }
 
   /** Download and extract the binary */
@@ -177,26 +184,40 @@ export class ServerManager {
     await new Promise<void>((resolve, reject) => {
       https
         .get(url, async (response) => {
+          const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
           if (response.statusCode !== 200 || !response.readable) {
             this.logger.error(`Failed to download file. HTTP Status: ${response.statusCode}`);
             this.outputChannel.appendLine(`❌ Failed to download file. HTTP Status: ${response.statusCode}`);
             return reject(`HTTP ${response.statusCode}`);
           }
-          loaderMessage(true);
+          loaderMessage(true, 'downloading', 0);
           this.logger.info(`Download started`);
           this.outputChannel.appendLine('Download in progress...');
-
           const fileStream = fs.createWriteStream(outputPath);
-          try {
-            await streamPipeline(response, fileStream);
+          let downloadedBytes = 0;
+          response.on('data', (chunk) => {
+            downloadedBytes += chunk.length;
+            fileStream.write(chunk);
+
+            if (totalBytes > 0) {
+              const progress = Math.round((downloadedBytes / totalBytes) * 100);
+              loaderMessage(true, 'downloading', progress);
+            }
+          });
+
+          response.on('end', () => {
+            fileStream.end();
             this.outputChannel.appendLine('Download completed successfully.');
             resolve();
-          } catch (err) {
-            await fsp.unlink(outputPath).catch(() => {});
+          });
+
+          response.on('error', (err) => {
+            fileStream.close();
+            fs.unlink(outputPath, () => {});
             this.outputChannel.appendLine(`Error during download: ${err}`);
             this.logger.error(`Error during download: ${err}`);
             reject(err);
-          }
+          });
         })
         .on('error', reject);
     });
@@ -210,6 +231,8 @@ export class ServerManager {
     const KEY_LENGTH = 32;
     const HMAC_LENGTH = 32;
     const ITERATIONS = 100_000;
+
+    loaderMessage(true, 'extracting', 0);
 
     // Read header + footer only
     const fd = await fsp.open(encPath, 'r');
@@ -304,17 +327,9 @@ export class ServerManager {
     return false;
   }
 
-  // Utility to get a random port from a range
-  getRandomPortInRange(range: number[]): number {
-    const [min, max] = range;
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
   /** Start the server */
   public async startServer(): Promise<boolean> {
-    loaderMessage(true);
-    // loaderMessage('Starting server...');
-    this.outputChannel.appendLine('Sthe registry file path is ');
+    loaderMessage(true, 'starting', 0);
     const serviceExecutable = this.getServiceExecutablePath();
     const portRange: [number, number] | undefined = this.essential_config?.['BINARY']?.['port_range'];
     this.outputChannel.appendLine(`Starting server with binary: ${serviceExecutable}`);

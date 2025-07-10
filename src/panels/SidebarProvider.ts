@@ -39,6 +39,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly pendingMessages: any[] = [];
   private readonly _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
+  private readonly _onDidChangeContextRepos = new vscode.EventEmitter<string | undefined>();
+  public readonly onDidChangeContextRepos = this._onDidChangeContextRepos.event;
   private readonly mcpService = new MCPService();
   private readonly terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
@@ -289,6 +291,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.historyService.pinOrUnpinSession(data);
           break;
 
+        case 'update-context-repositories':
+          this.updateContextRepositories(data);
+          break;
+
         case 'workspace-repo-change':
           promise = this.setWorkspaceRepo(data);
           break;
@@ -408,7 +414,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         }
 
         case 'open-file':
-          openFile(data.path, data.startLine, data.endLine);
+          openFile(data.path, data.startLine, data.endLine, data.forActiveFile);
           break;
 
         case 'reveal-folder-in-explorer':
@@ -608,6 +614,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
     }
+  }
+
+  private async updateContextRepositories(data: any) {
+    this.setWorkspaceState({ key: 'contextRepositories', value: data.contextRepositories });
+    this._onDidChangeContextRepos.fire('');
   }
 
   private async setWorkspaceRepo(data: any) {
