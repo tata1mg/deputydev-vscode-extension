@@ -294,6 +294,7 @@ export type WorkspaceRepo = {
 };
 
 export interface WorkspaceStore {
+  contextRepositories: WorkspaceRepo[];
   workspaceRepos: WorkspaceRepo[];
   activeRepo: string | null;
   setWorkspaceRepos: (repos: WorkspaceRepo[], activeRepo: string | null) => void;
