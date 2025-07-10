@@ -3,7 +3,7 @@ import * as path from 'path';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { v4 as uuidv4 } from 'uuid';
 import { SingletonLogger } from '../utilities/Singleton-logger';
-import { getActiveRepo } from '../utilities/contextManager';
+import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
 import { WorkspaceManager } from './WorkspaceManager';
 
 /** ms */
@@ -34,6 +34,10 @@ export class ActiveFileListener implements vscode.Disposable {
 
     /* --------------- repos arrive late --------------- */
     this.workspaceManager.onDidSendRepos(() => {
+      this.sendActiveFile(this.latestEditor);
+    });
+
+    this.sideBarProvider.onDidChangeContextRepos(() => {
       this.sendActiveFile(this.latestEditor);
     });
 
@@ -103,15 +107,21 @@ export class ActiveFileListener implements vscode.Disposable {
       // Skip sending relPath for unsupported file types
       const isUnsupported = unsupportedExtensions.includes(ext);
 
-      const activeRepo = await getActiveRepo();
-      let relPath: string | undefined;
+      const contextRepositories = getRepositoriesForContext();
 
-      if (!isUnsupported && activeRepo && filePath.startsWith(activeRepo)) {
-        relPath = path.relative(activeRepo, filePath).replace(/\\/g, '/');
+      const activeRepo = getActiveRepo();
+      let absPath: string | undefined;
+
+      if (
+        !isUnsupported &&
+        activeRepo &&
+        (contextRepositories?.some((repo) => filePath.startsWith(repo.repoPath)) || filePath.startsWith(activeRepo))
+      ) {
+        absPath = filePath;
       }
 
       const payload: { fileUri?: string; startLine?: number; endLine?: number } = {
-        fileUri: relPath, // will be undefined for unsupported files
+        fileUri: absPath, // will be undefined for unsupported files
       };
 
       if (selection && !selection.isEmpty && !isUnsupported) {
@@ -119,7 +129,7 @@ export class ActiveFileListener implements vscode.Disposable {
         payload.endLine = selection.end.line + 1;
       }
 
-      this.lastRelativePath = relPath;
+      this.lastRelativePath = absPath;
       this.lastStartLine = payload.startLine;
       this.lastEndLine = payload.endLine;
 

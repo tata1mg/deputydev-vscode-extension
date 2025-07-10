@@ -39,13 +39,13 @@ export async function fileExists(uri: vscode.Uri): Promise<boolean> {
   }
 }
 
-export async function openFile(file_path: string, startLine?: number, endLine?: number) {
+export async function openFile(file_path: string, startLine?: number, endLine?: number, forActiveFile?: boolean) {
   const active_repo = getActiveRepo();
   if (!active_repo) {
     vscode.window.showErrorMessage('No workspace folder found.');
     return;
   }
-  const absolutePath = path.join(active_repo, file_path);
+  const absolutePath = forActiveFile ? file_path : path.join(active_repo, file_path);
   const uri = vscode.Uri.file(absolutePath);
   const document = await vscode.workspace.openTextDocument(uri);
   const editor = await vscode.window.showTextDocument(document);
