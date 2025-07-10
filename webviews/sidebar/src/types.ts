@@ -428,6 +428,14 @@ export interface NewReview {
   target_branch: string;
 }
 
+export interface ReviewOption {
+  displayName: 'Review All Changes' | 'Review Uncommitted Changes' | 'Review Committed Changes';
+  value: 'ALL' | 'UNCOMMITTED_ONLY' | 'COMMITTED_ONLY';
+}
+
 export interface CodeReviewStorage {
+  selectedTargetBranch: string;
   new_review: NewReview;
+  activeReviewOption: ReviewOption;
+  reviewOptions: ReviewOption[];
 }

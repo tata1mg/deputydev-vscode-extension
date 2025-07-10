@@ -10,6 +10,7 @@ import {
   Pen,
   ChevronRight as ChevronRightIcon,
   MessageSquare,
+  Search,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
@@ -82,19 +83,31 @@ const mockReviews: Review[] = [
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
-  const { new_review } = useCodeReviewStore();
+  const { new_review, reviewOptions, activeReviewOption, selectedTargetBranch } = useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
   const [activeFilter, setActiveFilter] = useState('reviews');
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
-  const [selectedReviewOption, setSelectedReviewOption] = useState('Review All Changes');
+  const [isEditing, setIsEditing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false);
+  const [searchResults, setSearchResults] = useState<string[]>([]);
   const dropDownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const branchSelectorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    newReview({ targetBranch: '', reviewType: 'ALL' });
+    handleNewReview();
   }, []);
+
+  const handleNewReview = () => {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value
+    });
+  }
 
   useClickAway(dropDownRef, () => {
     if (showReviewOptions) {
@@ -102,6 +115,13 @@ export default function CodeReview() {
     }
     if (showAgents) {
       setShowAgents(false);
+    }
+  });
+
+  useClickAway(branchSelectorRef, () => {
+    if (isEditing || showBranchDropdown) {
+      setIsEditing(false);
+      setShowBranchDropdown(false);
     }
   });
 
@@ -134,6 +154,27 @@ export default function CodeReview() {
     setExpandedFile(expandedFile === filePath ? null : filePath);
   };
 
+  const handleSearchBranches = async (query: string) => {
+    const mockBranches = [
+      'main',
+      'develop',
+      'feature/new-feature',
+      'bugfix/important-fix',
+      'release/v1.0.0'
+    ];
+    const results = mockBranches.filter(branch =>
+      branch.toLowerCase().includes(query.toLowerCase())
+    );
+    setSearchResults(results);
+  };
+
+  const handleBranchSelect = (branch: string) => {
+    console.log('Selected branch:', branch);
+    setSearchQuery(branch);
+    setShowBranchDropdown(false);
+    setIsEditing(false);
+  };
+
   return (
     <PageTransition direction="right">
       <div className="relative flex h-full flex-col gap-2 dark:bg-gray-900">
@@ -156,26 +197,107 @@ export default function CodeReview() {
             <div className="p-2">
               <div className="flex items-center justify-center px-2">
                 <div
-                  className="flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
+                  className="flex gap-2 w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
                   style={{
                     backgroundColor: 'var(--vscode-editor-background)',
                   }}
                 >
-                  <GitBranch className="mr-1.5 h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
                   <span className="truncate font-mono text-sm">{new_review.source_branch}</span>
                 </div>
                 <ArrowRight className="mx-2 min-h-4 min-w-4 text-gray-400" />
-                <div
-                  className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
-                  style={{
-                    backgroundColor: 'var(--vscode-editor-background)',
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                    <span className="truncate font-mono text-sm">{new_review.target_branch}</span>
+                <div className="relative w-full" ref={branchSelectorRef}>
+                  <div
+                    className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
+                    style={{
+                      backgroundColor: 'var(--vscode-editor-background)',
+                    }}
+                  >
+                    <div
+                      className="flex w-full items-center gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isEditing) {
+                          setSearchQuery(new_review.target_branch);
+                          setIsEditing(true);
+                          setShowBranchDropdown(true);
+                          setTimeout(() => inputRef.current?.focus(), 0);
+                        }
+                      }}
+                    >
+                      <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                      {isEditing ? (
+                        <input
+                          ref={inputRef}
+                          type="text"
+                          className="w-full bg-transparent font-mono text-sm outline-none mr-1"
+                          style={{ outline: 'none' }}
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            handleSearchBranches(e.target.value);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && searchResults.length > 0) {
+                              handleBranchSelect(searchResults[0]);
+                            } else if (e.key === 'Escape') {
+                              setIsEditing(false);
+                              setShowBranchDropdown(false);
+                            }
+                          }}
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <span className="truncate font-mono text-sm">{new_review.target_branch}</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSearchQuery(new_review.target_branch);
+                        setIsEditing(!isEditing);
+                        setShowBranchDropdown(!showBranchDropdown);
+                        if (!isEditing && inputRef.current) {
+                          setTimeout(() => inputRef.current?.focus(), 0);
+                        }
+                      }}
+                      className="flex items-center justify-center"
+                    >
+                      <Pen className="h-3.5 w-3.5 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
+                    </button>
                   </div>
-                  <Pen className="h-3.5 w-3.5 cursor-pointer text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
+
+                  {/* Dropdown for search results */}
+                  {showBranchDropdown && (
+                    <div
+                      className="absolute z-50 mt-1 w-full rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-lg"
+                      style={{ maxHeight: '200px', overflowY: 'auto' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {searchResults.length > 0 ? (
+                        searchResults.map((result, index) => (
+                          <div
+                            key={index}
+                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                            onClick={() => handleBranchSelect(result)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                              <span className="truncate font-mono text-sm">{result}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-4 text-center">
+                          <Search className="mb-2 h-5 w-5 text-[var(--vscode-descriptionForeground)]" />
+                          <p className="text-sm text-[var(--vscode-descriptionForeground)]">
+                            {searchQuery ? 'No branches found' : 'Start typing to search branches'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -304,7 +426,7 @@ export default function CodeReview() {
               </button>
             </div>
             <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
-              <span>{selectedReviewOption}</span>
+              <span>{activeReviewOption.displayName}</span>
               <div className="flex items-center gap-1">
                 <ChevronDown
                   className={`h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
@@ -342,17 +464,18 @@ export default function CodeReview() {
               >
                 <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
                   <div className="max-h-48 overflow-y-auto">
-                    {['Review Uncommitted', 'Review Committed', 'Review All Changes'].map(
+                    {reviewOptions.map(
                       (option) => (
                         <div
-                          key={option}
+                          key={option.value}
                           className="cursor-pointer p-2 text-right text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                           onClick={() => {
-                            setSelectedReviewOption(option);
+                            useCodeReviewStore.setState({ activeReviewOption: option });
+                            handleNewReview();
                             setShowReviewOptions(false);
                           }}
                         >
-                          {option}
+                          {option.displayName}
                         </div>
                       )
                     )}
