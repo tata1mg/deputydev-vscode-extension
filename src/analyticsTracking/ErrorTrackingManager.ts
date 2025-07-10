@@ -232,7 +232,7 @@ export class ErrorTrackingManager {
   async trackThrottlingError(
     error: Error,
     modelInfo?: { model?: string; provider?: string },
-    errorSource: 'EXTENSION' | 'BINARY' | 'BACKEND' = 'BACKEND'
+    errorSource: 'EXTENSION' | 'BINARY' | 'BACKEND' = 'BACKEND',
   ) {
     const throttlingData = {
       errorName: error.name,

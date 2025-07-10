@@ -97,18 +97,18 @@ export class QuerySolverService {
             socketConn.close();
             return;
           }
-          
+
           // Handle throttling exceptions specifically
           const errorMessage = messageData.message || '';
           const isThrottlingError = this.isThrottlingException(errorMessage);
-          
+
           if (isThrottlingError) {
             const throttlingError = this.createThrottlingError(errorMessage);
             streamError = throttlingError;
             socketConn.close();
             return;
           }
-          
+
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
           socketConn.close();
@@ -223,13 +223,11 @@ export class QuerySolverService {
       'throttling',
       'quota exceeded',
       'rate exceeded',
-      'too many requests'
+      'too many requests',
     ];
-    
+
     const lowerMessage = errorMessage.toLowerCase();
-    return throttlingKeywords.some(keyword => 
-      lowerMessage.includes(keyword.toLowerCase())
-    );
+    return throttlingKeywords.some((keyword) => lowerMessage.includes(keyword.toLowerCase()));
   }
 
   /**
@@ -238,7 +236,7 @@ export class QuerySolverService {
   private createThrottlingError(originalMessage: string): Error {
     const isAnthropic = originalMessage.includes('anthropic') || originalMessage.includes('claude');
     const isOpenAI = originalMessage.includes('openai') || originalMessage.includes('gpt');
-    
+
     let suggestion = '';
     if (isAnthropic) {
       suggestion = 'Try switching to a different model (e.g., GPT-4) or wait a moment before retrying.';
@@ -247,15 +245,15 @@ export class QuerySolverService {
     } else {
       suggestion = 'Try switching to a different model or wait a moment before retrying.';
     }
-    
+
     const userFriendlyMessage = `Request is currently being throttled. ${suggestion}`;
-    
+
     const error = new Error(userFriendlyMessage);
     error.name = 'ThrottlingException';
     // Add original error details for debugging
     (error as any).originalMessage = originalMessage;
     (error as any).isThrottling = true;
-    
+
     return error;
   }
 }

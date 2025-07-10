@@ -366,9 +366,7 @@ export function ModelSuggestionChip() {
   const { activeModel } = useChatSettingStore();
 
   // Suggest all other models except the current one
-  const alternativeModels = llmModels.filter(
-    (model) => model.name !== activeModel
-  );
+  const alternativeModels = llmModels.filter((model) => model.name !== activeModel);
 
   // Placeholder: UI to be implemented later
   return null;
@@ -407,12 +405,11 @@ export function ThrottledChatMessage({
     }
   }, [retryAfterSeconds]);
 
-  // Remove auto-retry on timer end
-  // useEffect(() => {
-  //   if (secondsLeft === 0) {
-  //     onRetry();
-  //   }
-  // }, [secondsLeft]);
+   useEffect(() => {
+     if (secondsLeft === 0) {
+       onRetry();
+     }
+   }, [secondsLeft]);
 
   // Only show models that are not throttled (if 'throttled' property exists), otherwise fallback to all except current
   const availableModels = llmModels.some((m) => 'throttled' in m)
@@ -441,24 +438,28 @@ export function ThrottledChatMessage({
     <div className="mt-2 flex w-full items-center justify-center">
       <div className="w-full max-w-md rounded border-[1px] border-yellow-500/40 bg-[var(--vscode-editorWidget-background)] px-2 py-2 text-sm shadow-md">
         {/* Top strip: Throttling time */}
-        <div className="w-full rounded-t bg-yellow-500/10 px-3 py-1 text-center text-xs font-semibold text-yellow-500 border-b border-yellow-500/20">
+        <div className="w-full rounded-t border-b border-yellow-500/20 bg-yellow-500/10 px-3 py-1 text-center text-xs font-semibold text-yellow-500">
           Throttling: {formatTime(secondsLeft)}
         </div>
         {/* Main error message */}
-        <div className="flex items-center gap-2 mt-3 mb-4 justify-center">
+        <div className="mb-4 mt-3 flex items-center justify-center gap-2">
           <StatusIcon status="error" />
-          <span className="text-white-400 font-medium">This chat is currently being throttled. Please retry or switch to a different model.</span>
+          <span className="text-white-400 font-medium">
+            This chat is currently being throttled. Please retry or switch to a different model.
+          </span>
         </div>
         {/* Model selector and Try Again button */}
-        <div className="flex flex-row items-center justify-center gap-2 mt-2">
+        <div className="mt-2 flex flex-row items-center justify-center gap-2">
           <select
-            className="rounded border border-gray-400 bg-[var(--vscode-input-background)] px-2 py-1 text-xs text-[var(--vscode-input-foreground)] focus:outline-none min-w-[120px] h-5"
+            className="h-5 min-w-[120px] rounded border border-gray-400 bg-[var(--vscode-input-background)] px-2 py-1 text-xs text-[var(--vscode-input-foreground)] focus:outline-none"
             value={selectedModel}
             onChange={handleModelChange}
             style={{ height: '26px' }}
           >
             {(llmModels.some((m) => 'throttled' in m)
-              ? llmModels.filter((model) => model.name !== currentModel && !(model as any).throttled)
+              ? llmModels.filter(
+                  (model) => model.name !== currentModel && !(model as any).throttled
+                )
               : llmModels.filter((model) => model.name !== currentModel)
             ).map((model) => (
               <option key={model.name} value={model.name}>
@@ -467,7 +468,7 @@ export function ThrottledChatMessage({
             ))}
           </select>
           <button
-            className="flex items-center justify-center rounded border border-white-400/60 bg-transparent p-1.5 text-white-400 hover:bg-white-400/10 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed h-5"
+            className="border-white-400/60 text-white-400 hover:bg-white-400/10 flex h-5 items-center justify-center rounded border bg-transparent p-1.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handleTryAgain}
             title="Retry"
             style={{ height: '26px', width: '26px' }}

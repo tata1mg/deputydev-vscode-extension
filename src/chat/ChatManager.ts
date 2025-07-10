@@ -592,8 +592,8 @@ export class ChatManager {
       }
 
       // Check if this is a throttling error
-      const isThrottlingError = error.name === 'ThrottlingException' || 
-                               (error.message && error.message.toLowerCase().includes('throttling'));
+      const isThrottlingError =
+        error.name === 'ThrottlingException' || (error.message && error.message.toLowerCase().includes('throttling'));
 
       const extraErrorInfo = {
         chat_payload: truncatePayloadValues(payload, 100),
@@ -607,7 +607,7 @@ export class ChatManager {
         this.errorTrackingManager.trackThrottlingError(
           error,
           { model: payload.llm_model, provider: this.getProviderFromModel(payload.llm_model) },
-          'EXTENSION'
+          'EXTENSION',
         );
       } else {
         this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
@@ -1404,7 +1404,7 @@ export class ChatManager {
    */
   private getProviderFromModel(model?: string): string {
     if (!model) return 'unknown';
-    
+
     const lowerModel = model.toLowerCase();
     if (lowerModel.includes('claude') || lowerModel.includes('anthropic')) {
       return 'anthropic';
@@ -1413,7 +1413,7 @@ export class ChatManager {
     } else if (lowerModel.includes('gemini') || lowerModel.includes('google')) {
       return 'google';
     }
-    
+
     return 'unknown';
   }
 }
