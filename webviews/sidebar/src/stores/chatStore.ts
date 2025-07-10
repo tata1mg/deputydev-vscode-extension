@@ -972,15 +972,22 @@ export const useChatStore = create(
                           ...state.history,
                           {
                             type: 'ERROR',
-                            error_msg: (data as any).message || (data as any).originalMessage || 'You are being rate limited.',
+                            error_msg:
+                              (data as any).message ||
+                              (data as any).originalMessage ||
+                              'You are being rate limited.',
                             retry: true,
                             payload_to_retry: {},
                             actor: 'ASSISTANT',
                             is_throttling: true,
                             content: {
                               // Only set retry_after_seconds if provided by backend
-                              ...(typeof (data as any).retry_after_seconds === 'number' && { retry_after_seconds: (data as any).retry_after_seconds }),
-                              ...(typeof (data as any).retry_after === 'number' && { retry_after_seconds: (data as any).retry_after }),
+                              ...(typeof (data as any).retry_after_seconds === 'number' && {
+                                retry_after_seconds: (data as any).retry_after_seconds,
+                              }),
+                              ...(typeof (data as any).retry_after === 'number' && {
+                                retry_after_seconds: (data as any).retry_after,
+                              }),
                             },
                           },
                         ],

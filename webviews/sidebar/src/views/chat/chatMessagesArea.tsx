@@ -47,8 +47,8 @@ export function ChatArea() {
 
   // Helper to extract retryAfterSeconds from error message or payload if available
   function getRetryAfterSeconds(msg: any): number {
-    // Prefer retry_after_seconds from content, fallback to top-level, then 0
-    return (msg.content && msg.content.retry_after_seconds) || msg.retry_after_seconds || 0;
+    // Prefer retry_after_seconds from content, fallback to top-level, but do not fallback to 0
+    return (msg.content && msg.content.retry_after_seconds) || msg.retry_after_seconds;
   }
 
   // Handler to retry the chat with the same payload
@@ -552,7 +552,9 @@ export function ChatArea() {
                   retryAfterSeconds={getRetryAfterSeconds(msg)}
                   currentModel={activeModel}
                   onRetry={() => handleRetry(msg.payload_to_retry)}
-                  onModelChangeAndRetry={(newModel) => handleModelChangeAndRetry(msg.payload_to_retry, newModel)}
+                  onModelChangeAndRetry={(newModel) =>
+                    handleModelChangeAndRetry(msg.payload_to_retry, newModel)
+                  }
                 />
               );
             }
