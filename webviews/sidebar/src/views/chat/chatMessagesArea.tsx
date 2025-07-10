@@ -11,9 +11,11 @@ import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
 import { TerminalPanel } from './chatElements/TerminalPanel';
 import {
   FileEditedChip,
+  ModelSuggestionChip,
   RetryChip,
   ThinkingChip,
   ToolUseStatusMessage,
+  ThrottledChatMessage,
 } from './chatElements/ToolChips';
 import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
 import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
@@ -26,6 +28,7 @@ import { ImageWithDownload } from './chatElements/imageView';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import { AskUserInput } from './chatElements/Tools/askUserInput';
+import { useChatSettingStore } from '@/stores/chatStore';
 
 export function ChatArea() {
   const {
@@ -34,11 +37,31 @@ export function ChatArea() {
     showSkeleton,
     showSessionsBox,
     showGeneratingEffect,
+    sendChatMessage,
   } = useChatStore();
+  const { activeModel } = useChatSettingStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
   const queryIdMap = new Map();
   let queryId: number;
+
+  // Helper to extract retryAfterSeconds from error message or payload if available
+  function getRetryAfterSeconds(msg: any): number {
+    // Prefer retry_after_seconds from content, fallback to top-level, then 0
+    return (msg.content && msg.content.retry_after_seconds) || msg.retry_after_seconds || 0;
+  }
+
+  // Handler to retry the chat with the same payload
+  function handleRetry(payload: any) {
+    sendChatMessage('retry', [], () => {}, undefined, true, payload);
+  }
+
+  // Handler to retry the chat with a new model
+  function handleModelChangeAndRetry(payload: any, newModel: string) {
+    // Clone the payload and update the model
+    const newPayload = { ...payload, llm_model: newModel };
+    sendChatMessage('retry', [], () => {}, undefined, true, newPayload);
+  }
 
   return (
     <>
@@ -520,7 +543,20 @@ export function ChatArea() {
               </div>
             );
 
-          case 'ERROR':
+          case 'ERROR': {
+            // If throttling, show the new UI
+            if (msg.is_throttling) {
+              return (
+                <ThrottledChatMessage
+                  key={index}
+                  retryAfterSeconds={getRetryAfterSeconds(msg)}
+                  currentModel={activeModel}
+                  onRetry={() => handleRetry(msg.payload_to_retry)}
+                  onModelChangeAndRetry={(newModel) => handleModelChangeAndRetry(msg.payload_to_retry, newModel)}
+                />
+              );
+            }
+            // Otherwise, show the old error UI
             return (
               <div key={index}>
                 <RetryChip
@@ -528,8 +564,10 @@ export function ChatArea() {
                   retry={msg.retry}
                   payload_to_retry={msg.payload_to_retry}
                 />
+                {msg.is_throttling && <ModelSuggestionChip />}
               </div>
             );
+          }
 
           default:
             return null;

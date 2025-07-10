@@ -958,6 +958,52 @@ export const useChatStore = create(
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
+                  case 'STREAM_ERROR': {
+                    const data = event.data || {};
+                    // Throttling detection (expanded)
+                    if (
+                      (data as any).error === 'throttled' ||
+                      (data as any).status === 'THROTTLED' ||
+                      (data as any).isThrottling === true ||
+                      (data as any).name === 'ThrottlingException'
+                    ) {
+                      set((state) => ({
+                        history: [
+                          ...state.history,
+                          {
+                            type: 'ERROR',
+                            error_msg: (data as any).message || (data as any).originalMessage || 'You are being rate limited.',
+                            retry: true,
+                            payload_to_retry: {},
+                            actor: 'ASSISTANT',
+                            is_throttling: true,
+                            content: {
+                              // Only set retry_after_seconds if provided by backend
+                              ...(typeof (data as any).retry_after_seconds === 'number' && { retry_after_seconds: (data as any).retry_after_seconds }),
+                              ...(typeof (data as any).retry_after === 'number' && { retry_after_seconds: (data as any).retry_after }),
+                            },
+                          },
+                        ],
+                      }));
+                      set({ isLoading: false, currentChatRequest: undefined });
+                      break;
+                    }
+                    // Fallback: handle as normal error
+                    set((state) => ({
+                      history: [
+                        ...state.history,
+                        {
+                          type: 'ERROR',
+                          error_msg: (data as any).message || 'An error occurred.',
+                          retry: true,
+                          payload_to_retry: {},
+                          actor: 'ASSISTANT',
+                        },
+                      ],
+                    }));
+                    set({ isLoading: false, currentChatRequest: undefined });
+                    break;
+                  }
                   case 'error': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
@@ -966,6 +1012,7 @@ export const useChatStore = create(
                       payload_to_retry: unknown;
                       error_msg: string;
                       retry: boolean;
+                      is_throttling?: boolean;
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
@@ -1017,6 +1064,7 @@ export const useChatStore = create(
                         retry: errorData.retry,
                         payload_to_retry: errorData.payload_to_retry,
                         actor: 'ASSISTANT',
+                        is_throttling: errorData.is_throttling,
                       } as ChatErrorMessage);
 
                       return {

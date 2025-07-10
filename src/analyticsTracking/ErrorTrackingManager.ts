@@ -222,4 +222,33 @@ export class ErrorTrackingManager {
       stack_trace,
     });
   }
+
+  /**
+   * Tracks throttling errors specifically with model information
+   * @param error The throttling error
+   * @param modelInfo Information about the model that was being used
+   * @param errorSource The source of the error
+   */
+  async trackThrottlingError(
+    error: Error,
+    modelInfo?: { model?: string; provider?: string },
+    errorSource: 'EXTENSION' | 'BINARY' | 'BACKEND' = 'BACKEND'
+  ) {
+    const throttlingData = {
+      errorName: error.name,
+      errorMessage: error.message,
+      originalMessage: (error as any).originalMessage,
+      isThrottling: (error as any).isThrottling,
+      model: modelInfo?.model,
+      provider: modelInfo?.provider,
+      timestamp: new Date().toISOString(),
+    };
+
+    await this.trackError({
+      errorType: 'THROTTLING_ERROR',
+      errorSource: errorSource,
+      errorData: throttlingData,
+      stack_trace: error.stack,
+    });
+  }
 }

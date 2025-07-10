@@ -590,11 +590,29 @@ export class ChatManager {
         this.outputChannel.info('apiChat was cancelled.');
         return;
       }
+
+      // Check if this is a throttling error
+      const isThrottlingError = error.name === 'ThrottlingException' || 
+                               (error.message && error.message.toLowerCase().includes('throttling'));
+
       const extraErrorInfo = {
         chat_payload: truncatePayloadValues(payload, 100),
         error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
+        is_throttling: isThrottlingError,
+        llm_model: payload.llm_model,
       };
-      this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
+
+      // Track throttling errors specifically
+      if (isThrottlingError) {
+        this.errorTrackingManager.trackThrottlingError(
+          error,
+          { model: payload.llm_model, provider: this.getProviderFromModel(payload.llm_model) },
+          'EXTENSION'
+        );
+      } else {
+        this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
+      }
+
       // Send error details back to the UI for potential retry
       chunkCallback({
         name: 'error',
@@ -602,6 +620,7 @@ export class ChatManager {
           payload_to_retry: originalPayload,
           error_msg: String(error.message || error),
           retry: true, // Suggest retry is possible
+          is_throttling: isThrottlingError,
         },
       });
     } finally {
@@ -1378,5 +1397,23 @@ export class ChatManager {
   }
   public async killProcessById(tool_use_id: string) {
     await this.terminalExecutor.abortCommand(tool_use_id);
+  }
+
+  /**
+   * Determines the provider from the model name
+   */
+  private getProviderFromModel(model?: string): string {
+    if (!model) return 'unknown';
+    
+    const lowerModel = model.toLowerCase();
+    if (lowerModel.includes('claude') || lowerModel.includes('anthropic')) {
+      return 'anthropic';
+    } else if (lowerModel.includes('gpt') || lowerModel.includes('openai')) {
+      return 'openai';
+    } else if (lowerModel.includes('gemini') || lowerModel.includes('google')) {
+      return 'google';
+    }
+    
+    return 'unknown';
   }
 }

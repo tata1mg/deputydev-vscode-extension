@@ -236,6 +236,7 @@ export interface ChatErrorMessage {
   error_msg: string;
   actor: 'ASSISTANT';
   content?: any;
+  is_throttling?: boolean;
 }
 
 export interface ChatCompleteMessage {

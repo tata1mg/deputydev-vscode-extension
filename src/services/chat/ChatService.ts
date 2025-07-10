@@ -97,6 +97,18 @@ export class QuerySolverService {
             socketConn.close();
             return;
           }
+          
+          // Handle throttling exceptions specifically
+          const errorMessage = messageData.message || '';
+          const isThrottlingError = this.isThrottlingException(errorMessage);
+          
+          if (isThrottlingError) {
+            const throttlingError = this.createThrottlingError(errorMessage);
+            streamError = throttlingError;
+            socketConn.close();
+            return;
+          }
+          
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
           socketConn.close();
@@ -198,5 +210,52 @@ export class QuerySolverService {
       // Fallback: return original (backend may still reject if >128 KB)
       return original;
     }
+  }
+
+  /**
+   * Detects if an error message indicates a throttling exception
+   */
+  private isThrottlingException(errorMessage: string): boolean {
+    const throttlingKeywords = [
+      'ThrottlingException',
+      'Too many tokens',
+      'rate limit',
+      'throttling',
+      'quota exceeded',
+      'rate exceeded',
+      'too many requests'
+    ];
+    
+    const lowerMessage = errorMessage.toLowerCase();
+    return throttlingKeywords.some(keyword => 
+      lowerMessage.includes(keyword.toLowerCase())
+    );
+  }
+
+  /**
+   * Creates a user-friendly throttling error with model change suggestions
+   */
+  private createThrottlingError(originalMessage: string): Error {
+    const isAnthropic = originalMessage.includes('anthropic') || originalMessage.includes('claude');
+    const isOpenAI = originalMessage.includes('openai') || originalMessage.includes('gpt');
+    
+    let suggestion = '';
+    if (isAnthropic) {
+      suggestion = 'Try switching to a different model (e.g., GPT-4) or wait a moment before retrying.';
+    } else if (isOpenAI) {
+      suggestion = 'Try switching to Claude or wait a moment before retrying.';
+    } else {
+      suggestion = 'Try switching to a different model or wait a moment before retrying.';
+    }
+    
+    const userFriendlyMessage = `Request is currently being throttled. ${suggestion}`;
+    
+    const error = new Error(userFriendlyMessage);
+    error.name = 'ThrottlingException';
+    // Add original error details for debugging
+    (error as any).originalMessage = originalMessage;
+    (error as any).isThrottling = true;
+    
+    return error;
   }
 }
