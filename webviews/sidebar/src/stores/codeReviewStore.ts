@@ -13,7 +13,7 @@ export const useCodeReviewStore = create<CodeReviewStorage>()(
       reviewOptions: [
         { displayName: 'Review All Changes', value: 'ALL' },
         { displayName: 'Review Uncommitted Changes', value: 'UNCOMMITTED_ONLY' },
-        { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' }
+        { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' },
       ] as ReviewOption[],
     }),
     {

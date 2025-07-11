@@ -837,8 +837,8 @@ addCommandEventListener('auth-response', ({ data }) => {
 
 // Code Review
 addCommandEventListener('new-review-created', ({ data }) => {
-  console.log( 'New review data received:', data);
-  console.log("setting new review in store");
+  console.log('New review data received:', data);
+  console.log('setting new review in store');
   useCodeReviewStore.setState({ new_review: data as NewReview });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
 });
