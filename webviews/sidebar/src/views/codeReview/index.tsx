@@ -5,12 +5,11 @@ import {
   ArrowRight,
   GitBranch,
   Check,
-  User,
-  Users,
   Pen,
   ChevronRight as ChevronRightIcon,
   MessageSquare,
-  Search,
+  Funnel,
+  ArrowLeft,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
@@ -83,7 +82,8 @@ const mockReviews: Review[] = [
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
-  const { new_review, reviewOptions, activeReviewOption, searchedBranches, selectedTargetBranch } = useCodeReviewStore();
+  const { new_review, reviewOptions, activeReviewOption, searchedBranches, selectedTargetBranch } =
+    useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
@@ -102,12 +102,15 @@ export default function CodeReview() {
   }, []);
 
   const handleNewReview = () => {
-    console.log("Triggering new review with branch:", useCodeReviewStore.getState().selectedTargetBranch);
+    console.log(
+      'Triggering new review with branch:',
+      useCodeReviewStore.getState().selectedTargetBranch
+    );
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
-      reviewType: useCodeReviewStore.getState().activeReviewOption.value
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
     });
-  }
+  };
 
   useClickAway(dropDownRef, () => {
     if (showReviewOptions) {
@@ -132,7 +135,7 @@ export default function CodeReview() {
       case 'D':
         return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
       case 'M':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       case 'R':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
       default:
@@ -161,12 +164,12 @@ export default function CodeReview() {
   const handleBranchSelect = (branch: string) => {
     useCodeReviewStore.setState({
       selectedTargetBranch: branch,
-      searchedBranches: [] // Clear search results after selection
+      searchedBranches: [], // Clear search results after selection
     });
     setSearchQuery(''); // Clear search query
     setShowBranchDropdown(false);
     setIsEditing(false);
-    console.log("Trigger after branch selection")
+    console.log('Trigger after branch selection');
     handleNewReview(); // Trigger new review with selected branch
   };
 
@@ -190,26 +193,11 @@ export default function CodeReview() {
           <div>
             {/* Branch Info */}
             <div className="p-2">
-              <div className="flex items-center justify-between gap-2 w-full px-2">
-                {/* Source Branch */}
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="flex gap-2 w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] p-2 overflow-hidden"
-                    style={{
-                      backgroundColor: 'var(--vscode-editor-background)',
-                    }}
-                  >
-                    <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                    <span className="truncate font-mono text-sm">{new_review.source_branch}</span>
-                  </div>
-                </div>
-
-                <ArrowRight className="min-h-4 min-w-4 text-gray-400 flex-shrink-0" />
-
+              <div className="flex w-full items-center justify-between gap-2 px-2">
                 {/* Target Branch */}
-                <div className="relative flex-1 min-w-0" ref={branchSelectorRef}>
+                <div className="relative min-w-0 flex-1" ref={branchSelectorRef}>
                   <div
-                    className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] p-2 overflow-hidden"
+                    className="flex w-full items-center justify-between overflow-hidden rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
                     style={{
                       backgroundColor: 'var(--vscode-editor-background)',
                     }}
@@ -231,7 +219,7 @@ export default function CodeReview() {
                         <input
                           ref={inputRef}
                           type="text"
-                          className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none overflow-ellipsis"
+                          className="min-w-0 flex-1 overflow-ellipsis bg-transparent font-mono text-sm outline-none"
                           style={{
                             outline: 'none',
                             textOverflow: 'ellipsis',
@@ -254,7 +242,7 @@ export default function CodeReview() {
                           onClick={(e) => e.stopPropagation()}
                         />
                       ) : (
-                        <span className="truncate font-mono text-sm w-full">
+                        <span className="w-full truncate font-mono text-sm">
                           {selectedTargetBranch || new_review.target_branch}
                         </span>
                       )}
@@ -286,12 +274,12 @@ export default function CodeReview() {
                         searchedBranches.map((result, index) => (
                           <div
                             key={index}
-                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)] overflow-hidden"
+                            className="cursor-pointer overflow-hidden p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
                             onClick={() => handleBranchSelect(result)}
                           >
                             <div className="flex items-center gap-2">
                               <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
-                              <span className="truncate font-mono text-sm w-full">{result}</span>
+                              <span className="w-full truncate font-mono text-sm">{result}</span>
                             </div>
                           </div>
                         ))
@@ -304,6 +292,21 @@ export default function CodeReview() {
                       )}
                     </div>
                   )}
+                </div>
+
+                <ArrowLeft className="min-h-4 min-w-4 flex-shrink-0 text-gray-400" />
+
+                {/* Source Branch */}
+                <div className="min-w-0 flex-1">
+                  <div
+                    className="flex w-full items-center gap-2 overflow-hidden rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
+                    style={{
+                      backgroundColor: 'var(--vscode-editor-background)',
+                    }}
+                  >
+                    <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span className="truncate font-mono text-sm">{new_review.source_branch}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -470,21 +473,19 @@ export default function CodeReview() {
               >
                 <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
                   <div className="max-h-48 overflow-y-auto">
-                    {reviewOptions.map(
-                      (option) => (
-                        <div
-                          key={option.value}
-                          className="cursor-pointer p-2 text-right text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                          onClick={() => {
-                            useCodeReviewStore.setState({ activeReviewOption: option });
-                            handleNewReview();
-                            setShowReviewOptions(false);
-                          }}
-                        >
-                          {option.displayName}
-                        </div>
-                      )
-                    )}
+                    {reviewOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        className="cursor-pointer p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                        onClick={() => {
+                          useCodeReviewStore.setState({ activeReviewOption: option });
+                          handleNewReview();
+                          setShowReviewOptions(false);
+                        }}
+                      >
+                        {option.displayName}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </motion.div>
@@ -532,36 +533,17 @@ export default function CodeReview() {
         </div>
 
         {/* Reviews History */}
-        {/* <div className="flex h-full flex-col px-4">
+        <div className="flex h-full flex-col px-4">
           <div
             className="flex w-full rounded-t-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
             style={{
               boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
             }}
           >
-            {['reviews', 'agent', 'tags'].map((filter) => (
-              <button
-                key={filter}
-                className={`relative flex-1 px-4 py-2 text-center text-sm font-medium transition-colors duration-200 ${activeFilter === filter
-                  ? 'text-[var(--vscode-textLink-foreground)]'
-                  : 'text-[var(--vscode-foreground)] hover:bg-[var(--vscode-list-hoverBackground)]'
-                  }`}
-                onClick={() => setActiveFilter(filter)}
-              >
-                {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                {activeFilter === filter && (
-                  <motion.div
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--vscode-textLink-foreground)]"
-                    layoutId="activeTab"
-                    transition={{
-                      type: 'spring',
-                      bounce: 0.2,
-                      duration: 0.6,
-                    }}
-                  />
-                )}
-              </button>
-            ))}
+            <div className="flex w-full items-center justify-between px-4 py-2">
+              <div className="relative flex-1 text-sm font-medium">Past Reviews</div>
+              <Funnel className="h-4 w-4" />
+            </div>
           </div>
 
           <div
@@ -573,10 +555,10 @@ export default function CodeReview() {
             {mockReviews.map((review) => (
               <div
                 key={review.id}
-                className="m-1 rounded border border-[var(--vscode-editorWidget-border)] text-sm transition-colors hover:border-[var(--vscode-focusBorder)]"
+                className="m-1 text-sm"
               >
                 <div
-                  className="flex cursor-pointer items-center justify-between rounded bg-[var(--vscode-editor-background)] p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                  className="flex cursor-pointer items-center justify-between rounded p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
                   onClick={() => toggleReview(review.id)}
                 >
                   <div className="flex items-center">
@@ -665,19 +647,19 @@ export default function CodeReview() {
                                 }}
                                 className="overflow-hidden"
                               >
-                                {(review.fileComments as Record<string, Comment[]>)[
-                                  file.path
-                                ]?.map((comment) => (
-                                  <div
-                                    key={comment.id}
-                                    className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs"
-                                  >
-                                    <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
-                                      Line {comment.line}
+                                {(review.fileComments as Record<string, Comment[]>)[file.path]?.map(
+                                  (comment) => (
+                                    <div
+                                      key={comment.id}
+                                      className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                                    >
+                                      <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
+                                        Line {comment.line}
+                                      </div>
+                                      <div className="leading-tight">{comment.text}</div>
                                     </div>
-                                    <div className="leading-tight">{comment.text}</div>
-                                  </div>
-                                ))}
+                                  )
+                                )}
                               </motion.div>
                             )}
                           </AnimatePresence>
@@ -689,7 +671,7 @@ export default function CodeReview() {
               </div>
             ))}
           </div>
-        </div> */}
+        </div>
       </div>
     </PageTransition>
   );
