@@ -108,6 +108,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'new-review':
           this.newReview(data);
           break;
+        case 'search-branches':
+          this.searchBranches(data.keyword);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1004,11 +1007,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async newReview(data: any) {
-    const activeRepo = getActiveRepo();
-    if (!activeRepo) {
-      return;
-    }
-    const result = await this.reviewService.newReview(activeRepo, data.targetBranch, data.reviewType);
+    const result = await this.reviewService.newReview(data.targetBranch, data.reviewType);
     if (result) {
       this.sendMessageToSidebar({
         id: uuidv4(),
@@ -1020,6 +1019,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         id: uuidv4(),
         command: 'new-review-error',
         data: { error: 'Failed to create new review' },
+      });
+    }
+  }
+
+  public async searchBranches(keyword: string) {
+    const result = await this.reviewService.searchBranch(keyword);
+    if (result) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'search-branches-result',
+        data: result.data,
+      });
+    } else {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'search-branches-error',
+        data: { error: 'Failed to search branches' },
       });
     }
   }

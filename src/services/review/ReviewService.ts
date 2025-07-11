@@ -1,3 +1,4 @@
+import { getActiveRepo } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { binaryApi } from '../api/axios';
@@ -11,11 +12,11 @@ export class ReviewService {
   }
   private apiErrorHandler = new ApiErrorHandler();
 
-  public async newReview(repo_path: string, target_branch: string, review_type: string): Promise<any> {
+  public async newReview(target_branch: string, review_type: string): Promise<any> {
     try {
       const response = await binaryApi().get(API_ENDPOINTS.NEW_REVIEW, {
         params: {
-          repo_path,
+          repo_path: getActiveRepo(),
           target_branch,
           review_type,
         },
@@ -23,6 +24,22 @@ export class ReviewService {
       return response.data;
     } catch (error) {
       this.logger.error('Error creating new review during newReview');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async searchBranch(keyword: string): Promise<any> {
+    try {
+      const response = await binaryApi().get(API_ENDPOINTS.SEARCH_BRANCHES, {
+        params: {
+          repo_path: getActiveRepo(),
+          keyword: keyword,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching branches during searchBranch');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }

@@ -6,6 +6,7 @@ import { CodeReviewStorage, NewReview, ReviewOption } from '@/types';
 export const useCodeReviewStore = create<CodeReviewStorage>()(
   persist(
     (set) => ({
+      searchedBranches: [],
       selectedTargetBranch: '',
       new_review: {} as NewReview,
       activeReviewOption: { displayName: 'Review All Changes', value: 'ALL' } as ReviewOption,

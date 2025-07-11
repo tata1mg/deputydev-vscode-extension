@@ -15,7 +15,7 @@ import {
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { newReview } from '@/commandApi';
+import { newReview, searchBranches } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
 
@@ -83,7 +83,7 @@ const mockReviews: Review[] = [
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
-  const { new_review, reviewOptions, activeReviewOption, selectedTargetBranch } = useCodeReviewStore();
+  const { new_review, reviewOptions, activeReviewOption, searchedBranches, selectedTargetBranch } = useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
@@ -91,9 +91,8 @@ export default function CodeReview() {
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('d');
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
-  const [searchResults, setSearchResults] = useState<string[]>([]);
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
@@ -103,6 +102,7 @@ export default function CodeReview() {
   }, []);
 
   const handleNewReview = () => {
+    console.log("Triggering new review with branch:", useCodeReviewStore.getState().selectedTargetBranch);
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
       reviewType: useCodeReviewStore.getState().activeReviewOption.value
@@ -154,25 +154,20 @@ export default function CodeReview() {
     setExpandedFile(expandedFile === filePath ? null : filePath);
   };
 
-  const handleSearchBranches = async (query: string) => {
-    const mockBranches = [
-      'main',
-      'develop',
-      'feature/new-feature',
-      'bugfix/important-fix',
-      'release/v1.0.0'
-    ];
-    const results = mockBranches.filter(branch =>
-      branch.toLowerCase().includes(query.toLowerCase())
-    );
-    setSearchResults(results);
+  const handleSearchBranches = async (keyword: string) => {
+    searchBranches(keyword);
   };
 
   const handleBranchSelect = (branch: string) => {
-    console.log('Selected branch:', branch);
-    setSearchQuery(branch);
+    useCodeReviewStore.setState({
+      selectedTargetBranch: branch,
+      searchedBranches: [] // Clear search results after selection
+    });
+    setSearchQuery(''); // Clear search query
     setShowBranchDropdown(false);
     setIsEditing(false);
+    console.log("Trigger after branch selection")
+    handleNewReview(); // Trigger new review with selected branch
   };
 
   return (
@@ -195,30 +190,36 @@ export default function CodeReview() {
           <div>
             {/* Branch Info */}
             <div className="p-2">
-              <div className="flex items-center justify-center px-2">
-                <div
-                  className="flex gap-2 w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
-                  style={{
-                    backgroundColor: 'var(--vscode-editor-background)',
-                  }}
-                >
-                  <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <span className="truncate font-mono text-sm">{new_review.source_branch}</span>
-                </div>
-                <ArrowRight className="mx-2 min-h-4 min-w-4 text-gray-400" />
-                <div className="relative w-full" ref={branchSelectorRef}>
+              <div className="flex items-center justify-between gap-2 w-full px-2">
+                {/* Source Branch */}
+                <div className="flex-1 min-w-0">
                   <div
-                    className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] p-2"
+                    className="flex gap-2 w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] p-2 overflow-hidden"
+                    style={{
+                      backgroundColor: 'var(--vscode-editor-background)',
+                    }}
+                  >
+                    <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span className="truncate font-mono text-sm">{new_review.source_branch}</span>
+                  </div>
+                </div>
+
+                <ArrowRight className="min-h-4 min-w-4 text-gray-400 flex-shrink-0" />
+
+                {/* Target Branch */}
+                <div className="relative flex-1 min-w-0" ref={branchSelectorRef}>
+                  <div
+                    className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] p-2 overflow-hidden"
                     style={{
                       backgroundColor: 'var(--vscode-editor-background)',
                     }}
                   >
                     <div
-                      className="flex w-full items-center gap-2"
+                      className="flex w-full items-center gap-2 overflow-hidden"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!isEditing) {
-                          setSearchQuery(new_review.target_branch);
+                          setSearchQuery(selectedTargetBranch || new_review.target_branch);
                           setIsEditing(true);
                           setShowBranchDropdown(true);
                           setTimeout(() => inputRef.current?.focus(), 0);
@@ -230,16 +231,20 @@ export default function CodeReview() {
                         <input
                           ref={inputRef}
                           type="text"
-                          className="w-full bg-transparent font-mono text-sm outline-none mr-1"
-                          style={{ outline: 'none' }}
+                          className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none overflow-ellipsis"
+                          style={{
+                            outline: 'none',
+                            textOverflow: 'ellipsis',
+                          }}
                           value={searchQuery}
                           onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            handleSearchBranches(e.target.value);
+                            const value = e.target.value;
+                            setSearchQuery(value);
+                            handleSearchBranches(value);
                           }}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' && searchResults.length > 0) {
-                              handleBranchSelect(searchResults[0]);
+                            if (e.key === 'Enter' && searchedBranches.length > 0) {
+                              handleBranchSelect(searchedBranches[0]);
                             } else if (e.key === 'Escape') {
                               setIsEditing(false);
                               setShowBranchDropdown(false);
@@ -249,20 +254,22 @@ export default function CodeReview() {
                           onClick={(e) => e.stopPropagation()}
                         />
                       ) : (
-                        <span className="truncate font-mono text-sm">{new_review.target_branch}</span>
+                        <span className="truncate font-mono text-sm w-full">
+                          {selectedTargetBranch || new_review.target_branch}
+                        </span>
                       )}
                     </div>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSearchQuery(new_review.target_branch);
+                        setSearchQuery(selectedTargetBranch || new_review.target_branch);
                         setIsEditing(!isEditing);
                         setShowBranchDropdown(!showBranchDropdown);
                         if (!isEditing && inputRef.current) {
                           setTimeout(() => inputRef.current?.focus(), 0);
                         }
                       }}
-                      className="flex items-center justify-center"
+                      className="ml-2 flex flex-shrink-0 items-center justify-center"
                     >
                       <Pen className="h-3.5 w-3.5 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]" />
                     </button>
@@ -275,23 +282,22 @@ export default function CodeReview() {
                       style={{ maxHeight: '200px', overflowY: 'auto' }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {searchResults.length > 0 ? (
-                        searchResults.map((result, index) => (
+                      {searchedBranches && searchedBranches.length > 0 ? (
+                        searchedBranches.map((result, index) => (
                           <div
                             key={index}
-                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                            className="cursor-pointer p-2 hover:bg-[var(--vscode-list-hoverBackground)] overflow-hidden"
                             onClick={() => handleBranchSelect(result)}
                           >
                             <div className="flex items-center gap-2">
                               <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
-                              <span className="truncate font-mono text-sm">{result}</span>
+                              <span className="truncate font-mono text-sm w-full">{result}</span>
                             </div>
                           </div>
                         ))
                       ) : (
-                        <div className="flex flex-col items-center justify-center p-4 text-center">
-                          <Search className="mb-2 h-5 w-5 text-[var(--vscode-descriptionForeground)]" />
-                          <p className="text-sm text-[var(--vscode-descriptionForeground)]">
+                        <div className="flex items-center justify-center p-4">
+                          <p className="text-xs text-[var(--vscode-descriptionForeground)]">
                             {searchQuery ? 'No branches found' : 'Start typing to search branches'}
                           </p>
                         </div>
@@ -326,7 +332,7 @@ export default function CodeReview() {
                       )}
                     </motion.span>
                     <h2 className="font-medium">
-                      Files changed ({new_review.file_wise_changes.length})
+                      Files changed ({new_review?.file_wise_changes?.length})
                     </h2>
                   </div>
                 </motion.div>
@@ -354,7 +360,7 @@ export default function CodeReview() {
                       className="overflow-hidden"
                     >
                       <div className="max-h-[260px] divide-y divide-[var(--vscode-editorWidget-border)] overflow-y-auto">
-                        {new_review.file_wise_changes.map((file) => (
+                        {new_review?.file_wise_changes?.map((file) => (
                           <motion.div
                             key={file.file_path}
                             className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
