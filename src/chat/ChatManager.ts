@@ -674,19 +674,13 @@ export class ChatManager {
     endLine?: number,
   ): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
-    const authToken = await this.authService.loadAuthToken();
-    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.ITERATIVELY_READ_FILE,
-        {
-          repo_path: repoPath,
-          file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always absolute
-          start_line: startLine,
-          end_line: endLine,
-        },
-        { headers },
-      );
+      const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
+        repo_path: repoPath,
+        file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always relative
+        start_line: startLine,
+        end_line: endLine,
+      });
       return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
