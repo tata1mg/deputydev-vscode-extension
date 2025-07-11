@@ -2,82 +2,136 @@ import { useThemeStore } from '@/stores/useThemeStore';
 import {
   ChevronUp,
   ChevronDown,
-  ArrowRight,
   GitBranch,
   Check,
   Pen,
-  ChevronRight as ChevronRightIcon,
+  ChevronLeftIcon,
+  User,
   MessageSquare,
   Funnel,
   ArrowLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { newReview, searchBranches } from '@/commandApi';
+import { newReview, openFileDiff, searchBranches } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
-
-type FileStatus = 'A' | 'D' | 'M' | 'R' | 'C' | 'U';
-
-interface FileChange {
-  id: string;
-  name: string;
-  path: string;
-  status: FileStatus;
-  changes: string;
-  comments: number;
-}
-
-interface Comment {
-  id: string;
-  text: string;
-  line: number;
-}
-
-interface FileWithComments {
-  path: string;
-  comments: number;
-}
-
-interface Review {
-  id: string;
-  title: string;
-  date: string;
-  files: FileWithComments[];
-  fileComments: Record<string, Comment[]>; // This allows any string key with Comment[] values
-}
+import { Review, CodeReviewComment } from '@/types';
 
 const mockReviews: Review[] = [
   {
-    id: '1',
-    title: 'Review 1',
-    date: '2025-07-05',
-    files: [
-      { path: 'src/components/Button.tsx', comments: 3 },
-      { path: 'src/utils/helpers.ts', comments: 1 },
+    id: 2,
+    repo_id: 1,
+    user_team_id: 1,
+    loc: 0,
+    reviewed_files: [],
+    execution_time_seconds: null,
+    status: 'done',
+    fail_message: null,
+    review_datetime: null,
+    comments: [
+      {
+        id: 1,
+        review_id: 1,
+        comment: 'Consider extracting this into a separate component',
+        agent_id: 1,
+        is_deleted: false,
+        file_path: 'src/components/Button.tsx',
+        line_hash: 'abc123',
+        line_number: 23,
+        tag: 'suggestion',
+        is_valid: true,
+        created_at: '2025-07-05T10:00:00Z',
+        updated_at: '2025-07-05T10:00:00Z',
+      },
+      {
+        id: 2,
+        review_id: 1,
+        comment: 'Consider extracting this into a separate component',
+        agent_id: 1,
+        is_deleted: false,
+        file_path: 'src/components/Button.tsx',
+        line_hash: 'abc123',
+        line_number: 23,
+        tag: 'suggestion',
+        is_valid: true,
+        created_at: '2025-07-05T10:00:00Z',
+        updated_at: '2025-07-05T10:00:00Z',
+      },
+      {
+        id: 3,
+        review_id: 1,
+        comment: 'Consider extracting this into a separate component',
+        agent_id: 1,
+        is_deleted: false,
+        file_path: 'src/components/Button.tsx',
+        line_hash: 'abc123',
+        line_number: 23,
+        tag: 'suggestion',
+        is_valid: true,
+        created_at: '2025-07-05T10:00:00Z',
+        updated_at: '2025-07-05T10:00:00Z',
+      },
+      // Add more comments as needed
     ],
-    fileComments: {
-      'src/components/Button.tsx': [
-        { id: 'c1', text: 'Consider extracting this into a separate component', line: 23 },
-        { id: 'c2', text: 'Missing prop validation', line: 45 },
-        { id: 'c3', text: 'This could be optimized', line: 67 },
-      ],
-      'src/utils/helpers.ts': [{ id: 'c4', text: 'Add error handling here', line: 12 }],
-    },
+    is_deleted: false,
+    deletion_datetime: null,
+    meta_info: null,
+    diff_s3_url: null,
+    created_at: '2025-07-05T10:00:00Z',
+    updated_at: '2025-07-05T10:00:00Z',
   },
   {
-    id: '2',
-    title: 'Review 2',
-    date: '2025-07-01',
-    files: [{ path: 'src/App.tsx', comments: 2 }],
-    fileComments: {
-      'src/App.tsx': [
-        { id: 'c5', text: 'Consider using context for state management', line: 10 },
-        { id: 'c6', text: 'Add loading state', line: 25 },
-      ],
-    },
+    id: 1,
+    repo_id: 1,
+    user_team_id: 1,
+    loc: 0,
+    reviewed_files: [],
+    execution_time_seconds: null,
+    status: 'done',
+    fail_message: null,
+    review_datetime: null,
+    comments: [
+      {
+        id: 1,
+        review_id: 1,
+        comment: 'Consider extracting this into a separate component',
+        agent_id: 1,
+        is_deleted: false,
+        file_path: 'src/components/Button.tsx',
+        line_hash: 'abc123',
+        line_number: 23,
+        tag: 'suggestion',
+        is_valid: true,
+        created_at: '2025-07-05T10:00:00Z',
+        updated_at: '2025-07-05T10:00:00Z',
+      },
+      {
+        id: 2,
+        review_id: 1,
+        comment: 'Consider extracting this into a separate component',
+        agent_id: 1,
+        is_deleted: false,
+        file_path: 'src/components/Button.tsx',
+        line_hash: 'abc123',
+        line_number: 23,
+        tag: 'suggestion',
+        is_valid: true,
+        created_at: '2025-07-05T10:00:00Z',
+        updated_at: '2025-07-05T10:00:00Z',
+      },
+      // Add more comments as needed
+    ],
+    is_deleted: false,
+    deletion_datetime: null,
+    meta_info: null,
+    diff_s3_url: null,
+    created_at: '2025-07-05T10:00:00Z',
+    updated_at: '2025-07-05T10:00:00Z',
   },
+  // Add more reviews as needed
 ];
 
 export default function CodeReview() {
@@ -96,6 +150,10 @@ export default function CodeReview() {
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
+
+  const handleDiff = () => {
+    openFileDiff();
+  };
 
   useEffect(() => {
     handleNewReview();
@@ -327,13 +385,12 @@ export default function CodeReview() {
                   initial={false}
                 >
                   <div className="flex items-center gap-2">
-                    <motion.span transition={{ duration: 0.2 }}>
-                      {showFilesToReview ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </motion.span>
+                    <motion.div
+                      animate={{ rotate: showFilesToReview ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </motion.div>
                     <h2 className="font-medium">
                       Files changed ({new_review?.file_wise_changes?.length})
                     </h2>
@@ -367,6 +424,7 @@ export default function CodeReview() {
                           <motion.div
                             key={file.file_path}
                             className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                            onClick={() => handleDiff()}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{
                               opacity: 1,
@@ -420,20 +478,6 @@ export default function CodeReview() {
         {/* Review Button */}
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
-            <div className="flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
-              <button
-                className="flex w-full cursor-pointer items-center justify-between"
-                onClick={() => {
-                  setShowAgents(!showAgents);
-                  setShowReviewOptions(false);
-                }}
-              >
-                <span>Select Agents</span>
-                <ChevronDown
-                  className={`h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform ${showAgents ? 'rotate-180' : ''}`}
-                />
-              </button>
-            </div>
             <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <span>{activeReviewOption.displayName}</span>
               <div className="flex items-center gap-1">
@@ -445,6 +489,17 @@ export default function CodeReview() {
                   }}
                 />
               </div>
+            </div>
+            <div className="flex items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
+              <button
+                className="flex cursor-pointer items-center justify-between"
+                onClick={() => {
+                  setShowAgents(!showAgents);
+                  setShowReviewOptions(false);
+                }}
+              >
+                <User className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
+              </button>
             </div>
           </div>
 
@@ -533,7 +588,7 @@ export default function CodeReview() {
         </div>
 
         {/* Reviews History */}
-        <div className="flex h-full flex-col px-4">
+        <div className="mt-2 flex h-full flex-col px-4">
           <div
             className="flex w-full rounded-t-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
             style={{
@@ -552,124 +607,136 @@ export default function CodeReview() {
               boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
             }}
           >
-            {mockReviews.map((review) => (
-              <div
-                key={review.id}
-                className="m-1 text-sm"
-              >
-                <div
-                  className="flex cursor-pointer items-center justify-between rounded p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
-                  onClick={() => toggleReview(review.id)}
-                >
-                  <div className="flex items-center">
-                    <motion.div
-                      animate={{ rotate: expandedReview === review.id ? 0 : -180 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <ChevronRightIcon size={14} />
-                    </motion.div>
-                    <span className="ml-1.5 font-medium">{review.title}</span>
-                    <span className="ml-1.5 text-xs text-[var(--vscode-descriptionForeground)]">
-                      {review.date}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[var(--vscode-descriptionForeground)]">
-                    {review.files.length} files •{' '}
-                    {review.files.reduce((sum, file) => sum + file.comments, 0)} comments
-                  </div>
-                </div>
+            {mockReviews.map((review) => {
+              // Group comments by file path
+              const filesWithComments = review.comments.reduce<Record<string, CodeReviewComment[]>>(
+                (acc, comment) => {
+                  if (!acc[comment.file_path]) {
+                    acc[comment.file_path] = [];
+                  }
+                  acc[comment.file_path].push(comment);
+                  return acc;
+                },
+                {}
+              );
 
-                <AnimatePresence>
-                  {expandedReview === review.id && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{
-                        opacity: 1,
-                        height: 'auto',
-                        transition: {
-                          opacity: { duration: 0.2 },
-                          height: { duration: 0.3, ease: 'easeInOut' },
-                        },
-                      }}
-                      exit={{
-                        opacity: 0,
-                        height: 0,
-                        transition: {
-                          opacity: { duration: 0.15 },
-                          height: { duration: 0.25, ease: 'easeInOut' },
-                        },
-                      }}
-                      className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
-                    >
-                      {review.files.map((file) => (
-                        <div key={file.path} className="pl-4">
-                          <div
-                            className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFile(file.path);
-                            }}
-                          >
-                            <div className="flex items-center">
-                              <motion.div
-                                animate={{ rotate: expandedFile === file.path ? 0 : -90 }}
-                                transition={{ duration: 0.2 }}
-                              >
-                                <ChevronRightIcon size={12} />
-                              </motion.div>
-                              <span className="ml-1.5 truncate">{file.path}</span>
-                            </div>
-                            <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
-                              <MessageSquare size={10} className="mr-0.5" />
-                              {file.comments}
-                            </div>
-                          </div>
+              const fileCount = Object.keys(filesWithComments).length;
+              const commentCount = review.comments.length;
+              const reviewDate = new Date(review.created_at).toLocaleDateString();
 
-                          <AnimatePresence>
-                            {expandedFile === file.path && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{
-                                  opacity: 1,
-                                  height: 'auto',
-                                  transition: {
-                                    opacity: { duration: 0.2 },
-                                    height: { duration: 0.3, ease: 'easeInOut' },
-                                  },
-                                }}
-                                exit={{
-                                  opacity: 0,
-                                  height: 0,
-                                  transition: {
-                                    opacity: { duration: 0.15 },
-                                    height: { duration: 0.25, ease: 'easeInOut' },
-                                  },
-                                }}
-                                className="overflow-hidden"
-                              >
-                                {(review.fileComments as Record<string, Comment[]>)[file.path]?.map(
-                                  (comment) => (
+              return (
+                <div key={review.id} className="m-1 text-sm">
+                  <div
+                    className="flex cursor-pointer items-center justify-between rounded p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
+                    onClick={() => toggleReview(review.id.toString())}
+                  >
+                    <div className="flex items-center">
+                      <motion.div
+                        animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronRight size={14} />
+                      </motion.div>
+                      <span className="ml-1.5 font-medium">Review #{review.id}</span>
+                      <span className="ml-1.5 text-xs text-[var(--vscode-descriptionForeground)]">
+                        {reviewDate}
+                      </span>
+                    </div>
+                    <div className="text-xs text-[var(--vscode-descriptionForeground)]">
+                      {fileCount} files • {commentCount} comments
+                    </div>
+                  </div>
+
+                  <AnimatePresence>
+                    {expandedReview === review.id.toString() && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{
+                          opacity: 1,
+                          height: 'auto',
+                          transition: {
+                            opacity: { duration: 0.2 },
+                            height: { duration: 0.3, ease: 'easeInOut' },
+                          },
+                        }}
+                        exit={{
+                          opacity: 0,
+                          height: 0,
+                          transition: {
+                            opacity: { duration: 0.15 },
+                            height: { duration: 0.25, ease: 'easeInOut' },
+                          },
+                        }}
+                        className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
+                      >
+                        {Object.entries(filesWithComments).map(([filePath, comments]) => (
+                          <div key={filePath} className="pl-4">
+                            <div
+                              className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFile(filePath);
+                              }}
+                            >
+                              <div className="flex items-center">
+                                <motion.div
+                                  animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <ChevronRight size={12} />
+                                </motion.div>
+                                <span className="ml-1.5 truncate">{filePath}</span>
+                              </div>
+                              <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
+                                <MessageSquare size={10} className="mr-0.5" />
+                                {comments.length}
+                              </div>
+                            </div>
+
+                            <AnimatePresence>
+                              {expandedFile === filePath && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{
+                                    opacity: 1,
+                                    height: 'auto',
+                                    transition: {
+                                      opacity: { duration: 0.2 },
+                                      height: { duration: 0.3, ease: 'easeInOut' },
+                                    },
+                                  }}
+                                  exit={{
+                                    opacity: 0,
+                                    height: 0,
+                                    transition: {
+                                      opacity: { duration: 0.15 },
+                                      height: { duration: 0.25, ease: 'easeInOut' },
+                                    },
+                                  }}
+                                  className="overflow-hidden"
+                                >
+                                  {comments.map((comment) => (
                                     <div
                                       key={comment.id}
                                       className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                                     >
                                       <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
-                                        Line {comment.line}
+                                        Line {comment.line_number} • {comment.tag}
                                       </div>
-                                      <div className="leading-tight">{comment.text}</div>
+                                      <div className="leading-tight">{comment.comment}</div>
                                     </div>
-                                  )
-                                )}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            ))}
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ export const useCodeReviewStore = create<CodeReviewStorage>()(
         { displayName: 'Review Uncommitted Changes', value: 'UNCOMMITTED_ONLY' },
         { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' },
       ] as ReviewOption[],
+      reviews: [],
     }),
     {
       name: 'code-review-storage',
