@@ -751,7 +751,8 @@ export function ChatUI() {
                     if (currentCount + files.length > maxFiles) {
                       showVsCodeMessageBox(
                         'warning',
-                        `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`                      );
+                        `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
+                      );
                     }
 
                     // Check file sizes
@@ -864,4 +865,3 @@ export function ChatUI() {
     </div>
   );
 }
-
