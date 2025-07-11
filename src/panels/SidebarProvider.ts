@@ -34,7 +34,8 @@ import {
 import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
 import { fileExists, openFile } from '../utilities/path';
-import { ReviewService } from '../services/review/ReviewService';
+import { ReviewService } from '../services/codeReview/ReviewService';
+import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -67,7 +68,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly continueWorkspace: ContinueNewWorkspace,
     private readonly indexingService: IndexingService,
     private readonly reviewService: ReviewService,
-  ) {}
+    private readonly codeReviewDiffManager: CodeReviewDiffManager,
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -114,7 +116,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.searchBranches(data.keyword);
           break;
         case 'open-file-diff':
-          this.openFileDiff();
+          this.handleDiffForCodeReview(data);
           break;
 
         // Code Generation
@@ -1045,77 +1047,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
-  public async openFileDiff() {
-    const mockDiff = {
-      left: `// Original file content
-      function hello() {
-        console.log("Hello, world!");
-        return "Original";
-      }`,
-      right: `// Modified file content
-      function hello() {
-        console.log("Hello, VSCode!");
-        console.log("Hello, VSCode!");
-        console.log("Hello, VSCode!");
-        console.log("Hello, VSCode!");
-        return "Modified";
-      }`,
-    };
-
-    this.showInlineDiffForCodeReview(mockDiff.left, mockDiff.right);
-  }
-
-  public async showInlineDiffForCodeReview(
-    originalContent: string,
-    modifiedContent: string,
-    fileName: string = 'diff',
-  ) {
-    try {
-      // Create temp files
-      const tempDir = os.tmpdir();
-      let originalUri = vscode.Uri.file(path.join(tempDir, `${fileName}.original`));
-      let modifiedUri = vscode.Uri.file(path.join(tempDir, `${fileName}.modified`));
-
-      // Create a unique filename to avoid conflicts
-      let counter = 1;
-      while ((await fileExists(originalUri)) || (await fileExists(modifiedUri))) {
-        const newFileName = `${fileName}${counter}`;
-        originalUri = vscode.Uri.file(path.join(tempDir, `${newFileName}.original`));
-        modifiedUri = vscode.Uri.file(path.join(tempDir, `${newFileName}.modified`));
-        counter++;
-      }
-
-      // Write content to temp files
-      await vscode.workspace.fs.writeFile(originalUri, Buffer.from(originalContent));
-      await vscode.workspace.fs.writeFile(modifiedUri, Buffer.from(modifiedContent));
-
-      // Show diff
-      const title = `${path.basename(fileName)} (Changes)`;
-      await vscode.commands.executeCommand('vscode.diff', originalUri, modifiedUri, title, { preview: false });
-
-      // Clean up temp files when the diff editor is closed
-      const disposable = vscode.window.onDidChangeActiveTextEditor((editor) => {
-        if (
-          !editor ||
-          (editor.document.uri.toString() !== originalUri.toString() &&
-            editor.document.uri.toString() !== modifiedUri.toString())
-        ) {
-          vscode.workspace.fs.delete(originalUri, { useTrash: false });
-          vscode.workspace.fs.delete(modifiedUri, { useTrash: false });
-          disposable.dispose();
-        }
-      });
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to show diff: ${error}`);
-    }
-  }
-
-  public async fileExists(uri: vscode.Uri): Promise<boolean> {
-    try {
-      await vscode.workspace.fs.stat(uri);
-      return true;
-    } catch {
-      return false;
-    }
+  public async handleDiffForCodeReview(data: any) {
+    await this.codeReviewDiffManager.openFileDiff(
+      data.udiff,
+      data.filePath,
+      data.fileName
+    );
   }
 }

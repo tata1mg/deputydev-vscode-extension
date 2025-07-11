@@ -351,7 +351,7 @@ export function searchBranches(keyword: string) {
   return callCommand('search-branches', { keyword });
 }
 
-export function openFileDiff() {
-  console.log('openFileDiff called');
-  return callCommand('open-file-diff', {});
+export function openFileDiff(data: {udiff: string, filePath: string, fileName: string}) {
+  console.log('openFileDiff called with', data);
+  return callCommand('open-file-diff', data);
 }
