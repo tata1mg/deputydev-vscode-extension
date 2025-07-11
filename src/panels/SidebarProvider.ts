@@ -25,13 +25,14 @@ import {
   clearWorkspaceStorage,
   deleteSessionId,
   getActiveRepo,
+  getRepoAndRelativeFilePath,
   getSessionId,
   sendProgress,
   setSessionId,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
-import { fileExists, openFile } from '../utilities/path';
+import { checkFileExists, fileExists, openFile } from '../utilities/path';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -39,6 +40,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly pendingMessages: any[] = [];
   private readonly _onDidChangeRepo = new vscode.EventEmitter<string | undefined>();
   public readonly onDidChangeRepo = this._onDidChangeRepo.event;
+  private readonly _onDidChangeContextRepos = new vscode.EventEmitter<string | undefined>();
+  public readonly onDidChangeContextRepos = this._onDidChangeContextRepos.event;
   private readonly mcpService = new MCPService();
   private readonly terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
@@ -289,6 +292,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.historyService.pinOrUnpinSession(data);
           break;
 
+        case 'update-context-repositories':
+          this.updateContextRepositories(data);
+          break;
+
         case 'workspace-repo-change':
           promise = this.setWorkspaceRepo(data);
           break;
@@ -330,11 +337,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
         // diff
         case 'write-file': {
-          const activeRepo = getActiveRepo();
-          if (!activeRepo) {
-            this.outputChannel.error('No active repo found');
-            return;
-          }
+          const { repoPath, relativeFilePath } = await getRepoAndRelativeFilePath(data.filePath);
+
           let usageTrackingSource;
           if (data.is_inline) {
             usageTrackingSource = data.write_mode ? 'inline-chat-act' : 'inline-chat';
@@ -342,8 +346,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
             usageTrackingSource = data.write_mode ? 'act' : 'chat';
           }
           promise = this.diffManager.applyDiff(
-            { path: data.filePath, incrementalUdiff: data.raw_diff },
-            activeRepo,
+            { path: relativeFilePath, incrementalUdiff: data.raw_diff },
+            repoPath,
             true,
             {
               usageTrackingSessionId: getSessionId() || null,
@@ -408,7 +412,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         }
 
         case 'open-file':
-          openFile(data.path, data.startLine, data.endLine);
+          openFile(data.path, data.startLine, data.endLine, data.forActiveFile);
+          break;
+
+        case 'check-file-exists':
+          promise = checkFileExists(data.filePath);
           break;
 
         case 'reveal-folder-in-explorer':
@@ -424,14 +432,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           break;
 
         case 'check-diff-applicable': {
-          const activeRepo = getActiveRepo();
-          if (!activeRepo) {
-            this.outputChannel.error('No active repo found');
-            return;
-          }
+          const { repoPath, relativeFilePath } = await getRepoAndRelativeFilePath(data.filePath);
           promise = await this.diffManager.checkIsDiffApplicable(
-            { path: data.filePath, incrementalUdiff: data.raw_diff },
-            activeRepo,
+            { path: relativeFilePath, incrementalUdiff: data.raw_diff },
+            repoPath,
           );
           break;
         }
@@ -610,24 +614,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
+  private async updateContextRepositories(data: any) {
+    this.setWorkspaceState({ key: 'contextRepositories', value: data.contextRepositories });
+    this._onDidChangeContextRepos.fire('');
+  }
+
   private async setWorkspaceRepo(data: any) {
     this.outputChannel.info(`Setting active repo to via frotnend ${data.repoPath}`);
     this._onDidChangeRepo.fire(data.repoPath);
     return this.setWorkspaceState({ key: 'activeRepo', value: data.repoPath });
-  }
-
-  // File Operations
-  private async openFile(file_path: string) {
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      vscode.window.showErrorMessage('No workspace folder found.');
-      return;
-    } else {
-      const absolutePath = path.join(active_repo, file_path);
-      const uri = vscode.Uri.file(absolutePath);
-      const document = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(document);
-    }
   }
 
   private async revealFolderInExplorer(folderPath: string) {

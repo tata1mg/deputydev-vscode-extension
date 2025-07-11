@@ -13,6 +13,9 @@ export function writeFile(params: {
 export function checkDiffApplicable(params: { filePath: string; raw_diff: string }) {
   return callCommand('check-diff-applicable', params);
 }
+export function checkFileExists(filePath: string) {
+  return callCommand('check-file-exists', { filePath });
+}
 
 // chat api calls
 
@@ -106,8 +109,8 @@ export function rejectFile(path: string) {
   return callCommand('reject-file', { path });
 }
 
-export function openFile(path: string, startLine?: number, endLine?: number) {
-  return callCommand('open-file', { path, startLine, endLine });
+export function openFile(path: string, startLine?: number, endLine?: number, isAbsolute?: boolean) {
+  return callCommand('open-file', { path, startLine, endLine, isAbsolute });
 }
 
 export function revealFolderInExplorer(folderPath: string) {
@@ -161,6 +164,10 @@ export function getGlobalState(data: { key: string }) {
 
 export function deleteGlobalState(data: { key: string }) {
   return callCommand('delete-global-state', data);
+}
+
+export function updateContextRepositories(data: { contextRepositories: unknown }) {
+  return callCommand('update-context-repositories', data);
 }
 
 export function setWorkspaceState(data: { key: string; value: unknown }) {
