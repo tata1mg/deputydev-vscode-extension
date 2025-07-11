@@ -439,4 +439,39 @@ export interface CodeReviewStorage {
   new_review: NewReview;
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
+  reviews: Review[];
+}
+
+export interface CodeReviewComment {
+  id: number;
+  review_id: number;
+  comment: string;
+  agent_id: number;
+  is_deleted: boolean;
+  file_path: string;
+  line_hash: string;
+  line_number: number;
+  tag: string;
+  is_valid: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Review {
+  id: number;
+  repo_id: number;
+  user_team_id: number;
+  loc: number;
+  reviewed_files: string[];
+  execution_time_seconds: null;
+  status: string;
+  fail_message: null;
+  review_datetime: null;
+  comments: CodeReviewComment[];
+  is_deleted: boolean;
+  deletion_datetime: null;
+  meta_info: null;
+  diff_s3_url: null;
+  created_at: string;
+  updated_at: string;
 }

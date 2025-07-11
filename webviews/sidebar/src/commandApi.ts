@@ -350,3 +350,8 @@ export function newReview(data: { targetBranch: string; reviewType: string }) {
 export function searchBranches(keyword: string) {
   return callCommand('search-branches', { keyword });
 }
+
+export function openFileDiff() {
+  console.log('openFileDiff called');
+  return callCommand('open-file-diff', {});
+}
