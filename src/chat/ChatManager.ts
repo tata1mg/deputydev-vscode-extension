@@ -582,8 +582,6 @@ export class ChatManager {
       // 3. Handle any remaining Tool Requests (parallel or single)
       if (pendingToolRequests.length > 0) {
         await this._runTool(pendingToolRequests, messageId, chunkCallback, clientTools);
-      } else if (currentToolRequest) {
-        await this._runTool(currentToolRequest, messageId, chunkCallback, clientTools);
       }
 
       // Signal end of stream.
@@ -804,21 +802,20 @@ export class ChatManager {
    */
 
   private async _runTool(
-    toolRequests: ToolRequest | ToolRequest[],
+    toolRequests: ToolRequest[],
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
-    const requests = Array.isArray(toolRequests) ? toolRequests : [toolRequests];
-    const isParallel = requests.length > 1;
+    const isParallel = toolRequests.length > 1;
 
-    this.outputChannel.info(`${isParallel ? 'Starting parallel execution of' : 'Running'} ${requests.length} tool${requests.length > 1 ? 's' : ''}`);
+    this.outputChannel.info(`${isParallel ? 'Starting parallel execution of' : 'Running'} ${toolRequests.length} tool${toolRequests.length > 1 ? 's' : ''}`);
 
     try {
       if (isParallel) {
         // Execute all tools in parallel and collect their responses
         const toolResults = await Promise.allSettled(
-          requests.map(async (toolRequest) => {
+          toolRequests.map(async (toolRequest) => {
             const result = await this._runToolInternal(toolRequest, messageId, chunkCallback, clientTools, false);
             return { toolRequest, result, status: 'success' as const };
           })
@@ -831,7 +828,7 @@ export class ChatManager {
           if (outcome.status === 'fulfilled') {
             successfulResults.push(outcome.value);
           } else {
-            this.outputChannel.error(`Tool ${requests[index].tool_name} failed: ${outcome.reason?.message}`);
+            this.outputChannel.error(`Tool ${toolRequests[index].tool_name} failed: ${outcome.reason?.message}`);
           }
         });
 
@@ -839,10 +836,10 @@ export class ChatManager {
         if (successfulResults.length > 0) {
           await this._sendBatchedToolResponses(successfulResults, messageId, chunkCallback, clientTools);
         }
-        this.outputChannel.info(`Completed parallel execution of ${requests.length} tools`);
+        this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
       } else {
         // Single tool execution with immediate API call
-        result = await this._runToolInternal(requests[0], messageId, chunkCallback, clientTools, true);
+        const result = await this._runToolInternal(toolRequests[0], messageId, chunkCallback, clientTools, true);
         await this._sendBatchedToolResponses([result], messageId, chunkCallback, clientTools);
       }
     } catch (error: any) {
@@ -902,6 +899,7 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>
   ): Promise<void> {
+    if (toolResults.length === 0) {
       this.outputChannel.warn('No successful tool results to send to backend');
       return;
     }
@@ -1167,7 +1165,6 @@ export class ChatManager {
       message_id: messageId,
       write_mode: toolRequest.write_mode,
       is_tool_response: true,
-      tool_use_response: {
       batch_tool_responses: [{
         tool_name: toolRequest.tool_name,
         tool_use_id: toolRequest.tool_use_id,
@@ -1189,7 +1186,6 @@ export class ChatManager {
       write_mode: toolRequest.write_mode,
       is_tool_response: true,
       tool_use_failed: true,
-      tool_use_response: {
       batch_tool_responses: [{
         tool_name: toolRequest.tool_name,
         tool_use_id: toolRequest.tool_use_id,
