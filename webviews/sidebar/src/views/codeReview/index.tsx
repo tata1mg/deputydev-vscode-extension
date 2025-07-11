@@ -151,10 +151,6 @@ export default function CodeReview() {
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
 
-  const handleDiff = () => {
-    openFileDiff();
-  };
-
   useEffect(() => {
     handleNewReview();
   }, []);
@@ -424,7 +420,7 @@ export default function CodeReview() {
                           <motion.div
                             key={file.file_path}
                             className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={() => handleDiff()}
+                            onClick={() => openFileDiff({ udiff: file.diff, filePath: file.file_path, fileName: file.file_name })}
                             initial={{ opacity: 0, x: -10 }}
                             animate={{
                               opacity: 1,
