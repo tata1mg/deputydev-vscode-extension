@@ -25,6 +25,7 @@ import {
   getGlobalState,
   rejectAllChangesInSession,
   hitEmbedding,
+  updateContextRepositories,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -263,6 +264,26 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
 
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(repos)}`);
   logToOutput('info', `set-workspace-repos :: ${JSON.stringify(activeRepo)}`);
+
+  // Initialise context repositories with active repo
+  const contextRepositories = useWorkspaceStore.getState().contextRepositories;
+  const activeRepoName = repos.find((repo) => repo.repoPath === activeRepo)?.repoName;
+  if (
+    activeRepo &&
+    activeRepoName &&
+    !contextRepositories.some((repo) => repo.repoPath === activeRepo)
+  ) {
+    useWorkspaceStore.setState({
+      contextRepositories: [
+        ...contextRepositories,
+        { repoPath: activeRepo, repoName: activeRepoName },
+      ],
+    });
+  }
+
+  updateContextRepositories({
+    contextRepositories: useWorkspaceStore.getState().contextRepositories,
+  });
 
   // Get current repos before updating
   const currentRepos = useWorkspaceStore.getState().workspaceRepos;
