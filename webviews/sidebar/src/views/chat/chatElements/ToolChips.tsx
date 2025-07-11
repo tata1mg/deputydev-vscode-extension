@@ -171,7 +171,7 @@ export function RetryChip({
 
   // Get the last message to check if it's a throttling error
   const lastMsg = messages[messages.length - 1];
-  const isThrottlingError = lastMsg?.type === 'ERROR' && (lastMsg as any).is_throttling;
+  const isThrottlingError = lastMsg?.type === 'ERROR' && (lastMsg as any).isThrottling;
 
   // Retry function defined within ChatArea component
   const retryChat = () => {
@@ -399,11 +399,11 @@ export function ThrottledChatMessage({
     }
   }, [retryAfterSeconds]);
 
-  useEffect(() => {
-    if (secondsLeft === 0) {
-      onRetry();
-    }
-  }, [secondsLeft]);
+   useEffect(() => {
+     if (secondsLeft === 0) {
+       onRetry();
+     }
+   }, [secondsLeft]);
 
   // Only show models that are not throttled (if 'throttled' property exists), otherwise fallback to all except current
   const availableModels = llmModels.some((m) => 'throttled' in m)
@@ -411,6 +411,7 @@ export function ThrottledChatMessage({
     : llmModels;
 
   function formatTime(secs: number) {
+    if (!secs || secs <= 0) return 'Throttled';
     if (secs < 60) return `${secs}s left`;
     const m = Math.floor(secs / 60);
     const s = secs % 60;
@@ -433,7 +434,7 @@ export function ThrottledChatMessage({
       <div className="w-full max-w-md rounded border-[1px] border-yellow-500/40 bg-[var(--vscode-editorWidget-background)] px-2 py-2 text-sm shadow-md">
         {/* Top strip: Throttling time */}
         <div className="w-full rounded-t border-b border-yellow-500/20 bg-yellow-500/10 px-3 py-1 text-center text-xs font-semibold text-yellow-500">
-          Throttling: {formatTime(secondsLeft)}
+          {secondsLeft > 0 ? `Throttling: ${formatTime(secondsLeft)}` : 'Throttled'}
         </div>
         {/* Main error message */}
         <div className="mb-4 mt-3 flex items-center justify-center gap-2">
