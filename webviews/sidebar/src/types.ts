@@ -434,6 +434,7 @@ export interface ReviewOption {
 }
 
 export interface CodeReviewStorage {
+  searchedBranches: string[];
   selectedTargetBranch: string;
   new_review: NewReview;
   activeReviewOption: ReviewOption;

@@ -346,3 +346,7 @@ export function downloadImageFile(key: string) {
 export function newReview(data: { targetBranch: string; reviewType: string }) {
   return callCommand('new-review', data);
 }
+
+export function searchBranches(keyword: string) {
+  return callCommand('search-branches', { keyword });
+}

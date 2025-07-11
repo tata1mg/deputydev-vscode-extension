@@ -49,4 +49,5 @@ export const API_ENDPOINTS = {
   APPROVE_MCP_TOOL: '/v1/mcp/servers/tool/approve',
   CANCEL_CHAT: '/end_user/v2/code-gen/cancel',
   NEW_REVIEW: '/v1/review/new',
+  SEARCH_BRANCHES: '/v1/branches/all',
 };
