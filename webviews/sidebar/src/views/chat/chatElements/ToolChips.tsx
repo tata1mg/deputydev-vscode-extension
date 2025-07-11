@@ -399,11 +399,11 @@ export function ThrottledChatMessage({
     }
   }, [retryAfterSeconds]);
 
-   useEffect(() => {
-     if (secondsLeft === 0) {
-       onRetry();
-     }
-   }, [secondsLeft]);
+  useEffect(() => {
+    if (secondsLeft === 0) {
+      onRetry();
+    }
+  }, [secondsLeft]);
 
   // Only show models that are not throttled (if 'throttled' property exists), otherwise fallback to all except current
   const availableModels = llmModels.some((m) => 'throttled' in m)
