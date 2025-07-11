@@ -598,7 +598,7 @@ export class ChatManager {
       const extraErrorInfo = {
         chat_payload: truncatePayloadValues(payload, 100),
         error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
-        is_throttling: isThrottlingError,
+        isThrottling: isThrottlingError,
         llm_model: payload.llm_model,
       };
 
@@ -620,7 +620,7 @@ export class ChatManager {
           payload_to_retry: originalPayload,
           error_msg: String(error.message || error),
           retry: true, // Suggest retry is possible
-          is_throttling: isThrottlingError,
+          isThrottling: isThrottlingError,
         },
       });
     } finally {

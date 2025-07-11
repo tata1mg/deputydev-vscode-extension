@@ -35,7 +35,6 @@ export function ChatArea() {
     history: messages,
     current,
     showSkeleton,
-    showSessionsBox,
     showGeneratingEffect,
     sendChatMessage,
   } = useChatStore();
@@ -545,7 +544,7 @@ export function ChatArea() {
 
           case 'ERROR': {
             // If throttling, show the new UI
-            if (msg.is_throttling) {
+            if (msg.isThrottling) {
               return (
                 <ThrottledChatMessage
                   key={index}
@@ -566,7 +565,7 @@ export function ChatArea() {
                   retry={msg.retry}
                   payload_to_retry={msg.payload_to_retry}
                 />
-                {msg.is_throttling && <ModelSuggestionChip />}
+                {msg.isThrottling && <ModelSuggestionChip />}
               </div>
             );
           }

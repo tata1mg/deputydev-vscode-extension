@@ -975,7 +975,7 @@ export const useChatStore = create(
                             retry: true,
                             payload_to_retry: {},
                             actor: 'ASSISTANT',
-                            is_throttling: true,
+                            isThrottling: (data as any).isThrottling === true,
                             content: {
                               // Only set retry_after_seconds if provided by backend
                               ...(typeof (data as any).retry_after_seconds === 'number' && {
@@ -1015,7 +1015,7 @@ export const useChatStore = create(
                       payload_to_retry: unknown;
                       error_msg: string;
                       retry: boolean;
-                      is_throttling?: boolean;
+                      isThrottling?: boolean;
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
@@ -1067,7 +1067,7 @@ export const useChatStore = create(
                         retry: errorData.retry,
                         payload_to_retry: errorData.payload_to_retry,
                         actor: 'ASSISTANT',
-                        is_throttling: errorData.is_throttling,
+                        isThrottling: errorData.isThrottling,
                       } as ChatErrorMessage);
 
                       return {
