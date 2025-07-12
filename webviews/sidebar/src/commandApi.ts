@@ -361,3 +361,7 @@ export function openFileDiff(data: { udiff: string; filePath: string; fileName: 
   console.log('openFileDiff called with', data);
   return callCommand('open-file-diff', data);
 }
+
+export function fetchPastReviews(data: { sourceBranch: string }) {
+  return callCommand('fetch-past-reviews', data);
+}
