@@ -1,5 +1,5 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChevronDown, GitBranch, Check, Pen, User, ArrowLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -366,22 +366,25 @@ export default function CodeReview() {
         {/* Review Button */}
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
-            <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
+            <div className="relative flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <span
-                className="cursor-pointer"
+                className="flex-1 cursor-pointer text-center"
                 onClick={() => {
                   hitSnapshot(activeReviewOption.value);
                 }}
               >
                 {activeReviewOption.displayName}
               </span>
-              <div className="flex items-center gap-1">
+              <div
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowReviewOptions(!showReviewOptions);
+                  setShowAgents(false);
+                }}
+              >
                 <ChevronDown
-                  className={`h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
-                  onClick={() => {
-                    setShowReviewOptions(!showReviewOptions);
-                    setShowAgents(false);
-                  }}
+                  className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
                 />
               </div>
             </div>
@@ -393,7 +396,7 @@ export default function CodeReview() {
                   setShowReviewOptions(false);
                 }}
               >
-                <User className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
+                <UserCog className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
               </button>
             </div>
           </div>

@@ -51,6 +51,7 @@ import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSe
 import { setUserSystemData } from './utilities/getSystemInformation';
 import { ReviewService } from './services/codeReview/ReviewService';
 import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
+import { CommentHandler } from './codeReview/CommentHandler';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -108,6 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
   const reviewService = new ReviewService();
   const codeReviewDiffManager = new CodeReviewDiffManager();
+  const commentHandler = new CommentHandler();
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -153,6 +155,7 @@ export async function activate(context: vscode.ExtensionContext) {
     indexingService,
     reviewService,
     codeReviewDiffManager,
+    commentHandler,
   );
   diffManager.setSidebarProvider(sidebarProvider);
   context.subscriptions.push(

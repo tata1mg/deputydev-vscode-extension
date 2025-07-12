@@ -1,7 +1,5 @@
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import * as os from 'os';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
@@ -37,6 +35,7 @@ import { Logger } from '../utilities/Logger';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
 import { ReviewService } from '../services/codeReview/ReviewService';
 import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
+import { CommentHandler } from '../codeReview/CommentHandler';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -70,6 +69,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly indexingService: IndexingService,
     private readonly reviewService: ReviewService,
     private readonly codeReviewDiffManager: CodeReviewDiffManager,
+    private readonly commentHandler: CommentHandler,
   ) {}
 
   public resolveWebviewView(
@@ -124,6 +124,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           break;
         case 'fetch-past-reviews':
           this.fetchPastReviews(data);
+          break;
+        case 'open-comment-in-file':
+          this.commentHandler.showCommentAtLine(data.filePath, data.lineNumber, data.commentText);
           break;
 
         // Code Generation

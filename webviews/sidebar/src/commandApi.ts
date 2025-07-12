@@ -363,3 +363,11 @@ export function openFileDiff(data: { udiff: string; filePath: string; fileName: 
 export function fetchPastReviews(data: { sourceBranch: string }) {
   return callCommand('fetch-past-reviews', data);
 }
+
+export function openCommentInFile(data: {
+  filePath: string;
+  lineNumber: number;
+  commentText: string;
+}) {
+  return callCommand('open-comment-in-file', data);
+}
