@@ -1,8 +1,19 @@
+import { openCommentInFile } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { CodeReviewComment } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, Funnel } from 'lucide-react';
 import { useState } from 'react';
+
+const markdownComment = `
+            This is a heading
+            This is **bold** and *italic* text.
+
+            // This is a code block
+            function example() {
+                return "Hello, world!";
+            }
+            `;
 
 export const PastReviews = () => {
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
@@ -65,11 +76,11 @@ export const PastReviews = () => {
                     animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <ChevronRight size={14} />
+                    <ChevronRight className="h-4 w-4" />
                   </motion.div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="ml-1.5 text-sm font-medium">Review #{review.id}</span>
-                    <span className="ml-1.5 text-[8px] text-[var(--vscode-descriptionForeground)]">
+                  <div className="flex flex-col px-2">
+                    <span className="text-sm font-medium">Review #{review.id}</span>
+                    <span className="text-[8px] text-[var(--vscode-descriptionForeground)]">
                       {reviewDate}
                     </span>
                   </div>
@@ -119,8 +130,8 @@ export const PastReviews = () => {
                             </motion.div>
                             <span className="min-w-0 flex-1 truncate">{filePath}</span>
                             <div className="flex flex-shrink-0 items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)]">
-                              <span className="text-red-600">!</span>
                               {comments.length}
+                              <span className="text-red-600">!</span>
                             </div>
                           </div>
                         </div>
@@ -150,7 +161,14 @@ export const PastReviews = () => {
                               {comments.map((comment) => (
                                 <div
                                   key={comment.id}
-                                  className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                                  className="cursor-pointer border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                                  onClick={() => {
+                                    openCommentInFile({
+                                      filePath: 'utils/actions.ts',
+                                      lineNumber: 2,
+                                      commentText: markdownComment,
+                                    });
+                                  }}
                                 >
                                   <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
                                     Line {comment.line_number} • {comment.tag}
