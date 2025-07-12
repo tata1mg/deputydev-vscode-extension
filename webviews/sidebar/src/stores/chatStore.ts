@@ -120,6 +120,7 @@ export const useChatStore = create(
               enhancingUserQuery: false,
               showGeneratingEffect: false,
               setCancelButtonStatus: false,
+              showSkeleton: false,
             });
           },
 

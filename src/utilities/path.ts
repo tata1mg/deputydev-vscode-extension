@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { getActiveRepo } from './contextManager';
+import fs from 'fs/promises';
+import { getActiveRepo, getRepoAndRelativeFilePath } from './contextManager';
 // Safe path comparison that works across different platforms
 export function arePathsEqual(path1?: string, path2?: string): boolean {
   if (!path1 && !path2) {
@@ -39,13 +40,25 @@ export async function fileExists(uri: vscode.Uri): Promise<boolean> {
   }
 }
 
-export async function openFile(file_path: string, startLine?: number, endLine?: number, forActiveFile?: boolean) {
-  const active_repo = getActiveRepo();
-  if (!active_repo) {
-    vscode.window.showErrorMessage('No workspace folder found.');
-    return;
+/**
+ * Helper function to check if a path exists.
+ *
+ * @param path - The path to check.
+ * @returns A promise that resolves to true if the path exists, false otherwise.
+ */
+export async function fileExistsAtPath(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
   }
-  const absolutePath = forActiveFile ? file_path : path.join(active_repo, file_path);
+}
+
+export async function openFile(file_path: string, startLine?: number, endLine?: number, forActiveFile?: boolean) {
+  const { repoPath, relativeFilePath } = await getRepoAndRelativeFilePath(file_path);
+
+  const absolutePath = forActiveFile ? file_path : path.join(repoPath, relativeFilePath);
   const uri = vscode.Uri.file(absolutePath);
   const document = await vscode.workspace.openTextDocument(uri);
   const editor = await vscode.window.showTextDocument(document);
@@ -85,6 +98,24 @@ export async function openFile(file_path: string, startLine?: number, endLine?: 
 
     editor.selection = new vscode.Selection(position, position); // Move cursor to line start, no selection
     editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+  }
+}
+
+export async function checkFileExists(file_path: string): Promise<boolean> {
+  const { repoPath, relativeFilePath } = await getRepoAndRelativeFilePath(file_path);
+  const absolutePath = path.join(repoPath, relativeFilePath);
+  const uri = vscode.Uri.file(absolutePath);
+
+  try {
+    await vscode.workspace.fs.stat(uri);
+    return true;
+  } catch (err: any) {
+    // File does not exist or cannot be accessed
+    if (err?.code === 'FileNotFound' || err?.code === 'ENOENT') {
+      return false;
+    }
+    // Could be a different error; rethrow or log as needed
+    return false;
   }
 }
 

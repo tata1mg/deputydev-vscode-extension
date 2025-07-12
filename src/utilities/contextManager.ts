@@ -289,6 +289,51 @@ export async function getRootContext(repoPath: string): Promise<string> {
     }
   }
 }
+// a function which takes absolute file path and return directory path and relative file path
+// Assumes normalizePath returns a consistent absolute path with forward slashes
+export async function getRepoAndRelativeFilePath(filePath: string): Promise<{
+  repoPath: string;
+  relativeFilePath: string;
+}> {
+  const normalizedFilePath = normalizePath(filePath);
+
+  const contextRepos = await getContextRepositories();
+
+  for (const repo of contextRepos) {
+    const repoRoot = normalizePath(repo.repo_path);
+
+    // Check if filePath starts with the repo root directory
+    // We add a slash to prevent partial matches
+    if (normalizedFilePath === repoRoot || normalizedFilePath.startsWith(repoRoot + '/')) {
+      // Remove the repo root from file path
+      let relativeFilePath = normalizedFilePath.slice(repoRoot.length);
+      if (relativeFilePath.startsWith('/')) {
+        relativeFilePath = relativeFilePath.slice(1);
+      }
+      return {
+        repoPath: repo.repo_path,
+        relativeFilePath,
+      };
+    }
+  }
+
+  // Not found in any repo: decide how to handle absolute/relative paths
+  const isAbsolute = path.isAbsolute(normalizedFilePath);
+
+  if (isAbsolute) {
+    // Absolute path, not in any repo
+    return {
+      repoPath: '',
+      relativeFilePath: filePath,
+    };
+  } else {
+    // Relative path, not in any repo
+    return {
+      repoPath: getActiveRepo() || '',
+      relativeFilePath: filePath,
+    };
+  }
+}
 
 function normalizePath(p: string): string {
   // normalize resolve ./.. segments, removes duplicate slashes, and standardizes path separators
