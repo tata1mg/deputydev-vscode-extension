@@ -44,4 +44,24 @@ export class ReviewService {
       throw error;
     }
   }
+
+  public async hitSnapshot(reviewType: string): Promise<any> {
+    try {
+      const response = await binaryApi().post(
+        API_ENDPOINTS.SNAPSHOT,
+        {}, // No body for this request
+        {
+          params: {
+            repo_path: getActiveRepo(),
+            review_type: reviewType,
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching branches during searchBranch');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
 }

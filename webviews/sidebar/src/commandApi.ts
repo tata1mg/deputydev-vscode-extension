@@ -347,11 +347,17 @@ export function newReview(data: { targetBranch: string; reviewType: string }) {
   return callCommand('new-review', data);
 }
 
+export function hitSnapshot(reviewType: string) {
+  if (reviewType !== 'COMMITTED_ONLY') {
+    return callCommand('hit-snapshot', { reviewType });
+  }
+}
+
 export function searchBranches(keyword: string) {
   return callCommand('search-branches', { keyword });
 }
 
-export function openFileDiff(data: {udiff: string, filePath: string, fileName: string}) {
+export function openFileDiff(data: { udiff: string; filePath: string; fileName: string }) {
   console.log('openFileDiff called with', data);
   return callCommand('open-file-diff', data);
 }

@@ -69,7 +69,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly indexingService: IndexingService,
     private readonly reviewService: ReviewService,
     private readonly codeReviewDiffManager: CodeReviewDiffManager,
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -111,6 +111,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         // Code Review
         case 'new-review':
           this.newReview(data);
+          break;
+        case 'hit-snapshot':
+          this.handleSnapshot(data);
           break;
         case 'search-branches':
           this.searchBranches(data.keyword);
@@ -1048,10 +1051,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async handleDiffForCodeReview(data: any) {
-    await this.codeReviewDiffManager.openFileDiff(
-      data.udiff,
-      data.filePath,
-      data.fileName
-    );
+    await this.codeReviewDiffManager.openFileDiff(data.udiff, data.filePath, data.fileName);
+  }
+
+  public async handleSnapshot(data: any) {
+    try {
+      const snapshot = await this.reviewService.hitSnapshot(data.reviewType);
+      if (snapshot) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'snapshot-result',
+          data: snapshot,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'snapshot-error',
+          data: { error: 'Failed to fetch snapshot' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'snapshot-error',
+        data: { error: String(error) },
+      });
+    }
   }
 }

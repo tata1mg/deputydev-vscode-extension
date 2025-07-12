@@ -49,7 +49,8 @@ import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
-import { ReviewService } from './services/review/ReviewService';
+import { ReviewService } from './services/codeReview/ReviewService';
+import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -106,6 +107,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const indexingService = new IndexingService();
   const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
   const reviewService = new ReviewService();
+  const codeReviewDiffManager = new CodeReviewDiffManager();
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -150,6 +152,7 @@ export async function activate(context: vscode.ExtensionContext) {
     continueNewWorkspace,
     indexingService,
     reviewService,
+    codeReviewDiffManager,
   );
   diffManager.setSidebarProvider(sidebarProvider);
   context.subscriptions.push(
@@ -354,7 +357,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   TerminalRegistry.cleanup();
   deleteSessionId();
 }
