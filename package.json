@@ -157,9 +157,51 @@
         "command": "deputydev.addTerminalOutputToChat",
         "title": "Add to DeputyDev",
         "category": "DeputyDev"
+      },
+      {
+        "command": "deputydev.resolveComment",
+        "title": "Resolve Comment",
+        "icon": "$(check)"
+      },
+      {
+        "command": "deputydev.fixWithDeputyDev",
+        "title": "Fix with DeputyDev",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "deputydev.likeCodeReviewComment",
+        "title": "Like DeputyDev Comment",
+        "icon": "$(thumbsup)"
+      },
+      {
+        "command": "deputydev.dislikeCodeReviewComment",
+        "title": "Dislike DeputyDev Comment",
+        "icon": "$(thumbsdown)"
       }
     ],
     "menus": {
+      "comments/commentThread/title": [
+        {
+          "command": "deputydev.resolveComment",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@1"
+        },
+        {
+          "command": "deputydev.fixWithDeputyDev",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@2"
+        },
+        {
+          "command": "deputydev.likeCodeReviewComment",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@3"
+        },
+        {
+          "command": "deputydev.dislikeCodeReviewComment",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@4"
+        }
+      ],
       "comments/commentThread/context": [
         {
           "command": "deputydev.aiEdit",
