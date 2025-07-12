@@ -440,6 +440,7 @@ export interface CodeReviewStorage {
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
   reviews: Review[];
+  enabledAgents: string[];
 }
 
 export interface CodeReviewComment {

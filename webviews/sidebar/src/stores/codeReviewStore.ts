@@ -16,6 +16,7 @@ export const useCodeReviewStore = create<CodeReviewStorage>()(
         { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' },
       ] as ReviewOption[],
       reviews: [],
+      enabledAgents: [],
     }),
     {
       name: 'code-review-storage',

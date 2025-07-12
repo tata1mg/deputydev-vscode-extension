@@ -15,7 +15,7 @@ import {
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { newReview, openFileDiff, searchBranches } from '@/commandApi';
+import { hitSnapshot, newReview, openFileDiff, searchBranches } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
 import { Review, CodeReviewComment } from '@/types';
@@ -150,10 +150,17 @@ export default function CodeReview() {
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
+  const [enabledAgents, setEnabledAgents] = useState<string[]>(['Security', 'Error', 'Suggestion']);
 
   useEffect(() => {
     handleNewReview();
   }, []);
+
+  const toggleAgent = (agent: string) => {
+    setEnabledAgents((prev) =>
+      prev.includes(agent) ? prev.filter((a) => a !== agent) : [...prev, agent]
+    );
+  };
 
   const handleNewReview = () => {
     console.log(
@@ -420,7 +427,13 @@ export default function CodeReview() {
                           <motion.div
                             key={file.file_path}
                             className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={() => openFileDiff({ udiff: file.diff, filePath: file.file_path, fileName: file.file_name })}
+                            onClick={() =>
+                              openFileDiff({
+                                udiff: file.diff,
+                                filePath: file.file_path,
+                                fileName: file.file_name,
+                              })
+                            }
                             initial={{ opacity: 0, x: -10 }}
                             animate={{
                               opacity: 1,
@@ -475,7 +488,14 @@ export default function CodeReview() {
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
             <div className="flex w-full items-center justify-between rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
-              <span>{activeReviewOption.displayName}</span>
+              <span
+                className="cursor-pointer"
+                onClick={() => {
+                  hitSnapshot(activeReviewOption.value);
+                }}
+              >
+                {activeReviewOption.displayName}
+              </span>
               <div className="flex items-center gap-1">
                 <ChevronDown
                   className={`h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
@@ -571,9 +591,33 @@ export default function CodeReview() {
                     {['Security', 'Error', 'Suggestion'].map((agent) => (
                       <div
                         key={agent}
-                        className="flex w-full cursor-pointer items-center gap-2 p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                        className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                       >
                         <span className="truncate">{agent}</span>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="mr-2 flex items-center space-x-2"
+                            data-tooltip-id="mcp-tooltips"
+                            data-tooltip-content="Enable/Disable Server"
+                            data-tooltip-place="top-start"
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleAgent(agent);
+                              }}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                enabledAgents.includes(agent) ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
+                            >
+                              <div
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                  enabledAgents.includes(agent) ? 'translate-x-4' : 'translate-x-0'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>

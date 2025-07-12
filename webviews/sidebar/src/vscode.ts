@@ -27,6 +27,7 @@ import {
   rejectAllChangesInSession,
   hitEmbedding,
   updateContextRepositories,
+  newReview,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -846,4 +847,14 @@ addCommandEventListener('new-review-created', ({ data }) => {
 addCommandEventListener('search-branches-result', ({ data }) => {
   useCodeReviewStore.setState({ searchedBranches: data as string[] });
   console.log('Searched branches:', useCodeReviewStore.getState().searchedBranches);
+});
+
+addCommandEventListener('snapshot-result', ({ data }: any) => {
+  console.log('Snapshot response received:', data);
+  if (data && !data.is_error) {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
 });

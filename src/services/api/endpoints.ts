@@ -50,4 +50,5 @@ export const API_ENDPOINTS = {
   CANCEL_CHAT: '/end_user/v2/code-gen/cancel',
   NEW_REVIEW: '/v1/review/new',
   SEARCH_BRANCHES: '/v1/branches/all',
+  SNAPSHOT: '/v1/review/start',
 };
