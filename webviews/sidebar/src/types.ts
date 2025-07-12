@@ -439,7 +439,7 @@ export interface CodeReviewStorage {
   new_review: NewReview;
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
-  reviews: Review[];
+  pastReviews: Review[];
   enabledAgents: string[];
 }
 

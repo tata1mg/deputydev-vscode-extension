@@ -1,7 +1,7 @@
 import { getActiveRepo } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
-import { binaryApi } from '../api/axios';
+import { api, binaryApi } from '../api/axios';
 import { API_ENDPOINTS } from '../api/endpoints';
 
 export class ReviewService {
@@ -57,6 +57,22 @@ export class ReviewService {
           },
         },
       );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching branches during searchBranch');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async getPastReviews(sourceBranch: string): Promise<any> {
+    try {
+      const response = await api.get(API_ENDPOINTS.PAST_REVIEWS, {
+        params: {
+          source_branch: 'DD-447', // Assuming source_branch is "DD-447" for the active repo
+          repo_id: 2, // Assuming repo_id is 1 for the active repo
+        },
+      });
       return response.data;
     } catch (error) {
       this.logger.error('Error while fetching branches during searchBranch');

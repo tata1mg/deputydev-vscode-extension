@@ -1,159 +1,46 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import {
-  ChevronUp,
-  ChevronDown,
-  GitBranch,
-  Check,
-  Pen,
-  ChevronLeftIcon,
-  User,
-  MessageSquare,
-  Funnel,
-  ArrowLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { ChevronDown, GitBranch, Check, Pen, User, ArrowLeft, ChevronRight } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { hitSnapshot, newReview, openFileDiff, searchBranches } from '@/commandApi';
+import {
+  fetchPastReviews,
+  hitSnapshot,
+  newReview,
+  openFileDiff,
+  searchBranches,
+} from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
-import { Review, CodeReviewComment } from '@/types';
-
-const mockReviews: Review[] = [
-  {
-    id: 2,
-    repo_id: 1,
-    user_team_id: 1,
-    loc: 0,
-    reviewed_files: [],
-    execution_time_seconds: null,
-    status: 'done',
-    fail_message: null,
-    review_datetime: null,
-    comments: [
-      {
-        id: 1,
-        review_id: 1,
-        comment: 'Consider extracting this into a separate component',
-        agent_id: 1,
-        is_deleted: false,
-        file_path: 'src/components/Button.tsx',
-        line_hash: 'abc123',
-        line_number: 23,
-        tag: 'suggestion',
-        is_valid: true,
-        created_at: '2025-07-05T10:00:00Z',
-        updated_at: '2025-07-05T10:00:00Z',
-      },
-      {
-        id: 2,
-        review_id: 1,
-        comment: 'Consider extracting this into a separate component',
-        agent_id: 1,
-        is_deleted: false,
-        file_path: 'src/components/Button.tsx',
-        line_hash: 'abc123',
-        line_number: 23,
-        tag: 'suggestion',
-        is_valid: true,
-        created_at: '2025-07-05T10:00:00Z',
-        updated_at: '2025-07-05T10:00:00Z',
-      },
-      {
-        id: 3,
-        review_id: 1,
-        comment: 'Consider extracting this into a separate component',
-        agent_id: 1,
-        is_deleted: false,
-        file_path: 'src/components/Button.tsx',
-        line_hash: 'abc123',
-        line_number: 23,
-        tag: 'suggestion',
-        is_valid: true,
-        created_at: '2025-07-05T10:00:00Z',
-        updated_at: '2025-07-05T10:00:00Z',
-      },
-      // Add more comments as needed
-    ],
-    is_deleted: false,
-    deletion_datetime: null,
-    meta_info: null,
-    diff_s3_url: null,
-    created_at: '2025-07-05T10:00:00Z',
-    updated_at: '2025-07-05T10:00:00Z',
-  },
-  {
-    id: 1,
-    repo_id: 1,
-    user_team_id: 1,
-    loc: 0,
-    reviewed_files: [],
-    execution_time_seconds: null,
-    status: 'done',
-    fail_message: null,
-    review_datetime: null,
-    comments: [
-      {
-        id: 1,
-        review_id: 1,
-        comment: 'Consider extracting this into a separate component',
-        agent_id: 1,
-        is_deleted: false,
-        file_path: 'src/components/Button.tsx',
-        line_hash: 'abc123',
-        line_number: 23,
-        tag: 'suggestion',
-        is_valid: true,
-        created_at: '2025-07-05T10:00:00Z',
-        updated_at: '2025-07-05T10:00:00Z',
-      },
-      {
-        id: 2,
-        review_id: 1,
-        comment: 'Consider extracting this into a separate component',
-        agent_id: 1,
-        is_deleted: false,
-        file_path: 'src/components/Button.tsx',
-        line_hash: 'abc123',
-        line_number: 23,
-        tag: 'suggestion',
-        is_valid: true,
-        created_at: '2025-07-05T10:00:00Z',
-        updated_at: '2025-07-05T10:00:00Z',
-      },
-      // Add more comments as needed
-    ],
-    is_deleted: false,
-    deletion_datetime: null,
-    meta_info: null,
-    diff_s3_url: null,
-    created_at: '2025-07-05T10:00:00Z',
-    updated_at: '2025-07-05T10:00:00Z',
-  },
-  // Add more reviews as needed
-];
+import { PastReviews } from './PastReviews';
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
-  const { new_review, reviewOptions, activeReviewOption, searchedBranches, selectedTargetBranch } =
-    useCodeReviewStore();
+  const {
+    new_review,
+    reviewOptions,
+    activeReviewOption,
+    searchedBranches,
+    selectedTargetBranch,
+    pastReviews,
+  } = useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('reviews');
-  const [expandedReview, setExpandedReview] = useState<string | null>(null);
-  const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('d');
   const [showBranchDropdown, setShowBranchDropdown] = useState(false);
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
-  const [enabledAgents, setEnabledAgents] = useState<string[]>(['Security', 'Error', 'Suggestion']);
+  const [enabledAgents, setEnabledAgents] = useState<string[]>([]);
 
   useEffect(() => {
     handleNewReview();
+  }, []);
+
+  useEffect(() => {
+    fetchPastReviews({ sourceBranch: '' });
   }, []);
 
   const toggleAgent = (agent: string) => {
@@ -209,15 +96,6 @@ export default function CodeReview() {
       ? 'https://onemg.gumlet.io/dd_logo_dark_name_14_04.png'
       : 'https://onemg.gumlet.io/dd_logo_with_name_10_04.png';
 
-  const toggleReview = (reviewId: string) => {
-    setExpandedReview(expandedReview === reviewId ? null : reviewId);
-    setExpandedFile(null);
-  };
-
-  const toggleFile = (filePath: string) => {
-    setExpandedFile(expandedFile === filePath ? null : filePath);
-  };
-
   const handleSearchBranches = async (keyword: string) => {
     searchBranches(keyword);
   };
@@ -250,6 +128,7 @@ export default function CodeReview() {
           </div>
         </div>
 
+        {/* New Review */}
         {new_review && (
           <div>
             {/* Branch Info */}
@@ -466,7 +345,7 @@ export default function CodeReview() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-4 text-sm">
+                              <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
                                 <span className="flex gap-2 font-mono text-xs text-[var(--vscode-descriptionForeground)]">
                                   <span>+{file.line_changes.added}</span>
                                   <span>-{file.line_changes.removed}</span>
@@ -628,157 +507,7 @@ export default function CodeReview() {
         </div>
 
         {/* Reviews History */}
-        <div className="mt-2 flex h-full flex-col px-4">
-          <div
-            className="flex w-full rounded-t-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
-            style={{
-              boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
-            }}
-          >
-            <div className="flex w-full items-center justify-between px-4 py-2">
-              <div className="relative flex-1 text-sm font-medium">Past Reviews</div>
-              <Funnel className="h-4 w-4" />
-            </div>
-          </div>
-
-          <div
-            className="flex-1 overflow-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
-            style={{
-              boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
-            }}
-          >
-            {mockReviews.map((review) => {
-              // Group comments by file path
-              const filesWithComments = review.comments.reduce<Record<string, CodeReviewComment[]>>(
-                (acc, comment) => {
-                  if (!acc[comment.file_path]) {
-                    acc[comment.file_path] = [];
-                  }
-                  acc[comment.file_path].push(comment);
-                  return acc;
-                },
-                {}
-              );
-
-              const fileCount = Object.keys(filesWithComments).length;
-              const commentCount = review.comments.length;
-              const reviewDate = new Date(review.created_at).toLocaleDateString();
-
-              return (
-                <div key={review.id} className="m-1 text-sm">
-                  <div
-                    className="flex cursor-pointer items-center justify-between rounded p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
-                    onClick={() => toggleReview(review.id.toString())}
-                  >
-                    <div className="flex items-center">
-                      <motion.div
-                        animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <ChevronRight size={14} />
-                      </motion.div>
-                      <span className="ml-1.5 font-medium">Review #{review.id}</span>
-                      <span className="ml-1.5 text-xs text-[var(--vscode-descriptionForeground)]">
-                        {reviewDate}
-                      </span>
-                    </div>
-                    <div className="text-xs text-[var(--vscode-descriptionForeground)]">
-                      {fileCount} files • {commentCount} comments
-                    </div>
-                  </div>
-
-                  <AnimatePresence>
-                    {expandedReview === review.id.toString() && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{
-                          opacity: 1,
-                          height: 'auto',
-                          transition: {
-                            opacity: { duration: 0.2 },
-                            height: { duration: 0.3, ease: 'easeInOut' },
-                          },
-                        }}
-                        exit={{
-                          opacity: 0,
-                          height: 0,
-                          transition: {
-                            opacity: { duration: 0.15 },
-                            height: { duration: 0.25, ease: 'easeInOut' },
-                          },
-                        }}
-                        className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
-                      >
-                        {Object.entries(filesWithComments).map(([filePath, comments]) => (
-                          <div key={filePath} className="pl-4">
-                            <div
-                              className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFile(filePath);
-                              }}
-                            >
-                              <div className="flex items-center">
-                                <motion.div
-                                  animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
-                                  transition={{ duration: 0.2 }}
-                                >
-                                  <ChevronRight size={12} />
-                                </motion.div>
-                                <span className="ml-1.5 truncate">{filePath}</span>
-                              </div>
-                              <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
-                                <MessageSquare size={10} className="mr-0.5" />
-                                {comments.length}
-                              </div>
-                            </div>
-
-                            <AnimatePresence>
-                              {expandedFile === filePath && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{
-                                    opacity: 1,
-                                    height: 'auto',
-                                    transition: {
-                                      opacity: { duration: 0.2 },
-                                      height: { duration: 0.3, ease: 'easeInOut' },
-                                    },
-                                  }}
-                                  exit={{
-                                    opacity: 0,
-                                    height: 0,
-                                    transition: {
-                                      opacity: { duration: 0.15 },
-                                      height: { duration: 0.25, ease: 'easeInOut' },
-                                    },
-                                  }}
-                                  className="overflow-hidden"
-                                >
-                                  {comments.map((comment) => (
-                                    <div
-                                      key={comment.id}
-                                      className="border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                                    >
-                                      <div className="text-[11px] text-[var(--vscode-descriptionForeground)]">
-                                        Line {comment.line_number} • {comment.tag}
-                                      </div>
-                                      <div className="leading-tight">{comment.comment}</div>
-                                    </div>
-                                  ))}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {pastReviews && pastReviews.length > 0 && <PastReviews />}
       </div>
     </PageTransition>
   );

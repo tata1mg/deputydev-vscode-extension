@@ -121,6 +121,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'open-file-diff':
           this.handleDiffForCodeReview(data);
           break;
+        case 'fetch-past-reviews':
+          this.fetchPastReviews(data);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1074,6 +1077,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'snapshot-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async fetchPastReviews(data: any) {
+    try {
+      const reviews = await this.reviewService.getPastReviews(data.sourceBranch);
+      if (reviews) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'past-reviews',
+          data: reviews.data,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'past-reviews-error',
+          data: { error: 'Failed to fetch past reviews' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'past-reviews-error',
         data: { error: String(error) },
       });
     }

@@ -19,6 +19,7 @@ import {
   IndexingProgressData,
   EmbeddingProgressData,
   NewReview,
+  Review,
 } from '@/types';
 import {
   logToOutput,
@@ -857,4 +858,13 @@ addCommandEventListener('snapshot-result', ({ data }: any) => {
       reviewType: useCodeReviewStore.getState().activeReviewOption.value,
     });
   }
+});
+
+addCommandEventListener('past-reviews', ({ data }) => {
+  const result = data as Review[];
+  if (data) {
+    useCodeReviewStore.setState({ pastReviews: result });
+  }
+
+  console.log('Past reviews data received:', useCodeReviewStore.getState().pastReviews);
 });
