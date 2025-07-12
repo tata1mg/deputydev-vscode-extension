@@ -109,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
   const reviewService = new ReviewService();
   const codeReviewDiffManager = new CodeReviewDiffManager();
-  const commentHandler = new CommentHandler();
+  const commentHandler = new CommentHandler(context);
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -309,6 +309,29 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('deputydev.SettingsButtonClick', () => {
       outputChannel.info('Settings button clicked!');
       sidebarProvider.setViewType('setting');
+    }),
+  );
+
+  // Code review
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.resolveComment', () => {
+      // Handle resolveComment action
+      console.log('Resolve comment action triggered');
+    }),
+
+    vscode.commands.registerCommand('deputydev.fixWithDeputyDev', () => {
+      // Handle Fix with DD action
+      console.log('Fix with DeputyDev action triggered');
+    }),
+
+    vscode.commands.registerCommand('deputydev.dislikeCodeReviewComment', () => {
+      // Handle dislike action
+      console.log('Dislike code review comment action triggered');
+    }),
+
+    vscode.commands.registerCommand('deputydev.likeCodeReviewComment', () => {
+      // Handle like action
+      console.log('Like code review comment action triggered');
     }),
   );
 
