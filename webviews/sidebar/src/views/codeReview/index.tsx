@@ -347,8 +347,8 @@ export default function CodeReview() {
                               </div>
                               <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
                                 <span className="flex gap-2 font-mono text-xs">
-                                  <span className='text-green-600'>+{file.line_changes.added}</span>
-                                  <span className='text-red-600'>-{file.line_changes.removed}</span>
+                                  <span className="text-green-600">+{file.line_changes.added}</span>
+                                  <span className="text-red-600">-{file.line_changes.removed}</span>
                                 </span>
                               </div>
                             </div>
