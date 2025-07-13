@@ -9,6 +9,7 @@ export class CommentHandler {
     public onDidChangeCommentThreads = this._onDidChangeCommentThreads.event;
     private activeThreads: WeakMap<vscode.CommentThread, string> = new WeakMap();
     private threadKeys: Map<string, vscode.CommentThread> = new Map();
+    private activeThread: vscode.CommentThread | null = null;
 
     private getThreadKey(uri: vscode.Uri, line: number): string {
         return `${uri.toString()}:${line}`;
@@ -26,6 +27,17 @@ export class CommentHandler {
                 return [new vscode.Range(0, 0, lineCount, 0)];
             },
         };
+    }
+    public closeThread(thread: vscode.CommentThread): void {
+        const threadKey = this.activeThreads.get(thread);
+        if (threadKey) {
+            this.threadKeys.delete(threadKey);
+            this.activeThreads.delete(thread);
+        }
+        thread.dispose();
+        if (this.activeThread === thread) {
+            this.activeThread = null;
+        }
     }
 
     /**
@@ -72,6 +84,7 @@ export class CommentHandler {
 
             // Create a comment thread
             const commentThread = this.commentController.createCommentThread(uri, range, []);
+            this.activeThread = commentThread;
 
             // Store the thread for future reference
             this.threadKeys.set(threadKey, commentThread);
@@ -104,6 +117,9 @@ export class CommentHandler {
                         if (key) {
                             this.threadKeys.delete(key);
                             this.activeThreads.delete(commentThread);
+                            if (this.activeThread === commentThread) {
+                                this.activeThread = null;
+                            }
                             disposable.dispose();
                         }
                     }
