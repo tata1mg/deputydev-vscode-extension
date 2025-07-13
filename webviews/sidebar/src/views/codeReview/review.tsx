@@ -29,7 +29,15 @@ const LoadingSpinner = () => (
   </motion.div>
 );
 
-const AgentStatus = ({ agent, completed, isActive }: { agent: string; completed: boolean; isActive: boolean }) => (
+const AgentStatus = ({
+  agent,
+  completed,
+  isActive,
+}: {
+  agent: string;
+  completed: boolean;
+  isActive: boolean;
+}) => (
   <motion.div
     initial={{ opacity: 0, x: -10 }}
     animate={{ opacity: 1, x: 0 }}
@@ -46,7 +54,9 @@ const AgentStatus = ({ agent, completed, isActive }: { agent: string; completed:
     ) : (
       <div className="h-2 w-2 rounded-full bg-gray-400" />
     )}
-    <span className={`text-xs ${completed ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-gray-500'}`}>
+    <span
+      className={`text-xs ${completed ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-gray-500'}`}
+    >
       {agent} agent {completed ? 'completed' : isActive ? 'in progress...' : 'pending...'}
     </span>
   </motion.div>
@@ -92,11 +102,11 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
       }, 6000),
     ];
 
-    return () => timers.forEach(timer => clearTimeout(timer));
+    return () => timers.forEach((timer) => clearTimeout(timer));
   }, [isRunning]);
 
   const completeStep = (stepIndex: number) => {
-    setSteps(prevSteps =>
+    setSteps((prevSteps) =>
       prevSteps.map((step, i) => {
         if (i === stepIndex) {
           return { ...step, completed: true, inProgress: false };
@@ -110,12 +120,12 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
   };
 
   const completeAgent = (agent: string) => {
-    setCompletedAgents(prev => [...prev, agent]);
+    setCompletedAgents((prev) => [...prev, agent]);
   };
 
   useEffect(() => {
     if (!isRunning) {
-      setSteps(prevSteps =>
+      setSteps((prevSteps) =>
         prevSteps.map((step, i) => ({
           ...step,
           completed: false,
@@ -134,7 +144,7 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col gap-2 px-4 py-2"
     >
-      <div className="overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] shadow-sm bg-[var(--vscode-editor-background)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-sm">
         <motion.div className="flex flex-col p-4" layout>
           <motion.h2
             className="mb-4 text-lg font-medium"
@@ -155,10 +165,7 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                 transition={{ delay: index * 0.1 }}
               >
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    className="flex h-6 w-6 items-center justify-center"
-                    layout
-                  >
+                  <motion.div className="flex h-6 w-6 items-center justify-center" layout>
                     {step.completed ? (
                       <AnimatedCheck />
                     ) : step.inProgress ? (
@@ -168,12 +175,13 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                     )}
                   </motion.div>
                   <motion.span
-                    className={`text-sm ${step.completed
-                      ? 'text-green-600 dark:text-green-400'
-                      : step.inProgress
-                        ? 'font-medium'
-                        : 'text-gray-500 dark:text-gray-400'
-                      }`}
+                    className={`text-sm ${
+                      step.completed
+                        ? 'text-green-600 dark:text-green-400'
+                        : step.inProgress
+                          ? 'font-medium'
+                          : 'text-gray-500 dark:text-gray-400'
+                    }`}
                     layout="position"
                   >
                     {step.label}
@@ -187,7 +195,7 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                       animate={{ height: 'auto', opacity: 1 }}
                       className="ml-9 space-y-2 overflow-hidden border-l-2 border-gray-200 pl-4 dark:border-gray-700"
                     >
-                      {step.agents.map(agent => (
+                      {step.agents.map((agent) => (
                         <AgentStatus
                           key={agent}
                           agent={agent}
