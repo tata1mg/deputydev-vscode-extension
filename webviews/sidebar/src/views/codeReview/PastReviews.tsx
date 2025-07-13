@@ -165,7 +165,7 @@ export const PastReviews = () => {
                                   onClick={() => {
                                     openCommentInFile({
                                       filePath: 'utils/actions.ts',
-                                      lineNumber: comment.line_number,
+                                      lineNumber: comment.line_number - 1,
                                       commentText: comment.comment,
                                     });
                                   }}
