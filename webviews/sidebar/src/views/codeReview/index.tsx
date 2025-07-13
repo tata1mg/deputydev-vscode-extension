@@ -37,7 +37,6 @@ export default function CodeReview() {
   const [enabledAgents, setEnabledAgents] = useState<string[]>([]);
   const [isReviewRunning, setIsReviewRunning] = useState(false);
 
-
   const handleStartReview = () => {
     setIsReviewRunning(true);
   };
@@ -370,9 +369,7 @@ export default function CodeReview() {
           </div>
         )}
 
-        {isReviewRunning && (
-          <Review isRunning={isReviewRunning} />
-        )}
+        {isReviewRunning && <Review isRunning={isReviewRunning} />}
 
         {/* Review Button */}
         <div ref={dropDownRef} className="relative px-4">
@@ -501,12 +498,14 @@ export default function CodeReview() {
                                 e.stopPropagation();
                                 toggleAgent(agent);
                               }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${enabledAgents.includes(agent) ? 'bg-green-500' : 'bg-gray-300'
-                                }`}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                enabledAgents.includes(agent) ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
                             >
                               <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${enabledAgents.includes(agent) ? 'translate-x-4' : 'translate-x-0'
-                                  }`}
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                  enabledAgents.includes(agent) ? 'translate-x-4' : 'translate-x-0'
+                                }`}
                               />
                             </button>
                           </div>
