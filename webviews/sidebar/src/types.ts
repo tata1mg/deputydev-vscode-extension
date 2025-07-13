@@ -447,7 +447,7 @@ export interface CodeReviewComment {
   id: number;
   review_id: number;
   comment: string;
-  agent_id: number;
+  agent_id?: number;
   is_deleted: boolean;
   file_path: string;
   line_hash: string;

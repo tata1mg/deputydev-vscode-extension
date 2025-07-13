@@ -70,7 +70,7 @@ export class ReviewService {
       const response = await api.get(API_ENDPOINTS.PAST_REVIEWS, {
         params: {
           source_branch: 'DD-447', // Assuming source_branch is "DD-447" for the active repo
-          repo_id: 2, // Assuming repo_id is 1 for the active repo
+          repo_id: 104, // Assuming repo_id is 1 for the active repo
         },
       });
       return response.data;
