@@ -22,12 +22,12 @@ export const PastReviews = () => {
 
   const tagColors = (tag: string) => {
     if (tag === 'bug') {
-      return "bg-red-600"
+      return 'bg-red-600';
     }
     if (tag === 'suggestion') {
-      return "bg-yellow-600"
+      return 'bg-yellow-600';
     }
-  }
+  };
 
   const toggleReview = (reviewId: string) => {
     setExpandedReview(expandedReview === reviewId ? null : reviewId);
@@ -121,35 +121,37 @@ export const PastReviews = () => {
                     className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
                   >
                     {/* Review Summary */}
-                    <div className='flex flex-col my-3 pl-4 gap-2'>
-                      <span className='text-xs'>Agents</span>
+                    <div className="my-3 flex flex-col gap-2 pl-4">
+                      <span className="text-xs">Agents</span>
                       <div className="flex gap-2">
                         {['Security', 'Error', 'Performance'].map((label) => {
                           const count = Math.floor(Math.random() * 10) + 1; // Random count between 1-10
                           return (
                             <div
                               key={label}
-                              className="relative flex items-center gap-1 border border-[var(--vscode-editorWidget-border)] bg-gray-800 rounded-md text-white px-2 py-0.5"
+                              className="relative flex items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-2 py-0.5 text-white"
                             >
                               <User className="h-3 w-3" />
                               <span className="text-xs">{label}</span>
-                              <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
+                              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
                                 {count}
                               </span>
                             </div>
                           );
                         })}
                       </div>
-                      <span className='text-xs'>Tags</span>
+                      <span className="text-xs">Tags</span>
                       <div className="flex gap-2">
                         {['bug', 'suggestion'].map((tag) => {
                           const count = Math.floor(Math.random() * 10) + 1; // Random count between 1-10
                           return (
                             <div key={tag} className="relative">
-                              <div className={`w-fit text-[11px] border rounded-md text-white px-2 py-0.5 ${tagColors(tag)}`}>
+                              <div
+                                className={`w-fit rounded-md border px-2 py-0.5 text-[11px] text-white ${tagColors(tag)}`}
+                              >
                                 {tag.toUpperCase()}
                               </div>
-                              <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
+                              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
                                 {count}
                               </span>
                             </div>
@@ -216,23 +218,29 @@ export const PastReviews = () => {
                                     });
                                   }}
                                 >
-                                  <div className="flex justify-between items-center w-full">
-                                    <div className="flex flex-col gap-1 max-w-[70%]"> {/* adjust width as needed */}
-                                      <div className="flex flex-wrap gap-1 items-center">
+                                  <div className="flex w-full items-center justify-between">
+                                    <div className="flex max-w-[70%] flex-col gap-1">
+                                      {' '}
+                                      {/* adjust width as needed */}
+                                      <div className="flex flex-wrap items-center gap-1">
                                         {['Security', 'Error', 'Performance'].map((label) => (
                                           <div
                                             key={label}
-                                            className="w-fit items-center flex gap-1 text-[11px] border border-[var(--vscode-editorWidget-border)] bg-gray-800 rounded-md text-white px-1 py-0.5"
+                                            className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[11px] text-white"
                                           >
                                             <User className="h-3 w-3" />
                                             <span>{label}</span>
                                           </div>
                                         ))}
                                       </div>
-                                      <div className="text-[11px] break-words">{comment.comment}</div>
+                                      <div className="break-words text-[11px]">
+                                        {comment.comment}
+                                      </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 items-end">
-                                      <div className={`w-fit text-[11px] border rounded-md text-white px-1 py-0.5 ${tagColors(comment.tag)}`}>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <div
+                                        className={`w-fit rounded-md border px-1 py-0.5 text-[11px] text-white ${tagColors(comment.tag)}`}
+                                      >
                                         {comment.tag.toUpperCase()}
                                       </div>
                                       <span className="text-[11px] text-[var(--vscode-descriptionForeground)]">
@@ -240,7 +248,6 @@ export const PastReviews = () => {
                                       </span>
                                     </div>
                                   </div>
-
                                 </div>
                               ))}
                             </motion.div>
