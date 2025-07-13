@@ -314,9 +314,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Code review
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.resolveComment', () => {
+    vscode.commands.registerCommand('deputydev.resolveComment', (thread: vscode.CommentThread) => {
       // Handle resolveComment action
       console.log('Resolve comment action triggered');
+      commentHandler.closeThread(thread);
     }),
 
     vscode.commands.registerCommand('deputydev.fixWithDeputyDev', () => {
