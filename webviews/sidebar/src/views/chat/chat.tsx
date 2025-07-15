@@ -50,6 +50,7 @@ import RepoSelector from './chatElements/RepoSelector';
 import { ChatArea } from './chatMessagesArea';
 import ChangedFilesBar from './chatElements/changedFilesBar';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
+import { useActiveFileStore } from '@/stores/activeFileStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -495,7 +496,9 @@ export function ChatUI() {
         )}
       </div>
 
-      <div className="mb-[180px] h-full overflow-auto px-4">
+      <div
+        className={`${useActiveFileStore.getState().activeFileUri ? 'mb-[200px]' : 'mb-[180px]'} h-full overflow-auto px-4`}
+      >
         <ChatArea />
         <div ref={messagesEndRef} />
       </div>
