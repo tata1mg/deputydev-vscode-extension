@@ -566,7 +566,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => {},
+    () => { },
     undefined,
     false,
     {},
@@ -661,7 +661,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => {},
+      () => { },
       undefined,
       false,
       {},
@@ -843,6 +843,7 @@ addCommandEventListener('new-review-created', ({ data }) => {
   console.log('New review data received:', data);
   console.log('setting new review in store');
   useCodeReviewStore.setState({ new_review: data as NewReview });
+  useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
 });
 

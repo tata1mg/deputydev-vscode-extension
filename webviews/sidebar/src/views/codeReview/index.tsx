@@ -1,5 +1,5 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight, Info } from 'lucide-react';
+import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight, Info, LoaderCircle } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,6 +28,7 @@ export default function CodeReview() {
     pastReviews,
     userAgents,
     enabledAgents,
+    isFetchingChangedFiles,
   } = useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
@@ -39,6 +40,17 @@ export default function CodeReview() {
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
   const [isReviewRunning, setIsReviewRunning] = useState(false);
+
+  const getNoChangesFoundText = () => {
+    switch (activeReviewOption.value) {
+      case 'ALL':
+        return 'No files found for review';
+      case 'COMMITTED_ONLY':
+        return 'No committed changes found for review';
+      case 'UNCOMMITTED_ONLY':
+        return 'No uncommitted changes found for review';
+    }
+  }
 
   useEffect(() => {
     getUserAgents();
@@ -72,6 +84,7 @@ export default function CodeReview() {
       'Triggering new review with branch:',
       useCodeReviewStore.getState().selectedTargetBranch
     );
+    useCodeReviewStore.setState({isFetchingChangedFiles: true});
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
       reviewType: useCodeReviewStore.getState().activeReviewOption.value,
@@ -319,60 +332,76 @@ export default function CodeReview() {
                       }}
                       className="overflow-hidden"
                     >
-                      <div className="max-h-[260px] divide-y divide-[var(--vscode-editorWidget-border)] overflow-y-auto">
-                        {new_review?.file_wise_changes?.map((file) => (
-                          <motion.div
-                            key={file.file_path}
-                            className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={() =>
-                              openFileDiff({
-                                udiff: file.diff,
-                                filePath: file.file_path,
-                                fileName: file.file_name,
-                              })
-                            }
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{
-                              opacity: 1,
-                              x: 0,
-                              transition: {
-                                duration: 0.2,
-                                ease: 'easeOut',
-                              },
-                            }}
-                            exit={{
-                              opacity: 0,
-                              x: -10,
-                              transition: {
-                                duration: 0.15,
-                                ease: 'easeIn',
-                              },
-                            }}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex min-w-0 items-center">
-                                <span
-                                  className={`mr-2 rounded px-1.5 py-0.5 font-mono text-xs ${getStatusColor(file.status)}`}
-                                >
-                                  {file.status}
-                                </span>
-                                <div className="truncate">
-                                  <div className="truncate font-medium">{file.file_name}</div>
-                                  <div className="truncate text-xs text-[var(--vscode-descriptionForeground)]">
-                                    {file.file_path}
+                      {/* Loading State */}
+                      {isFetchingChangedFiles && (
+                        <div className="h-[260px] flex flex-col items-center justify-center space-y-2">
+                          <LoaderCircle className="h-10 w-10 animate-spin" />
+                          <span className='italic text-md font-mono'>Analyzing Changes...</span>
+                        </div>
+                      )}
+
+                      {!isFetchingChangedFiles && new_review?.file_wise_changes?.length === 0 && (
+                        <div className="h-[260px] flex items-center justify-center">
+                          <span className='italic text-md font-mono'>{getNoChangesFoundText()}</span>
+                        </div>
+                      )}
+
+                      {!isFetchingChangedFiles && new_review?.file_wise_changes?.length !== 0 && (
+                        <div className="h-[260px] divide-y divide-[var(--vscode-editorWidget-border)] overflow-y-auto">
+                          {new_review?.file_wise_changes?.map((file) => (
+                            <motion.div
+                              key={file.file_path}
+                              className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                              onClick={() =>
+                                openFileDiff({
+                                  udiff: file.diff,
+                                  filePath: file.file_path,
+                                  fileName: file.file_name,
+                                })
+                              }
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{
+                                opacity: 1,
+                                x: 0,
+                                transition: {
+                                  duration: 0.2,
+                                  ease: 'easeOut',
+                                },
+                              }}
+                              exit={{
+                                opacity: 0,
+                                x: -10,
+                                transition: {
+                                  duration: 0.15,
+                                  ease: 'easeIn',
+                                },
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex min-w-0 items-center">
+                                  <span
+                                    className={`mr-2 rounded px-1.5 py-0.5 font-mono text-xs ${getStatusColor(file.status)}`}
+                                  >
+                                    {file.status}
+                                  </span>
+                                  <div className="truncate">
+                                    <div className="truncate font-medium">{file.file_name}</div>
+                                    <div className="truncate text-xs text-[var(--vscode-descriptionForeground)]">
+                                      {file.file_path}
+                                    </div>
                                   </div>
                                 </div>
+                                <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
+                                  <span className="flex gap-2 font-mono text-xs">
+                                    <span className="text-green-600">+{file.line_changes.added}</span>
+                                    <span className="text-red-600">-{file.line_changes.removed}</span>
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
-                                <span className="flex gap-2 font-mono text-xs">
-                                  <span className="text-green-600">+{file.line_changes.added}</span>
-                                  <span className="text-red-600">-{file.line_changes.removed}</span>
-                                </span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>

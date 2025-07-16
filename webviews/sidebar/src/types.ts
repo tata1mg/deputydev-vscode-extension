@@ -457,6 +457,7 @@ export interface CodeReviewStorage {
   pastReviews: Review[];
   enabledAgents: number[];
   userAgents: UserAgent[];
+  isFetchingChangedFiles: boolean;
 }
 
 export interface CodeReviewComment {

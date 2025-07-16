@@ -18,6 +18,7 @@ export const useCodeReviewStore = create<CodeReviewStorage>()(
       pastReviews: [],
       enabledAgents: [],
       userAgents: [],
+      isFetchingChangedFiles: false,
     }),
     {
       name: 'code-review-storage',
