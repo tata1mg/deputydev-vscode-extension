@@ -85,7 +85,7 @@ export class ReviewService {
     try {
       const response = await api.get(API_ENDPOINTS.USER_AGENTS, {
         params: {
-          user_team_id: 112
+          user_team_id: 112,
         },
       });
       return response.data;

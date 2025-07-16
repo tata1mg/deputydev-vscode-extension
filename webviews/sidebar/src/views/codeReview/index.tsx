@@ -41,7 +41,7 @@ export default function CodeReview() {
 
   useEffect(() => {
     getUserAgents();
-  }, [])
+  }, []);
 
   const handleStartReview = () => {
     setIsReviewRunning(true);
@@ -509,12 +509,16 @@ export default function CodeReview() {
                                 e.stopPropagation();
                                 toggleAgent(agent.id);
                               }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
-                                }`}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
                             >
                               <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${enabledAgents.includes(agent.id) ? 'translate-x-4' : 'translate-x-0'
-                                  }`}
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                  enabledAgents.includes(agent.id)
+                                    ? 'translate-x-4'
+                                    : 'translate-x-0'
+                                }`}
                               />
                             </button>
                           </div>

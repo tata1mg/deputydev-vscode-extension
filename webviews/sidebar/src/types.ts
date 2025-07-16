@@ -439,8 +439,8 @@ export interface UserAgent {
   user_team_id: number;
   display_name: string;
   custom_prompt: string;
-  exclusions: [],
-  inclusions: [],
+  exclusions: [];
+  inclusions: [];
   confidence_score: number;
   objective: string;
   is_custom_agent: boolean;
