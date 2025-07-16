@@ -37,6 +37,7 @@ import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { Tooltip } from 'react-tooltip';
+import { FixedSizeList as List } from 'react-window';
 
 const getLocaleTimeString = (dateString: string) => {
   const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
@@ -64,6 +65,18 @@ interface SettingsCardProps {
   description: string;
   children?: React.ReactNode;
   bottom?: boolean;
+}
+
+interface FileStatusType {
+  file_path: string;
+  status: string;
+  // add more fields if needed
+}
+
+interface FileRowProps {
+  index: number;
+  style: React.CSSProperties;
+  data: FileStatusType[];
 }
 
 const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, children, bottom }) => {
@@ -451,6 +464,19 @@ const IndexingArea: React.FC = () => {
     }));
   };
 
+  const FileRow = React.memo(function FileRow({ index, style, data }: FileRowProps) {
+    const status = data[index];
+    return (
+      <div style={style} className="flex items-center justify-between text-sm">
+        <span className="truncate">{status.file_path}</span>
+        <div>
+          <StatusIcon status={status.status} />
+        </div>
+      </div>
+    );
+  });
+  FileRow.displayName = 'FileRow';
+
   return (
     <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto">
       {indexingProgressData && indexingProgressData.length > 0 ? (
@@ -515,16 +541,15 @@ const IndexingArea: React.FC = () => {
                   >
                     <div className="mb-2 font-medium">File Progress:</div>
                     {progress.indexing_status && progress.indexing_status.length > 0 ? (
-                      <div className="max-h-40 space-y-2 overflow-y-auto">
-                        {progress.indexing_status.map((status, idx) => (
-                          <div key={idx} className="flex items-center justify-between text-sm">
-                            <span className="truncate">{status.file_path}</span>
-                            <div>
-                              <StatusIcon status={status.status} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <List
+                        height={160}
+                        itemCount={progress.indexing_status.length}
+                        itemSize={32}
+                        width="100%"
+                        itemData={progress.indexing_status as FileStatusType[]}
+                      >
+                        {FileRow}
+                      </List>
                     ) : (
                       <div className="italic text-gray-500">
                         No file progress information available
