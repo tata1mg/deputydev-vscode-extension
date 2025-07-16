@@ -167,7 +167,7 @@ export const PastReviews = () => {
                             >
                               <ChevronRight size={12} className="flex-shrink-0" />
                             </motion.div>
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div className="flex min-w-0 items-center gap-2">
                               <div
                                 data-tooltip-id="code-review-tooltips"
                                 data-tooltip-content={filePath}
@@ -179,11 +179,12 @@ export const PastReviews = () => {
                                   textOverflow: 'ellipsis',
                                   direction: 'rtl',
                                   textAlign: 'left',
-                                  flex: 1
-                                }}>
+                                  flex: 1,
+                                }}
+                              >
                                 {filePath}
                               </div>
-                              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)] ml-2">
+                              <div className="ml-2 flex flex-shrink-0 items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)]">
                                 {comments.length}
                                 <span className="text-red-600">!</span>
                               </div>
@@ -269,7 +270,7 @@ export const PastReviews = () => {
           );
         })}
       </div>
-      <Tooltip id="code-review-tooltips"/>
+      <Tooltip id="code-review-tooltips" />
     </div>
   );
 };

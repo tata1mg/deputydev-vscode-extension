@@ -1,5 +1,15 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight, Info, LoaderCircle } from 'lucide-react';
+import {
+  ChevronDown,
+  GitBranch,
+  Check,
+  Pen,
+  UserCog,
+  ArrowLeft,
+  ChevronRight,
+  Info,
+  LoaderCircle,
+} from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -50,7 +60,7 @@ export default function CodeReview() {
       case 'UNCOMMITTED_ONLY':
         return 'No uncommitted changes found for review';
     }
-  }
+  };
 
   useEffect(() => {
     getUserAgents();
@@ -84,7 +94,7 @@ export default function CodeReview() {
       'Triggering new review with branch:',
       useCodeReviewStore.getState().selectedTargetBranch
     );
-    useCodeReviewStore.setState({isFetchingChangedFiles: true});
+    useCodeReviewStore.setState({ isFetchingChangedFiles: true });
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
       reviewType: useCodeReviewStore.getState().activeReviewOption.value,
@@ -334,15 +344,17 @@ export default function CodeReview() {
                     >
                       {/* Loading State */}
                       {isFetchingChangedFiles && (
-                        <div className="h-[260px] flex flex-col items-center justify-center space-y-2">
+                        <div className="flex h-[260px] flex-col items-center justify-center space-y-2">
                           <LoaderCircle className="h-10 w-10 animate-spin" />
-                          <span className='italic text-md font-mono'>Analyzing Changes...</span>
+                          <span className="text-md font-mono italic">Analyzing Changes...</span>
                         </div>
                       )}
 
                       {!isFetchingChangedFiles && new_review?.file_wise_changes?.length === 0 && (
-                        <div className="h-[260px] flex items-center justify-center">
-                          <span className='italic text-md font-mono'>{getNoChangesFoundText()}</span>
+                        <div className="flex h-[260px] items-center justify-center">
+                          <span className="text-md font-mono italic">
+                            {getNoChangesFoundText()}
+                          </span>
                         </div>
                       )}
 
@@ -393,8 +405,12 @@ export default function CodeReview() {
                                 </div>
                                 <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
                                   <span className="flex gap-2 font-mono text-xs">
-                                    <span className="text-green-600">+{file.line_changes.added}</span>
-                                    <span className="text-red-600">-{file.line_changes.removed}</span>
+                                    <span className="text-green-600">
+                                      +{file.line_changes.added}
+                                    </span>
+                                    <span className="text-red-600">
+                                      -{file.line_changes.removed}
+                                    </span>
                                   </span>
                                 </div>
                               </div>
@@ -448,7 +464,7 @@ export default function CodeReview() {
                 }}
               >
                 <UserCog className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
-                <span className='text-[var(--vscode-foreground)] '>Agents</span>
+                <span className="text-[var(--vscode-foreground)]">Agents</span>
               </button>
             </div>
           </div>
@@ -527,10 +543,10 @@ export default function CodeReview() {
                         key={agent.id}
                         className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                       >
-                        <div className='flex items-center gap-2 min-w-0'>
-                          <span className="truncate flex-1">{agent.display_name}</span>
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="flex-1 truncate">{agent.display_name}</span>
                           <Info
-                            className="h-4 w-4 flex-shrink-0 mr-2 opacity-30 hover:opacity-60"
+                            className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
                             data-tooltip-id="code-review-tooltips"
                             data-tooltip-content={agent.objective}
                             data-tooltip-place="top-start"
@@ -544,14 +560,16 @@ export default function CodeReview() {
                                 e.stopPropagation();
                                 toggleAgent(agent.id);
                               }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
-                                }`}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
+                              }`}
                             >
                               <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${enabledAgents.includes(agent.id)
-                                  ? 'translate-x-4'
-                                  : 'translate-x-0'
-                                  }`}
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                  enabledAgents.includes(agent.id)
+                                    ? 'translate-x-4'
+                                    : 'translate-x-0'
+                                }`}
                               />
                             </button>
                           </div>

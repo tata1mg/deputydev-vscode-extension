@@ -566,7 +566,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => { },
+    () => {},
     undefined,
     false,
     {},
@@ -661,7 +661,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => { },
+      () => {},
       undefined,
       false,
       {},
