@@ -20,6 +20,7 @@ import {
   EmbeddingProgressData,
   NewReview,
   Review,
+  UserAgent,
 } from '@/types';
 import {
   logToOutput,
@@ -565,7 +566,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => {},
+    () => { },
     undefined,
     false,
     {},
@@ -660,7 +661,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => {},
+      () => { },
       undefined,
       false,
       {},
@@ -867,4 +868,14 @@ addCommandEventListener('past-reviews', ({ data }) => {
   }
 
   console.log('Past reviews data received:', useCodeReviewStore.getState().pastReviews);
+});
+
+addCommandEventListener('user-agents', ({ data }) => {
+  const userAgents = data as UserAgent[];
+
+  if (userAgents && userAgents.length > 0) {
+    useCodeReviewStore.setState({ userAgents: userAgents });
+  }
+
+  console.log('User agents data received:', useCodeReviewStore.getState().userAgents);
 });

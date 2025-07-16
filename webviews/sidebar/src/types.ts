@@ -433,6 +433,21 @@ export interface ReviewOption {
   value: 'ALL' | 'UNCOMMITTED_ONLY' | 'COMMITTED_ONLY';
 }
 
+export interface UserAgent {
+  id: number;
+  agent_name: string;
+  user_team_id: number;
+  display_name: string;
+  custom_prompt: string;
+  exclusions: [],
+  inclusions: [],
+  confidence_score: number;
+  objective: string;
+  is_custom_agent: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CodeReviewStorage {
   searchedBranches: string[];
   selectedTargetBranch: string;
@@ -440,7 +455,8 @@ export interface CodeReviewStorage {
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
   pastReviews: Review[];
-  enabledAgents: string[];
+  enabledAgents: number[];
+  userAgents: UserAgent[];
 }
 
 export interface CodeReviewComment {
