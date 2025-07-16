@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   fetchPastReviews,
+  getUserAgents,
   hitSnapshot,
   newReview,
   openFileDiff,
@@ -24,6 +25,8 @@ export default function CodeReview() {
     searchedBranches,
     selectedTargetBranch,
     pastReviews,
+    userAgents,
+    enabledAgents,
   } = useCodeReviewStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
@@ -34,8 +37,11 @@ export default function CodeReview() {
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
-  const [enabledAgents, setEnabledAgents] = useState<string[]>([]);
   const [isReviewRunning, setIsReviewRunning] = useState(false);
+
+  useEffect(() => {
+    getUserAgents();
+  }, [])
 
   const handleStartReview = () => {
     setIsReviewRunning(true);
@@ -49,10 +55,15 @@ export default function CodeReview() {
     fetchPastReviews({ sourceBranch: '' });
   }, []);
 
-  const toggleAgent = (agent: string) => {
-    setEnabledAgents((prev) =>
-      prev.includes(agent) ? prev.filter((a) => a !== agent) : [...prev, agent]
-    );
+  const toggleAgent = (agentId: number) => {
+    useCodeReviewStore.setState((state) => {
+      const isEnabled = state.enabledAgents.includes(agentId);
+      const updatedAgents = isEnabled
+        ? state.enabledAgents.filter((id) => id !== agentId)
+        : [...state.enabledAgents, agentId];
+
+      return { enabledAgents: updatedAgents };
+    });
   };
 
   const handleNewReview = () => {
@@ -457,7 +468,7 @@ export default function CodeReview() {
 
           {/* Agents Selection Dropdown */}
           <AnimatePresence>
-            {showAgents && (
+            {showAgents && userAgents.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{
@@ -480,12 +491,12 @@ export default function CodeReview() {
               >
                 <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
                   <div className="max-h-48 overflow-y-auto">
-                    {['Security', 'Error', 'Suggestion'].map((agent) => (
+                    {userAgents.map((agent) => (
                       <div
-                        key={agent}
+                        key={agent.id}
                         className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                       >
-                        <span className="truncate">{agent}</span>
+                        <span className="truncate">{agent.display_name}</span>
                         <div className="flex items-center gap-2">
                           <div
                             className="mr-2 flex items-center space-x-2"
@@ -496,16 +507,14 @@ export default function CodeReview() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleAgent(agent);
+                                toggleAgent(agent.id);
                               }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                enabledAgents.includes(agent) ? 'bg-green-500' : 'bg-gray-300'
-                              }`}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
+                                }`}
                             >
                               <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                  enabledAgents.includes(agent) ? 'translate-x-4' : 'translate-x-0'
-                                }`}
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${enabledAgents.includes(agent.id) ? 'translate-x-4' : 'translate-x-0'
+                                  }`}
                               />
                             </button>
                           </div>

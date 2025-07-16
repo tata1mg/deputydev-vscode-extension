@@ -128,6 +128,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'open-comment-in-file':
           this.commentHandler.showCommentAtLine(data.filePath, data.lineNumber, data.commentText);
           break;
+        case 'fetch-user-agents':
+          this.fetchUserAgents();
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1089,6 +1092,31 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'past-reviews-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async fetchUserAgents() {
+    try {
+      const userAgents = await this.reviewService.getUserAgents();
+      if (userAgents) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'user-agents',
+          data: userAgents.data.agents,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'user-agents-error',
+          data: { error: 'Failed to fetch user agents' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'user-agents-error',
         data: { error: String(error) },
       });
     }

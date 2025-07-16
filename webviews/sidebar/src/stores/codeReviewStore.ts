@@ -17,6 +17,7 @@ export const useCodeReviewStore = create<CodeReviewStorage>()(
       ] as ReviewOption[],
       pastReviews: [],
       enabledAgents: [],
+      userAgents: [],
     }),
     {
       name: 'code-review-storage',

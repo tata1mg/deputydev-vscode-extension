@@ -80,4 +80,19 @@ export class ReviewService {
       throw error;
     }
   }
+
+  public async getUserAgents(): Promise<any> {
+    try {
+      const response = await api.get(API_ENDPOINTS.USER_AGENTS, {
+        params: {
+          user_team_id: 112
+        },
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching user agents');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
 }

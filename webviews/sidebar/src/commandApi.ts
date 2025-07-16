@@ -371,3 +371,7 @@ export function openCommentInFile(data: {
 }) {
   return callCommand('open-comment-in-file', data);
 }
+
+export function getUserAgents() {
+  return callCommand('fetch-user-agents', {});
+}
