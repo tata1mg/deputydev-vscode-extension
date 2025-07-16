@@ -1,7 +1,13 @@
 import { UsageTrackingRequestFromSidebar } from '@/types';
 import { SnippetReference } from './CodeBlockStyle';
 
-import { checkDiffApplicable, usageTracking, openFile, writeFile } from '@/commandApi';
+import {
+  checkDiffApplicable,
+  usageTracking,
+  openFile,
+  writeFile,
+  checkFileExists,
+} from '@/commandApi';
 import { useEffect, useState } from 'react';
 import { useChatSettingStore } from '@/stores/chatStore';
 
@@ -31,6 +37,7 @@ export function CodeActionPanel({
 }: CodeActionPanelProps) {
   const combined = { language, filepath, is_diff, content, inline };
   const [isApplicable, setIsApplicable] = useState<boolean | null>(null);
+  const [isOpenable, setIsOpenable] = useState<boolean | null>(null);
   const [isApplying, setIsApplying] = useState(false);
   const [copied, setCopied] = useState(false);
   const showApplyButton = is_diff && filepath && diff && isApplicable;
@@ -49,6 +56,19 @@ export function CodeActionPanel({
 
     checkApplicability();
   }, [is_diff, filepath, diff]);
+
+  // This effect checks if the file is openable
+  useEffect(() => {
+    const checkFileIsOpenable = async () => {
+      if (filepath) {
+        // Replace with your own logic to check if file can be opened
+        const openable = await checkFileExists(filepath);
+        setIsOpenable(openable);
+      }
+    };
+
+    checkFileIsOpenable();
+  }, [filepath]);
 
   useEffect(() => {
     if (isApplicable && isStreaming) {
@@ -184,6 +204,7 @@ export function CodeActionPanel({
     <div className="mt-3 w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">
       <div className="flex h-8 min-w-0 items-center justify-between gap-2 border-b border-gray-500 bg-neutral-700 px-3 py-1 text-xs text-neutral-300">
         {is_diff && filepath && diff && isApplicable ? (
+          // CASE 1: Diff with file info and applicable
           <div className="flex min-w-0 items-center gap-1">
             <span>Edit:</span>
             <button
@@ -193,11 +214,20 @@ export function CodeActionPanel({
             >
               {filename}
             </button>
-
             <span className="text-green-400">+{added_lines || 0}</span>
             <span className="text-red-400">-{removed_lines || 0}</span>
           </div>
+        ) : filepath && isOpenable ? (
+          // CASE 2: Just file info, openable
+          <button
+            className="overflow-hidden truncate text-ellipsis rounded px-1 text-right font-medium transition-colors hover:bg-white/10"
+            onClick={() => filepath && openFile(filepath)}
+            title={filepath}
+          >
+            {filename}
+          </button>
         ) : (
+          // CASE 3: Fallback to language
           <span>{language || 'plaintext'}</span>
         )}
 

@@ -73,13 +73,14 @@ export interface ChatPayload {
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
+  tool_use_failed?: boolean;
   write_mode?: boolean;
   referenceList?: ChatReferenceItem[];
-  tool_use_response?: {
+  batch_tool_responses?: Array<{
     tool_name: string;
-    tool_use_id?: string;
+    tool_use_id: string;
     response: any;
-  };
+  }>;
   previous_query_ids?: number[];
   focus_items?: Array<any>;
   directory_items?: Array<any>;

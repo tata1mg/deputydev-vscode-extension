@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Status, StatusIcon } from '../ToolChips';
 import { parse as parsePath } from 'path';
 import { openFile } from '@/commandApi';
+import { joinPath } from '@/utils/joinPath';
 
 /**
  * Completely handles only the iterative_file_reader status display
@@ -21,14 +22,16 @@ export function IterativeFileReader({
   const [startLine, setStartLine] = useState<number | undefined>();
   const [endLine, setEndLine] = useState<number | undefined>();
   const [fileName, setFileName] = useState<string | undefined>();
+  const [repoPath, setRepoPath] = useState<string | undefined>();
 
   useEffect(() => {
     try {
       const parsedContent = JSON.parse(toolInputJson);
-      const { file_path, start_line, end_line } = parsedContent;
+      const { file_path, start_line, end_line, repo_path } = parsedContent;
       setFilePath(file_path);
       setStartLine(start_line);
       setEndLine(end_line);
+      setRepoPath(repo_path);
 
       if (file_path) {
         const filename = file_path ? file_path.split('/').pop() : '';
@@ -68,7 +71,11 @@ export function IterativeFileReader({
           {filePath && fileName && (
             <button
               className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
-              onClick={() => openFile(filePath, startLine, endLine)}
+              onClick={() => {
+                const hasRepoPath = !!repoPath;
+                const fullPath = hasRepoPath ? joinPath(repoPath, filePath) : filePath;
+                openFile(fullPath, startLine, endLine, hasRepoPath ? true : undefined);
+              }}
               title={filePath}
             >
               {fileName}
