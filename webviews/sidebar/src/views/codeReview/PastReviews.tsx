@@ -4,16 +4,7 @@ import { CodeReviewComment } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, User } from 'lucide-react';
 import { useState } from 'react';
-
-const markdownComment = `
-            This is a heading
-            This is **bold** and *italic* text.
-
-            // This is a code block
-            function example() {
-                return "Hello, world!";
-            }
-            `;
+import { Tooltip } from 'react-tooltip';
 
 export const PastReviews = () => {
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
@@ -176,10 +167,26 @@ export const PastReviews = () => {
                             >
                               <ChevronRight size={12} className="flex-shrink-0" />
                             </motion.div>
-                            <span className="min-w-0 flex-1 truncate">{filePath}</span>
-                            <div className="flex flex-shrink-0 items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)]">
-                              {comments.length}
-                              <span className="text-red-600">!</span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                data-tooltip-id="code-review-tooltips"
+                                data-tooltip-content={filePath}
+                                data-tooltip-place="top-start"
+                                data-tooltip-class-name="max-w-[80%] break-words whitespace-normal"
+                                style={{
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  direction: 'rtl',
+                                  textAlign: 'left',
+                                  flex: 1
+                                }}>
+                                {filePath}
+                              </div>
+                              <div className="flex-shrink-0 flex items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)] ml-2">
+                                {comments.length}
+                                <span className="text-red-600">!</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -262,6 +269,7 @@ export const PastReviews = () => {
           );
         })}
       </div>
+      <Tooltip id="code-review-tooltips"/>
     </div>
   );
 };
