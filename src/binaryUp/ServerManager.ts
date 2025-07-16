@@ -113,8 +113,10 @@ export class ServerManager {
   /** Ensure the binary exists and is extracted */
   /** Ensure the binary exists and is extracted – guarded by lock */
   public async ensureBinaryExists(): Promise<boolean> {
-    const lockPath = path.join(this.context.globalStorageUri.fsPath, 'binary.lock');
-
+    const lockDir = this.context.globalStorageUri.fsPath;
+    const lockPath = path.join(lockDir, 'binary.lock');
+    // Ensure the parent directory exists
+    await fsp.mkdir(lockDir, { recursive: true });
     return await withLock(lockPath, async () => {
       // 🔒 Critical section starts — only one window gets here at a time
       if (await this.isBinaryAvailable()) {
