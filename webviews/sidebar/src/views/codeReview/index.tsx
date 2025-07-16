@@ -1,5 +1,5 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, GitBranch, Check, Pen, UserCog, ArrowLeft, ChevronRight, Info } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,7 @@ import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
 import { PastReviews } from './PastReviews';
 import { Review } from './review';
+import { Tooltip } from 'react-tooltip';
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
@@ -223,7 +224,7 @@ export default function CodeReview() {
                   {/* Dropdown for search results */}
                   {showBranchDropdown && (
                     <div
-                      className="absolute z-50 mt-1 w-full rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-lg"
+                      className="absolute z-50 mt-1 w-[150%] rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-lg"
                       style={{ maxHeight: '200px', overflowY: 'auto' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -411,13 +412,14 @@ export default function CodeReview() {
             </div>
             <div className="flex items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <button
-                className="flex cursor-pointer items-center justify-between"
+                className="flex cursor-pointer items-center gap-2"
                 onClick={() => {
                   setShowAgents(!showAgents);
                   setShowReviewOptions(false);
                 }}
               >
                 <UserCog className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
+                <span className='text-[var(--vscode-foreground)] '>Agents</span>
               </button>
             </div>
           </div>
@@ -496,29 +498,31 @@ export default function CodeReview() {
                         key={agent.id}
                         className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                       >
-                        <span className="truncate">{agent.display_name}</span>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="mr-2 flex items-center space-x-2"
-                            data-tooltip-id="mcp-tooltips"
-                            data-tooltip-content="Enable/Disable Server"
+                        <div className='flex items-center gap-2 min-w-0'>
+                          <span className="truncate flex-1">{agent.display_name}</span>
+                          <Info
+                            className="h-4 w-4 flex-shrink-0 mr-2 opacity-30 hover:opacity-60"
+                            data-tooltip-id="code-review-tooltips"
+                            data-tooltip-content={agent.objective}
                             data-tooltip-place="top-start"
-                          >
+                            data-tooltip-class-name="max-w-[80%]"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="mr-2 flex items-center space-x-2">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleAgent(agent.id);
                               }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
-                              }`}
+                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
+                                }`}
                             >
                               <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                  enabledAgents.includes(agent.id)
-                                    ? 'translate-x-4'
-                                    : 'translate-x-0'
-                                }`}
+                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${enabledAgents.includes(agent.id)
+                                  ? 'translate-x-4'
+                                  : 'translate-x-0'
+                                  }`}
                               />
                             </button>
                           </div>
@@ -534,6 +538,7 @@ export default function CodeReview() {
 
         {/* Reviews History */}
         {pastReviews && pastReviews.length > 0 && <PastReviews />}
+        <Tooltip id="code-review-tooltips" />
       </div>
     </PageTransition>
   );
