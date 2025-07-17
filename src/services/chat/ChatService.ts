@@ -1,6 +1,5 @@
 import {
   getSessionId,
-  sendNotVerified,
   getIsEmbeddingDoneForActiveRepo,
   setCancelButtonStatus,
   getContextRepositories,
@@ -12,6 +11,7 @@ import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
 import { BackendClient } from '../../clients/backendClient';
+import { ThrottlingErrorData } from '../../types';
 
 interface StreamEvent {
   type: string;
@@ -97,11 +97,16 @@ export class QuerySolverService {
           socketConn.close();
           return;
         } else if (messageData.type === 'STREAM_ERROR') {
-          if (messageData.status) {
+          if (messageData.status === 'LLM_THROTTLED') {
+            streamError = new ThrottlingException(messageData);
+            socketConn.close();
+            return;
+          } else if (messageData.status) {
             streamError = new Error(messageData.status);
             socketConn.close();
             return;
           }
+
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
           socketConn.close();
@@ -203,5 +208,16 @@ export class QuerySolverService {
       // Fallback: return original (backend may still reject if >128 KB)
       return original;
     }
+  }
+}
+
+export class ThrottlingException extends Error {
+  public data: ThrottlingErrorData;
+  constructor(data: ThrottlingErrorData) {
+    super(data.message);
+    this.name = 'ThrottlingException';
+    this.data = data;
+
+    Object.setPrototypeOf(this, ThrottlingException.prototype);
   }
 }

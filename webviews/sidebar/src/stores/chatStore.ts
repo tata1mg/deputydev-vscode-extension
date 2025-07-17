@@ -184,7 +184,28 @@ export const useChatStore = create(
               set((state) => {
                 const newHistory = [...state.history];
                 const lastMsg = newHistory[newHistory.length - 1];
-                if (lastMsg?.type === 'CODE_BLOCK_STREAMING' && lastMsg.status === 'pending') {
+                if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                  const toolMsg = lastMsg as ChatToolUseMessage;
+                  newHistory[newHistory.length - 1] = {
+                    ...toolMsg,
+                    content: {
+                      ...toolMsg.content,
+                      status: 'aborted',
+                      terminal: {
+                        ...toolMsg.content.terminal,
+                        terminal_approval_required:
+                          toolMsg.content.tool_name === 'execute_command'
+                            ? false
+                            : toolMsg.content.terminal?.terminal_approval_required,
+                      },
+                    },
+                  };
+                }
+                //  Abort pending CODE_BLOCK_STREAMING messages
+                if (
+                  (lastMsg?.type === 'CODE_BLOCK_STREAMING' || lastMsg?.type === 'THINKING') &&
+                  lastMsg.status === 'pending'
+                ) {
                   newHistory[newHistory.length - 1] = {
                     ...lastMsg,
                     status: 'aborted',
@@ -341,7 +362,7 @@ export const useChatStore = create(
                           type: 'THINKING',
                           text: thinkingContent.text,
                           content: thinkingContent,
-                          completed: false,
+                          status: 'pending',
                           actor: 'ASSISTANT',
                         } as ChatThinkingMessage,
                       ],
@@ -385,7 +406,7 @@ export const useChatStore = create(
                       for (let i = newHistory.length - 1; i >= 0; i--) {
                         const msg = newHistory[i];
                         if (msg.type === 'THINKING') {
-                          (msg as ChatThinkingMessage).completed = true;
+                          (msg as ChatThinkingMessage).status = 'completed';
                           break;
                         }
                       }
@@ -955,6 +976,7 @@ export const useChatStore = create(
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
+
                   case 'error': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
@@ -963,6 +985,9 @@ export const useChatStore = create(
                       payload_to_retry: unknown;
                       error_msg: string;
                       retry: boolean;
+                      model?: string;
+                      retry_after?: number;
+                      errorType?: string;
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
@@ -996,7 +1021,7 @@ export const useChatStore = create(
                         };
                       }
 
-                      // Update CODE_BLOCK_STREAMING
+                      // Update CODE_BLOCK_STREAMING or THINKING status if pending
                       if (
                         lastMsg?.type === 'CODE_BLOCK_STREAMING' &&
                         lastMsg.status === 'pending'
@@ -1006,15 +1031,36 @@ export const useChatStore = create(
                           status: 'error',
                         };
                       }
+                      if (lastMsg?.type === 'THINKING' && lastMsg.status === 'pending') {
+                        newHistory[newHistory.length - 1] = {
+                          ...lastMsg,
+                          status: 'completed',
+                        };
+                      }
 
                       // Append the new error message
-                      newHistory.push({
-                        type: 'ERROR',
-                        error_msg: err,
-                        retry: errorData.retry,
-                        payload_to_retry: errorData.payload_to_retry,
-                        actor: 'ASSISTANT',
-                      } as ChatErrorMessage);
+                      if (errorData.errorType === 'THROTTLING_ERROR') {
+                        newHistory.push({
+                          type: 'ERROR',
+                          error_msg: err,
+                          retry: errorData.retry,
+                          payload_to_retry: errorData.payload_to_retry,
+                          actor: 'ASSISTANT',
+                          errorData: {
+                            type: 'THROTTLING_ERROR',
+                            model_name: errorData.model,
+                            retry_after: errorData.retry_after,
+                          },
+                        } as ChatErrorMessage);
+                      } else {
+                        newHistory.push({
+                          type: 'ERROR',
+                          error_msg: err,
+                          retry: errorData.retry,
+                          payload_to_retry: errorData.payload_to_retry,
+                          actor: 'ASSISTANT',
+                        } as ChatErrorMessage);
+                      }
 
                       return {
                         history: newHistory,
@@ -1093,9 +1139,11 @@ export const useChatStore = create(
                   },
                 };
               }
-
               //  Abort pending CODE_BLOCK_STREAMING messages
-              if (lastMsg?.type === 'CODE_BLOCK_STREAMING' && lastMsg.status === 'pending') {
+              if (
+                (lastMsg?.type === 'CODE_BLOCK_STREAMING' || lastMsg?.type === 'THINKING') &&
+                lastMsg.status === 'pending'
+              ) {
                 newHistory[newHistory.length - 1] = {
                   ...lastMsg,
                   status: 'aborted',
