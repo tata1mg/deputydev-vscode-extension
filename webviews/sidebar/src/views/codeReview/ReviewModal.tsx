@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
+import { TriangleAlert } from 'lucide-react';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -121,9 +122,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
 
             <div className="mt-2">
               {enabledAgents.length === 0 ? (
-                <p className="mb-3 text-center text-sm italic text-[var(--vscode-errorForeground)]">
-                  Please enable at least one agent to proceed.
-                </p>
+                <div className="mb-3 flex items-center gap-2">
+                  <TriangleAlert className="h-4 w-4 text-yellow-600" />
+                  <span className="text-xs italic text-yellow-600">
+                    Please enable at least one agent to proceed.
+                  </span>
+                </div>
               ) : (
                 <p className="mb-3 text-center text-sm italic text-green-600">
                   You are ready to review your code.
