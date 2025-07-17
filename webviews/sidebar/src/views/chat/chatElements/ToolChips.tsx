@@ -183,7 +183,7 @@ export function RetryChip({
   payload_to_retry: unknown;
 }) {
   const { history: messages, sendChatMessage } = useChatStore();
-
+  const { activeModel } = useChatSettingStore();
   // Get the last message to check if it's a throttling error
   const lastMsg = messages[messages.length - 1];
   // Retry function defined within ChatArea component
@@ -203,8 +203,12 @@ export function RetryChip({
       //   "Payload data just before sending:",
       //   JSON.stringify(errorData.payload_to_retry, null, 2)
       // );
-      const payload: any = errorData.payload_to_retry;
-      sendChatMessage('retry', [], () => {}, undefined, true, payload);
+
+      const newPayload = {
+        ...(errorData.payload_to_retry as Record<string, unknown>),
+        llm_model: activeModel,
+      };
+      sendChatMessage('retry', [], () => {}, undefined, true, newPayload);
     } else {
       // console.log("No error found to retry.");
     }
