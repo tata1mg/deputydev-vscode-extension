@@ -171,12 +171,13 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                     )}
                   </motion.div>
                   <motion.span
-                    className={`text-sm ${step.completed
+                    className={`text-sm ${
+                      step.completed
                         ? 'text-green-600 dark:text-green-400'
                         : step.inProgress
                           ? 'font-medium'
                           : 'text-gray-500 dark:text-gray-400'
-                      }`}
+                    }`}
                     layout="position"
                   >
                     {step.label}

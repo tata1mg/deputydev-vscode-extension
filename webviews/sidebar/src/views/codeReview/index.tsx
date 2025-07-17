@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import {
   fetchPastReviews,
   getUserAgents,
@@ -26,6 +26,43 @@ import { useClickAway } from 'react-use';
 import { PastReviews } from './PastReviews';
 import { Review } from './review';
 import { Tooltip } from 'react-tooltip';
+
+const dropdownVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    height: 0,
+    transition: {
+      opacity: { duration: 0.15 },
+      height: {
+        duration: 0.2,
+        ease: 'easeInOut',
+      },
+    },
+  },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    transition: {
+      opacity: { duration: 0.2 },
+      height: {
+        duration: 0.25,
+        ease: 'easeInOut',
+      },
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: -10 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.2,
+    },
+  }),
+};
 
 export default function CodeReview() {
   const { themeKind } = useThemeStore();
@@ -50,6 +87,10 @@ export default function CodeReview() {
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
   const [isReviewRunning, setIsReviewRunning] = useState(false);
+  const [expandedAgentId, setExpandedAgentId] = useState<number | null>(null);
+  const [isAgentExpanded, setIsAgentExpanded] = useState(false);
+  const [agentCustomPrompts, setAgentCustomPrompts] = useState<Record<string, string>>({});
+  const [customAgentNames, setCustomAgentNames] = useState<Record<string, string>>({});
 
   const getNoChangesFoundText = () => {
     switch (activeReviewOption.value) {
@@ -151,6 +192,38 @@ export default function CodeReview() {
     setIsEditing(false);
     console.log('Trigger after branch selection');
     handleNewReview(); // Trigger new review with selected branch
+  };
+
+  const toggleAgentExpansion = (agentId: number) => {
+    const isExpanding = expandedAgentId !== agentId;
+    setExpandedAgentId(isExpanding ? agentId : null);
+    setIsAgentExpanded(isExpanding);
+  };
+
+  const handleCustomPromptChange = (agentId: number, value: string) => {
+    setAgentCustomPrompts((prev) => ({
+      ...prev,
+      [agentId]: value,
+    }));
+  };
+
+  const handleCustomNameChange = (agentId: number, value: string) => {
+    setCustomAgentNames((prev) => ({
+      ...prev,
+      [agentId]: value,
+    }));
+  };
+
+  const handleSave = (agentId: number, isCustom: boolean) => {
+    // Handle save logic here
+    console.log('Save', agentId, isCustom);
+    setExpandedAgentId(null);
+  };
+
+  const handleDelete = (agentId: number) => {
+    // Handle delete logic here
+    console.log('Delete', agentId);
+    setExpandedAgentId(null);
   };
 
   return (
@@ -479,7 +552,7 @@ export default function CodeReview() {
                   height: 'auto',
                   transition: {
                     opacity: { duration: 0.2 },
-                    height: { duration: 0.3, ease: 'easeInOut' },
+                    height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
                   },
                 }}
                 exit={{
@@ -487,7 +560,7 @@ export default function CodeReview() {
                   height: 0,
                   transition: {
                     opacity: { duration: 0.15 },
-                    height: { duration: 0.25, ease: 'easeInOut' },
+                    height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
                   },
                 }}
                 className="overflow-hidden"
@@ -514,7 +587,7 @@ export default function CodeReview() {
           </AnimatePresence>
 
           {/* Agents Selection Dropdown */}
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {showAgents && userAgents.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -523,7 +596,7 @@ export default function CodeReview() {
                   height: 'auto',
                   transition: {
                     opacity: { duration: 0.2 },
-                    height: { duration: 0.3, ease: 'easeInOut' },
+                    height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
                   },
                 }}
                 exit={{
@@ -531,51 +604,286 @@ export default function CodeReview() {
                   height: 0,
                   transition: {
                     opacity: { duration: 0.15 },
-                    height: { duration: 0.25, ease: 'easeInOut' },
+                    height: { duration: 0.2, ease: [0.4, 0, 0.2, 1] },
                   },
                 }}
                 className="overflow-hidden"
               >
-                <div className="mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]">
-                  <div className="max-h-48 overflow-y-auto">
-                    {userAgents.map((agent) => (
-                      <div
-                        key={agent.id}
-                        className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                      >
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="flex-1 truncate">{agent.display_name}</span>
-                          <Info
-                            className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
-                            data-tooltip-id="code-review-tooltips"
-                            data-tooltip-content={agent.objective}
-                            data-tooltip-place="top-start"
-                            data-tooltip-class-name="max-w-[80%]"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleAgent(agent.id);
-                              }}
-                              className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                enabledAgents.includes(agent.id) ? 'bg-green-500' : 'bg-gray-300'
-                              }`}
-                            >
-                              <div
-                                className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                  enabledAgents.includes(agent.id)
-                                    ? 'translate-x-4'
-                                    : 'translate-x-0'
-                                }`}
+                <div
+                  className={`mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] ${isAgentExpanded ? 'max-h-[500px]' : 'max-h-60'}`}
+                >
+                  <div
+                    className={`overflow-y-auto ${isAgentExpanded ? 'max-h-[480px]' : 'max-h-60'}`}
+                  >
+                    {/* Predefined Agents */}
+                    <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
+                      Predefined Agents
+                    </div>
+                    {userAgents
+                      .filter((agent) => !agent.is_custom_agent)
+                      .map((agent) => (
+                        <div key={agent.id} className="w-full">
+                          <div
+                            className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                            onClick={() => toggleAgentExpansion(agent.id)}
+                          >
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="flex-1 truncate">{agent.display_name}</span>
+                              <Info
+                                className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
+                                data-tooltip-id="code-review-tooltips"
+                                data-tooltip-content={agent.objective}
+                                data-tooltip-place="top-start"
+                                data-tooltip-class-name="z-50 max-w-[80%]"
+                                data-tooltip-effect="solid"
                               />
-                            </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleAgent(agent.id);
+                                  }}
+                                  className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                    enabledAgents.includes(agent.id)
+                                      ? 'bg-green-500'
+                                      : 'bg-gray-300'
+                                  }`}
+                                >
+                                  <div
+                                    className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                      enabledAgents.includes(agent.id)
+                                        ? 'translate-x-4'
+                                        : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            </div>
                           </div>
+
+                          {/* Predefined Agent Dropdown */}
+                          <AnimatePresence mode="wait">
+                            {expandedAgentId === agent.id && (
+                              <motion.div
+                                key={`predefined-${agent.id}`}
+                                className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+                                variants={dropdownVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="hidden"
+                                transition={{ duration: 0.2 }}
+                              >
+                                <motion.div
+                                  className="px-4 py-2"
+                                  variants={itemVariants}
+                                  custom={0}
+                                >
+                                  <div className="mb-3">
+                                    <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                      Custom Prompt
+                                    </label>
+                                    <motion.textarea
+                                      className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                      rows={3}
+                                      value={agentCustomPrompts[agent.id] || ''}
+                                      onChange={(e) =>
+                                        handleCustomPromptChange(agent.id, e.target.value)
+                                      }
+                                      onClick={(e) => e.stopPropagation()}
+                                      placeholder="Enter custom prompt..."
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.1 }}
+                                    />
+                                  </div>
+                                  <motion.div
+                                    className="flex justify-end space-x-2"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.15 }}
+                                  >
+                                    <button
+                                      className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedAgentId(null);
+                                      }}
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSave(agent.id, false);
+                                      }}
+                                    >
+                                      Save
+                                    </button>
+                                  </motion.div>
+                                </motion.div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+
+                    {/* Custom Agents */}
+                    <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
+                      Custom Agents
+                    </div>
+                    {userAgents
+                      .filter((agent) => agent.is_custom_agent)
+                      .map((agent) => (
+                        <div key={agent.id} className="w-full">
+                          <div
+                            className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                            onClick={() => toggleAgentExpansion(agent.id)}
+                          >
+                            <div className="flex min-w-0 items-center gap-2">
+                              <span className="flex-1 truncate">{agent.display_name}</span>
+                              <Info
+                                className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
+                                data-tooltip-id="code-review-tooltips"
+                                data-tooltip-content={agent.objective}
+                                data-tooltip-place="top-start"
+                                data-tooltip-class-name="z-50 max-w-[80%]"
+                                data-tooltip-effect="solid"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleAgent(agent.id);
+                                  }}
+                                  className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                    enabledAgents.includes(agent.id)
+                                      ? 'bg-green-500'
+                                      : 'bg-gray-300'
+                                  }`}
+                                >
+                                  <div
+                                    className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                      enabledAgents.includes(agent.id)
+                                        ? 'translate-x-4'
+                                        : 'translate-x-0'
+                                    }`}
+                                  />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Custom Agent Dropdown */}
+                          <AnimatePresence mode="wait">
+                            {expandedAgentId === agent.id && (
+                              <motion.div
+                                key={`custom-${agent.id}`}
+                                className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+                                variants={dropdownVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit="hidden"
+                                transition={{ duration: 0.2 }}
+                              >
+                                <motion.div
+                                  className="px-4 py-2"
+                                  variants={itemVariants}
+                                  custom={0}
+                                >
+                                  <div className="mb-3">
+                                    <motion.div className="mb-3" variants={itemVariants} custom={0}>
+                                      <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Agent Name
+                                      </label>
+                                      <motion.input
+                                        type="text"
+                                        className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                        value={customAgentNames[agent.id] || ''}
+                                        onChange={(e) =>
+                                          handleCustomNameChange(agent.id, e.target.value)
+                                        }
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="Enter agent name..."
+                                        variants={itemVariants}
+                                        custom={0.5}
+                                      />
+                                    </motion.div>
+                                    <motion.div
+                                      className="mb-3"
+                                      variants={itemVariants}
+                                      custom={0.5}
+                                    >
+                                      <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Custom Prompt
+                                      </label>
+                                      <motion.textarea
+                                        className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                        rows={3}
+                                        value={agentCustomPrompts[agent.id] || ''}
+                                        onChange={(e) =>
+                                          handleCustomPromptChange(agent.id, e.target.value)
+                                        }
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="Enter custom prompt..."
+                                        variants={itemVariants}
+                                        custom={0.7}
+                                      />
+                                    </motion.div>
+                                  </div>
+                                  <motion.div
+                                    className="flex justify-between"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.2 }}
+                                  >
+                                    <motion.button
+                                      className="hover:bg-[var(--vscode-errorForeground)]/90 rounded bg-[var(--vscode-errorForeground)] px-3 py-1 text-xs text-white"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(agent.id);
+                                      }}
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                    >
+                                      Delete
+                                    </motion.button>
+                                    <motion.div
+                                      className="flex justify-end space-x-2"
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.15 }}
+                                    >
+                                      <button
+                                        className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setExpandedAgentId(null);
+                                        }}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSave(agent.id, false);
+                                        }}
+                                      >
+                                        Save
+                                      </button>
+                                    </motion.div>
+                                  </motion.div>
+                                </motion.div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </motion.div>
