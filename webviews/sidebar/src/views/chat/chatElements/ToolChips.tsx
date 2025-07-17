@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { CheckCircle, Loader2, XCircle, RotateCw } from 'lucide-react';
 import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { openFile } from '@/commandApi';
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore, useChatSettingStore } from '@/stores/chatStore';
 import { SnippetReference } from './CodeBlockStyle';
+import ModelSelector from './modelSelector';
 
 /**
  *
@@ -26,7 +27,7 @@ export type Status = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
  * Props for the ThinkingChip component.
  */
 interface ThinkingChipProps {
-  completed?: boolean;
+  status: Status;
 }
 
 /**
@@ -126,33 +127,48 @@ export function ToolUseStatusMessage({
  * Function component for ThinkingChip - Displays a chip representing a thinking state.
  */
 
-export function ThinkingChip({ completed }: ThinkingChipProps) {
+export function ThinkingChip({ status }: ThinkingChipProps) {
   const [dots, setDots] = useState('.');
 
   useEffect(() => {
-    if (completed) return;
+    if (status !== 'pending') return;
     const interval = setInterval(() => {
       setDots((prev) => (prev.length < 3 ? prev + '.' : '.'));
     }, 500);
     return () => clearInterval(interval);
-  }, [completed]);
+  }, [status]);
+
+  let displayText = '';
+  let title = '';
+  switch (status) {
+    case 'pending':
+      displayText = `Thinking${dots}`;
+      title = 'Thinking...';
+      break;
+    case 'completed':
+      displayText = 'Thinking complete';
+      title = 'Thinking Complete';
+      break;
+    case 'error':
+      displayText = 'Thinking failed';
+      title = 'Error during thinking';
+      break;
+    case 'aborted':
+      displayText = 'Thinking aborted';
+      title = 'Thinking Aborted';
+      break;
+    default:
+      displayText = 'Thinking...';
+      title = 'Thinking...';
+  }
 
   return (
     <div
       className="mt-2 flex w-full items-center gap-2 rounded border-[1px] border-gray-500/40 px-2 py-2 text-sm"
-      title={completed ? 'Thinking Complete' : 'Thinking...'}
+      title={title}
     >
-      {!completed ? (
-        <>
-          <StatusIcon status="pending" />
-          <span>Thinking{dots}</span>
-        </>
-      ) : (
-        <>
-          <StatusIcon status="completed" />
-          <span>Thinking complete</span>
-        </>
-      )}
+      <StatusIcon status={status} />
+      <span>{displayText}</span>
     </div>
   );
 }
@@ -168,6 +184,8 @@ export function RetryChip({
 }) {
   const { history: messages, sendChatMessage } = useChatStore();
 
+  // Get the last message to check if it's a throttling error
+  const lastMsg = messages[messages.length - 1];
   // Retry function defined within ChatArea component
   const retryChat = () => {
     if (!messages.length) {
@@ -186,9 +204,6 @@ export function RetryChip({
       //   JSON.stringify(errorData.payload_to_retry, null, 2)
       // );
       const payload: any = errorData.payload_to_retry;
-
-      // Call sendChatMessage with the retry flag set to true,
-      // passing the stored payload so that UI state updates are skipped.
       sendChatMessage('retry', [], () => {}, undefined, true, payload);
     } else {
       // console.log("No error found to retry.");

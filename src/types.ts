@@ -180,3 +180,13 @@ export type EmbeddingProgressData = {
   repo_path: string;
   progress: number;
 };
+
+export interface ThrottlingErrorData {
+  type: 'STREAM_ERROR';
+  status: 'LLM_THROTTLED';
+  provider: string;
+  model: string;
+  retry_after?: number | null;
+  message: string;
+  detail?: string | null;
+}
