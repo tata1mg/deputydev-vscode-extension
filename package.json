@@ -2,7 +2,7 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "8.4.0",
+  "version": "8.5.0",
   "license": "UNLICENSED",
   "publisher": "Tata1mg",
   "engines": {
@@ -306,7 +306,6 @@
     "p-wait-for": "^5.0.2",
     "path": "^0.12.7",
     "ps-tree": "^1.2.0",
-    "react-use": "^17.6.0",
     "strip-ansi": "^7.1.0",
     "tar": "^7.4.3",
     "uuid": "^11.0.5",
