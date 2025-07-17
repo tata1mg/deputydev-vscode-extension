@@ -1,6 +1,6 @@
 import { submitFeedback } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChatMessage } from '@/types';
+import { ChatMessage, ChatReferenceItem, S3Object } from '@/types';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { CircleUserRound, ThumbsDown, ThumbsUp, TriangleAlert } from 'lucide-react';
 import { JSX, useRef } from 'react';
@@ -11,56 +11,28 @@ import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
 import { TerminalPanel } from './chatElements/TerminalPanel';
 import {
   FileEditedChip,
-  ModelSuggestionChip,
   RetryChip,
   ThinkingChip,
   ToolUseStatusMessage,
-  ThrottledChatMessage,
 } from './chatElements/ToolChips';
 import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
 import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
 import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
-import ReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { ImageWithDownload } from './chatElements/imageView';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import { AskUserInput } from './chatElements/Tools/askUserInput';
-import { useChatSettingStore } from '@/stores/chatStore';
+import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
 
 export function ChatArea() {
-  const {
-    history: messages,
-    current,
-    showSkeleton,
-    showGeneratingEffect,
-    sendChatMessage,
-  } = useChatStore();
-  const { activeModel } = useChatSettingStore();
+  const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
   const { themeKind } = useThemeStore();
   const queryCompleteTimestampsRef = useRef(new Map());
   const queryIdMap = new Map();
   let queryId: number;
-
-  // Helper to extract retryAfterSeconds from error message or payload if available
-  function getRetryAfterSeconds(msg: any): number {
-    // Prefer retry_after_seconds from content, fallback to top-level, but do not fallback to 0
-    return (msg.content && msg.content.retry_after_seconds) || msg.retry_after_seconds;
-  }
-
-  // Handler to retry the chat with the same payload
-  function handleRetry(payload: any) {
-    sendChatMessage('retry', [], () => {}, undefined, true, payload);
-  }
-
-  // Handler to retry the chat with a new model
-  function handleModelChangeAndRetry(payload: any, newModel: string) {
-    // Clone the payload and update the model
-    const newPayload = { ...payload, llm_model: newModel };
-    sendChatMessage('retry', [], () => {}, undefined, true, newPayload);
-  }
 
   return (
     <>
@@ -94,7 +66,7 @@ export function ChatArea() {
                         <div className="mb-2 overflow-x-auto">
                           <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
                             {msg.s3References.map(
-                              (s3Ref, imgIndex) =>
+                              (s3Ref: S3Object, imgIndex: number) =>
                                 s3Ref.get_url && (
                                   <ImageWithDownload
                                     key={imgIndex}
@@ -131,16 +103,18 @@ export function ChatArea() {
                           />
                         )}
 
-                        {msg.referenceList?.map((reference, chipIndex) => (
-                          <QueryReferenceChip
-                            key={chipIndex}
-                            value={reference.value}
-                            type={reference.type}
-                            path={reference.path}
-                            chunks={reference.chunks}
-                            url={reference.url}
-                          />
-                        ))}
+                        {msg.referenceList?.map(
+                          (reference: ChatReferenceItem, chipIndex: number) => (
+                            <QueryReferenceChip
+                              key={chipIndex}
+                              value={reference.value}
+                              type={reference.type}
+                              path={reference.path}
+                              chunks={reference.chunks}
+                              url={reference.url}
+                            />
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -162,7 +136,7 @@ export function ChatArea() {
           case 'THINKING':
             return (
               <div key={index}>
-                <ThinkingChip completed={msg.completed} />
+                <ThinkingChip status={msg.status} />
               </div>
             );
 
@@ -543,31 +517,36 @@ export function ChatArea() {
             );
 
           case 'ERROR': {
-            // If throttling, show the new UI
-            if (msg.isThrottling) {
-              return (
-                <ThrottledChatMessage
-                  key={index}
-                  retryAfterSeconds={getRetryAfterSeconds(msg)}
-                  currentModel={activeModel}
-                  onRetry={() => handleRetry(msg.payload_to_retry)}
-                  onModelChangeAndRetry={(newModel) =>
-                    handleModelChangeAndRetry(msg.payload_to_retry, newModel)
-                  }
-                />
-              );
+            let contentComponent: JSX.Element | null = null;
+            switch (msg.errorData.type) {
+              case 'THROTTLING_ERROR': {
+                contentComponent = (
+                  <ThrottledChatMessage
+                    key={index}
+                    retryAfterSeconds={msg.errorData.retry_after}
+                    currentModel={msg.errorData.model_name}
+                    errorMessage={msg.error_msg}
+                    retry={msg.retry}
+                    payloadToRetry={msg.payload_to_retry}
+                  />
+                );
+                break;
+              }
+              default: {
+                // Otherwise, show the old error UI
+                contentComponent = (
+                  <div key={index}>
+                    <RetryChip
+                      error_msg={msg.error_msg}
+                      retry={msg.retry}
+                      payload_to_retry={msg.payload_to_retry}
+                    />
+                  </div>
+                );
+                break;
+              }
             }
-            // Otherwise, show the old error UI
-            return (
-              <div key={index}>
-                <RetryChip
-                  error_msg={msg.error_msg}
-                  retry={msg.retry}
-                  payload_to_retry={msg.payload_to_retry}
-                />
-                {msg.isThrottling && <ModelSuggestionChip />}
-              </div>
-            );
+            return contentComponent;
           }
 
           default:
