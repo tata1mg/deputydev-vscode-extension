@@ -45,9 +45,9 @@ function checkIfExtensionIsCompatible(): boolean {
     const release = os.release(); // e.g., '6.2.0-36-generic'
     const kernel = release.split('-')[0]; // '6.2.0'
     const [major, minor] = kernel.split('.').map(Number);
-    if (major < 6 || (major === 6 && minor < 8)) {
+    if (major < 6 || (major === 6 && minor < 6)) {
       vscode.window.showWarningMessage(
-        'DeputyDev requires Linux kernel 6.8 or later. Please update your OS to use this extension.',
+        'DeputyDev requires Linux kernel 6.6 or later. Please update your OS to use this extension.',
       );
       return false;
     }
