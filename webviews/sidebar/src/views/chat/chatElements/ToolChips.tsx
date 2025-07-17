@@ -27,7 +27,7 @@ export type Status = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
  * Props for the ThinkingChip component.
  */
 interface ThinkingChipProps {
-  completed?: boolean;
+  status: Status;
 }
 
 /**
@@ -127,33 +127,48 @@ export function ToolUseStatusMessage({
  * Function component for ThinkingChip - Displays a chip representing a thinking state.
  */
 
-export function ThinkingChip({ completed }: ThinkingChipProps) {
+export function ThinkingChip({ status }: ThinkingChipProps) {
   const [dots, setDots] = useState('.');
 
   useEffect(() => {
-    if (completed) return;
+    if (status !== 'pending') return;
     const interval = setInterval(() => {
       setDots((prev) => (prev.length < 3 ? prev + '.' : '.'));
     }, 500);
     return () => clearInterval(interval);
-  }, [completed]);
+  }, [status]);
+
+  let displayText = '';
+  let title = '';
+  switch (status) {
+    case 'pending':
+      displayText = `Thinking${dots}`;
+      title = 'Thinking...';
+      break;
+    case 'completed':
+      displayText = 'Thinking complete';
+      title = 'Thinking Complete';
+      break;
+    case 'error':
+      displayText = 'Thinking failed';
+      title = 'Error during thinking';
+      break;
+    case 'aborted':
+      displayText = 'Thinking aborted';
+      title = 'Thinking Aborted';
+      break;
+    default:
+      displayText = 'Thinking...';
+      title = 'Thinking...';
+  }
 
   return (
     <div
       className="mt-2 flex w-full items-center gap-2 rounded border-[1px] border-gray-500/40 px-2 py-2 text-sm"
-      title={completed ? 'Thinking Complete' : 'Thinking...'}
+      title={title}
     >
-      {!completed ? (
-        <>
-          <StatusIcon status="pending" />
-          <span>Thinking{dots}</span>
-        </>
-      ) : (
-        <>
-          <StatusIcon status="completed" />
-          <span>Thinking complete</span>
-        </>
-      )}
+      <StatusIcon status={status} />
+      <span>{displayText}</span>
     </div>
   );
 }
@@ -171,8 +186,6 @@ export function RetryChip({
 
   // Get the last message to check if it's a throttling error
   const lastMsg = messages[messages.length - 1];
-  const isThrottlingError = lastMsg?.type === 'ERROR' && (lastMsg as any).isThrottling;
-
   // Retry function defined within ChatArea component
   const retryChat = () => {
     if (!messages.length) {
@@ -184,11 +197,13 @@ export function RetryChip({
     // console.log("Last message:", JSON.stringify(lastMsg));
 
     if (lastMsg.type === 'ERROR') {
-      const errorData = lastMsg;
+      // The error message should have the payload to retry stored in 'payload_to_retry'
+      const errorData = lastMsg; // Assuming type ChatErrorMessage
+      // console.log(
+      //   "Payload data just before sending:",
+      //   JSON.stringify(errorData.payload_to_retry, null, 2)
+      // );
       const payload: any = errorData.payload_to_retry;
-
-      // Call sendChatMessage with the retry flag set to true,
-      // passing the stored payload so that UI state updates are skipped.
       sendChatMessage('retry', [], () => {}, undefined, true, payload);
     } else {
       // console.log("No error found to retry.");
@@ -348,130 +363,6 @@ export function FileEditedChip({
           <SnippetReference snippet={{ content: diff, language }} />
         </div>
       )}
-    </div>
-  );
-}
-
-/**
- * Component for suggesting model changes when throttling occurs
- */
-export function ModelSuggestionChip() {
-  const { llmModels } = useChatStore();
-  const { activeModel } = useChatSettingStore();
-
-  // Suggest all other models except the current one
-  const alternativeModels = llmModels.filter((model) => model.name !== activeModel);
-
-  // Placeholder: UI to be implemented later
-  return null;
-}
-
-/**
- *  ChatMessage: UI for throttling errors with retry-after, message, retry, and model switch
- */
-export function ThrottledChatMessage({
-  retryAfterSeconds = 0,
-  onRetry,
-  onModelChangeAndRetry,
-  currentModel,
-}: {
-  retryAfterSeconds?: number;
-  onRetry: () => void;
-  onModelChangeAndRetry: (modelName: string) => void;
-  currentModel: string;
-}) {
-  const { llmModels } = useChatStore();
-  const { activeModel } = useChatSettingStore();
-  const [secondsLeft, setSecondsLeft] = useState(retryAfterSeconds);
-  const [selectedModel, setSelectedModel] = useState(currentModel);
-
-  useEffect(() => {
-    setSelectedModel(currentModel);
-  }, [currentModel]);
-
-  useEffect(() => {
-    setSecondsLeft(retryAfterSeconds);
-    if (retryAfterSeconds > 0) {
-      const interval = setInterval(() => {
-        setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [retryAfterSeconds]);
-
-  useEffect(() => {
-    if (secondsLeft === 0) {
-      onRetry();
-    }
-  }, [secondsLeft]);
-
-  // Only show models that are not throttled (if 'throttled' property exists), otherwise fallback to all except current
-  const availableModels = llmModels.some((m) => 'throttled' in m)
-    ? llmModels.filter((m) => !(m as any).throttled)
-    : llmModels;
-
-  function formatTime(secs: number) {
-    if (!secs || secs <= 0) return 'Throttled';
-    if (secs < 60) return `${secs}s left`;
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}m ${s}s left`;
-  }
-
-  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedModel(e.target.value);
-    useChatSettingStore.setState({ activeModel: e.target.value });
-    onModelChangeAndRetry(e.target.value); // Immediately retry and close popup
-  };
-
-  // Retry button only retries the current model
-  const handleTryAgain = () => {
-    onRetry();
-  };
-
-  return (
-    <div className="mt-2 flex w-full items-center justify-center">
-      <div className="w-full max-w-md rounded border-[1px] border-yellow-500/40 bg-[var(--vscode-editorWidget-background)] px-2 py-2 text-sm shadow-md">
-        {/* Top strip: Throttling time */}
-        <div className="w-full rounded-t border-b border-yellow-500/20 bg-yellow-500/10 px-3 py-1 text-center text-xs font-semibold text-yellow-500">
-          {secondsLeft > 0 ? `Throttling: ${formatTime(secondsLeft)}` : 'Throttled'}
-        </div>
-        {/* Main error message */}
-        <div className="mb-4 mt-3 flex items-center justify-center gap-2">
-          <StatusIcon status="error" />
-          <span className="text-white-400 font-medium">
-            This chat is currently being throttled. Please retry or switch to a different model.
-          </span>
-        </div>
-        {/* Model selector and Try Again button */}
-        <div className="mt-2 flex flex-row items-center justify-center gap-2">
-          <select
-            className="h-5 min-w-[120px] rounded border border-gray-400 bg-[var(--vscode-input-background)] px-2 py-1 text-xs text-[var(--vscode-input-foreground)] focus:outline-none"
-            value={selectedModel}
-            onChange={handleModelChange}
-            style={{ height: '26px' }}
-          >
-            {(llmModels.some((m) => 'throttled' in m)
-              ? llmModels.filter(
-                  (model) => model.name !== currentModel && !(model as any).throttled
-                )
-              : llmModels.filter((model) => model.name !== currentModel)
-            ).map((model) => (
-              <option key={model.name} value={model.name}>
-                {model.display_name}
-              </option>
-            ))}
-          </select>
-          <button
-            className="border-white-400/60 text-white-400 hover:bg-white-400/10 flex h-5 items-center justify-center rounded border bg-transparent p-1.5 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={handleTryAgain}
-            title="Retry"
-            style={{ height: '26px', width: '26px' }}
-          >
-            <RotateCw className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
