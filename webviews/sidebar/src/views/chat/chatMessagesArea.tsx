@@ -518,13 +518,15 @@ export function ChatArea() {
 
           case 'ERROR': {
             let contentComponent: JSX.Element | null = null;
-            switch (msg.errorData.type) {
+            const errorType = msg.errorData?.type; // use optional chaining
+
+            switch (errorType) {
               case 'THROTTLING_ERROR': {
                 contentComponent = (
                   <ThrottledChatMessage
                     key={index}
-                    retryAfterSeconds={msg.errorData.retry_after}
-                    currentModel={msg.errorData.model_name}
+                    retryAfterSeconds={msg.errorData?.retry_after}
+                    currentModel={msg.errorData?.model_name}
                     errorMessage={msg.error_msg}
                     retry={msg.retry}
                     payloadToRetry={msg.payload_to_retry}

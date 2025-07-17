@@ -608,7 +608,7 @@ export class ChatManager {
           name: 'error',
           data: {
             payload_to_retry: originalPayload,
-            error_msg: String(errorData.detail || error.message),
+            error_msg: errorData.message,
             retry: true,
             errorType: 'THROTTLING_ERROR',
             model: originalPayload.llm_model,
