@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Info,
   LoaderCircle,
+  Plus,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
@@ -33,10 +34,7 @@ const dropdownVariants: Variants = {
     height: 0,
     transition: {
       opacity: { duration: 0.15 },
-      height: {
-        duration: 0.2,
-        ease: 'easeInOut',
-      },
+      height: { duration: 0.2, ease: 'easeInOut' },
     },
   },
   visible: {
@@ -44,10 +42,7 @@ const dropdownVariants: Variants = {
     height: 'auto',
     transition: {
       opacity: { duration: 0.2 },
-      height: {
-        duration: 0.25,
-        ease: 'easeInOut',
-      },
+      height: { duration: 0.25, ease: 'easeInOut' },
     },
   },
 };
@@ -91,6 +86,9 @@ export default function CodeReview() {
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [agentCustomPrompts, setAgentCustomPrompts] = useState<Record<string, string>>({});
   const [customAgentNames, setCustomAgentNames] = useState<Record<string, string>>({});
+  const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
+  const [newAgentName, setNewAgentName] = useState('');
+  const [newAgentPrompt, setNewAgentPrompt] = useState('');
 
   const getNoChangesFoundText = () => {
     switch (activeReviewOption.value) {
@@ -195,9 +193,26 @@ export default function CodeReview() {
   };
 
   const toggleAgentExpansion = (agentId: number) => {
-    const isExpanding = expandedAgentId !== agentId;
-    setExpandedAgentId(isExpanding ? agentId : null);
-    setIsAgentExpanded(isExpanding);
+    if (expandedAgentId === agentId) {
+      setExpandedAgentId(null);
+      setIsAgentExpanded(false);
+    } else {
+      setExpandedAgentId(agentId);
+      setShowCreateAgentForm(false);
+      setIsAgentExpanded(true);
+    }
+  };
+
+  const toggleCreateAgentForm = () => {
+    if (showCreateAgentForm) {
+      setShowCreateAgentForm(false);
+      setNewAgentName('');
+      setNewAgentPrompt('');
+    } else {
+      setExpandedAgentId(null);
+      setShowCreateAgentForm(true);
+      setIsAgentExpanded(true);
+    }
   };
 
   const handleCustomPromptChange = (agentId: number, value: string) => {
@@ -224,6 +239,14 @@ export default function CodeReview() {
     // Handle delete logic here
     console.log('Delete', agentId);
     setExpandedAgentId(null);
+  };
+
+  const handleCreateAgent = () => {
+    // Handle create agent logic here
+    console.log('Create agent', newAgentName, newAgentPrompt);
+    setShowCreateAgentForm(false);
+    setNewAgentName('');
+    setNewAgentPrompt('');
   };
 
   return (
@@ -610,10 +633,14 @@ export default function CodeReview() {
                 className="overflow-hidden"
               >
                 <div
-                  className={`mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] ${isAgentExpanded ? 'max-h-[500px]' : 'max-h-60'}`}
+                  className={`mt-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] ${
+                    isAgentExpanded || showCreateAgentForm ? 'max-h-[700px]' : 'max-h-80'
+                  }`}
                 >
                   <div
-                    className={`overflow-y-auto ${isAgentExpanded ? 'max-h-[480px]' : 'max-h-60'}`}
+                    className={`overflow-y-auto ${
+                      isAgentExpanded || showCreateAgentForm ? 'max-h-[680px]' : 'max-h-80'
+                    }`}
                   >
                     {/* Predefined Agents */}
                     <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
@@ -884,6 +911,108 @@ export default function CodeReview() {
                           </AnimatePresence>
                         </div>
                       ))}
+                    {/* Create Custom Agent Button */}
+                    <div className="mt-2 p-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCreateAgentForm();
+                        }}
+                        className="flex w-full items-center justify-center gap-2 rounded-md bg-[var(--vscode-button-secondaryBackground)] px-3 py-2 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Create Custom Agent
+                      </button>
+                      {/* Create Agent Form */}
+                      <AnimatePresence>
+                        {showCreateAgentForm && (
+                          <motion.div
+                            key="create-agent-form"
+                            className="overflow-hidden bg-[var(--vscode-editor-background)]"
+                            variants={dropdownVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            transition={{ duration: 0.2 }}
+                          >
+                            <motion.div className="px-2 py-2" variants={itemVariants} custom={0}>
+                              <motion.div className="mb-3" variants={itemVariants} custom={0}>
+                                <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                  Agent Name
+                                </label>
+                                <motion.input
+                                  type="text"
+                                  className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                  value={newAgentName}
+                                  onChange={(e) => setNewAgentName(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="Enter agent name..."
+                                  variants={itemVariants}
+                                  custom={0.5}
+                                />
+                              </motion.div>
+                              <motion.div className="mb-3" variants={itemVariants} custom={0.5}>
+                                <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                  Custom Prompt
+                                </label>
+                                <motion.textarea
+                                  className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                  rows={3}
+                                  value={newAgentPrompt}
+                                  onChange={(e) => setNewAgentPrompt(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="Enter custom prompt..."
+                                  variants={itemVariants}
+                                  custom={0.7}
+                                />
+                              </motion.div>
+                              <motion.div
+                                className="flex items-center justify-between"
+                                variants={itemVariants}
+                                custom={0.8}
+                              >
+                                <motion.div
+                                  className="flex-1"
+                                  variants={itemVariants}
+                                  custom={0.8}
+                                />
+                                <motion.div
+                                  className="flex space-x-2"
+                                  variants={itemVariants}
+                                  custom={0.9}
+                                >
+                                  <motion.button
+                                    onClick={() => {
+                                      setShowCreateAgentForm(false);
+                                      setNewAgentName('');
+                                      setNewAgentPrompt('');
+                                    }}
+                                    className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+                                    variants={itemVariants}
+                                    custom={1}
+                                  >
+                                    Cancel
+                                  </motion.button>
+                                  <motion.button
+                                    onClick={handleCreateAgent}
+                                    disabled={!newAgentName.trim()}
+                                    className={`rounded px-3 py-1 text-xs ${
+                                      newAgentName.trim()
+                                        ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]'
+                                        : 'cursor-not-allowed bg-[var(--vscode-button-secondaryBackground)] text-[var(--vscode-button-secondaryForeground)] opacity-50'
+                                    }`}
+                                    variants={itemVariants}
+                                    custom={1.1}
+                                  >
+                                    Create
+                                  </motion.button>
+                                </motion.div>
+                              </motion.div>
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </div>
               </motion.div>
