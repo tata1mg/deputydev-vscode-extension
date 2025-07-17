@@ -44,11 +44,7 @@ const AgentStatus = ({
     className="flex items-center gap-2"
   >
     {completed ? (
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        className="h-2 w-2 rounded-full bg-green-500"
-      />
+      <AnimatedCheck />
     ) : isActive ? (
       <LoadingSpinner />
     ) : (
@@ -71,17 +67,17 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
       inProgress: true,
     },
     {
-      id: 'analyzing',
-      label: 'Analyzing changes',
-      completed: false,
-      inProgress: false,
-    },
-    {
       id: 'reviewing',
       label: 'Reviewing files',
       completed: false,
       inProgress: false,
       agents: ['Security', 'Performance'],
+    },
+    {
+      id: 'finalyzing',
+      label: 'Finalyzing Review',
+      completed: false,
+      inProgress: false,
     },
   ]);
 
@@ -95,11 +91,11 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
       setTimeout(() => completeStep(1), 3000),
       setTimeout(() => {
         completeAgent('Security');
-      }, 4500),
+      }, 3500),
       setTimeout(() => {
         completeAgent('Performance');
         completeStep(2);
-      }, 6000),
+      }, 4000),
     ];
 
     return () => timers.forEach((timer) => clearTimeout(timer));
@@ -175,13 +171,12 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                     )}
                   </motion.div>
                   <motion.span
-                    className={`text-sm ${
-                      step.completed
+                    className={`text-sm ${step.completed
                         ? 'text-green-600 dark:text-green-400'
                         : step.inProgress
                           ? 'font-medium'
                           : 'text-gray-500 dark:text-gray-400'
-                    }`}
+                      }`}
                     layout="position"
                   >
                     {step.label}
@@ -189,7 +184,7 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                 </div>
 
                 <AnimatePresence>
-                  {step.id === 'reviewing' && step.agents && (
+                  {step.agents && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
