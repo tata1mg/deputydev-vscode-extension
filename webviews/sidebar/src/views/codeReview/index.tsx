@@ -26,6 +26,7 @@ import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
 import { PastReviews } from './PastReviews';
 import { Review } from './review';
+import { ReviewModal } from './ReviewModal';
 import { Tooltip } from 'react-tooltip';
 
 const dropdownVariants: Variants = {
@@ -89,6 +90,7 @@ export default function CodeReview() {
   const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
   const [newAgentName, setNewAgentName] = useState('');
   const [newAgentPrompt, setNewAgentPrompt] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getNoChangesFoundText = () => {
     switch (activeReviewOption.value) {
@@ -524,6 +526,16 @@ export default function CodeReview() {
 
         {isReviewRunning && <Review isRunning={isReviewRunning} />}
 
+        <ReviewModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onStartReview={() => {
+            setIsModalOpen(false);
+            setShowFilesToReview(false);
+            handleStartReview();
+          }}
+        />
+
         {/* Review Button */}
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
@@ -531,9 +543,7 @@ export default function CodeReview() {
               <span
                 className="flex-1 cursor-pointer text-center"
                 onClick={() => {
-                  setShowFilesToReview(false);
-                  hitSnapshot(activeReviewOption.value);
-                  handleStartReview();
+                  setIsModalOpen(true);
                 }}
               >
                 {activeReviewOption.displayName}

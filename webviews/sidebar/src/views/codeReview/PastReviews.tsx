@@ -1,6 +1,5 @@
 import { openCommentInFile } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
-import { CodeReviewComment } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, User, Bug, TriangleAlert, FileWarning } from 'lucide-react';
 import { useState } from 'react';
@@ -12,12 +11,14 @@ export const PastReviews = () => {
   const { pastReviews } = useCodeReviewStore();
 
   const tagColors = (tag: string) => {
-    if (tag === 'bug') {
-      return 'bg-red-600';
+    const lowerTag = tag.toLowerCase();
+    if (lowerTag === 'bug') {
+      return 'bg-red-700';
     }
-    if (tag === 'suggestion') {
+    if (lowerTag === 'suggestion') {
       return 'bg-yellow-600';
     }
+    return 'bg-blue-600';
   };
 
   const toggleReview = (reviewId: string) => {
@@ -28,6 +29,7 @@ export const PastReviews = () => {
   const toggleFile = (filePath: string) => {
     setExpandedFile(expandedFile === filePath ? null : filePath);
   };
+
   return (
     <div className="mt-2 flex h-full flex-col px-4">
       <div
@@ -48,21 +50,11 @@ export const PastReviews = () => {
         }}
       >
         {pastReviews.map((review) => {
-          // Group comments by file path
-          const filesWithComments = review.comments.reduce<Record<string, CodeReviewComment[]>>(
-            (acc, comment) => {
-              if (!acc[comment.file_path]) {
-                acc[comment.file_path] = [];
-              }
-              acc[comment.file_path].push(comment);
-              return acc;
-            },
-            {}
-          );
-
-          const fileCount = Object.keys(filesWithComments).length;
-          const commentCount = review.comments.length;
-          const reviewDate = new Date(review.created_at).toLocaleDateString();
+          const fileCount = review.meta.file_count;
+          const commentCount = review.meta.comment_count;
+          const reviewDate = review.review_datetime
+            ? new Date(review.review_datetime).toLocaleDateString()
+            : 'No date';
 
           return (
             <div key={review.id} className="m-1 text-sm">
@@ -78,7 +70,7 @@ export const PastReviews = () => {
                     <ChevronRight className="h-4 w-4" />
                   </motion.div>
                   <div className="flex flex-col px-2">
-                    <span className="text-sm font-medium">Review #{review.id}</span>
+                    <span className="text-sm font-medium">{review.title}</span>
                     <span className="text-[8px] text-[var(--vscode-descriptionForeground)]">
                       {reviewDate}
                     </span>
@@ -111,49 +103,51 @@ export const PastReviews = () => {
                     }}
                     className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
                   >
-                    {/* Review Summary */}
+                    {/* Agent Summary */}
                     <div className="my-3 flex flex-col gap-2 pl-4">
                       <span className="text-xs">Agents</span>
-                      <div className="flex gap-2">
-                        {['Security', 'Error', 'Performance'].map((label) => {
-                          const count = Math.floor(Math.random() * 10) + 1; // Random count between 1-10
-                          return (
-                            <div
-                              key={label}
-                              className="relative flex items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-2 py-0.5 text-white"
-                            >
-                              <User className="h-3 w-3" />
-                              <span className="text-xs">{label}</span>
-                              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
-                                {count}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <span className="text-xs">Tags</span>
-                      <div className="flex gap-2">
-                        {['bug', 'suggestion'].map((tag) => {
-                          const count = Math.floor(Math.random() * 10) + 1; // Random count between 1-10
-                          return (
-                            <div key={tag} className="relative">
-                              <div
-                                className={`w-fit rounded-md border px-2 py-0.5 text-[11px] text-white ${tagColors(tag)} flex items-center gap-1`}
-                              >
-                                {tag === 'bug' && <Bug size={12} />}
-                                {tag === 'suggestion' && <TriangleAlert size={12} />}
-                                {tag.toUpperCase()}
-                              </div>
-                              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
-                                {count}
-                              </span>
-                            </div>
-                          );
-                        })}
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(review.agent_summary).map(([agent, count]) => (
+                          <div
+                            key={agent}
+                            className="relative flex items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-2 py-0.5 text-white"
+                          >
+                            <User className="h-3 w-3" />
+                            <span className="text-xs">{agent}</span>
+                            <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
+                              {count}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
-                    {Object.entries(filesWithComments).map(([filePath, comments]) => (
+                    {/* Tag Summary */}
+                    <div className="mb-3 flex flex-col gap-2 pl-4">
+                      <span className="text-xs">Tags</span>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(review.tag_summary).map(([tag, count]) => (
+                          <div key={tag} className="relative">
+                            <div
+                              className={`w-fit rounded-md border px-2 py-0.5 text-[11px] text-white ${tagColors(tag)} flex items-center gap-1`}
+                            >
+                              {tag.toLowerCase() === 'bug' ? (
+                                <Bug size={12} />
+                              ) : (
+                                <TriangleAlert size={12} />
+                              )}
+                              {tag.toUpperCase()}
+                            </div>
+                            <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
+                              {count}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Files and Comments */}
+                    {Object.entries(review.comments).map(([filePath, comments]) => (
                       <div key={filePath} className="pl-4">
                         <div
                           className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
@@ -162,14 +156,14 @@ export const PastReviews = () => {
                             toggleFile(filePath);
                           }}
                         >
-                          <div className="flex min-w-0 items-center gap-2">
+                          <div className="flex min-w-0 flex-1 items-center gap-2">
                             <motion.div
                               animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
                               transition={{ duration: 0.2 }}
                             >
                               <ChevronRight size={12} className="flex-shrink-0" />
                             </motion.div>
-                            <div className="flex min-w-0 items-center gap-2">
+                            <div className="flex min-w-0 flex-1 items-center">
                               <div
                                 data-tooltip-id="code-review-tooltips"
                                 data-tooltip-content={filePath}
@@ -186,10 +180,10 @@ export const PastReviews = () => {
                               >
                                 {filePath}
                               </div>
-                              <div className="ml-2 flex flex-shrink-0 items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)]">
-                                {comments.length}
-                                <FileWarning className="h-4 w-4 text-red-600" />
-                              </div>
+                            </div>
+                            <div className="ml-2 flex items-center gap-1 whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
+                              {comments.length}
+                              <FileWarning className="h-4 w-4 flex-shrink-0 text-red-600" />
                             </div>
                           </div>
                         </div>
@@ -228,39 +222,33 @@ export const PastReviews = () => {
                                     });
                                   }}
                                 >
-                                  <div className="flex w-full items-center justify-between">
-                                    <div className="flex max-w-[70%] flex-col gap-1">
-                                      {' '}
-                                      {/* adjust width as needed */}
-                                      <div className="flex flex-wrap items-center gap-1">
-                                        {['Security', 'Error', 'Performance'].map((label) => (
-                                          <div
-                                            key={label}
-                                            className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[11px] text-white"
-                                          >
-                                            <User className="h-3 w-3" />
-                                            <span>{label}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                      <div className="break-words text-[11px]">
-                                        {comment.comment}
-                                      </div>
+                                  <div className="flex w-full flex-col gap-1">
+                                    <div className="flex w-full items-center justify-between">
+                                      <div className="truncate font-semibold">{comment.title}</div>
+                                      <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Line {comment.line_number}
+                                      </span>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      {comment.agent_names.map((agent) => (
+                                        <div
+                                          key={agent}
+                                          className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
+                                        >
+                                          <User className="h-3 w-3" />
+                                          <span>{agent}</span>
+                                        </div>
+                                      ))}
                                       <div
-                                        className={`w-fit rounded-md border px-1 py-0.5 text-[11px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
+                                        className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
                                       >
-                                        {comment.tag === 'bug' ? (
-                                          <Bug size={12} />
+                                        {comment.tag.toLowerCase() === 'bug' ? (
+                                          <Bug size={10} />
                                         ) : (
-                                          <TriangleAlert size={12} />
+                                          <TriangleAlert size={10} />
                                         )}
                                         {comment.tag.toUpperCase()}
                                       </div>
-                                      <span className="text-[11px] text-[var(--vscode-descriptionForeground)]">
-                                        Line {comment.line_number}
-                                      </span>
                                     </div>
                                   </div>
                                 </div>
