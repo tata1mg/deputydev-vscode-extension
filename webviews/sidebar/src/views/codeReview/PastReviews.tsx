@@ -2,7 +2,7 @@ import { openCommentInFile } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { CodeReviewComment } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, User } from 'lucide-react';
+import { ChevronRight, User, Bug, TriangleAlert, FileWarning } from 'lucide-react';
 import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 
@@ -138,8 +138,10 @@ export const PastReviews = () => {
                           return (
                             <div key={tag} className="relative">
                               <div
-                                className={`w-fit rounded-md border px-2 py-0.5 text-[11px] text-white ${tagColors(tag)}`}
+                                className={`w-fit rounded-md border px-2 py-0.5 text-[11px] text-white ${tagColors(tag)} flex items-center gap-1`}
                               >
+                                {tag === 'bug' && <Bug size={12} />}
+                                {tag === 'suggestion' && <TriangleAlert size={12} />}
                                 {tag.toUpperCase()}
                               </div>
                               <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
@@ -186,7 +188,7 @@ export const PastReviews = () => {
                               </div>
                               <div className="ml-2 flex flex-shrink-0 items-center gap-1 text-xs text-[var(--vscode-descriptionForeground)]">
                                 {comments.length}
-                                <span className="text-red-600">!</span>
+                                <FileWarning className="h-4 w-4 text-red-600" />
                               </div>
                             </div>
                           </div>
@@ -247,8 +249,13 @@ export const PastReviews = () => {
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
                                       <div
-                                        className={`w-fit rounded-md border px-1 py-0.5 text-[11px] text-white ${tagColors(comment.tag)}`}
+                                        className={`w-fit rounded-md border px-1 py-0.5 text-[11px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
                                       >
+                                        {comment.tag === 'bug' ? (
+                                          <Bug size={12} />
+                                        ) : (
+                                          <TriangleAlert size={12} />
+                                        )}
                                         {comment.tag.toUpperCase()}
                                       </div>
                                       <span className="text-[11px] text-[var(--vscode-descriptionForeground)]">

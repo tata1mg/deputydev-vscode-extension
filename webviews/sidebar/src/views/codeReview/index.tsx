@@ -4,7 +4,7 @@ import {
   GitBranch,
   Check,
   Pen,
-  UserCog,
+  BotMessageSquare,
   ArrowLeft,
   ChevronRight,
   Info,
@@ -463,7 +463,7 @@ export default function CodeReview() {
                   setShowReviewOptions(false);
                 }}
               >
-                <UserCog className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
+                <BotMessageSquare className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
                 <span className="text-[var(--vscode-foreground)]">Agents</span>
               </button>
             </div>
@@ -554,7 +554,7 @@ export default function CodeReview() {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="mr-2 flex items-center space-x-2">
+                          <div className="flex items-center space-x-2">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
