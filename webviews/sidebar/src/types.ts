@@ -472,7 +472,14 @@ export interface CodeReviewComment {
   line_hash: string;
   line_number: number;
   tag: string;
-  agent_names: string[];
+  agent_ids: number[];
+}
+
+export interface AgentSummary {
+  count: number;
+  id: number;
+  name: string;
+  display_name: string;
 }
 
 export interface Review {
@@ -481,7 +488,7 @@ export interface Review {
   execution_time_seconds: number | null;
   review_datetime: string | null;
   comments: Record<string, CodeReviewComment[]>;
-  agent_summary: Record<string, number>;
+  agent_summary: AgentSummary[];
   tag_summary: Record<string, number>;
   meta: {
     file_count: number;

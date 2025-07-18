@@ -8,7 +8,7 @@ import { Tooltip } from 'react-tooltip';
 export const PastReviews = () => {
   const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
-  const { pastReviews } = useCodeReviewStore();
+  const { pastReviews, userAgents } = useCodeReviewStore();
 
   const tagColors = (tag: string) => {
     const lowerTag = tag.toLowerCase();
@@ -107,15 +107,15 @@ export const PastReviews = () => {
                     <div className="my-3 flex flex-col gap-2 pl-4">
                       <span className="text-xs">Agents</span>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(review.agent_summary).map(([agent, count]) => (
+                        {review.agent_summary.map((agent) => (
                           <div
-                            key={agent}
+                            key={agent.id}
                             className="relative flex items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-2 py-0.5 text-white"
                           >
                             <User className="h-3 w-3" />
-                            <span className="text-xs">{agent}</span>
+                            <span className="text-xs">{agent.display_name}</span>
                             <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold">
-                              {count}
+                              {agent.count}
                             </span>
                           </div>
                         ))}
@@ -230,13 +230,18 @@ export const PastReviews = () => {
                                       </span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-1">
-                                      {comment.agent_names.map((agent) => (
+                                      {comment.agent_ids.map((agentId) => (
                                         <div
-                                          key={agent}
+                                          key={agentId}
                                           className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
                                         >
                                           <User className="h-3 w-3" />
-                                          <span>{agent}</span>
+                                          <span>
+                                            {
+                                              userAgents.find((ua) => ua.id === agentId)
+                                                ?.display_name
+                                            }
+                                          </span>
                                         </div>
                                       ))}
                                       <div
