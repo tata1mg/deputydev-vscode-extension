@@ -28,14 +28,17 @@ import {
   getRepoAndRelativeFilePath,
   getSessionId,
   sendProgress,
+  setReviewId,
   setSessionId,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
-import { ReviewService } from '../services/codeReview/ReviewService';
+import { ReviewService } from '../services/codeReview/CodeReviewService';
 import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
 import { CommentHandler } from '../codeReview/CommentHandler';
+import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
+import { AgentPayload } from '../types';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -70,7 +73,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly reviewService: ReviewService,
     private readonly codeReviewDiffManager: CodeReviewDiffManager,
     private readonly commentHandler: CommentHandler,
-  ) {}
+    private readonly codeReviewManager: CodeReviewManager,
+  ) { }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -110,6 +114,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       // Depending on `command`, handle each case
       switch (command) {
         // Code Review
+        case 'code-review-pre-process':
+          this.outputChannel.info('Pre-processing code review...');
+          this.handleCodeReviewPreProcess(data);
+          break;
+        case 'start-code-review':
+          this.outputChannel.info('Starting code review...');
+          this.handleCodeReviewStart(data);
+          break;
         case 'new-review':
           this.newReview(data);
           break;
@@ -1009,9 +1021,39 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
+  public async handleCodeReviewPreProcess(data: any) {
+    console.log('Starting code review pre process with data:', data);
+    const preProcessResult = await this.reviewService.codeReviewPreProcess();
+    console.log('Pre-process result:', preProcessResult);
+    if (preProcessResult.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'review-preprocess-error',
+        data: { error: preProcessResult.meta.message },
+      });
+    } else {
+      console.log('Code review pre-process completed successfully.');
+      const reviewId = preProcessResult.data.review_id;
+      setReviewId(reviewId);
+      console.log('Review ID set:', reviewId);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'review-preprocess-completed',
+        data: preProcessResult.data,
+      });
+    }
+  }
+
+  public async handleCodeReviewStart(data: any) {
+    console.log('Starting code review with data:', data);
+
+    const agentsPayload = data.agentsPayload as AgentPayload[];
+    this.codeReviewManager.startCodeReview({agents: agentsPayload});
+  }
+
   public async newReview(data: any) {
     const result = await this.reviewService.newReview(data.targetBranch, data.reviewType);
-    if (result) {
+    if (result && !result.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'new-review-created',
@@ -1028,7 +1070,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async searchBranches(keyword: string) {
     const result = await this.reviewService.searchBranch(keyword);
-    if (result) {
+    if (result && !result.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'search-branches-result',
@@ -1050,7 +1092,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   public async handleSnapshot(data: any) {
     try {
       const snapshot = await this.reviewService.hitSnapshot(data.reviewType);
-      if (snapshot) {
+      if (snapshot && !snapshot.is_error) {
         this.sendMessageToSidebar({
           id: uuidv4(),
           command: 'snapshot-result',
@@ -1075,7 +1117,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   public async fetchPastReviews(data: any) {
     try {
       const reviews = await this.reviewService.getPastReviews(data.sourceBranch);
-      if (reviews) {
+      if (reviews && !reviews.is_error) {
         this.sendMessageToSidebar({
           id: uuidv4(),
           command: 'past-reviews',
@@ -1100,7 +1142,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   public async fetchUserAgents() {
     try {
       const userAgents = await this.reviewService.getUserAgents();
-      if (userAgents) {
+      if (userAgents && !userAgents.is_error) {
         this.sendMessageToSidebar({
           id: uuidv4(),
           command: 'user-agents',

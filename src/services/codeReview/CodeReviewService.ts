@@ -6,11 +6,30 @@ import { API_ENDPOINTS } from '../api/endpoints';
 
 export class ReviewService {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
-  // create a construcuter with logger
   constructor() {
     this.logger = SingletonLogger.getInstance();
   }
   private apiErrorHandler = new ApiErrorHandler();
+
+  public async codeReviewPreProcess() {
+    try {
+      const payload = {
+        "user_team_id": 112,
+        "repo_name": "merch_service",
+        "repo_origin": "github/merch_service",
+        "diff_s3_url": "sadhkjhkhdkjs",
+        "source_branch": "merch_test1",
+        "target_branch": "master"
+      }
+
+      const response = await api.post(API_ENDPOINTS.CODE_REVIEW_PRE_PROCESS, payload);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error during code Review Pre Process');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
 
   public async newReview(target_branch: string, review_type: string): Promise<any> {
     try {
