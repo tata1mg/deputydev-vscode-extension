@@ -1047,8 +1047,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   public async handleCodeReviewStart(data: any) {
     console.log('Starting code review with data:', data);
 
-    const agentsPayload = data.agentsPayload as AgentPayload[];
-    this.codeReviewManager.startCodeReview({ agents: agentsPayload });
+    const agentsPayload = data as { review_id: number; agents: AgentPayload[] };
+    this.codeReviewManager.startCodeReview(agentsPayload);
   }
 
   public async newReview(data: any) {
