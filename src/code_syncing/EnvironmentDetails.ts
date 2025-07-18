@@ -4,8 +4,11 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
 import { arePathsEqual } from '../utilities/path';
-import { ChatPayload } from '../types';
+import { ChatPayload, FileSummaryResponse } from '../types';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
 const PREVIEW_LINES = 100; // Number of lines to preview in the active file
+const MIN_LINES_FOR_SUMMARY = 200;
 export async function getEnvironmentDetails(
   includeFileDetails: boolean = false,
   payload?: ChatPayload,
@@ -132,16 +135,35 @@ export async function getEnvironmentDetails(
           `\n(The user has this range selected in VS Code. It may or may not be relevant. ` +
           `If your task needs more context, you can load additional parts of the file using the appropriate tools.)`;
       } else {
-        // Show only the first N lines (or fewer if the file is shorter)
-        const previewLineCount = Math.min(PREVIEW_LINES, totalLines);
-        const excerpt = lines.slice(0, previewLineCount).join('\n');
-        details +=
-          `\n\n# Active File Preview\n` +
-          `Absolute Path: ${absolutePath}\n` +
-          `First ${previewLineCount} line${previewLineCount !== 1 ? 's' : ''} of ${totalLines} total lines in the active file:\n` +
-          `${excerpt}\n` +
-          `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
-          `If your task needs more context, you can read further using the available tools.)`;
+        let summaryShown = false;
+        // Show summary if file is long enough
+
+        if (totalLines >= MIN_LINES_FOR_SUMMARY) {
+          const summary = await _runFileSummaryReader(absolutePath);
+          if (summary && summary.summary_content) {
+            details +=
+              `\n\n# Active File Summary\n` +
+              `Absolute Path: ${absolutePath}\n` +
+              `Total lines in file: ${totalLines}\n\n` +
+              `Below is an auto-generated summary of the file (line no, function signatures, key lines, etc):\n\n` +
+              `${summary.summary_content}\n` +
+              `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
+              `\n(The file is long, so only a summary is shown. You can request specific sections if needed.)`;
+            summaryShown = true;
+          }
+        }
+        if (!summaryShown) {
+          // Show preview for short files OR if summary isn't available
+          const previewLineCount = Math.min(PREVIEW_LINES, totalLines);
+          const excerpt = lines.slice(0, previewLineCount).join('\n');
+          details +=
+            `\n\n# Active File Preview\n` +
+            `Absolute Path: ${absolutePath}\n` +
+            `First ${previewLineCount} line${previewLineCount !== 1 ? 's' : ''} of ${totalLines} total lines in the active file:\n` +
+            `${excerpt}\n` +
+            `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
+            `If your task needs more context, you can read further using the available tools.)`;
+        }
       }
     } catch (e: any) {
       details += `\n\n# Active File Preview\n(Absolute Path: ${absolutePath})\n`;
@@ -149,4 +171,15 @@ export async function getEnvironmentDetails(
   }
 
   return `<environment_details>\n${details.trim()}\n</environment_details>`;
+}
+
+async function _runFileSummaryReader(filePath: string): Promise<FileSummaryResponse | undefined> {
+  try {
+    const response = await binaryApi().post(API_ENDPOINTS.READ_FILE_SUMMARY, {
+      file_path: filePath,
+    });
+    return response.data;
+  } catch (error: any) {
+    return undefined;
+  }
 }
