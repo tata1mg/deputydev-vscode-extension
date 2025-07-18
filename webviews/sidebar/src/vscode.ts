@@ -21,6 +21,7 @@ import {
   NewReview,
   Review,
   UserAgent,
+  AgentPayload,
 } from '@/types';
 import {
   logToOutput,
@@ -30,6 +31,7 @@ import {
   hitEmbedding,
   updateContextRepositories,
   newReview,
+  startCodeReview,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -566,7 +568,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => {},
+    () => { },
     undefined,
     false,
     {},
@@ -661,7 +663,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => {},
+      () => { },
       undefined,
       false,
       {},
@@ -879,4 +881,38 @@ addCommandEventListener('user-agents', ({ data }) => {
   }
 
   console.log('User agents data received:', useCodeReviewStore.getState().userAgents);
+});
+
+addCommandEventListener('review-preprocess-completed', ({ data }) => {
+  const preProcessData = data as { review_id: number, session_id: number };
+  console.log('Review preprocess completed:', preProcessData);
+  useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
+  useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
+  console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
+
+
+  // Start Review now
+  const enabledAgents = useCodeReviewStore.getState().enabledAgents;
+  const activeReviewId = useCodeReviewStore.getState().activeReviewId;
+  const activeReviewSessionId = useCodeReviewStore.getState().activeReviewSessionId;
+
+  // Ensure we have a valid activeReviewId
+  if (!activeReviewId) {
+    console.error('No active review ID found');
+    return;
+  }
+
+  // Create the agents payload list
+  const agentsPayloadList: AgentPayload[] = enabledAgents.map((agent) => ({
+    agent_id: agent,
+    review_id: activeReviewId,
+    type: "query",
+    session_id: activeReviewSessionId,
+    repo_id: 43,
+  }));
+
+  // Start the code review with the agents payload list
+  startCodeReview({
+    agentsPayload: agentsPayloadList
+  });
 });

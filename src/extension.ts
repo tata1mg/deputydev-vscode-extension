@@ -49,9 +49,10 @@ import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
-import { ReviewService } from './services/codeReview/ReviewService';
+import { ReviewService } from './services/codeReview/CodeReviewService';
 import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
 import { CommentHandler } from './codeReview/CommentHandler';
+import { CodeReviewManager } from './codeReviewManager/CodeReviewManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -134,6 +135,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
 
+  const codeReviewManager = new CodeReviewManager(context, outputChannel, backendClient);
+
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
     context,
@@ -156,8 +159,12 @@ export async function activate(context: vscode.ExtensionContext) {
     reviewService,
     codeReviewDiffManager,
     commentHandler,
+    codeReviewManager,
   );
+
   diffManager.setSidebarProvider(sidebarProvider);
+  codeReviewManager.setSidebarProvider(sidebarProvider);
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
       webviewOptions: { retainContextWhenHidden: true },

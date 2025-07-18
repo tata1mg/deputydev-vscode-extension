@@ -179,3 +179,10 @@ export type EmbeddingProgressData = {
   repo_path: string;
   progress: number;
 };
+
+export interface AgentPayload {
+  agent_id: string;
+  review_id: number;
+  type: string;
+  session_id: number;
+}

@@ -458,6 +458,8 @@ export interface CodeReviewStorage {
   enabledAgents: number[];
   userAgents: UserAgent[];
   isFetchingChangedFiles: boolean;
+  activeReviewId: number;
+  activeReviewSessionId: number;
 }
 
 export interface CodeReviewComment {
@@ -485,4 +487,12 @@ export interface Review {
     file_count: number;
     comment_count: number;
   };
+}
+
+export interface AgentPayload {
+  agent_id: number;
+  review_id: number;
+  session_id: number;
+  type: string;
+  repo_id: number;
 }
