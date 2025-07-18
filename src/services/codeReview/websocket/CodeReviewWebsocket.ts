@@ -5,7 +5,7 @@ import { BackendClient } from '../../../clients/backendClient';
 import { AgentPayload } from '../../../types';
 
 export interface ReviewEvent {
-  type: 'REVIEW_FAILED' | 'AGENT_START' | 'AGENT_COMPLETED' | 'AGENT_FAILED' | 'TOOL_USE_REQUEST';
+  type: 'REVIEW_FAIL' | 'AGENT_START' | 'AGENT_COMPLETE' | 'AGENT_FAIL' | 'TOOL_USE_REQUEST';
   content?: any;
   error?: string;
   tool_use_id?: string;
@@ -31,7 +31,7 @@ export class CodeReviewWebsocketService {
   }
 
   public async *startReview(
-    payload: { agents: AgentPayload[] },
+    payload: { review_id: number; agents: AgentPayload[] },
     signal?: AbortSignal,
   ): AsyncIterableIterator<ReviewEvent> {
     const eventsQueue: ReviewEvent[] = [];
@@ -50,7 +50,7 @@ export class CodeReviewWebsocketService {
         } catch (error) {
           console.error('Error processing message:', error);
           eventsQueue.push({
-            type: 'AGENT_FAILED',
+            type: 'AGENT_FAIL',
             error: 'Failed to process message from server',
           });
         }
@@ -60,7 +60,7 @@ export class CodeReviewWebsocketService {
         console.error('WebSocket error:', error);
         socketError = error;
         eventsQueue.push({
-          type: 'REVIEW_FAILED',
+          type: 'REVIEW_FAIL',
           error: error.message || 'WebSocket connection error',
         });
         this.currentSocket?.close();
@@ -69,7 +69,7 @@ export class CodeReviewWebsocketService {
       const handleClose = (): void => {
         if (socketError) {
           eventsQueue.push({
-            type: 'REVIEW_FAILED',
+            type: 'REVIEW_FAIL',
             error: socketError.message || 'WebSocket connection closed with error',
           });
         }
@@ -99,7 +99,7 @@ export class CodeReviewWebsocketService {
 
         if (eventsQueue.length > 0) {
           const event = eventsQueue.shift()!;
-          if (event.type === 'AGENT_FAILED' && event.error) {
+          if (event.type === 'AGENT_FAIL' && event.error) {
             throw new Error(event.error);
           }
           yield event;

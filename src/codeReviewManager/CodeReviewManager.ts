@@ -29,7 +29,7 @@ export class CodeReviewManager {
     this.sidebarProvider = sidebarProvider;
   }
 
-  public async startCodeReview(agentsPayload: { agents: AgentPayload[] }): Promise<void> {
+  public async startCodeReview(agentsPayload: { review_id: number; agents: AgentPayload[] }): Promise<void> {
     const abortController = new AbortController();
     this.currentAbortController = abortController;
 
@@ -64,12 +64,12 @@ export class CodeReviewManager {
     console.log(`Received review event: ${event.type}`, event);
 
     switch (event.type) {
-      case 'AGENT_COMPLETED':
+      case 'AGENT_COMPLETE':
         this.outputChannel.info('Review completed successfully');
         vscode.window.showInformationMessage('Code review completed!');
         break;
 
-      case 'AGENT_FAILED':
+      case 'AGENT_FAIL':
         this.outputChannel.error(`Review failed: ${event.error || 'Unknown error'}`);
         vscode.window.showErrorMessage(`Code review failed: ${event.error}`);
         break;

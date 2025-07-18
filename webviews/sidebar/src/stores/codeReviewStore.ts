@@ -67,7 +67,6 @@ export const useCodeReviewStore = create<
               : step
           ),
         })),
-      async startCodeReview() {},
     }),
     {
       name: 'code-review-storage',
