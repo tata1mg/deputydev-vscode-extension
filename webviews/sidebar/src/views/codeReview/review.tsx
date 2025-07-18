@@ -1,13 +1,19 @@
-import { motion, AnimatePresence, AnimatePresenceProps } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+type Status = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'ERROR';
+
+interface Agent {
+  name: string;
+  status: Status;
+}
 
 interface Step {
   id: string;
   label: string;
-  completed: boolean;
-  inProgress: boolean;
-  agents?: string[];
+  status: Status;
+  agents?: Agent[];
 }
 
 const AnimatedCheck = () => (
@@ -29,110 +35,140 @@ const LoadingSpinner = () => (
   </motion.div>
 );
 
-const AgentStatus = ({
-  agent,
-  completed,
-  isActive,
-}: {
-  agent: string;
-  completed: boolean;
-  isActive: boolean;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, x: -10 }}
-    animate={{ opacity: 1, x: 0 }}
-    className="flex items-center gap-2"
-  >
-    {completed ? (
-      <AnimatedCheck />
-    ) : isActive ? (
-      <LoadingSpinner />
-    ) : (
-      <div className="h-2 w-2 rounded-full bg-gray-400" />
-    )}
-    <span
-      className={`text-xs ${completed ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-gray-500'}`}
+const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
+  const isCompleted = status === 'COMPLETED';
+  const isActive = status === 'IN_PROGRESS';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-2"
     >
-      {agent} agent {completed ? 'completed' : isActive ? 'in progress...' : 'pending...'}
-    </span>
-  </motion.div>
-);
+      {isCompleted ? (
+        <AnimatedCheck />
+      ) : isActive ? (
+        <LoadingSpinner />
+      ) : (
+        <div className="h-2 w-2 rounded-full bg-gray-400" />
+      )}
+      <span
+        className={`text-xs ${
+          isCompleted ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-gray-500'
+        }`}
+      >
+        {agent.name} agent {isCompleted ? 'completed' : isActive ? 'in progress...' : 'pending...'}
+      </span>
+    </motion.div>
+  );
+};
 
 export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
   const [steps, setSteps] = useState<Step[]>([
     {
       id: 'setup',
       label: 'Setting up review',
-      completed: false,
-      inProgress: true,
+      status: 'PENDING',
     },
     {
       id: 'reviewing',
       label: 'Reviewing files',
-      completed: false,
-      inProgress: false,
-      agents: ['Security', 'Performance'],
+      status: 'PENDING',
+      agents: [
+        { name: 'Security', status: 'PENDING' },
+        { name: 'Performance', status: 'PENDING' },
+      ],
     },
     {
       id: 'finalyzing',
-      label: 'Finalyzing Review',
-      completed: false,
-      inProgress: false,
+      label: 'Finalizing Review',
+      status: 'PENDING',
     },
   ]);
-
-  const [completedAgents, setCompletedAgents] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isRunning) return;
 
     const timers = [
-      setTimeout(() => completeStep(0), 1500),
-      setTimeout(() => completeStep(1), 3000),
+      setTimeout(() => updateStepStatus(0, 'IN_PROGRESS'), 500),
+      setTimeout(() => updateStepStatus(0, 'COMPLETED'), 1500),
       setTimeout(() => {
-        completeAgent('Security');
+        updateStepStatus(1, 'IN_PROGRESS');
+        updateAgentStatus(1, 'Security', 'IN_PROGRESS');
+      }, 1600),
+      setTimeout(() => updateAgentStatus(1, 'Security', 'COMPLETED'), 2500),
+      setTimeout(() => {
+        updateAgentStatus(1, 'Performance', 'IN_PROGRESS');
+      }, 2600),
+      setTimeout(() => {
+        updateAgentStatus(1, 'Performance', 'COMPLETED');
+        updateStepStatus(1, 'COMPLETED');
+        updateStepStatus(2, 'IN_PROGRESS');
       }, 3500),
-      setTimeout(() => {
-        completeAgent('Performance');
-        completeStep(2);
-      }, 4000),
+      setTimeout(() => updateStepStatus(2, 'COMPLETED'), 4500),
     ];
 
     return () => timers.forEach((timer) => clearTimeout(timer));
   }, [isRunning]);
 
-  const completeStep = (stepIndex: number) => {
+  const updateStepStatus = (stepIndex: number, status: Status) => {
     setSteps((prevSteps) =>
-      prevSteps.map((step, i) => {
-        if (i === stepIndex) {
-          return { ...step, completed: true, inProgress: false };
-        }
-        if (i === stepIndex + 1) {
-          return { ...step, inProgress: true };
-        }
-        return step;
-      })
+      prevSteps.map((step, i) => (i === stepIndex ? { ...step, status } : step))
     );
   };
 
-  const completeAgent = (agent: string) => {
-    setCompletedAgents((prev) => [...prev, agent]);
+  const updateAgentStatus = (stepIndex: number, agentName: string, status: Status) => {
+    setSteps((prevSteps) =>
+      prevSteps.map((step, i) => {
+        if (i !== stepIndex || !step.agents) return step;
+
+        return {
+          ...step,
+          agents: step.agents.map((agent) =>
+            agent.name === agentName ? { ...agent, status } : agent
+          ),
+        };
+      })
+    );
   };
 
   useEffect(() => {
     if (!isRunning) {
       setSteps((prevSteps) =>
-        prevSteps.map((step, i) => ({
+        prevSteps.map((step) => ({
           ...step,
-          completed: false,
-          inProgress: i === 0,
+          status: 'PENDING',
+          agents: step.agents?.map((agent) => ({ ...agent, status: 'PENDING' })),
         }))
       );
-      setCompletedAgents([]);
     }
   }, [isRunning]);
 
-  const isAgentCompleted = (agent: string) => completedAgents.includes(agent);
+  const getStatusIcon = (status: Status) => {
+    switch (status) {
+      case 'COMPLETED':
+        return <AnimatedCheck />;
+      case 'IN_PROGRESS':
+        return <LoadingSpinner />;
+      case 'ERROR':
+        return <div className="h-2 w-2 rounded-full bg-red-500" />;
+      default:
+        return <div className="h-2 w-2 rounded-full bg-gray-400" />;
+    }
+  };
+
+  const getStatusTextColor = (status: Status) => {
+    switch (status) {
+      case 'COMPLETED':
+        return 'text-green-600 dark:text-green-400';
+      case 'IN_PROGRESS':
+        return 'text-yellow-500 dark:text-yellow-400';
+      case 'ERROR':
+        return 'text-red-500 dark:text-red-400';
+      default:
+        return 'text-gray-500 dark:text-gray-400';
+    }
+  };
 
   return (
     <motion.div
@@ -162,22 +198,10 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
               >
                 <div className="flex items-center gap-3">
                   <motion.div className="flex h-6 w-6 items-center justify-center" layout>
-                    {step.completed ? (
-                      <AnimatedCheck />
-                    ) : step.inProgress ? (
-                      <LoadingSpinner />
-                    ) : (
-                      <div className="h-2 w-2 rounded-full bg-gray-400" />
-                    )}
+                    {getStatusIcon(step.status)}
                   </motion.div>
                   <motion.span
-                    className={`text-sm ${
-                      step.completed
-                        ? 'text-green-600 dark:text-green-400'
-                        : step.inProgress
-                          ? 'font-medium'
-                          : 'text-gray-500 dark:text-gray-400'
-                    }`}
+                    className={`text-sm font-medium ${getStatusTextColor(step.status)}`}
                     layout="position"
                   >
                     {step.label}
@@ -185,19 +209,15 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                 </div>
 
                 <AnimatePresence>
-                  {step.agents && (
+                  {step.agents && step.agents.length > 0 && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
                       className="ml-9 space-y-2 overflow-hidden border-l-2 border-gray-200 pl-4 dark:border-gray-700"
                     >
                       {step.agents.map((agent) => (
-                        <AgentStatus
-                          key={agent}
-                          agent={agent}
-                          completed={isAgentCompleted(agent)}
-                          isActive={step.inProgress || completedAgents.includes(agent)}
-                        />
+                        <AgentStatus key={agent.name} agent={agent} status={agent.status} />
                       ))}
                     </motion.div>
                   )}
