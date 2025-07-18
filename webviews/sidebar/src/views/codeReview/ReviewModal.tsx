@@ -14,9 +14,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
   const { enabledAgents, userAgents, activeReviewOption } = useCodeReviewStore();
 
   const handleCodeReview = () => {
-    codeReviewPreProcess({diff_s3_url: "", source_branch: "", target_branch: ""});
+    codeReviewPreProcess({ diff_s3_url: '', source_branch: '', target_branch: '' });
     onStartReview();
-  }
+  };
 
   const toggleAgent = (agentId: number) => {
     useCodeReviewStore.setState((state) => {
@@ -151,7 +151,9 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
                 <motion.button
                   whileHover={enabledAgents.length > 0 ? { scale: 1.02 } : {}}
                   whileTap={enabledAgents.length > 0 ? { scale: 0.98 } : {}}
-                  onClick={() => {handleCodeReview()}}
+                  onClick={() => {
+                    handleCodeReview();
+                  }}
                   className={`rounded px-4 py-2 text-sm ${
                     enabledAgents.length > 0
                       ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]'

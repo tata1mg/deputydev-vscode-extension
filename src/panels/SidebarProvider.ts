@@ -74,7 +74,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly codeReviewDiffManager: CodeReviewDiffManager,
     private readonly commentHandler: CommentHandler,
     private readonly codeReviewManager: CodeReviewManager,
-  ) { }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -1048,7 +1048,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     console.log('Starting code review with data:', data);
 
     const agentsPayload = data.agentsPayload as AgentPayload[];
-    this.codeReviewManager.startCodeReview({agents: agentsPayload});
+    this.codeReviewManager.startCodeReview({ agents: agentsPayload });
   }
 
   public async newReview(data: any) {
