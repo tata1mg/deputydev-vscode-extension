@@ -496,3 +496,16 @@ export interface AgentPayload {
   type: string;
   repo_id: number;
 }
+
+export type AgentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+
+export type ReviewStep = {
+  id: string;
+  label: string;
+  status: AgentStatus;
+  agents?: Array<{
+    id: number;
+    name: string;
+    status: AgentStatus;
+  }>;
+};
