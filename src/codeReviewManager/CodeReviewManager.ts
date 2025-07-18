@@ -29,7 +29,7 @@ export class CodeReviewManager {
     this.sidebarProvider = sidebarProvider;
   }
 
-  public async startCodeReview(agentsPayload: {agents: AgentPayload[]}): Promise<void> {
+  public async startCodeReview(agentsPayload: { agents: AgentPayload[] }): Promise<void> {
     const abortController = new AbortController();
     this.currentAbortController = abortController;
 

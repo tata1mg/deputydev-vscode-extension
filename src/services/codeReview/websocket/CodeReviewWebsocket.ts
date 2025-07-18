@@ -30,7 +30,10 @@ export class CodeReviewWebsocketService {
     }
   }
 
-  public async *startReview(payload: { agents: AgentPayload[] }, signal?: AbortSignal): AsyncIterableIterator<ReviewEvent> {
+  public async *startReview(
+    payload: { agents: AgentPayload[] },
+    signal?: AbortSignal,
+  ): AsyncIterableIterator<ReviewEvent> {
     const eventsQueue: ReviewEvent[] = [];
     let socketError: Error | null = null;
 
@@ -48,7 +51,7 @@ export class CodeReviewWebsocketService {
           console.error('Error processing message:', error);
           eventsQueue.push({
             type: 'AGENT_FAILED',
-            error: 'Failed to process message from server'
+            error: 'Failed to process message from server',
           });
         }
       };
@@ -58,7 +61,7 @@ export class CodeReviewWebsocketService {
         socketError = error;
         eventsQueue.push({
           type: 'REVIEW_FAILED',
-          error: error.message || 'WebSocket connection error'
+          error: error.message || 'WebSocket connection error',
         });
         this.currentSocket?.close();
       };
@@ -67,7 +70,7 @@ export class CodeReviewWebsocketService {
         if (socketError) {
           eventsQueue.push({
             type: 'REVIEW_FAILED',
-            error: socketError.message || 'WebSocket connection closed with error'
+            error: socketError.message || 'WebSocket connection closed with error',
           });
         }
       };

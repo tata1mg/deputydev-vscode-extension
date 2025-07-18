@@ -568,7 +568,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => { },
+    () => {},
     undefined,
     false,
     {},
@@ -663,7 +663,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => { },
+      () => {},
       undefined,
       false,
       {},
@@ -884,12 +884,11 @@ addCommandEventListener('user-agents', ({ data }) => {
 });
 
 addCommandEventListener('review-preprocess-completed', ({ data }) => {
-  const preProcessData = data as { review_id: number, session_id: number };
+  const preProcessData = data as { review_id: number; session_id: number };
   console.log('Review preprocess completed:', preProcessData);
   useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
   useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
   console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
-
 
   // Start Review now
   const enabledAgents = useCodeReviewStore.getState().enabledAgents;
@@ -906,13 +905,13 @@ addCommandEventListener('review-preprocess-completed', ({ data }) => {
   const agentsPayloadList: AgentPayload[] = enabledAgents.map((agent) => ({
     agent_id: agent,
     review_id: activeReviewId,
-    type: "query",
+    type: 'query',
     session_id: activeReviewSessionId,
     repo_id: 43,
   }));
 
   // Start the code review with the agents payload list
   startCodeReview({
-    agentsPayload: agentsPayloadList
+    agentsPayload: agentsPayloadList,
   });
 });
