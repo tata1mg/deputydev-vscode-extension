@@ -74,16 +74,6 @@ export const PastReviews = () => {
     return Array.from(tags);
   };
 
-  const hasVisibleComments = (review: Review) => {
-    if (selectedAgents.size === 0 && selectedTags.size === 0) {
-      return true;
-    }
-
-    return Object.values(review.comments).some((comments) => {
-      return getFilteredComments(comments).length > 0;
-    });
-  };
-
   return (
     <div className="mt-2 flex h-full flex-col px-4">
       <div
@@ -104,8 +94,6 @@ export const PastReviews = () => {
         }}
       >
         {pastReviews.map((review: Review) => {
-          if (!hasVisibleComments(review)) return null;
-
           const fileCount = review.meta.file_count;
           const commentCount = review.meta.comment_count;
           const reviewDate = review.review_datetime
@@ -234,7 +222,7 @@ export const PastReviews = () => {
                     {Object.entries(review.comments).map(
                       ([filePath, comments]: [string, CodeReviewComment[]]) => {
                         const filteredComments = getFilteredComments(comments);
-                        if (filteredComments.length === 0) return null;
+                        const hasComments = filteredComments.length > 0;
 
                         return (
                           <div key={filePath} className="pl-4">
@@ -271,8 +259,16 @@ export const PastReviews = () => {
                                   </div>
                                 </div>
                                 <div className="ml-2 flex items-center gap-1 whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
-                                  {filteredComments.length}
-                                  <FileWarning className="h-4 w-4 flex-shrink-0 text-red-600" />
+                                  {hasComments ? (
+                                    <>
+                                      {filteredComments.length}
+                                      <FileWarning className="h-4 w-4 flex-shrink-0 text-red-600" />
+                                    </>
+                                  ) : (
+                                    <span className="text-[var(--vscode-descriptionForeground)]">
+                                      No comments
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -299,56 +295,62 @@ export const PastReviews = () => {
                                   }}
                                   className="overflow-hidden"
                                 >
-                                  {filteredComments.map((comment: CodeReviewComment) => (
-                                    <div
-                                      key={comment.id}
-                                      className="cursor-pointer border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                                      onClick={() => {
-                                        openCommentInFile({
-                                          filePath: comment.file_path || 'utils/actions.ts',
-                                          lineNumber: comment.line_number - 1,
-                                          commentText: comment.comment,
-                                        });
-                                      }}
-                                    >
-                                      <div className="flex w-full flex-col gap-1">
-                                        <div className="flex w-full items-center justify-between">
-                                          <div className="truncate font-semibold">
-                                            {comment.title}
-                                          </div>
-                                          <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
-                                            Line {comment.line_number}
-                                          </span>
-                                        </div>
-                                        <div className="flex flex-wrap items-center gap-1">
-                                          {comment.agent_ids.map((agentId: number) => (
-                                            <div
-                                              key={agentId}
-                                              className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
-                                            >
-                                              <User className="h-3 w-3" />
-                                              <span>
-                                                {
-                                                  userAgents.find((ua) => ua.id === agentId)
-                                                    ?.display_name
-                                                }
-                                              </span>
+                                  {hasComments ? (
+                                    filteredComments.map((comment: CodeReviewComment) => (
+                                      <div
+                                        key={comment.id}
+                                        className="cursor-pointer border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                                        onClick={() => {
+                                          openCommentInFile({
+                                            filePath: comment.file_path || 'utils/actions.ts',
+                                            lineNumber: comment.line_number - 1,
+                                            commentText: comment.comment,
+                                          });
+                                        }}
+                                      >
+                                        <div className="flex w-full flex-col gap-1">
+                                          <div className="flex w-full items-center justify-between">
+                                            <div className="truncate font-semibold">
+                                              {comment.title}
                                             </div>
-                                          ))}
-                                          <div
-                                            className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
-                                          >
-                                            {comment.tag.toLowerCase() === 'bug' ? (
-                                              <Bug size={10} />
-                                            ) : (
-                                              <TriangleAlert size={10} />
-                                            )}
-                                            {comment.tag.toUpperCase()}
+                                            <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
+                                              Line {comment.line_number}
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-wrap items-center gap-1">
+                                            {comment.agent_ids.map((agentId: number) => (
+                                              <div
+                                                key={agentId}
+                                                className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
+                                              >
+                                                <User className="h-3 w-3" />
+                                                <span>
+                                                  {
+                                                    userAgents.find((ua) => ua.id === agentId)
+                                                      ?.display_name
+                                                  }
+                                                </span>
+                                              </div>
+                                            ))}
+                                            <div
+                                              className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
+                                            >
+                                              {comment.tag.toLowerCase() === 'bug' ? (
+                                                <Bug size={10} />
+                                              ) : (
+                                                <TriangleAlert size={10} />
+                                              )}
+                                              {comment.tag.toUpperCase()}
+                                            </div>
                                           </div>
                                         </div>
                                       </div>
+                                    ))
+                                  ) : (
+                                    <div className="py-2 pl-6 pr-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                                      No comments in this file.
                                     </div>
-                                  ))}
+                                  )}
                                 </motion.div>
                               )}
                             </AnimatePresence>
