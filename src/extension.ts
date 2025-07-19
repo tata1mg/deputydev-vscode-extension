@@ -135,7 +135,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
 
-  const codeReviewManager = new CodeReviewManager(context, outputChannel, backendClient);
+  const codeReviewManager = new CodeReviewManager(
+    context,
+    outputChannel,
+    backendClient,
+    relevantCodeSearcherToolService,
+    apiErrorHandler,
+  );
 
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(

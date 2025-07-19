@@ -349,7 +349,7 @@ export function codeReviewPreProcess(data: {
   return callCommand('code-review-pre-process', data);
 }
 
-export function startCodeReview(data: { agentsPayload: AgentPayload[] }) {
+export function startCodeReview(data: { review_id: number; agents: AgentPayload[] }) {
   return callCommand('start-code-review', data);
 }
 

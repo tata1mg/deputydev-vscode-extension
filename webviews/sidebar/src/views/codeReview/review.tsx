@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 
-type Status = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+type Status = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 interface Agent {
   id: number;
@@ -33,6 +33,7 @@ const LoadingSpinner = () => (
 const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
   const isCompleted = status === 'COMPLETED';
   const isActive = status === 'IN_PROGRESS';
+  const isFailed = status === 'FAILED';
 
   return (
     <motion.div
@@ -44,74 +45,28 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
         <AnimatedCheck />
       ) : isActive ? (
         <LoadingSpinner />
-      ) : (
-        <div className="h-2 w-2 rounded-full bg-gray-400" />
-      )}
+      ) : isFailed ? (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500"
+        >
+          <X className="h-3 w-3 text-white" />
+        </motion.div>
+      ) : null}
       <span
         className={`text-xs ${
-          isCompleted ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-gray-500'
+          isCompleted ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-red-500'
         }`}
       >
-        {agent.name} agent {isCompleted ? 'completed' : isActive ? 'in progress...' : 'pending...'}
+        {agent.name} agent {isCompleted ? 'completed' : isActive ? 'in progress...' : 'failed'}
       </span>
     </motion.div>
   );
 };
 
 export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
-  const { steps, updateStepStatus, updateAgentStatus, setSteps } = useCodeReviewStore();
-
-  useEffect(() => {
-    if (!isRunning) return;
-
-    const timers = [
-      setTimeout(() => updateStepStatus('setup', 'IN_PROGRESS'), 500),
-      setTimeout(() => updateStepStatus('setup', 'COMPLETED'), 1500),
-      setTimeout(() => {
-        updateStepStatus('reviewing', 'IN_PROGRESS');
-        updateAgentStatus('reviewing', 1, 'IN_PROGRESS');
-      }, 1600),
-      setTimeout(() => updateAgentStatus('reviewing', 1, 'COMPLETED'), 2500),
-      setTimeout(() => {
-        updateAgentStatus('reviewing', 2, 'IN_PROGRESS');
-      }, 2600),
-      setTimeout(() => {
-        updateAgentStatus('reviewing', 2, 'COMPLETED');
-        updateStepStatus('reviewing', 'COMPLETED');
-        updateStepStatus('finalyzing', 'IN_PROGRESS');
-      }, 3500),
-      setTimeout(() => updateStepStatus('finalyzing', 'COMPLETED'), 4500),
-    ];
-
-    return () => timers.forEach((timer) => clearTimeout(timer));
-  }, [isRunning, updateStepStatus, updateAgentStatus]);
-
-  useEffect(() => {
-    if (!isRunning) {
-      // Reset steps to initial state
-      setSteps([
-        {
-          id: 'setup',
-          label: 'Setting up review',
-          status: 'PENDING',
-        },
-        {
-          id: 'reviewing',
-          label: 'Reviewing files',
-          status: 'PENDING',
-          agents: [
-            { id: 1, name: 'Security', status: 'PENDING' },
-            { id: 2, name: 'Performance', status: 'PENDING' },
-          ],
-        },
-        {
-          id: 'finalyzing',
-          label: 'Finalizing Review',
-          status: 'PENDING',
-        },
-      ]);
-    }
-  }, [isRunning, setSteps]);
+  const { steps } = useCodeReviewStore();
 
   const getStatusIcon = (status: Status) => {
     switch (status) {
@@ -138,6 +93,14 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
         return 'text-gray-500 dark:text-gray-400';
     }
   };
+
+  if (steps.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <p className="text-gray-500">No active review session</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -186,7 +149,11 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
                       className="ml-9 space-y-2 overflow-hidden border-l-2 border-gray-200 pl-4 dark:border-gray-700"
                     >
                       {step.agents.map((agent) => (
-                        <AgentStatus key={agent.name} agent={agent} status={agent.status} />
+                        <AgentStatus
+                          key={`${step.id}-${agent.id}`}
+                          agent={agent}
+                          status={agent.status}
+                        />
                       ))}
                     </motion.div>
                   )}

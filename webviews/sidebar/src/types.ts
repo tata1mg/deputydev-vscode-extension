@@ -448,6 +448,11 @@ export interface UserAgent {
   updated_at: string;
 }
 
+export interface EnabledAgent {
+  id: number;
+  displayName: string;
+}
+
 export interface CodeReviewStorage {
   searchedBranches: string[];
   selectedTargetBranch: string;
@@ -455,7 +460,7 @@ export interface CodeReviewStorage {
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
   pastReviews: Review[];
-  enabledAgents: number[];
+  enabledAgents: EnabledAgent[];
   userAgents: UserAgent[];
   isFetchingChangedFiles: boolean;
   activeReviewId: number;
@@ -499,12 +504,10 @@ export interface Review {
 export interface AgentPayload {
   agent_id: number;
   review_id: number;
-  session_id: number;
   type: string;
-  repo_id: number;
 }
 
-export type AgentStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+export type AgentStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 export type ReviewStep = {
   id: string;
@@ -512,7 +515,7 @@ export type ReviewStep = {
   status: AgentStatus;
   agents?: Array<{
     id: number;
-    name: string;
+    name: string | '';
     status: AgentStatus;
   }>;
 };

@@ -45,7 +45,6 @@ export class CodeReviewWebsocketService {
 
       const handleMessage = (messageData: any): void => {
         try {
-          console.log('review events sending', messageData);
           eventsQueue.push(messageData);
         } catch (error) {
           console.error('Error processing message:', error);
