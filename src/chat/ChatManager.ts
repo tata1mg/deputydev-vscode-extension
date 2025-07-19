@@ -13,11 +13,11 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { api, binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
-import { QuerySolverService } from '../services/chat/ChatService';
+import { QuerySolverService, ThrottlingException } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { HistoryService } from '../services/history/HistoryService';
 import { getShell } from '../terminal/utils/shell';
-import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
+import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
@@ -358,6 +358,7 @@ export class ChatManager {
 
       let currentToolRequest: ToolRequest | null = null;
       let currentDiffRequest: any = null;
+      const pendingToolRequests: ToolRequest[] = [];
 
       for await (const event of querySolverIterator) {
         if (abortController.signal.aborted) {
@@ -447,6 +448,7 @@ export class ChatManager {
           }
           case 'TOOL_USE_REQUEST_END': {
             if (currentToolRequest) {
+              pendingToolRequests.push({ ...currentToolRequest });
               const detectedClientTool = clientTools.find((x) => x.name === currentToolRequest?.tool_name);
               if (detectedClientTool) {
                 chunkCallback({
@@ -476,6 +478,7 @@ export class ChatManager {
                 });
               }
             }
+            currentToolRequest = null;
             break;
           }
           case 'CODE_BLOCK_START':
@@ -576,9 +579,9 @@ export class ChatManager {
         }
       }
 
-      // 3. Handle Tool Requests
-      if (currentToolRequest) {
-        await this._runTool(currentToolRequest, messageId, chunkCallback, clientTools);
+      // 3. Handle any remaining Tool Requests (parallel or single)
+      if (pendingToolRequests.length > 0) {
+        await this._runTool(pendingToolRequests, messageId, chunkCallback, clientTools);
       }
 
       // Signal end of stream.
@@ -590,20 +593,46 @@ export class ChatManager {
         this.outputChannel.info('apiChat was cancelled.');
         return;
       }
-      const extraErrorInfo = {
-        chat_payload: truncatePayloadValues(payload, 100),
-        error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
-      };
-      this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
-      // Send error details back to the UI for potential retry
-      chunkCallback({
-        name: 'error',
-        data: {
-          payload_to_retry: originalPayload,
-          error_msg: String(error.message || error),
-          retry: true, // Suggest retry is possible
-        },
-      });
+      // If the error is due to throttling, we handle it specifically, by confimring instance
+      if (error instanceof ThrottlingException) {
+        this.outputChannel.warn('Throttling error detected, handling accordingly.');
+        const errorData = error.data;
+        const extraErrorInfo = {
+          detail: errorData.detail,
+          model: errorData.model,
+        };
+
+        this.errorTrackingManager.trackGeneralError(error, 'THROTTLING_ERROR', 'BACKEND', extraErrorInfo);
+
+        chunkCallback({
+          name: 'error',
+          data: {
+            payload_to_retry: originalPayload,
+            error_msg: errorData.message,
+            retry: true,
+            errorType: 'THROTTLING_ERROR',
+            model: originalPayload.llm_model,
+            retry_after: errorData.retry_after || 60, // Default to 60 seconds if not provided
+          },
+        });
+      } else {
+        const extraErrorInfo = {
+          chat_payload: truncatePayloadValues(payload, 100),
+          error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
+        };
+
+        this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
+
+        // Send error details back to the UI for potential retry
+        chunkCallback({
+          name: 'error',
+          data: {
+            payload_to_retry: originalPayload,
+            error_msg: String(error.message || error),
+            retry: true, // Suggest retry is possible
+          },
+        });
+      }
     } finally {
       // Cleanup: Unregister task and clear controller regardless of success/error/cancellation
       if (querySolverTask) {
@@ -667,12 +696,7 @@ export class ChatManager {
     }
   }
 
-  async _runIterativeFileReader(
-    repoPath: string,
-    filePath: string,
-    startLine?: number,
-    endLine?: number,
-  ): Promise<any> {
+  async _runIterativeFileReader(repoPath: string, filePath: string, startLine: number, endLine: number): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
     try {
       const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
@@ -681,6 +705,7 @@ export class ChatManager {
         start_line: startLine,
         end_line: endLine,
       });
+
       return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
@@ -810,474 +835,488 @@ export class ChatManager {
    */
 
   private async _runTool(
+    toolRequests: ToolRequest[],
+    messageId: string | undefined,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+  ): Promise<void> {
+    const isParallel = toolRequests.length > 1;
+
+    this.outputChannel.info(
+      `${isParallel ? 'Starting parallel execution of' : 'Running'} ${toolRequests.length} tool${toolRequests.length > 1 ? 's' : ''}`,
+    );
+
+    try {
+      if (isParallel) {
+        // Execute all tools in parallel and collect their responses
+        const toolResults = await Promise.allSettled(
+          toolRequests.map(async (toolRequest) => {
+            const result = await this._runToolInternal(toolRequest, messageId, chunkCallback, clientTools, false);
+            return { toolRequest, result, status: 'success' as const };
+          }),
+        );
+
+        // Process results and collect successful responses
+        const successfulResults: Array<{ toolRequest: ToolRequest; result: any; status: 'success' }> = [];
+
+        toolResults.forEach((outcome, index) => {
+          if (outcome.status === 'fulfilled') {
+            successfulResults.push(outcome.value);
+          } else {
+            this.outputChannel.error(`Tool ${toolRequests[index].tool_name} failed: ${outcome.reason?.message}`);
+          }
+        });
+
+        // Send all successful tool responses to backend in a single call
+        if (successfulResults.length > 0) {
+          await this._sendBatchedToolResponses(successfulResults, messageId, chunkCallback, clientTools);
+        }
+        this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
+      } else {
+        // Single tool execution with immediate API call
+        const result = await this._runToolInternal(toolRequests[0], messageId, chunkCallback, clientTools, true);
+        await this._sendBatchedToolResponses([result], messageId, chunkCallback, clientTools);
+      }
+    } catch (error: any) {
+      this.outputChannel.error(`Error during tool execution: ${error.message}`, error);
+      if (!isParallel) {
+        // For single tool execution, error is already handled in _runToolInternal
+        return;
+      }
+      throw error;
+    }
+  }
+
+  private async _runToolInternal(
+    toolRequest: ToolRequest,
+    messageId: string | undefined,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+    shouldMakeApiCall: boolean,
+  ): Promise<any> {
+    if (toolRequest.tool_name === 'create_new_workspace') return;
+
+    this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
+
+    if (this._isAborted()) return;
+
+    try {
+      const { activeRepo, parsedContent } = await this._prepareToolExecution(toolRequest);
+      const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
+
+      const result = detectedClientTool
+        ? await this._executeClientTool(detectedClientTool, parsedContent, toolRequest, chunkCallback)
+        : await this._executeBuiltinTool(
+            toolRequest.tool_name,
+            activeRepo,
+            parsedContent,
+            chunkCallback,
+            toolRequest,
+            messageId,
+          );
+
+      if (this._isAborted()) return;
+
+      await this._handleToolSuccess(
+        result,
+        toolRequest,
+        messageId,
+        chunkCallback,
+        clientTools,
+        parsedContent,
+        detectedClientTool,
+        shouldMakeApiCall,
+      );
+      return result;
+    } catch (error: any) {
+      await this._handleToolError(error, toolRequest, messageId, chunkCallback, clientTools);
+      if (!shouldMakeApiCall) {
+        // For parallel execution, propagate error to be handled at a higher level
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Send all collected tool responses to the backend in a single batch call
+   */
+  private async _sendBatchedToolResponses(
+    toolResults: Array<{
+      toolRequest: ToolRequest;
+      result: any;
+      status: 'success';
+    }>,
+    messageId: string | undefined,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+  ): Promise<void> {
+    if (toolResults.length === 0) {
+      this.outputChannel.warn('No successful tool results to send to backend');
+      return;
+    }
+    this.outputChannel.info(`Sending batch of ${toolResults.length} tool responses to backend`);
+
+    const environmentDetails = await getEnvironmentDetails(true);
+    const batchPayload: ChatPayload = {
+      search_web: toolResults[0].toolRequest.search_web,
+      llm_model: toolResults[0].toolRequest.llm_model,
+      message_id: messageId,
+      write_mode: toolResults[0].toolRequest.write_mode || false,
+      is_tool_response: true,
+      batch_tool_responses: toolResults.map(({ toolRequest, result }) => ({
+        tool_name: toolRequest.tool_name,
+        tool_use_id: toolRequest.tool_use_id,
+        response: this._structureToolResponse(toolRequest.tool_name, result),
+      })),
+      os_name: await getOSName(),
+      shell: getShell(),
+      vscode_env: environmentDetails,
+      client_tools: clientTools,
+    };
+
+    await this.apiChat(batchPayload, chunkCallback);
+  }
+
+  private _isAborted(): boolean {
+    const aborted = this.currentAbortController?.signal.aborted;
+    if (aborted) this.outputChannel.warn(`Tool execution aborted`);
+    return !!aborted;
+  }
+
+  private async _prepareToolExecution(toolRequest: ToolRequest) {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) throw new Error('Active repository is not defined for running tool.');
+
+    const parsedContent = this._parseToolContent(toolRequest.accumulatedContent);
+    return { activeRepo, parsedContent };
+  }
+
+  private _parseToolContent(content: string): any {
+    try {
+      const parsed = JSON.parse(content);
+      this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsed)}`);
+      return parsed;
+    } catch (error: any) {
+      const message = `Failed to parse tool parameters JSON: ${error.message}`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+  }
+
+  private _findClientTool(toolName: string, clientTools: Array<ClientTool>): ClientTool | undefined {
+    return clientTools.find((tool) => tool.name === toolName);
+  }
+
+  private async _executeClientTool(
+    clientTool: ClientTool,
+    parsedContent: any,
+    toolRequest: ToolRequest,
+    chunkCallback: ChunkCallback,
+  ): Promise<any> {
+    this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
+
+    await this._trackUsage('TOOL_USE_REQUEST_INITIATED', clientTool, toolRequest.tool_use_id);
+
+    const approved = await this._handleApproval(clientTool, toolRequest, parsedContent, chunkCallback);
+    if (!approved) return null;
+
+    const result = await this.mcpManager.runMCPTool(
+      clientTool.tool_metadata.server_id,
+      clientTool.tool_metadata.tool_name,
+      parsedContent,
+    );
+
+    await this._trackUsage('TOOL_USE_REQUEST_COMPLETED', clientTool, toolRequest.tool_use_id);
+    this.outputChannel.debug(`Client tool result: ${JSON.stringify(result)}`);
+    return result;
+  }
+
+  private async _handleApproval(
+    clientTool: ClientTool,
+    toolRequest: ToolRequest,
+    parsedContent: any,
+    chunkCallback: ChunkCallback,
+  ): Promise<boolean> {
+    if (clientTool.auto_approve) {
+      await this._trackUsage('TOOL_USE_REQUEST_AUTO_APPROVED', clientTool, toolRequest.tool_use_id);
+      return true;
+    }
+
+    this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
+    const approval = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
+
+    if (approval.autoAcceptNextTime) {
+      this.outputChannel.info(`User opted to auto-approve future uses of tool ${toolRequest.tool_name}.`);
+      this.mcpManager.approveMcpTool(clientTool.tool_metadata.server_id, clientTool.tool_metadata.tool_name);
+    }
+
+    const eventType = approval.approved ? 'TOOL_USE_REQUEST_APPROVED' : 'TOOL_USE_REQUEST_REJECTED';
+    await this._trackUsage(eventType, clientTool, toolRequest.tool_use_id);
+
+    if (!approval.approved) {
+      await this._handleRejectedTool(toolRequest, clientTool, parsedContent, chunkCallback);
+      return false;
+    }
+
+    return true;
+  }
+
+  private async _executeBuiltinTool(
+    toolName: string,
+    activeRepo: string,
+    parsedContent: any,
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest,
+    messageId: string | undefined,
+  ): Promise<any> {
+    const toolMap: Record<string, () => Promise<any>> = {
+      related_code_searcher: () => this._runRelatedCodeSearcher(activeRepo, parsedContent),
+      focused_snippets_searcher: () => this._runFocusedSnippetsSearcher(activeRepo, parsedContent),
+      file_path_searcher: () => this._runFilePathSearcher(activeRepo, parsedContent),
+      iterative_file_reader: () =>
+        this._runIterativeFileReader(
+          activeRepo,
+          parsedContent.file_path,
+          parsedContent.start_line,
+          parsedContent.end_line,
+        ),
+      grep_search: () =>
+        this._runGrepSearch(
+          parsedContent.search_path,
+          activeRepo,
+          parsedContent.query,
+          parsedContent.case_insensitive,
+          parsedContent.use_regex,
+        ),
+      public_url_content_reader: () => this._runPublicUrlContentReader(parsedContent),
+      execute_command: () =>
+        this.terminalExecutor.runCommand({
+          original: parsedContent.command,
+          requiresApproval: parsedContent.requires_approval,
+          isLongRunning: !!parsedContent.is_long_running,
+          chunkCallback,
+          toolRequest,
+        }),
+      web_search: () => this._runWebSearch(parsedContent),
+      replace_in_file: () => this.replaceInFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId }),
+      write_to_file: () => this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId }),
+    };
+
+    const toolFunction = toolMap[toolName];
+    if (!toolFunction) throw new Error(`Unknown tool requested: ${toolName}`);
+
+    this.outputChannel.info(`Running ${toolName} with params: ${JSON.stringify(parsedContent)}`);
+    return await toolFunction();
+  }
+
+  private async _handleToolSuccess(
+    result: any,
+    toolRequest: ToolRequest,
+    messageId: string | undefined,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+    parsedContent: any,
+    detectedClientTool?: ClientTool,
+    shouldMakeApiCall: boolean = true,
+  ): Promise<void> {
+    this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
+
+    if (detectedClientTool) {
+      this._sendToolChipUpdate(chunkCallback, toolRequest, detectedClientTool, parsedContent, result, 'completed');
+    }
+
+    this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
+
+    if (shouldMakeApiCall) {
+      const continuationPayload = await this._createContinuationPayload(toolRequest, messageId, result, clientTools);
+      await this.apiChat(continuationPayload, chunkCallback);
+    }
+  }
+
+  private async _handleToolError(
+    error: any,
     toolRequest: ToolRequest,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
-    class UnknownToolError extends Error {
-      constructor(toolName: string) {
-        super(`Unknown tool requested: ${toolName}`);
-        this.name = 'UnknownToolError';
-      }
+    if (this._isAborted()) return;
+
+    this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
+    this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
+    this.onError(error);
+    this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
+
+    const errorResponse = this._formatErrorResponse(error);
+    const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
+
+    if (detectedClientTool) {
+      await this._trackUsage('TOOL_USE_REQUEST_FAILED', detectedClientTool, toolRequest.tool_use_id, error);
+      this._sendToolChipUpdate(
+        chunkCallback,
+        toolRequest,
+        detectedClientTool,
+        toolRequest.accumulatedContent,
+        { error: error.message },
+        'error',
+      );
     }
 
-    this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
-    if (this.currentAbortController?.signal.aborted) {
-      this.outputChannel.warn(`_runTool aborted before starting tool: ${toolRequest.tool_name}`);
-      return;
-    }
-    let rawResult: any;
-    let status: 'completed' | 'error' = 'error'; // Default to error
-    let resultForUI: any; // This will hold what's sent in TOOL_USE_RESULT
-    if (toolRequest.tool_name == 'create_new_workspace') {
-      this.outputChannel.info(`Running create_new_workspace tool`);
-      return;
-    }
-    try {
-      const active_repo = getActiveRepo();
-      if (!active_repo) {
-        throw new Error('Active repository is not defined for running tool.');
-      }
+    this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
 
-      let parsedContent: any;
-      try {
-        parsedContent = JSON.parse(toolRequest.accumulatedContent);
-        this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsedContent)}`);
-      } catch (parseError: any) {
-        this.logger.error(`Failed to parse tool parameters JSON: ${parseError.message}`);
-        throw new Error(`Failed to parse tool parameters JSON: ${parseError.message}`);
-      }
+    const retryPayload = await this._createRetryPayload(toolRequest, messageId, errorResponse, clientTools);
+    await this.apiChat(retryPayload, chunkCallback);
+  }
 
-      // check if tool request is for client tool
-      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
+  private async _trackUsage(eventType: string, clientTool: ClientTool, toolUseId: string, error?: any): Promise<void> {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
 
-      if (detectedClientTool) {
-        this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
-        // tool use request for mcp (user tracking)
-        const sessionId = getSessionId();
-        if (sessionId) {
-          this.usageTrackingManager.trackUsage({
-            eventType: 'TOOL_USE_REQUEST_INITIATED',
-            eventData: {
-              toolRequest: {
-                toolName: toolRequest.tool_name,
-                toolMeta: {
-                  toolName: detectedClientTool.tool_metadata.tool_name,
-                  serverName: detectedClientTool.tool_metadata.server_id,
-                },
-                requiresApproval: !detectedClientTool.auto_approve,
-              },
-              toolUseId: toolRequest.tool_use_id,
-            },
-            sessionId: sessionId,
-          });
-        }
-        // if approval is needed, wait for it
-
-        let approvalStatus: ToolUseApprovalStatus = {
-          approved: true, // Default to true, will be updated if approval is needed
-          autoAcceptNextTime: false, // Default to false
-        };
-
-        if (!detectedClientTool.auto_approve) {
-          this.outputChannel.info(`Tool ${toolRequest.tool_name} requires approval.`);
-          approvalStatus = await this._getToolUseApprovalStatus(toolRequest.tool_use_id);
-          if (approvalStatus.autoAcceptNextTime) {
-            this.outputChannel.info(`User opted to auto-approve future uses of tool ${toolRequest.tool_name}.`);
-            this.mcpManager.approveMcpTool(
-              detectedClientTool.tool_metadata.server_id,
-              detectedClientTool.tool_metadata.tool_name,
-            );
-          }
-        } else {
-          // tool use auto approve (user tracking)
-          const sessionId = getSessionId();
-          if (sessionId) {
-            this.usageTrackingManager.trackUsage({
-              eventType: 'TOOL_USE_REQUEST_AUTO_APPROVED',
-              eventData: {
-                toolRequest: {
-                  toolName: toolRequest.tool_name,
-                  toolMeta: {
-                    toolName: detectedClientTool.tool_metadata.tool_name,
-                    serverName: detectedClientTool.tool_metadata.server_id,
-                  },
-                  requiresApproval: !detectedClientTool.auto_approve,
-                },
-                toolUseId: toolRequest.tool_use_id,
-              },
-              sessionId: sessionId,
-            });
-          }
-        }
-
-        if (!approvalStatus.approved) {
-          // tool use rejected (user tracking)
-          const sessionId = getSessionId();
-          if (sessionId) {
-            this.usageTrackingManager.trackUsage({
-              eventType: 'TOOL_USE_REQUEST_REJECTED',
-              eventData: {
-                toolRequest: {
-                  toolName: toolRequest.tool_name,
-                  toolMeta: {
-                    toolName: detectedClientTool.tool_metadata.tool_name,
-                    serverName: detectedClientTool.tool_metadata.server_id,
-                  },
-                  requiresApproval: !detectedClientTool.auto_approve,
-                },
-                toolUseId: toolRequest.tool_use_id,
-              },
-              sessionId: sessionId,
-            });
-          }
-          this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
-          chunkCallback({
-            name: 'TOOL_CHIP_UPSERT',
-            data: {
-              toolRequest: {
-                requestData: parsedContent,
-                toolName: toolRequest.tool_name,
-                toolMeta: {
-                  toolName: detectedClientTool.tool_metadata.tool_name,
-                  serverName: detectedClientTool.tool_metadata.server_id,
-                },
-                requiresApproval: !detectedClientTool.auto_approve,
-              },
-              toolResponse: null,
-              toolRunStatus: 'error',
-              toolUseId: toolRequest.tool_use_id,
-            },
-          });
-          // Send TOOL_USE_RESULT with error response
-          const resultStatus: 'completed' | 'error' = 'error';
-          const toolUseResult = {
-            name: 'TOOL_USE_RESULT',
-            data: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              result_json: {
-                error_message: `This tool required user approval but the user did not approve it. Please clarify this with the user.`,
-              },
-              status: resultStatus,
-            },
-          };
-          chunkCallback(toolUseResult);
-          const EnvironmentDetails = await getEnvironmentDetails(true);
-          const toolUseRejectedPayload = {
-            search_web: toolRequest.search_web,
-            llm_model: toolRequest.llm_model,
-            message_id: messageId, // Pass original message ID for context if needed by UI later
-            write_mode: toolRequest.write_mode,
-            is_tool_response: true,
-            tool_use_failed: true,
-            tool_use_response: {
-              tool_name: toolRequest.tool_name,
-              tool_use_id: toolRequest.tool_use_id,
-              response: {
-                error_message: `This tool required user approval but the user did not approve it. Please clarify this with the user.`,
-              },
-            },
-            os_name: await getOSName(),
-            shell: getShell(),
-            vscode_env: EnvironmentDetails,
-            client_tools: clientTools,
-          };
-          await this.apiChat(toolUseRejectedPayload, chunkCallback);
-          return; // Exit early if tool use was rejected
-        }
-        if (!detectedClientTool.auto_approve) {
-          // manualy approved tool use for user tracking
-          const sessionId = getSessionId();
-          if (sessionId) {
-            this.usageTrackingManager.trackUsage({
-              eventType: 'TOOL_USE_REQUEST_APPROVED',
-              eventData: {
-                toolRequest: {
-                  toolName: toolRequest.tool_name,
-                  toolMeta: {
-                    toolName: detectedClientTool.tool_metadata.tool_name,
-                    serverName: detectedClientTool.tool_metadata.server_id,
-                  },
-                  requiresApproval: !detectedClientTool.auto_approve,
-                },
-                toolUseId: toolRequest.tool_use_id,
-              },
-              sessionId: sessionId,
-            });
-          }
-        }
-        rawResult = await this.mcpManager.runMCPTool(
-          detectedClientTool.tool_metadata.server_id,
-          detectedClientTool.tool_metadata.tool_name,
-          parsedContent,
-        );
-        // tool use completed user tracking
-        if (sessionId) {
-          this.usageTrackingManager.trackUsage({
-            eventType: 'TOOL_USE_REQUEST_COMPLETED',
-            eventData: {
-              toolRequest: {
-                toolName: toolRequest.tool_name,
-                toolMeta: {
-                  toolName: detectedClientTool.tool_metadata.tool_name,
-                  serverName: detectedClientTool.tool_metadata.server_id,
-                },
-                requiresApproval: !detectedClientTool.auto_approve,
-              },
-              toolUseId: toolRequest.tool_use_id,
-            },
-            sessionId: sessionId,
-          });
-        }
-        this.outputChannel.debug(`Client tool result: ${JSON.stringify(rawResult)}`);
-      } else {
-        // Execute the specific tool function
-        switch (toolRequest.tool_name) {
-          case 'related_code_searcher':
-            rawResult = await this._runRelatedCodeSearcher(parsedContent.repo_path || active_repo, parsedContent);
-            break;
-          case 'focused_snippets_searcher':
-            rawResult = await this._runFocusedSnippetsSearcher(parsedContent.repo_path || active_repo, parsedContent);
-            break;
-          case 'file_path_searcher':
-            this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runFilePathSearcher(parsedContent.repo_path || active_repo, parsedContent);
-            break;
-          case 'iterative_file_reader':
-            this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runIterativeFileReader(
-              parsedContent.repo_path || active_repo,
-              parsedContent.file_path,
-              parsedContent.start_line,
-              parsedContent.end_line,
-            );
-            break;
-          case 'grep_search':
-            this.outputChannel.info(`Running grep_search with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runGrepSearch(
-              parsedContent.search_path,
-              parsedContent.repo_path || active_repo,
-              parsedContent.query,
-              parsedContent.case_insensitive,
-              parsedContent.use_regex,
-            );
-            break;
-          case 'public_url_content_reader':
-            this.outputChannel.info(`Running public_url_content_reader with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runPublicUrlContentReader(parsedContent);
-            break;
-          case 'execute_command': {
-            this.outputChannel.info(`Running execute_command with params: ${JSON.stringify(parsedContent)}`);
-
-            rawResult = await this.terminalExecutor.runCommand({
-              original: parsedContent.command,
-              requiresApproval: parsedContent.requires_approval,
-              isLongRunning: !!parsedContent.is_long_running,
-              chunkCallback,
-              toolRequest,
-            });
-
-            break;
-          }
-          case 'web_search':
-            this.outputChannel.info(`Running web_search with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this._runWebSearch(parsedContent);
-            break;
-
-          case 'replace_in_file':
-            this.outputChannel.info(`Running replace_in_file with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this.replaceInFileTool.applyDiff({
-              parsedContent,
-              chunkCallback,
-              toolRequest,
-              messageId,
-            });
-            break;
-          case 'write_to_file':
-            this.outputChannel.info(`Running write_to_file with params: ${JSON.stringify(parsedContent)}`);
-            rawResult = await this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId });
-            break;
-          default: {
-            throw new UnknownToolError(toolRequest.tool_name);
-          }
-        }
-      }
-
-      if (this.currentAbortController?.signal.aborted) {
-        this.outputChannel.warn(`_runTool aborted after executing tool: ${toolRequest.tool_name}`);
-        return;
-      }
-
-      // Check if the tool function executed successfully and returned a valid result
-      // (null/undefined might indicate an internal tool error not caught)
-      status = 'completed';
-      resultForUI = rawResult; // The raw result is usually what the UI might want to display
-      this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
-
-      // Prepare payload to continue chat with the tool's response
-      const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
-      const EnvironmentDetails = await getEnvironmentDetails(true);
-      const continuationPayload: ChatPayload = {
-        search_web: toolRequest.search_web,
-        llm_model: toolRequest.llm_model,
-        message_id: messageId, // Pass original message ID for context if needed by UI later
-        write_mode: toolRequest.write_mode,
-        is_tool_response: true,
-        tool_use_response: {
-          tool_name: toolRequest.tool_name,
-          tool_use_id: toolRequest.tool_use_id,
-          response: structuredResponse, // Use the structured response for the backend
-        },
-        os_name: await getOSName(),
-        shell: getShell(),
-        vscode_env: EnvironmentDetails,
-        client_tools: clientTools,
-        // TODO: Consider if previous_query_ids need to be passed down through tool calls
-      };
-
-      // *** CRITICAL STEP ***
-      // Send TOOL_USE_RESULT *before* awaiting the recursive apiChat call.
-      // This ensures the UI knows this tool finished before the next phase starts.
-      const toolUseResult = {
-        name: 'TOOL_USE_RESULT',
-        data: {
-          tool_name: toolRequest.tool_name,
-          tool_use_id: toolRequest.tool_use_id,
-          result_json: resultForUI, // Send the raw result to UI
-          status: status,
-        },
-      };
-      if (detectedClientTool) {
-        chunkCallback({
-          name: 'TOOL_CHIP_UPSERT',
-          data: {
-            toolRequest: {
-              requestData: parsedContent,
-              toolName: toolRequest.tool_name,
-              toolMeta: {
-                toolName: detectedClientTool.tool_metadata.tool_name,
-                serverName: detectedClientTool.tool_metadata.server_id,
-              },
-              requiresApproval: !detectedClientTool.auto_approve,
-            },
-            toolResponse: resultForUI,
-            toolRunStatus: 'completed',
-            toolUseId: toolRequest.tool_use_id,
+    this.usageTrackingManager.trackUsage({
+      eventType,
+      eventData: {
+        toolRequest: {
+          toolName: clientTool.name || clientTool.tool_metadata.tool_name,
+          toolMeta: {
+            toolName: clientTool.tool_metadata.tool_name,
+            serverName: clientTool.tool_metadata.server_id,
           },
-        });
-      }
+          requiresApproval: !clientTool.auto_approve,
+        },
+        toolUseId,
+        ...(error && { error }),
+      },
+      sessionId,
+    });
+  }
 
-      // Now, continue the chat flow with the tool response
-      this.outputChannel.info(`Continuing chat after ${toolRequest.tool_name} result.`);
-      chunkCallback(toolUseResult);
-      await this.apiChat(continuationPayload, chunkCallback);
-    } catch (error: any) {
-      // handle case where unknown tool is requested
-      if (error instanceof UnknownToolError) {
-        this.outputChannel.error(`Unknown tool requested: ${error.message}`);
-        return;
-      }
+  private _sendToolChipUpdate(
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest,
+    clientTool: ClientTool,
+    requestData: any,
+    response: any,
+    status: 'completed' | 'error',
+  ): void {
+    chunkCallback({
+      name: 'TOOL_CHIP_UPSERT',
+      data: {
+        toolRequest: {
+          requestData,
+          toolName: toolRequest.tool_name,
+          toolMeta: {
+            toolName: clientTool.tool_metadata.tool_name,
+            serverName: clientTool.tool_metadata.server_id,
+          },
+          requiresApproval: !clientTool.auto_approve,
+        },
+        toolResponse: response,
+        toolRunStatus: status,
+        toolUseId: toolRequest.tool_use_id,
+      },
+    });
+  }
 
-      // raw error in json
-      this.logger.error(`Raw error new: ${JSON.stringify(error)}`);
-      let errorResponse = error.response?.data;
-      this.logger.error(`Error running tool ${JSON.stringify(errorResponse)}`);
-      if (!errorResponse) {
-        errorResponse = {
-          error_code: 500,
-          error_type: 'SERVER_ERROR',
-          error_message: error.message,
-        };
-      }
-      this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
-      if (errorResponse && errorResponse.traceback) {
-        delete errorResponse.traceback;
-      }
-      if (this.currentAbortController?.signal.aborted) {
-        this.outputChannel.warn(`_runTool aborted during execution: ${toolRequest.tool_name}`);
-        return;
-      }
-      this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
-      this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
-      this.onError(error);
-      status = 'error';
-      resultForUI = { error: error.message }; // Set result to error message for UI
+  private _sendToolResult(
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest,
+    result: any,
+    status: 'completed' | 'error',
+  ): void {
+    chunkCallback({
+      name: 'TOOL_USE_RESULT',
+      data: {
+        tool_name: toolRequest.tool_name,
+        tool_use_id: toolRequest.tool_use_id,
+        result_json: result,
+        status,
+      },
+    });
+  }
 
-      // Send error result back to UI
-      // No recursive apiChat call should happen on error.
-      const toolUseResult = {
-        name: 'TOOL_USE_RESULT',
-        data: {
+  private async _createContinuationPayload(
+    toolRequest: ToolRequest,
+    messageId: string | undefined,
+    result: any,
+    clientTools: Array<ClientTool>,
+  ): Promise<ChatPayload> {
+    const environmentDetails = await getEnvironmentDetails(true);
+    return {
+      search_web: toolRequest.search_web,
+      llm_model: toolRequest.llm_model,
+      message_id: messageId,
+      write_mode: toolRequest.write_mode,
+      is_tool_response: true,
+      batch_tool_responses: [
+        {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
-          result_json: resultForUI, // Send the raw result to UI
-          status: status,
+          response: this._structureToolResponse(toolRequest.tool_name, result),
         },
-      };
-      chunkCallback(toolUseResult);
-      const detectedClientTool = clientTools.find((x) => x.name === toolRequest.tool_name);
-      if (detectedClientTool) {
-        // user tracking for error tool use
-        const sessionId = getSessionId();
-        if (sessionId) {
-          this.usageTrackingManager.trackUsage({
-            eventType: 'TOOL_USE_REQUEST_FAILED',
-            eventData: {
-              toolRequest: {
-                toolName: toolRequest.tool_name,
-                toolMeta: {
-                  toolName: detectedClientTool.tool_metadata.tool_name,
-                  serverName: detectedClientTool.tool_metadata.server_id,
-                },
-                requiresApproval: !detectedClientTool.auto_approve,
-              },
-              toolUseId: toolRequest.tool_use_id,
-              error: error,
-            },
-            sessionId: sessionId,
-          });
-        }
-        chunkCallback({
-          name: 'TOOL_CHIP_UPSERT',
-          data: {
-            toolRequest: {
-              requestData: toolRequest.accumulatedContent,
-              toolName: toolRequest.tool_name,
-              toolMeta: {
-                toolName: detectedClientTool.tool_metadata.tool_name,
-                serverName: detectedClientTool.tool_metadata.server_id,
-              },
-              requiresApproval: !detectedClientTool.auto_approve,
-            },
-            toolResponse: resultForUI,
-            toolRunStatus: 'error',
-            toolUseId: toolRequest.tool_use_id,
-          },
-        });
-      }
-      const EnvironmentDetails = await getEnvironmentDetails(true);
-      // Do NOT continue chat if the tool itself failed critically
-      const toolUseRetryPayload = {
-        search_web: toolRequest.search_web,
-        llm_model: toolRequest.llm_model,
-        message_id: messageId, // Pass original message ID for context if needed by UI later
-        write_mode: toolRequest.write_mode,
-        is_tool_response: true,
-        tool_use_failed: true,
-        tool_use_response: {
+      ],
+      os_name: await getOSName(),
+      shell: getShell(),
+      vscode_env: environmentDetails,
+      client_tools: clientTools,
+    };
+  }
+
+  private async _createRetryPayload(
+    toolRequest: ToolRequest,
+    messageId: string | undefined,
+    errorResponse: any,
+    clientTools: Array<ClientTool>,
+  ): Promise<ChatPayload> {
+    const environmentDetails = await getEnvironmentDetails(true);
+    return {
+      search_web: toolRequest.search_web,
+      llm_model: toolRequest.llm_model,
+      message_id: messageId,
+      write_mode: toolRequest.write_mode,
+      is_tool_response: true,
+      tool_use_failed: true,
+      batch_tool_responses: [
+        {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
           response: errorResponse,
         },
-        os_name: await getOSName(),
-        shell: getShell(),
-        vscode_env: EnvironmentDetails,
-        client_tools: clientTools,
+      ],
+      os_name: await getOSName(),
+      shell: getShell(),
+      vscode_env: environmentDetails,
+      client_tools: clientTools,
+    };
+  }
+
+  private _formatErrorResponse(error: any): any {
+    let errorResponse = error.response?.data;
+    if (!errorResponse) {
+      errorResponse = {
+        error_code: 500,
+        error_type: 'SERVER_ERROR',
+        error_message: error.message,
       };
-      await this.apiChat(toolUseRetryPayload, chunkCallback);
     }
+    if (errorResponse?.traceback) delete errorResponse.traceback;
+    return errorResponse;
+  }
+
+  private async _handleRejectedTool(
+    toolRequest: ToolRequest,
+    clientTool: ClientTool,
+    parsedContent: any,
+    chunkCallback: ChunkCallback,
+  ): Promise<void> {
+    const errorMessage =
+      'This tool required user approval but the user did not approve it. Please clarify this with the user.';
+
+    this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
+    this._sendToolChipUpdate(chunkCallback, toolRequest, clientTool, parsedContent, null, 'error');
+    this._sendToolResult(chunkCallback, toolRequest, { error_message: errorMessage }, 'error');
+
+    const rejectedPayload = await this._createRetryPayload(toolRequest, undefined, { error_message: errorMessage }, []);
+    await this.apiChat(rejectedPayload, chunkCallback);
   }
 
   /**
@@ -1395,5 +1434,23 @@ export class ChatManager {
   }
   public async killProcessById(tool_use_id: string) {
     await this.terminalExecutor.abortCommand(tool_use_id);
+  }
+
+  /**
+   * Determines the provider from the model name
+   */
+  private getProviderFromModel(model?: string): string {
+    if (!model) return 'unknown';
+
+    const lowerModel = model.toLowerCase();
+    if (lowerModel.includes('claude') || lowerModel.includes('anthropic')) {
+      return 'anthropic';
+    } else if (lowerModel.includes('gpt') || lowerModel.includes('openai')) {
+      return 'openai';
+    } else if (lowerModel.includes('gemini') || lowerModel.includes('google')) {
+      return 'google';
+    }
+
+    return 'unknown';
   }
 }

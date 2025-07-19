@@ -1,6 +1,6 @@
 import { submitFeedback } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChatMessage } from '@/types';
+import { ChatMessage, ChatReferenceItem, S3Object } from '@/types';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { CircleUserRound, ThumbsDown, ThumbsUp, TriangleAlert } from 'lucide-react';
 import { JSX, useRef } from 'react';
@@ -20,12 +20,12 @@ import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory'
 import MCPTool from './chatElements/Tools/mcpTool';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { Shimmer } from './chatElements/shimmerEffect';
-import ReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { ImageWithDownload } from './chatElements/imageView';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import { AskUserInput } from './chatElements/Tools/askUserInput';
+import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
@@ -66,7 +66,7 @@ export function ChatArea() {
                         <div className="mb-2 overflow-x-auto">
                           <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
                             {msg.s3References.map(
-                              (s3Ref, imgIndex) =>
+                              (s3Ref: S3Object, imgIndex: number) =>
                                 s3Ref.get_url && (
                                   <ImageWithDownload
                                     key={imgIndex}
@@ -103,16 +103,18 @@ export function ChatArea() {
                           />
                         )}
 
-                        {msg.referenceList?.map((reference, chipIndex) => (
-                          <QueryReferenceChip
-                            key={chipIndex}
-                            value={reference.value}
-                            type={reference.type}
-                            path={reference.path}
-                            chunks={reference.chunks}
-                            url={reference.url}
-                          />
-                        ))}
+                        {msg.referenceList?.map(
+                          (reference: ChatReferenceItem, chipIndex: number) => (
+                            <QueryReferenceChip
+                              key={chipIndex}
+                              value={reference.value}
+                              type={reference.type}
+                              path={reference.path}
+                              chunks={reference.chunks}
+                              url={reference.url}
+                            />
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -134,7 +136,7 @@ export function ChatArea() {
           case 'THINKING':
             return (
               <div key={index}>
-                <ThinkingChip completed={msg.completed} />
+                <ThinkingChip status={msg.status} />
               </div>
             );
 
@@ -514,16 +516,40 @@ export function ChatArea() {
               </div>
             );
 
-          case 'ERROR':
-            return (
-              <div key={index}>
-                <RetryChip
-                  error_msg={msg.error_msg}
-                  retry={msg.retry}
-                  payload_to_retry={msg.payload_to_retry}
-                />
-              </div>
-            );
+          case 'ERROR': {
+            let contentComponent: JSX.Element | null = null;
+            const errorType = msg.errorData?.type; // use optional chaining
+
+            switch (errorType) {
+              case 'THROTTLING_ERROR': {
+                contentComponent = (
+                  <ThrottledChatMessage
+                    key={index}
+                    retryAfterSeconds={msg.errorData?.retry_after}
+                    currentModel={msg.errorData?.model_name}
+                    errorMessage={msg.error_msg}
+                    retry={msg.retry}
+                    payloadToRetry={msg.payload_to_retry}
+                  />
+                );
+                break;
+              }
+              default: {
+                // Otherwise, show the old error UI
+                contentComponent = (
+                  <div key={index}>
+                    <RetryChip
+                      error_msg={msg.error_msg}
+                      retry={msg.retry}
+                      payload_to_retry={msg.payload_to_retry}
+                    />
+                  </div>
+                );
+                break;
+              }
+            }
+            return contentComponent;
+          }
 
           default:
             return null;
