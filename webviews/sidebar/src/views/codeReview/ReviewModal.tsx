@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { useCodeReviewStore } from '@/stores/codeReviewStore';
+import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { TriangleAlert } from 'lucide-react';
 import { codeReviewPreProcess } from '@/commandApi';
 
@@ -11,7 +11,8 @@ interface ReviewModalProps {
 }
 
 export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onStartReview }) => {
-  const { enabledAgents, userAgents, activeReviewOption } = useCodeReviewStore();
+  const { userAgents } = useCodeReviewStore();
+  const { enabledAgents } = useCodeReviewSettingStore();
 
   const handleCodeReview = () => {
     codeReviewPreProcess({ diff_s3_url: '', source_branch: '', target_branch: '' });
@@ -19,7 +20,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
   };
 
   const toggleAgent = (agentId: number, agentName: string) => {
-    useCodeReviewStore.setState((state) => {
+    useCodeReviewSettingStore.setState((state) => {
       const isEnabled = state.enabledAgents.some((a) => a.id === agentId);
       const updatedAgents = isEnabled
         ? state.enabledAgents.filter((a) => a.id !== agentId)

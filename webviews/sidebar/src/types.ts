@@ -473,11 +473,14 @@ export interface CodeReviewStorage {
   activeReviewOption: ReviewOption;
   reviewOptions: ReviewOption[];
   pastReviews: Review[];
-  enabledAgents: EnabledAgent[];
   userAgents: UserAgent[];
   isFetchingChangedFiles: boolean;
   activeReviewId: number;
   activeReviewSessionId: number;
+}
+
+export interface CodeReviewSetting {
+  enabledAgents: EnabledAgent[];
 }
 
 export interface CodeReviewComment {

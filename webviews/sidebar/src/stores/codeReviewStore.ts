@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { persistStorage } from './lib';
-import { AgentStatus, CodeReviewStorage, NewReview, ReviewOption, ReviewStep } from '@/types';
+import {
+  AgentStatus,
+  CodeReviewSetting,
+  CodeReviewStorage,
+  NewReview,
+  ReviewOption,
+  ReviewStep,
+} from '@/types';
 
 export const useCodeReviewStore = create<
   CodeReviewStorage & {
@@ -25,7 +32,6 @@ export const useCodeReviewStore = create<
         { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' },
       ] as ReviewOption[],
       pastReviews: [],
-      enabledAgents: [],
       userAgents: [],
       isFetchingChangedFiles: false,
       activeReviewId: 0,
@@ -82,6 +88,18 @@ export const useCodeReviewStore = create<
     }),
     {
       name: 'code-review-storage',
+      storage: persistStorage,
+    }
+  )
+);
+
+export const useCodeReviewSettingStore = create<CodeReviewSetting>()(
+  persist(
+    (set) => ({
+      enabledAgents: [],
+    }),
+    {
+      name: 'code-review-setting-store',
       storage: persistStorage,
     }
   )

@@ -44,7 +44,7 @@ import { useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
-import { useCodeReviewStore } from './stores/codeReviewStore';
+import { useCodeReviewSettingStore, useCodeReviewStore } from './stores/codeReviewStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -906,7 +906,7 @@ addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
   useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'COMPLETED');
 
   // Start Review now
-  const enabledAgents = useCodeReviewStore.getState().enabledAgents;
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
   const activeReviewId = useCodeReviewStore.getState().activeReviewId;
 
   // Ensure we have a valid activeReviewId
@@ -937,13 +937,14 @@ addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
 addCommandEventListener('REVIEW_STARTED', ({ data }) => {
   console.log('Review started:', data);
   const store = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
 
   // Add or update reviewing step with all enabled agents
   store.updateOrAddStep({
     id: 'REVIEWING',
     label: 'Reviewing files',
     status: 'IN_PROGRESS',
-    agents: store.enabledAgents.map((agent) => ({
+    agents: enabledAgents.map((agent) => ({
       id: agent.id,
       name: agent.displayName,
       status: 'IN_PROGRESS' as const,
@@ -960,7 +961,8 @@ addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
   useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'COMPLETED');
 
   // Check if all enabled agents have completed or failed
-  const { steps, enabledAgents } = useCodeReviewStore.getState();
+  const { steps } = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
   const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
 
   if (reviewingStep?.agents) {
@@ -989,7 +991,8 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
   useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'FAILED');
 
   // Check if all enabled agents have completed or failed
-  const { steps, enabledAgents } = useCodeReviewStore.getState();
+  const { steps } = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
   const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
 
   if (reviewingStep?.agents) {
