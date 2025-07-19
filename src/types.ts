@@ -180,9 +180,47 @@ export type EmbeddingProgressData = {
   progress: number;
 };
 
+export interface ReviewToolUseResponse {
+  tool_name: string;
+  tool_use_id: string;
+  response: any;
+}
+
 export interface AgentPayload {
-  agent_id: string;
+  agent_id: number;
   review_id: number;
-  type: string;
-  session_id: number;
+  type: 'query' | 'tool_use_response';
+  session_id?: number;
+  tool_use_response?: ReviewToolUseResponse;
+}
+
+export interface GrepSearchInput {
+  search_path: string;
+  query: string;
+  case_insensitive: boolean;
+  use_regex: boolean;
+}
+
+export interface FilePathSearchInput {
+  directory: string;
+  search_terms: SearchTerm[];
+}
+
+export interface IterativeFileReaderInput {
+  file_path: string;
+  start_line: number;
+  end_line: number;
+}
+
+export interface ReviewToolUseRequest {
+  agent_id: number;
+  tool_use_id: string;
+  tool_name: string;
+  tool_input: GrepSearchInput | FilePathSearchInput | IterativeFileReaderInput;
+}
+
+export interface ReviewEvent {
+  type: 'REVIEW_FAIL' | 'AGENT_START' | 'AGENT_COMPLETE' | 'AGENT_FAIL' | 'TOOL_USE_REQUEST';
+  agent_id: number;
+  data?: ReviewToolUseRequest;
 }

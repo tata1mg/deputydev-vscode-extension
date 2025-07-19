@@ -2,15 +2,7 @@
 import * as vscode from 'vscode';
 import { SingletonLogger } from '../../../utilities/Singleton-logger';
 import { BackendClient } from '../../../clients/backendClient';
-import { AgentPayload } from '../../../types';
-
-export interface ReviewEvent {
-  type: 'REVIEW_FAIL' | 'AGENT_START' | 'AGENT_COMPLETE' | 'AGENT_FAIL' | 'TOOL_USE_REQUEST';
-  content?: any;
-  error?: string;
-  tool_use_id?: string;
-  status?: string;
-}
+import { AgentPayload, ReviewEvent } from '../../../types';
 
 export class CodeReviewWebsocketService {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -36,6 +28,7 @@ export class CodeReviewWebsocketService {
   ): AsyncIterableIterator<ReviewEvent> {
     const eventsQueue: ReviewEvent[] = [];
     let socketError: Error | null = null;
+    let messageData: ReviewEvent;
 
     try {
       this.currentSocket = this.backendClient.codeReviewSolver();
@@ -43,14 +36,15 @@ export class CodeReviewWebsocketService {
         throw new Error('Failed to create WebSocket connection');
       }
 
-      const handleMessage = (messageData: any): void => {
+      const handleMessage = (data: ReviewEvent): void => {
+        messageData = data;
         try {
-          eventsQueue.push(messageData);
+          eventsQueue.push(data);
         } catch (error) {
           console.error('Error processing message:', error);
           eventsQueue.push({
-            type: 'AGENT_FAIL',
-            error: 'Failed to process message from server',
+            type: 'REVIEW_FAIL',
+            agent_id: messageData?.agent_id,
           });
         }
       };
@@ -60,7 +54,7 @@ export class CodeReviewWebsocketService {
         socketError = error;
         eventsQueue.push({
           type: 'REVIEW_FAIL',
-          error: error.message || 'WebSocket connection error',
+          agent_id: messageData?.agent_id,
         });
         this.currentSocket?.close();
       };
@@ -69,7 +63,7 @@ export class CodeReviewWebsocketService {
         if (socketError) {
           eventsQueue.push({
             type: 'REVIEW_FAIL',
-            error: socketError.message || 'WebSocket connection closed with error',
+            agent_id: messageData?.agent_id,
           });
         }
       };
@@ -98,9 +92,9 @@ export class CodeReviewWebsocketService {
 
         if (eventsQueue.length > 0) {
           const event = eventsQueue.shift()!;
-          if (event.type === 'AGENT_FAIL' && event.error) {
-            throw new Error(event.error);
-          }
+          // if (event.data) {
+          //   throw new Error(event.data);
+          // }
           yield event;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 50));
