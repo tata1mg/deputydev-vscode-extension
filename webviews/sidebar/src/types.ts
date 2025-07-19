@@ -192,7 +192,7 @@ export interface TerminalProcess {
 export interface ChatThinkingMessage {
   type: 'THINKING';
   text: string;
-  completed: boolean;
+  status: ToolRunStatus;
   actor?: 'ASSISTANT';
   content?: any;
 }
@@ -236,7 +236,20 @@ export interface ChatErrorMessage {
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
+  errorData: LLMThrottlingException | LLMinputTokenLimitException;
   content?: any;
+}
+
+export interface LLMThrottlingException {
+  type: 'THROTTLING_ERROR';
+  model_name?: string;
+  retry_after?: number;
+}
+export interface LLMinputTokenLimitException {
+  type: 'INPUT_TOKEN_LIMIT_ERROR';
+  model_name?: string;
+  actor: 'ASSISTANT';
+  retry_after?: number;
 }
 
 export interface ChatCompleteMessage {

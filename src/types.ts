@@ -73,13 +73,14 @@ export interface ChatPayload {
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
+  tool_use_failed?: boolean;
   write_mode?: boolean;
   referenceList?: ChatReferenceItem[];
-  tool_use_response?: {
+  batch_tool_responses?: Array<{
     tool_name: string;
-    tool_use_id?: string;
+    tool_use_id: string;
     response: any;
-  };
+  }>;
   previous_query_ids?: number[];
   focus_items?: Array<any>;
   directory_items?: Array<any>;
@@ -179,6 +180,16 @@ export type EmbeddingProgressData = {
   repo_path: string;
   progress: number;
 };
+
+export interface ThrottlingErrorData {
+  type: 'STREAM_ERROR';
+  status: 'LLM_THROTTLED';
+  provider: string;
+  model: string;
+  retry_after?: number | null;
+  message: string;
+  detail?: string | null;
+}
 
 export interface ReviewToolUseResponse {
   tool_name: string;
