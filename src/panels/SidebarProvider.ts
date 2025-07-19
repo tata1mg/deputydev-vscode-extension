@@ -1191,12 +1191,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           if (!custom_prompt || !agent_name) {
             throw new Error('Custom prompt and agent name are required for create operation');
           }
-          const createResponse = await this.reviewService.createAgent(agent_name, custom_prompt);
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: 'user-agent-created',
-            data: createResponse.data,
-          });
+          const agentCreationResponse = await this.reviewService.createAgent(agent_name, custom_prompt);
+          if (agentCreationResponse.is_success) {
+            this.fetchUserAgents();
+          }
           break;
         }
 
@@ -1205,11 +1203,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
             throw new Error('Agent ID, custom prompt, and agent name are required for update operation');
           }
           const updateResponse = await this.reviewService.updateAgent(agent_id, custom_prompt, agent_name);
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: 'user-agent-updated',
-            data: updateResponse.data,
-          });
+          console.log('Agent Updated', updateResponse);
           break;
         }
 
@@ -1217,13 +1211,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           if (!agent_id) {
             throw new Error('Agent ID is required for delete operation');
           }
-          const response = await this.reviewService.deleteAgent(agent_id);
-          console.log('Agent Deleted', response);
-          this.sendMessageToSidebar({
-            id: uuidv4(),
-            command: 'user-agent-deleted',
-            data: response.data,
-          });
+          const agentDeletionResponse = await this.reviewService.deleteAgent(agent_id);
+          if (agentDeletionResponse.is_success) {
+            this.fetchUserAgents();
+          }
           break;
         }
 
