@@ -4,7 +4,15 @@ import { BackendClient } from '../clients/backendClient';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { AuthService } from '../services/auth/AuthService';
-import { AgentPayload, ReviewEvent, ReviewToolUseRequest, FilePathSearchInput, IterativeFileReaderInput, GrepSearchInput, SearchTerm } from '../types';
+import {
+  AgentPayload,
+  ReviewEvent,
+  ReviewToolUseRequest,
+  FilePathSearchInput,
+  IterativeFileReaderInput,
+  GrepSearchInput,
+  SearchTerm,
+} from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { getActiveRepo, getReviewId } from '../utilities/contextManager';
 import { resolveDirectoryRelative } from '../utilities/path';
@@ -106,7 +114,7 @@ export class CodeReviewManager {
             tool_use_id: event.data.tool_use_id,
             tool_name: event.data.tool_name,
             tool_input: event.data.tool_input,
-          }
+          };
         }
         console.log('Current tool request:', currentToolRequest);
         break;
@@ -144,16 +152,14 @@ export class CodeReviewManager {
         case 'file_path_searcher': {
           this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(toolRequest.tool_input)}`);
           const input = toolRequest.tool_input as FilePathSearchInput;
-          rawResult = await this._runFilePathSearcher(
-            active_repo,
-            input.directory,
-            input.search_terms
-          );
+          rawResult = await this._runFilePathSearcher(active_repo, input.directory, input.search_terms);
           break;
         }
 
         case 'iterative_file_reader': {
-          this.outputChannel.info(`Running iterative_file_reader with params: ${JSON.stringify(toolRequest.tool_input)}`);
+          this.outputChannel.info(
+            `Running iterative_file_reader with params: ${JSON.stringify(toolRequest.tool_input)}`,
+          );
           const input = toolRequest.tool_input as IterativeFileReaderInput;
           rawResult = await this._runIterativeFileReader(
             active_repo,
@@ -174,7 +180,7 @@ export class CodeReviewManager {
             input.case_insensitive,
             input.use_regex,
           );
-          rawResult = response.data
+          rawResult = response.data;
           break;
         }
 
@@ -191,30 +197,29 @@ export class CodeReviewManager {
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
       console.log('Structured response for agent id', agent_id, structuredResponse);
 
-      let agentsToolUseResponses: any[] = [];
+      const agentsToolUseResponses: any[] = [];
 
       const toolUseResponsePayload = {
         agent_id: agent_id,
         review_id: this.review_id,
-        type: "tool_use_response",
+        type: 'tool_use_response',
         tool_use_response: {
           tool_name: toolRequest.tool_name,
           tool_use_id: toolRequest.tool_use_id,
-          response: structuredResponse
-        }
+          response: structuredResponse,
+        },
       };
 
       agentsToolUseResponses.push(toolUseResponsePayload);
 
       const continuationPayload = {
         review_id: this.review_id,
-        agents: agentsToolUseResponses
-      }
+        agents: agentsToolUseResponses,
+      };
 
       console.log('Continuation payload:', continuationPayload);
 
       await this.startCodeReview(continuationPayload);
-
     } catch (error: any) {
       if (error instanceof UnknownToolError) {
         this.outputChannel.error(`Unknown tool requested: ${error.message}`);
@@ -235,22 +240,22 @@ export class CodeReviewManager {
       if (!this.currentAbortController?.signal.aborted) {
         this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
         // TODO: Handle tool use retry if needed
-        let agentsToolUseResponses: any[] = [];
+        const agentsToolUseResponses: any[] = [];
         const toolUseRetryPayload = {
           agent_id: agent_id,
           review_id: this.review_id,
-          type: "tool_use_failed",
+          type: 'tool_use_failed',
           tool_use_response: {
             tool_name: toolRequest.tool_name,
             tool_use_id: toolRequest.tool_use_id,
-            response: errorResponse
-          }
+            response: errorResponse,
+          },
         };
         agentsToolUseResponses.push(toolUseRetryPayload);
         const continuationPayload = {
           review_id: this.review_id,
-          agents: agentsToolUseResponses
-        }
+          agents: agentsToolUseResponses,
+        };
 
         console.log('Continuation payload:', continuationPayload);
         await this.startCodeReview(continuationPayload);
