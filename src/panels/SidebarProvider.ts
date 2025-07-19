@@ -143,6 +143,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'fetch-user-agents':
           this.fetchUserAgents();
           break;
+        case 'user-agent-crud':
+          this.userAgentCrud(data.operation, data.agent_id, data.agent_name, data.custom_prompt);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1171,6 +1174,66 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'user-agents-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async userAgentCrud(
+    operation: 'CREATE' | 'UPDATE' | 'DELETE',
+    agent_id?: number,
+    agent_name?: string,
+    custom_prompt?: string,
+  ): Promise<any> {
+    try {
+      switch (operation) {
+        case 'CREATE': {
+          if (!custom_prompt || !agent_name) {
+            throw new Error('Custom prompt and agent name are required for create operation');
+          }
+          const createResponse = await this.reviewService.createAgent(agent_name, custom_prompt);
+          this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'user-agent-created',
+            data: createResponse.data,
+          });
+          break;
+        }
+
+        case 'UPDATE': {
+          if (!agent_id || !custom_prompt || !agent_name) {
+            throw new Error('Agent ID, custom prompt, and agent name are required for update operation');
+          }
+          const updateResponse = await this.reviewService.updateAgent(agent_id, custom_prompt, agent_name);
+          this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'user-agent-updated',
+            data: updateResponse.data,
+          });
+          break;
+        }
+
+        case 'DELETE': {
+          if (!agent_id) {
+            throw new Error('Agent ID is required for delete operation');
+          }
+          const response = await this.reviewService.deleteAgent(agent_id);
+          console.log('Agent Deleted', response);
+          this.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'user-agent-deleted',
+            data: response.data,
+          });
+          break;
+        }
+
+        default:
+          throw new Error(`Invalid operation: ${operation}`);
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'user-agent-crud-error',
         data: { error: String(error) },
       });
     }

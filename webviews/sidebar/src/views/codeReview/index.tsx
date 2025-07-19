@@ -17,12 +17,11 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import {
   fetchPastReviews,
   getUserAgents,
-  hitSnapshot,
   newReview,
   openFileDiff,
   searchBranches,
 } from '@/commandApi';
-import { useCodeReviewStore } from '@/stores/codeReviewStore';
+import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
 import { PastReviews } from './PastReviews';
 import { Review } from './review';
@@ -70,9 +69,9 @@ export default function CodeReview() {
     selectedTargetBranch,
     pastReviews,
     userAgents,
-    enabledAgents,
     isFetchingChangedFiles,
   } = useCodeReviewStore();
+  const { enabledAgents } = useCodeReviewSettingStore();
   const [showFilesToReview, setShowFilesToReview] = useState(true);
   const [showReviewOptions, setShowReviewOptions] = useState(false);
   const [showAgents, setShowAgents] = useState(false);
@@ -120,7 +119,7 @@ export default function CodeReview() {
   }, []);
 
   const toggleAgent = (agentId: number, agentName: string) => {
-    useCodeReviewStore.setState((state) => {
+    useCodeReviewSettingStore.setState((state) => {
       const isEnabled = state.enabledAgents.some((a) => a.id === agentId);
       const updatedAgents = isEnabled
         ? state.enabledAgents.filter((a) => a.id !== agentId)

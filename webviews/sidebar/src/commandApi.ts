@@ -387,3 +387,12 @@ export function openCommentInFile(data: {
 export function getUserAgents() {
   return callCommand('fetch-user-agents', {});
 }
+
+export function performCrudOnUserAgent(
+  operation: 'CREATE' | 'UPDATE' | 'DELETE',
+  agent_id?: number,
+  agent_name?: string,
+  custom_prompt?: string
+) {
+  return callCommand('user-agent-crud', { operation, agent_id, agent_name, custom_prompt });
+}

@@ -102,11 +102,52 @@ export class ReviewService {
 
   public async getUserAgents(): Promise<any> {
     try {
-      const response = await api.get(API_ENDPOINTS.USER_AGENTS, {
+      const response = await api.get(API_ENDPOINTS.GET_USER_AGENTS, {
         params: {
           user_team_id: 112,
         },
       });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching user agents');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async updateAgent(agent_id: number, custom_prompt: string, name?: string): Promise<any> {
+    try {
+      const payload = {
+        name: name,
+        custom_prompt: custom_prompt,
+      };
+      const response = await api.patch(`${API_ENDPOINTS.USER_AGENT_CRUD}/${agent_id}`, payload);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching user agents');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async createAgent(name: string, custom_prompt: string): Promise<any> {
+    try {
+      const payload = {
+        name: name,
+        custom_prompt: custom_prompt,
+      };
+      const response = await api.post(API_ENDPOINTS.USER_AGENT_CRUD, payload);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching user agents');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async deleteAgent(agent_id: number): Promise<any> {
+    try {
+      const response = await api.delete(`${API_ENDPOINTS.USER_AGENT_CRUD}/${agent_id}`);
       return response.data;
     } catch (error) {
       this.logger.error('Error while fetching user agents');

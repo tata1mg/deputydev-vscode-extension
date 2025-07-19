@@ -53,5 +53,6 @@ export const API_ENDPOINTS = {
   SEARCH_BRANCHES: '/v1/branches/all',
   SNAPSHOT: '/v1/review/start',
   PAST_REVIEWS: '/end_user/v1/extension-code-review/history',
-  USER_AGENTS: '/end_user/v1/agent/list',
+  GET_USER_AGENTS: '/end_user/v1/agent/list',
+  USER_AGENT_CRUD: '/end_user/v1/agent',
 };
