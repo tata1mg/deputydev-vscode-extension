@@ -119,12 +119,12 @@ export default function CodeReview() {
     fetchPastReviews({ sourceBranch: '' });
   }, []);
 
-  const toggleAgent = (agentId: number) => {
+  const toggleAgent = (agentId: number, agentName: string) => {
     useCodeReviewStore.setState((state) => {
-      const isEnabled = state.enabledAgents.includes(agentId);
+      const isEnabled = state.enabledAgents.some((a) => a.id === agentId);
       const updatedAgents = isEnabled
-        ? state.enabledAgents.filter((id) => id !== agentId)
-        : [...state.enabledAgents, agentId];
+        ? state.enabledAgents.filter((a) => a.id !== agentId)
+        : [...state.enabledAgents, { id: agentId, displayName: agentName }];
 
       return { enabledAgents: updatedAgents };
     });
@@ -680,17 +680,21 @@ export default function CodeReview() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    toggleAgent(agent.id);
+                                    toggleAgent(agent.id, agent.display_name);
                                   }}
                                   className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                    enabledAgents.includes(agent.id)
+                                    enabledAgents.some(
+                                      (enabledAgent) => enabledAgent.id === agent.id
+                                    )
                                       ? 'bg-green-500'
                                       : 'bg-gray-300'
                                   }`}
                                 >
                                   <div
                                     className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                      enabledAgents.includes(agent.id)
+                                      enabledAgents.some(
+                                        (enabledAgent) => enabledAgent.id === agent.id
+                                      )
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
                                     }`}
@@ -795,17 +799,21 @@ export default function CodeReview() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    toggleAgent(agent.id);
+                                    toggleAgent(agent.id, agent.display_name);
                                   }}
                                   className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                    enabledAgents.includes(agent.id)
+                                    enabledAgents.some(
+                                      (enabledAgent) => enabledAgent.id === agent.id
+                                    )
                                       ? 'bg-green-500'
                                       : 'bg-gray-300'
                                   }`}
                                 >
                                   <div
                                     className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                      enabledAgents.includes(agent.id)
+                                      enabledAgents.some(
+                                        (enabledAgent) => enabledAgent.id === agent.id
+                                      )
                                         ? 'translate-x-4'
                                         : 'translate-x-0'
                                     }`}

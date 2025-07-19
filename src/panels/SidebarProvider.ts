@@ -1023,12 +1023,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async handleCodeReviewPreProcess(data: any) {
     console.log('Starting code review pre process with data:', data);
+
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'REVIEW_PRE_PROCESS_STARTED',
+      data: {},
+    });
+
     const preProcessResult = await this.reviewService.codeReviewPreProcess();
     console.log('Pre-process result:', preProcessResult);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: 'review-preprocess-error',
+        command: 'REVIEW_PRE_PROCESS_FAILED',
         data: { error: preProcessResult.meta.message },
       });
     } else {
@@ -1038,7 +1045,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       console.log('Review ID set:', reviewId);
       this.sendMessageToSidebar({
         id: uuidv4(),
-        command: 'review-preprocess-completed',
+        command: 'REVIEW_PRE_PROCESS_COMPLETED',
         data: preProcessResult.data,
       });
     }
@@ -1046,6 +1053,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async handleCodeReviewStart(data: any) {
     console.log('Starting code review with data:', data);
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'REVIEW_STARTED',
+      data: {},
+    });
 
     const agentsPayload = data as { review_id: number; agents: AgentPayload[] };
     this.codeReviewManager.startCodeReview(agentsPayload);

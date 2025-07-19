@@ -883,17 +883,31 @@ addCommandEventListener('user-agents', ({ data }) => {
   console.log('User agents data received:', useCodeReviewStore.getState().userAgents);
 });
 
-addCommandEventListener('review-preprocess-completed', ({ data }) => {
+addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
+  console.log('Review pre-process started:', data);
+  const store = useCodeReviewStore.getState();
+
+  // Add setup step
+  store.updateOrAddStep({
+    id: 'INITIAL_SETUP',
+    label: 'Setting Up Review',
+    status: 'IN_PROGRESS',
+  });
+});
+
+addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
   const preProcessData = data as { review_id: number; session_id: number };
   console.log('Review preprocess completed:', preProcessData);
   useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
   useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
   console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
 
+  // Update setup step to COMPLETED
+  useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'COMPLETED');
+
   // Start Review now
   const enabledAgents = useCodeReviewStore.getState().enabledAgents;
   const activeReviewId = useCodeReviewStore.getState().activeReviewId;
-  const activeReviewSessionId = useCodeReviewStore.getState().activeReviewSessionId;
 
   // Ensure we have a valid activeReviewId
   if (!activeReviewId) {
@@ -902,16 +916,95 @@ addCommandEventListener('review-preprocess-completed', ({ data }) => {
   }
 
   // Create the agents payload list
-  const agentsPayloadList: AgentPayload[] = enabledAgents.map((agent) => ({
-    agent_id: agent,
+  const agents: AgentPayload[] = enabledAgents.map((agent) => ({
+    agent_id: agent.id,
     review_id: activeReviewId,
     type: 'query',
-    session_id: activeReviewSessionId,
-    repo_id: 43,
   }));
 
   // Start the code review with the agents payload list
   startCodeReview({
-    agentsPayload: agentsPayloadList,
+    review_id: activeReviewId,
+    agents: agents,
   });
+});
+
+addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
+  console.error('Review pre process failed with data:', data);
+  useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'FAILED');
+});
+
+addCommandEventListener('REVIEW_STARTED', ({ data }) => {
+  console.log('Review started:', data);
+  const store = useCodeReviewStore.getState();
+
+  // Add or update reviewing step with all enabled agents
+  store.updateOrAddStep({
+    id: 'REVIEWING',
+    label: 'Reviewing files',
+    status: 'IN_PROGRESS',
+    agents: store.enabledAgents.map((agent) => ({
+      id: agent.id,
+      name: agent.displayName,
+      status: 'IN_PROGRESS' as const,
+    })),
+  });
+});
+
+addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
+  const event = data as { agent_id: number; type: string; data: any };
+  const agentId = event.agent_id;
+  console.log('Agent completed:', event);
+
+  // Update the specific agent's status to COMPLETED
+  useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'COMPLETED');
+
+  // Check if all enabled agents have completed or failed
+  const { steps, enabledAgents } = useCodeReviewStore.getState();
+  const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
+
+  if (reviewingStep?.agents) {
+    // Get only the enabled agents' statuses
+    const enabledAgentStatuses = reviewingStep.agents
+      .filter((agent) => enabledAgents.some((ea) => ea.id === agent.id))
+      .map((agent) => agent.status);
+
+    // Check if all enabled agents are either COMPLETED or FAILED
+    const allEnabledAgentsDone =
+      enabledAgentStatuses.length > 0 &&
+      enabledAgentStatuses.every((status) => status === 'COMPLETED' || status === 'FAILED');
+
+    if (allEnabledAgentsDone) {
+      useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+    }
+  }
+});
+
+addCommandEventListener('AGENT_FAIL', ({ data }) => {
+  const event = data as { agent_id: number; type: string; data: any };
+  const agentId = event.agent_id;
+  console.error('Agent failed:', event);
+
+  // Update the specific agent's status to FAILED
+  useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'FAILED');
+
+  // Check if all enabled agents have completed or failed
+  const { steps, enabledAgents } = useCodeReviewStore.getState();
+  const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
+
+  if (reviewingStep?.agents) {
+    // Get only the enabled agents' statuses
+    const enabledAgentStatuses = reviewingStep.agents
+      .filter((agent) => enabledAgents.some((ea) => ea.id === agent.id))
+      .map((agent) => agent.status);
+
+    // Check if all enabled agents are either COMPLETED or FAILED
+    const allEnabledAgentsDone =
+      enabledAgentStatuses.length > 0 &&
+      enabledAgentStatuses.every((status) => status === 'COMPLETED' || status === 'FAILED');
+
+    if (allEnabledAgentsDone) {
+      useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+    }
+  }
 });
