@@ -19,6 +19,7 @@ import {
   getUserAgents,
   newReview,
   openFileDiff,
+  performCrudOnUserAgent,
   searchBranches,
 } from '@/commandApi';
 import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
@@ -239,15 +240,15 @@ export default function CodeReview() {
   const handleDelete = (agentId: number) => {
     // Handle delete logic here
     console.log('Delete', agentId);
+    performCrudOnUserAgent('DELETE', agentId);
     setExpandedAgentId(null);
   };
 
-  const handleCreateAgent = () => {
+  const handleCreateAgent = (agentName: string, agentPrompt: string) => {
     // Handle create agent logic here
-    console.log('Create agent', newAgentName, newAgentPrompt);
+    console.log('Create agent', agentName, agentPrompt);
+    performCrudOnUserAgent('CREATE', undefined, agentName, agentPrompt);
     setShowCreateAgentForm(false);
-    setNewAgentName('');
-    setNewAgentPrompt('');
   };
 
   return (
@@ -647,221 +648,88 @@ export default function CodeReview() {
                   }`}
                 >
                   <div
-                    className={`overflow-y-auto ${
+                    className={`${
                       isAgentExpanded || showCreateAgentForm ? 'max-h-[680px]' : 'max-h-80'
-                    }`}
+                    } ${isAgentExpanded ? 'overflow-y-auto' : 'overflow-hidden'}`}
                   >
                     {/* Predefined Agents */}
                     <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
                       Predefined Agents
                     </div>
-                    {userAgents
-                      .filter((agent) => !agent.is_custom_agent)
-                      .map((agent) => (
-                        <div key={agent.id} className="w-full">
-                          <div
-                            className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={() => toggleAgentExpansion(agent.id)}
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span className="flex-1 truncate">{agent.display_name}</span>
-                              <Info
-                                className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
-                                data-tooltip-id="code-review-tooltips"
-                                data-tooltip-content={agent.objective}
-                                data-tooltip-place="top-start"
-                                data-tooltip-class-name="z-50 max-w-[80%]"
-                                data-tooltip-effect="solid"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleAgent(agent.id, agent.display_name);
-                                  }}
-                                  className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                    enabledAgents.some(
-                                      (enabledAgent) => enabledAgent.id === agent.id
-                                    )
-                                      ? 'bg-green-500'
-                                      : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <div
-                                    className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                                      enabledAgents.some(
-                                        (enabledAgent) => enabledAgent.id === agent.id
-                                      )
-                                        ? 'translate-x-4'
-                                        : 'translate-x-0'
-                                    }`}
-                                  />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Predefined Agent Dropdown */}
-                          <AnimatePresence mode="wait">
-                            {expandedAgentId === agent.id && (
-                              <motion.div
-                                key={`predefined-${agent.id}`}
-                                className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
-                                variants={dropdownVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="hidden"
-                                transition={{ duration: 0.2 }}
-                              >
-                                <motion.div
-                                  className="px-4 py-2"
-                                  variants={itemVariants}
-                                  custom={0}
-                                >
-                                  <div className="mb-3">
-                                    <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
-                                      Custom Prompt
-                                    </label>
-                                    <motion.textarea
-                                      className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
-                                      rows={3}
-                                      value={agentCustomPrompts[agent.id] || ''}
-                                      onChange={(e) =>
-                                        handleCustomPromptChange(agent.id, e.target.value)
-                                      }
-                                      onClick={(e) => e.stopPropagation()}
-                                      placeholder="Enter custom prompt..."
-                                      initial={{ opacity: 0, y: -10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ delay: 0.1 }}
-                                    />
-                                  </div>
-                                  <motion.div
-                                    className="flex justify-end space-x-2"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.15 }}
-                                  >
-                                    <button
-                                      className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setExpandedAgentId(null);
-                                      }}
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleSave(agent.id, false);
-                                      }}
-                                    >
-                                      Save
-                                    </button>
-                                  </motion.div>
-                                </motion.div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                    <div
+                      className={`${isAgentExpanded ? 'h-auto' : 'max-h-[90px]'} overflow-y-auto`}
+                    >
+                      {userAgents.filter((agent) => !agent.is_custom_agent).length === 0 && (
+                        <div className="p-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                          No predefined agents available.
                         </div>
-                      ))}
-
-                    {/* Custom Agents */}
-                    <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
-                      Custom Agents
-                    </div>
-                    {userAgents
-                      .filter((agent) => agent.is_custom_agent)
-                      .map((agent) => (
-                        <div key={agent.id} className="w-full">
-                          <div
-                            className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                            onClick={() => toggleAgentExpansion(agent.id)}
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <span className="flex-1 truncate">{agent.display_name}</span>
-                              <Info
-                                className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
-                                data-tooltip-id="code-review-tooltips"
-                                data-tooltip-content={agent.objective}
-                                data-tooltip-place="top-start"
-                                data-tooltip-class-name="z-50 max-w-[80%]"
-                                data-tooltip-effect="solid"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleAgent(agent.id, agent.display_name);
-                                  }}
-                                  className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
-                                    enabledAgents.some(
-                                      (enabledAgent) => enabledAgent.id === agent.id
-                                    )
-                                      ? 'bg-green-500'
-                                      : 'bg-gray-300'
-                                  }`}
-                                >
-                                  <div
-                                    className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                      )}
+                      {userAgents
+                        .filter((agent) => !agent.is_custom_agent)
+                        .map((agent) => (
+                          <div key={agent.id} className="w-full">
+                            <div
+                              className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                              onClick={() => toggleAgentExpansion(agent.id)}
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="flex-1 truncate">{agent.display_name}</span>
+                                <Info
+                                  className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
+                                  data-tooltip-id="code-review-tooltips"
+                                  data-tooltip-content={agent.objective}
+                                  data-tooltip-place="top-start"
+                                  data-tooltip-class-name="z-50 max-w-[80%]"
+                                  data-tooltip-effect="solid"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleAgent(agent.id, agent.display_name);
+                                    }}
+                                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
                                       enabledAgents.some(
                                         (enabledAgent) => enabledAgent.id === agent.id
                                       )
-                                        ? 'translate-x-4'
-                                        : 'translate-x-0'
+                                        ? 'bg-green-500'
+                                        : 'bg-gray-300'
                                     }`}
-                                  />
-                                </button>
+                                  >
+                                    <div
+                                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                        enabledAgents.some(
+                                          (enabledAgent) => enabledAgent.id === agent.id
+                                        )
+                                          ? 'translate-x-4'
+                                          : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Custom Agent Dropdown */}
-                          <AnimatePresence mode="wait">
-                            {expandedAgentId === agent.id && (
-                              <motion.div
-                                key={`custom-${agent.id}`}
-                                className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
-                                variants={dropdownVariants}
-                                initial="hidden"
-                                animate="visible"
-                                exit="hidden"
-                                transition={{ duration: 0.2 }}
-                              >
+                            {/* Predefined Agent Dropdown */}
+                            <AnimatePresence mode="wait">
+                              {expandedAgentId === agent.id && (
                                 <motion.div
-                                  className="px-4 py-2"
-                                  variants={itemVariants}
-                                  custom={0}
+                                  key={`predefined-${agent.id}`}
+                                  className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+                                  variants={dropdownVariants}
+                                  initial="hidden"
+                                  animate="visible"
+                                  exit="hidden"
+                                  transition={{ duration: 0.2 }}
                                 >
-                                  <div className="mb-3">
-                                    <motion.div className="mb-3" variants={itemVariants} custom={0}>
-                                      <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
-                                        Agent Name
-                                      </label>
-                                      <motion.input
-                                        type="text"
-                                        className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
-                                        value={customAgentNames[agent.id] || ''}
-                                        onChange={(e) =>
-                                          handleCustomNameChange(agent.id, e.target.value)
-                                        }
-                                        onClick={(e) => e.stopPropagation()}
-                                        placeholder="Enter agent name..."
-                                        variants={itemVariants}
-                                        custom={0.5}
-                                      />
-                                    </motion.div>
-                                    <motion.div
-                                      className="mb-3"
-                                      variants={itemVariants}
-                                      custom={0.5}
-                                    >
+                                  <motion.div
+                                    className="px-4 py-2"
+                                    variants={itemVariants}
+                                    custom={0}
+                                  >
+                                    <div className="mb-3">
                                       <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
                                         Custom Prompt
                                       </label>
@@ -874,28 +742,11 @@ export default function CodeReview() {
                                         }
                                         onClick={(e) => e.stopPropagation()}
                                         placeholder="Enter custom prompt..."
-                                        variants={itemVariants}
-                                        custom={0.7}
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.1 }}
                                       />
-                                    </motion.div>
-                                  </div>
-                                  <motion.div
-                                    className="flex justify-between"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                  >
-                                    <motion.button
-                                      className="hover:bg-[var(--vscode-errorForeground)]/90 rounded bg-[var(--vscode-errorForeground)] px-3 py-1 text-xs text-white"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDelete(agent.id);
-                                      }}
-                                      whileHover={{ scale: 1.02 }}
-                                      whileTap={{ scale: 0.98 }}
-                                    >
-                                      Delete
-                                    </motion.button>
+                                    </div>
                                     <motion.div
                                       className="flex justify-end space-x-2"
                                       initial={{ opacity: 0, y: 10 }}
@@ -923,14 +774,190 @@ export default function CodeReview() {
                                     </motion.div>
                                   </motion.div>
                                 </motion.div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Custom Agents */}
+                    <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] px-2 pb-1 pt-4 text-sm font-semibold text-[var(--vscode-foreground)]">
+                      Custom Agents
+                    </div>
+                    <div
+                      className={`${isAgentExpanded ? 'h-auto' : 'max-h-[90px]'} overflow-y-auto`}
+                    >
+                      {userAgents.filter((agent) => agent.is_custom_agent).length === 0 && (
+                        <div className="p-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                          No custom agents available. You can create one.
                         </div>
-                      ))}
+                      )}
+                      {userAgents
+                        .filter((agent) => agent.is_custom_agent)
+                        .map((agent) => (
+                          <div key={agent.id} className="w-full">
+                            <div
+                              className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                              onClick={() => toggleAgentExpansion(agent.id)}
+                            >
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="flex-1 truncate">{agent.display_name}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleAgent(agent.id, agent.display_name);
+                                    }}
+                                    className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                      enabledAgents.some(
+                                        (enabledAgent) => enabledAgent.id === agent.id
+                                      )
+                                        ? 'bg-green-500'
+                                        : 'bg-gray-300'
+                                    }`}
+                                  >
+                                    <div
+                                      className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                        enabledAgents.some(
+                                          (enabledAgent) => enabledAgent.id === agent.id
+                                        )
+                                          ? 'translate-x-4'
+                                          : 'translate-x-0'
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Custom Agent Dropdown */}
+                            <AnimatePresence mode="wait">
+                              {expandedAgentId === agent.id && (
+                                <motion.div
+                                  key={`custom-${agent.id}`}
+                                  className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+                                  variants={dropdownVariants}
+                                  initial="hidden"
+                                  animate="visible"
+                                  exit="hidden"
+                                  transition={{ duration: 0.2 }}
+                                >
+                                  <motion.div
+                                    className="px-4 py-2"
+                                    variants={itemVariants}
+                                    custom={0}
+                                  >
+                                    <div className="mb-3">
+                                      <motion.div
+                                        className="mb-3"
+                                        variants={itemVariants}
+                                        custom={0}
+                                      >
+                                        <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                          Agent Name
+                                        </label>
+                                        <motion.input
+                                          type="text"
+                                          className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                          value={customAgentNames[agent.id] || ''}
+                                          onChange={(e) =>
+                                            handleCustomNameChange(agent.id, e.target.value)
+                                          }
+                                          onClick={(e) => e.stopPropagation()}
+                                          placeholder="Enter agent name..."
+                                          variants={itemVariants}
+                                          custom={0.5}
+                                        />
+                                      </motion.div>
+                                      <motion.div
+                                        className="mb-3"
+                                        variants={itemVariants}
+                                        custom={0.5}
+                                      >
+                                        <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                          Custom Prompt
+                                        </label>
+                                        <motion.textarea
+                                          className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                          rows={3}
+                                          value={agentCustomPrompts[agent.id] || ''}
+                                          onChange={(e) =>
+                                            handleCustomPromptChange(agent.id, e.target.value)
+                                          }
+                                          onClick={(e) => e.stopPropagation()}
+                                          placeholder="Enter custom prompt..."
+                                          variants={itemVariants}
+                                          custom={0.7}
+                                        />
+                                      </motion.div>
+                                    </div>
+                                    <motion.div
+                                      className="flex justify-between"
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: 0.2 }}
+                                    >
+                                      <motion.button
+                                        className="hover:bg-[var(--vscode-errorForeground)]/90 rounded bg-[var(--vscode-errorForeground)] px-3 py-1 text-xs text-white"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDelete(agent.id);
+                                        }}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                      >
+                                        Delete
+                                      </motion.button>
+                                      <motion.div
+                                        className="flex justify-end space-x-2"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.15 }}
+                                      >
+                                        <button
+                                          className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setExpandedAgentId(null);
+                                          }}
+                                        >
+                                          Cancel
+                                        </button>
+                                        <button
+                                          className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSave(agent.id, false);
+                                          }}
+                                        >
+                                          Save
+                                        </button>
+                                      </motion.div>
+                                    </motion.div>
+                                  </motion.div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                    </div>
                     {/* Create Custom Agent Button */}
-                    <div className="mt-2 p-2">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const agentName = formData.get('agentName') as string;
+                        const agentPrompt = formData.get('agentPrompt') as string;
+                        handleCreateAgent(agentName, agentPrompt);
+                      }}
+                      className="mt-2 p-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Your existing button to toggle the form */}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleCreateAgentForm();
@@ -940,7 +967,8 @@ export default function CodeReview() {
                         <Plus className="h-3.5 w-3.5" />
                         Create Custom Agent
                       </button>
-                      {/* Create Agent Form */}
+
+                      {/* Form content */}
                       <AnimatePresence>
                         {showCreateAgentForm && (
                           <motion.div
@@ -952,84 +980,63 @@ export default function CodeReview() {
                             exit="hidden"
                             transition={{ duration: 0.2 }}
                           >
-                            <motion.div className="px-2 py-2" variants={itemVariants} custom={0}>
-                              <motion.div className="mb-3" variants={itemVariants} custom={0}>
+                            <div className="px-2 py-2">
+                              <div className="mb-3">
                                 <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
                                   Agent Name
                                 </label>
-                                <motion.input
+                                <input
+                                  name="agentName"
                                   type="text"
+                                  required
                                   className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
-                                  value={newAgentName}
-                                  onChange={(e) => setNewAgentName(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   placeholder="Enter agent name..."
-                                  variants={itemVariants}
-                                  custom={0.5}
                                 />
-                              </motion.div>
-                              <motion.div className="mb-3" variants={itemVariants} custom={0.5}>
+                              </div>
+                              <div className="mb-3">
                                 <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
                                   Custom Prompt
                                 </label>
-                                <motion.textarea
+                                <textarea
+                                  name="agentPrompt"
                                   className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
                                   rows={3}
-                                  value={newAgentPrompt}
-                                  onChange={(e) => setNewAgentPrompt(e.target.value)}
                                   onClick={(e) => e.stopPropagation()}
                                   placeholder="Enter custom prompt..."
-                                  variants={itemVariants}
-                                  custom={0.7}
                                 />
-                              </motion.div>
-                              <motion.div
-                                className="flex items-center justify-between"
-                                variants={itemVariants}
-                                custom={0.8}
-                              >
-                                <motion.div
-                                  className="flex-1"
-                                  variants={itemVariants}
-                                  custom={0.8}
-                                />
-                                <motion.div
-                                  className="flex space-x-2"
-                                  variants={itemVariants}
-                                  custom={0.9}
-                                >
-                                  <motion.button
-                                    onClick={() => {
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1" />
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
                                       setShowCreateAgentForm(false);
-                                      setNewAgentName('');
-                                      setNewAgentPrompt('');
+                                      // Get the closest form element and reset it
+                                      const form = e.currentTarget.closest('form');
+                                      if (form) {
+                                        form.reset();
+                                      }
                                     }}
                                     className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
-                                    variants={itemVariants}
-                                    custom={1}
                                   >
                                     Cancel
-                                  </motion.button>
-                                  <motion.button
-                                    onClick={handleCreateAgent}
-                                    disabled={!newAgentName.trim()}
-                                    className={`rounded px-3 py-1 text-xs ${
-                                      newAgentName.trim()
-                                        ? 'bg-[var(--vscode-button-background)] text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]'
-                                        : 'cursor-not-allowed bg-[var(--vscode-button-secondaryBackground)] text-[var(--vscode-button-secondaryForeground)] opacity-50'
-                                    }`}
-                                    variants={itemVariants}
-                                    custom={1.1}
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
                                   >
                                     Create
-                                  </motion.button>
-                                </motion.div>
-                              </motion.div>
-                            </motion.div>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
-                    </div>
+                    </form>
                   </div>
                 </div>
               </motion.div>
