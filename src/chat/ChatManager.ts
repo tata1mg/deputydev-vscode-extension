@@ -744,7 +744,7 @@ export class ChatManager {
       try {
         this.apiErrorHandler.handleApiError(error);
       } catch (error: any) {
-        const errorData: any = error.response.data;
+        const errorData: any = error?.response?.data;
         if (
           errorData &&
           errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&

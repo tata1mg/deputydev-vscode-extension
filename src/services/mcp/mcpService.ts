@@ -29,6 +29,7 @@ export class MCPService {
     } catch (error) {
       this.logger.error('Error while syncing servers');
       this.apiErrorHandler.handleApiError(error);
+      return { data: [] }; // Return an empty array if there's an error
     }
   }
 

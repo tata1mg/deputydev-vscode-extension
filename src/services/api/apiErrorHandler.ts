@@ -13,10 +13,10 @@ export class ApiErrorHandler {
       const errorHeaders = axiosError.response?.headers;
       const errorData = axiosError.response?.data;
       const errorCode = errorData?.error_code || errorData?.meta?.error_code || axiosError.code;
-      const errorType = errorData.error_type || errorData?.meta?.error_name || axiosError.name;
+      const errorType = errorData?.error_type || errorData?.meta?.error_name || axiosError.name;
       const errorSubType = errorData?.error_subtype;
       const message = errorData?.error_message || errorData?.meta?.message || axiosError.message;
-      const stack = errorData.traceback || errorData?.meta?.stack || axiosError.stack;
+      const stack = errorData?.traceback || errorData?.meta?.stack || axiosError.stack;
       logger.error(
         `API Error | name=${errorType} | code=${errorCode} | subtype=${errorSubType} | message="${message}" | method=${axiosError.config?.method} | url=${axiosError.config?.url} | status=${axiosError.response?.status}`,
       );
