@@ -33,6 +33,7 @@ import {
   newReview,
   startCodeReview,
   startCodeReviewPostProcess,
+  fetchPastReviews,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -1056,6 +1057,7 @@ addCommandEventListener('POST_PROCESS_START', ({ data }) => {
 addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
   console.log('Post process completed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
+  fetchPastReviews({ sourceBranch: useCodeReviewStore.getState().new_review.source_branch });
 });
 
 addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
