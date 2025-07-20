@@ -29,7 +29,6 @@ export class CodeReviewManager {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
-  private review_id: number;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -43,11 +42,6 @@ export class CodeReviewManager {
     this.reviewService = new CodeReviewWebsocketService(context, outputChannel, backendClient);
     this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
     this.apiErrorHandler = new ApiErrorHandler();
-    const reviewId = getReviewId();
-    if (reviewId === undefined) {
-      throw new Error('Review ID is not available');
-    }
-    this.review_id = reviewId;
   }
 
   // Method to set the sidebar provider later
@@ -133,6 +127,12 @@ export class CodeReviewManager {
       }
     }
 
+    const reviewId = getReviewId();
+    if (!reviewId) {
+      this.outputChannel.error('Review ID is not defined for running tool.');
+      return;
+    }
+
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
 
     if (this.currentAbortController?.signal.aborted) {
@@ -201,7 +201,7 @@ export class CodeReviewManager {
 
       const toolUseResponsePayload = {
         agent_id: agent_id,
-        review_id: this.review_id,
+        review_id: reviewId,
         type: 'tool_use_response',
         tool_use_response: {
           tool_name: toolRequest.tool_name,
@@ -213,7 +213,7 @@ export class CodeReviewManager {
       agentsToolUseResponses.push(toolUseResponsePayload);
 
       const continuationPayload = {
-        review_id: this.review_id,
+        review_id: reviewId,
         agents: agentsToolUseResponses,
       };
 
@@ -221,6 +221,12 @@ export class CodeReviewManager {
 
       await this.startCodeReview(continuationPayload);
     } catch (error: any) {
+      const reviewId = getReviewId();
+      if (!reviewId) {
+        this.outputChannel.error('Review ID is not defined for running tool.');
+        return;
+      }
+
       if (error instanceof UnknownToolError) {
         this.outputChannel.error(`Unknown tool requested: ${error.message}`);
         return;
@@ -239,11 +245,10 @@ export class CodeReviewManager {
 
       if (!this.currentAbortController?.signal.aborted) {
         this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
-        // TODO: Handle tool use retry if needed
         const agentsToolUseResponses: any[] = [];
         const toolUseRetryPayload = {
           agent_id: agent_id,
-          review_id: this.review_id,
+          review_id: reviewId,
           type: 'tool_use_failed',
           tool_use_response: {
             tool_name: toolRequest.tool_name,
@@ -253,7 +258,7 @@ export class CodeReviewManager {
         };
         agentsToolUseResponses.push(toolUseRetryPayload);
         const continuationPayload = {
-          review_id: this.review_id,
+          review_id: reviewId,
           agents: agentsToolUseResponses,
         };
 
