@@ -7,11 +7,13 @@ export class BackendClient extends BaseClient {
   endpointMap: Record<string, string> = {
     QUERY_SOLVER: '/query/solve',
     REVIEW_SOLVER: '/end_user/v1/extension-code-review/run-multi-agent-local-connection',
+    POST_PROCESS_SOLVER: '/end_user/v1/extension-code-review/post-process-local-connection',
   };
 
   // endpoints
   public querySolver!: () => BaseWebsocketEndpoint;
   public codeReviewSolver!: () => BaseWebsocketEndpoint;
+  public postProcessSolver!: () => BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
     super(httpHost, wsHost);
@@ -25,6 +27,10 @@ export class BackendClient extends BaseClient {
       UnauthenticatedHandler,
     ]);
     this.codeReviewSolver = this.createWebsocketEndpoint(this.endpointMap['REVIEW_SOLVER'], undefined, [
+      ForceUpgradeHandler,
+      UnauthenticatedHandler,
+    ]);
+    this.postProcessSolver = this.createWebsocketEndpoint(this.endpointMap['POST_PROCESS_SOLVER'], undefined, [
       ForceUpgradeHandler,
       UnauthenticatedHandler,
     ]);

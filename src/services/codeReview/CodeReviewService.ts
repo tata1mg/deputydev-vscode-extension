@@ -17,6 +17,7 @@ export class ReviewService {
   }
   private apiErrorHandler = new ApiErrorHandler();
 
+  // TODO: Need to send the payload
   public async codeReviewPreProcess() {
     try {
       const authToken = await fetchAuthToken();
@@ -92,7 +93,7 @@ export class ReviewService {
       };
       const response = await binaryApi().post(
         API_ENDPOINTS.SNAPSHOT,
-        {}, // No body for this request
+        {},
         {
           params: {
             repo_path: getActiveRepo(),
@@ -117,8 +118,8 @@ export class ReviewService {
       };
       const response = await api.get(API_ENDPOINTS.PAST_REVIEWS, {
         params: {
-          source_branch: 'DD-447', // Assuming source_branch is "DD-447" for the active repo
-          repo_id: 104, // Assuming repo_id is 1 for the active repo
+          source_branch: sourceBranch,
+          repo_id: 104, // TODO: Make this dynamic
         },
         headers,
       });
@@ -136,12 +137,7 @@ export class ReviewService {
       const headers = {
         Authorization: `Bearer ${authToken}`,
       };
-      const response = await api.get(API_ENDPOINTS.GET_USER_AGENTS, {
-        params: {
-          user_team_id: 112,
-        },
-        headers,
-      });
+      const response = await api.get(API_ENDPOINTS.GET_USER_AGENTS, { headers });
       return response.data;
     } catch (error) {
       this.logger.error('Error while fetching user agents');
@@ -149,7 +145,7 @@ export class ReviewService {
       throw error;
     }
   }
-
+  // TODO: Proper Integration
   public async updateAgent(agent_id: number, custom_prompt: string, name?: string): Promise<any> {
     try {
       const authToken = await fetchAuthToken();

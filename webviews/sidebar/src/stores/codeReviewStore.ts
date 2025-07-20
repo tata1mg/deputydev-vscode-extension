@@ -13,11 +13,15 @@ import {
 export const useCodeReviewStore = create<
   CodeReviewStorage & {
     steps: ReviewStep[];
+    failedAgents: Array<{ id: number; name: string }>;
+    showFailedAgentsDialog: boolean;
     setSteps: (steps: ReviewStep[]) => void;
     updateStepStatus: (stepId: string, status: AgentStatus) => void;
     updateAgentStatus: (stepId: string, agentId: number, status: AgentStatus) => void;
     addStep: (step: Omit<ReviewStep, 'status'> & { status?: AgentStatus }) => void;
     updateOrAddStep: (step: Omit<ReviewStep, 'status'> & { status?: AgentStatus }) => void;
+    setFailedAgents: (agents: Array<{ id: number; name: string }>) => void;
+    setShowFailedAgentsDialog: (show: boolean) => void;
   }
 >()(
   persist(
@@ -37,6 +41,8 @@ export const useCodeReviewStore = create<
       activeReviewId: 0,
       activeReviewSessionId: 0,
       steps: [],
+      failedAgents: [],
+      showFailedAgentsDialog: false,
 
       setSteps: (steps) => set({ steps }),
 
@@ -85,6 +91,9 @@ export const useCodeReviewStore = create<
               : step
           ),
         })),
+
+      setFailedAgents: (agents) => set({ failedAgents: agents }),
+      setShowFailedAgentsDialog: (show) => set({ showFailedAgentsDialog: show }),
     }),
     {
       name: 'code-review-storage',

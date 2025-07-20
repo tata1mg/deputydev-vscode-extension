@@ -122,6 +122,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.outputChannel.info('Starting code review...');
           this.handleCodeReviewStart(data);
           break;
+        case 'code-review-post-process':
+          this.outputChannel.info('Post-processing code review...');
+          this.handleCodeReviewPostProcess(data);
+          break;
+
         case 'new-review':
           this.newReview(data);
           break;
@@ -1064,6 +1069,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
     const agentsPayload = data as { review_id: number; agents: AgentPayload[] };
     this.codeReviewManager.startCodeReview(agentsPayload);
+  }
+
+  public async handleCodeReviewPostProcess(data: any) {
+    console.log('Starting code review post process with data:', data);
+    this.codeReviewManager.startCodeReviewPostProcess(data);
   }
 
   public async newReview(data: any) {

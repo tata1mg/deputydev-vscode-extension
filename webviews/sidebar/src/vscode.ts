@@ -32,6 +32,7 @@ import {
   updateContextRepositories,
   newReview,
   startCodeReview,
+  startCodeReviewPostProcess,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -978,6 +979,22 @@ addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
 
     if (allEnabledAgentsDone) {
       useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+
+      const failedAgents = reviewingStep.agents
+        .filter((agent) => agent.status === 'FAILED')
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+        }));
+
+      if (failedAgents.length > 0) {
+        useCodeReviewStore.getState().setFailedAgents(failedAgents);
+        useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+      }
+
+      if (failedAgents.length === 0) {
+        startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
+      }
     }
   }
 });
@@ -1008,6 +1025,40 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
 
     if (allEnabledAgentsDone) {
       useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+
+      const failedAgents = reviewingStep.agents
+        .filter((agent) => agent.status === 'FAILED')
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+        }));
+
+      if (failedAgents.length > 0) {
+        useCodeReviewStore.getState().setFailedAgents(failedAgents);
+        useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+      }
     }
   }
+});
+
+addCommandEventListener('POST_PROCESS_START', ({ data }) => {
+  console.log('Post process started:', data);
+  const store = useCodeReviewStore.getState();
+
+  // Add setup step
+  store.updateOrAddStep({
+    id: 'FINALIZING_REVIEW',
+    label: 'Finalizing Review',
+    status: 'IN_PROGRESS',
+  });
+});
+
+addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
+  console.log('Post process completed:', data);
+  useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
+});
+
+addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
+  console.error('Post process failed:', data);
+  useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'FAILED');
 });
