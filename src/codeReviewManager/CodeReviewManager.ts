@@ -12,6 +12,7 @@ import {
   IterativeFileReaderInput,
   GrepSearchInput,
   SearchTerm,
+  PostProcessEvent,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { getActiveRepo, getReviewId } from '../utilities/contextManager';
@@ -378,6 +379,55 @@ export class CodeReviewManager {
         return rawResult;
       default:
         return { result: rawResult };
+    }
+  }
+
+  public async startCodeReviewPostProcess(payload: { review_id: number }): Promise<void> {
+    const abortController = new AbortController();
+    this.currentAbortController = abortController;
+
+    try {
+      this.outputChannel.info('Starting code review post process...');
+
+      for await (const event of this.reviewService.startPostProcess(payload, abortController.signal)) {
+        await this.handleReviewPostProcessEvents(event);
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        this.outputChannel.info('Review post process was cancelled by user');
+        return;
+      }
+      this.outputChannel.error(`Review post process error: ${error.message}`, error);
+    } finally {
+      this.cleanup();
+    }
+  }
+
+  private async handleReviewPostProcessEvents(event: PostProcessEvent) {
+    this.outputChannel.debug(`Processing review post process event: ${event.type}`);
+    console.log(`Processing review post process event: ${JSON.stringify(event)}`);
+    switch (event.type) {
+      case 'POST_PROCESS_START':
+        this.sidebarProvider?.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'POST_PROCESS_START',
+          data: event,
+        });
+        break;
+      case 'POST_PROCESS_COMPLETE':
+        this.sidebarProvider?.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'POST_PROCESS_COMPLETE',
+          data: event,
+        });
+        break;
+      case 'POST_PROCESS_ERROR':
+        this.sidebarProvider?.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'POST_PROCESS_ERROR',
+          data: event,
+        });
+        break;
     }
   }
 

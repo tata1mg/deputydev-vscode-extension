@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, X } from 'lucide-react';
-import { useEffect } from 'react';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
+import { FailedAgentsDialog } from '@/views/codeReview/FailedAgentsDialog';
 
 type Status = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
@@ -49,9 +49,9 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
-          className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500"
+          className="flex h-4 w-4 items-center justify-center"
         >
-          <X className="h-3 w-3 text-white" />
+          <X className="h-3 w-3 text-red-500" />
         </motion.div>
       ) : null}
       <span
@@ -65,8 +65,8 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
   );
 };
 
-export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
-  const { steps } = useCodeReviewStore();
+export const Review = () => {
+  const { steps, failedAgents, showFailedAgentsDialog } = useCodeReviewStore();
 
   const getStatusIcon = (status: Status) => {
     switch (status) {
@@ -103,66 +103,71 @@ export const Review = ({ isRunning = false }: { isRunning: boolean }) => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-2 px-4 py-2"
-    >
-      <div className="overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-sm">
-        <motion.div className="flex flex-col p-4" layout>
-          <motion.h2
-            className="mb-4 text-lg font-medium"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            Review Progress
-          </motion.h2>
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-2 px-4 py-2"
+      >
+        <div className="overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-sm">
+          <motion.div className="flex flex-col p-4" layout>
+            <motion.h2
+              className="mb-4 text-lg font-medium"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              Review Progress
+            </motion.h2>
 
-          <motion.div className="space-y-4" layout>
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.id}
-                className="space-y-2"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <div className="flex items-center gap-3">
-                  <motion.div className="flex h-6 w-6 items-center justify-center" layout>
-                    {getStatusIcon(step.status)}
-                  </motion.div>
-                  <motion.span
-                    className={`text-sm font-medium ${getStatusTextColor(step.status)}`}
-                    layout="position"
-                  >
-                    {step.label}
-                  </motion.span>
-                </div>
-
-                <AnimatePresence>
-                  {step.agents && step.agents.length > 0 && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="ml-9 space-y-2 overflow-hidden border-l-2 border-gray-200 pl-4 dark:border-gray-700"
-                    >
-                      {step.agents.map((agent) => (
-                        <AgentStatus
-                          key={`${step.id}-${agent.id}`}
-                          agent={agent}
-                          status={agent.status}
-                        />
-                      ))}
+            <motion.div className="space-y-4" layout>
+              {steps.map((step, index) => (
+                <motion.div
+                  key={step.id}
+                  className="space-y-2"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <div className="flex items-center gap-3">
+                    <motion.div className="flex h-6 w-6 items-center justify-center" layout>
+                      {getStatusIcon(step.status)}
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            ))}
+                    <motion.span
+                      className={`text-sm font-medium ${getStatusTextColor(step.status)}`}
+                      layout="position"
+                    >
+                      {step.label}
+                    </motion.span>
+                  </div>
+
+                  <AnimatePresence>
+                    {step.agents && step.agents.length > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="ml-9 space-y-2 overflow-hidden border-l-2 border-gray-200 pl-4 dark:border-gray-700"
+                      >
+                        {step.agents.map((agent) => (
+                          <AgentStatus
+                            key={`${step.id}-${agent.id}`}
+                            agent={agent}
+                            status={agent.status}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      </div>
-    </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Show Failed Agents Dialog if there are any failed agents */}
+      {showFailedAgentsDialog && failedAgents.length > 0 && <FailedAgentsDialog />}
+    </>
   );
 };

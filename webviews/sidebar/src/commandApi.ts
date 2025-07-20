@@ -396,3 +396,7 @@ export function performCrudOnUserAgent(
 ) {
   return callCommand('user-agent-crud', { operation, agent_id, agent_name, custom_prompt });
 }
+
+export function startCodeReviewPostProcess(data: { review_id: number }) {
+  return callCommand('code-review-post-process', data);
+}

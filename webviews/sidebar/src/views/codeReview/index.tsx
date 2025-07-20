@@ -88,8 +88,6 @@ export default function CodeReview() {
   const [agentCustomPrompts, setAgentCustomPrompts] = useState<Record<string, string>>({});
   const [customAgentNames, setCustomAgentNames] = useState<Record<string, string>>({});
   const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
-  const [newAgentName, setNewAgentName] = useState('');
-  const [newAgentPrompt, setNewAgentPrompt] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getNoChangesFoundText = () => {
@@ -108,6 +106,7 @@ export default function CodeReview() {
   }, []);
 
   const handleStartReview = () => {
+    // TODO: make this in persist Store
     setIsReviewRunning(true);
   };
 
@@ -116,7 +115,7 @@ export default function CodeReview() {
   }, []);
 
   useEffect(() => {
-    fetchPastReviews({ sourceBranch: '' });
+    fetchPastReviews({ sourceBranch: new_review.source_branch });
   }, []);
 
   const toggleAgent = (agentId: number, agentName: string) => {
@@ -208,8 +207,6 @@ export default function CodeReview() {
   const toggleCreateAgentForm = () => {
     if (showCreateAgentForm) {
       setShowCreateAgentForm(false);
-      setNewAgentName('');
-      setNewAgentPrompt('');
     } else {
       setExpandedAgentId(null);
       setShowCreateAgentForm(true);
@@ -524,7 +521,7 @@ export default function CodeReview() {
           </div>
         )}
 
-        {isReviewRunning && <Review isRunning={isReviewRunning} />}
+        {isReviewRunning && <Review />}
 
         <ReviewModal
           isOpen={isModalOpen}
