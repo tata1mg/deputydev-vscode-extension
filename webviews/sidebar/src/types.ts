@@ -27,7 +27,6 @@ export type IndexingProgressData = {
   repo_path: string;
   progress: number;
   indexing_status: IndexingStatusData[];
-  is_partial_state: boolean;
 };
 
 export type EmbeddingProgressData = {
