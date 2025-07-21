@@ -1231,6 +1231,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           const agentDeletionResponse = await this.reviewService.deleteAgent(agent_id);
           if (agentDeletionResponse.is_success) {
             this.fetchUserAgents();
+            this.sendMessageToSidebar({
+              id: uuidv4(),
+              command: 'user-agent-deleted',
+              data: { agent_id },
+            });
           }
           break;
         }

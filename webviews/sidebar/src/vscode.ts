@@ -1096,3 +1096,13 @@ addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
   // Update the overall review status
   useCodeReviewStore.setState({ reviewStatus: 'STOPPED' });
 });
+
+addCommandEventListener('user-agent-deleted', ({ data }) => {
+  const agent_id = data as { agent_id: number };
+
+  useCodeReviewSettingStore.setState({
+    enabledAgents: useCodeReviewSettingStore
+      .getState()
+      .enabledAgents.filter((agent) => agent.id !== agent_id.agent_id),
+  });
+});
