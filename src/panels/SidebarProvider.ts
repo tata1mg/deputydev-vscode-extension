@@ -115,15 +115,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.chatService.killAllProcesses();
           deleteSessionId();
           break;
-        // case 'api-clear-chat':
-        //   promise = this.chatService.apiClearChat();
-        //   break;
-        // case 'api-save-session':
-        //   promise = this.chatService.apiSaveSession(data);
-        //   break;
-        // case 'api-chat-setting':
-        //   promise = this.chatService.apiChatSetting(data);
-        // break;
         case 'get-client-version':
           promise = this.sendMessageToSidebar({
             id: uuidv4(),

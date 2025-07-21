@@ -1140,6 +1140,12 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
+
+    // if the tool request is of type ask_user_input and the error message is Unknown tool requested, we handle it differently
+    if (toolRequest.tool_name === 'ask_user_input' && error.message.includes('Unknown tool requested')) {
+      return;
+    }
+
     if (this._isAborted()) return;
 
     this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
