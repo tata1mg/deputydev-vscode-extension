@@ -849,7 +849,10 @@ addCommandEventListener('new-review-created', ({ data }) => {
   useCodeReviewStore.setState({ new_review: data as NewReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
-  fetchPastReviews({ sourceBranch: useCodeReviewStore.getState().new_review.source_branch });
+  fetchPastReviews({
+    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
+    repoId: useCodeReviewStore.getState().repoId,
+  });
 });
 
 addCommandEventListener('search-branches-result', ({ data }) => {
@@ -899,10 +902,11 @@ addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
 });
 
 addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
-  const preProcessData = data as { review_id: number; session_id: number };
+  const preProcessData = data as { review_id: number; session_id: number; repo_id: number };
   console.log('Review preprocess completed:', preProcessData);
   useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
   useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
+  useCodeReviewStore.setState({ repoId: preProcessData.repo_id });
   console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
 
   // Update setup step to COMPLETED
@@ -1058,7 +1062,10 @@ addCommandEventListener('POST_PROCESS_START', ({ data }) => {
 addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
   console.log('Post process completed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
-  fetchPastReviews({ sourceBranch: useCodeReviewStore.getState().new_review.source_branch });
+  fetchPastReviews({
+    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
+    repoId: useCodeReviewStore.getState().repoId,
+  });
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
 });
 

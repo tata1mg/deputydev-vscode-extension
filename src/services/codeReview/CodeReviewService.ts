@@ -102,7 +102,7 @@ export class ReviewService {
     }
   }
 
-  public async getPastReviews(sourceBranch: string): Promise<any> {
+  public async getPastReviews(sourceBranch: string, repoId: number): Promise<any> {
     try {
       const authToken = await fetchAuthToken();
       const headers = {
@@ -111,7 +111,7 @@ export class ReviewService {
       const response = await api.get(API_ENDPOINTS.PAST_REVIEWS, {
         params: {
           source_branch: sourceBranch,
-          repo_id: 104, // TODO: Make this dynamic
+          repo_id: repoId,
         },
         headers,
       });

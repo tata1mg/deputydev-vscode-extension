@@ -374,7 +374,7 @@ export function openFileDiff(data: { udiff: string; filePath: string; fileName: 
   return callCommand('open-file-diff', data);
 }
 
-export function fetchPastReviews(data: { sourceBranch: string }) {
+export function fetchPastReviews(data: { sourceBranch: string; repoId: number }) {
   return callCommand('fetch-past-reviews', data);
 }
 

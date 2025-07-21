@@ -15,7 +15,6 @@ import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import {
-  fetchPastReviews,
   getUserAgents,
   newReview,
   openFileDiff,
