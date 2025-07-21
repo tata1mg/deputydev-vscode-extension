@@ -1036,8 +1036,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     console.log('Starting code review pre process with data:', data);
 
     //TODO: Need to enable
-    // const { get_url, key } = await this.codeReviewManager.uploadDiffToS3(data);
-    // console.log('Diff uploaded to S3:', get_url, key);
+    const { get_url, key } = await this.codeReviewManager.uploadDiffToS3({ review_files_dif: data.file_wise_changes });
+    console.log('Diff uploaded to S3:', get_url, key);
 
     this.sendMessageToSidebar({
       id: uuidv4(),
@@ -1045,7 +1045,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       data: {},
     });
 
-    const preProcessResult = await this.reviewService.codeReviewPreProcess();
+    const preProcessPayload = {
+      diff_attachment_id: key,
+      source_branch: data.source_branch,
+      target_branch: data.target_branch,
+      source_commit: data.source_commit,
+      target_commit: data.target_commit,
+      origin_url: data.origin_url,
+      repo_name: data.repo_name,
+    };
+
+    const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
     console.log('Pre-process result:', preProcessResult);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
