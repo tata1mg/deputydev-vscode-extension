@@ -200,7 +200,6 @@ export function sendProgress(indexingProgressData: {
   repo_path: string;
   progress: number;
   indexing_status: { file_path: string; status: string }[];
-  is_partial_state: boolean;
 }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),

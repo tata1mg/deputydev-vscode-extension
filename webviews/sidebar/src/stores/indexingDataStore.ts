@@ -31,7 +31,6 @@ export const useIndexingStore = create<
             repo_path: repo.repoPath,
             progress: 0,
             indexing_status: [],
-            is_partial_state: false,
           }));
 
         if (newRepos.length > 0) {
@@ -41,37 +40,8 @@ export const useIndexingStore = create<
         }
       },
       updateOrAppendIndexingData: (newData) => {
+        console.log('Updating or appending indexing data:', newData);
         set((state) => {
-          if (newData.is_partial_state) {
-            // Keep the partial state update logic the same
-            return {
-              indexingProgressData: state.indexingProgressData.map((item) => {
-                if (item.repo_path === newData.repo_path) {
-                  const updatedFiles = new Map(
-                    newData.indexing_status?.map((file) => [file.file_path, file.status])
-                  );
-
-                  const updatedIndexingStatus =
-                    item.indexing_status?.map((file) => ({
-                      ...file,
-                      status: updatedFiles.get(file.file_path) ?? file.status,
-                    })) ?? [];
-
-                  const newFiles = (newData.indexing_status || []).filter(
-                    (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
-                  );
-
-                  return {
-                    ...item,
-                    ...newData,
-                    indexing_status: [...updatedIndexingStatus, ...newFiles],
-                  };
-                }
-                return item;
-              }),
-            };
-          }
-
           // Modified: Just update in place or append to the end
           const existingIndex = state.indexingProgressData.findIndex(
             (item) => item.repo_path === newData.repo_path
@@ -79,8 +49,28 @@ export const useIndexingStore = create<
 
           if (existingIndex >= 0) {
             // Update in place
+            const updatedFiles = new Map(
+              newData.indexing_status?.map((file) => [file.file_path, file.status])
+            );
+
+            const item = state.indexingProgressData[existingIndex];
+            const updatedIndexingStatus =
+                    item.indexing_status?.map((file) => ({
+                      ...file,
+                      status: updatedFiles.get(file.file_path) ?? file.status,
+              })) ?? [];
+            const newFiles = (newData.indexing_status || []).filter(
+                    (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
+                  );
+            const newDataWithFiles = {
+                    ...item,
+                    ...newData,
+                    indexing_status: [...updatedIndexingStatus, ...newFiles],
+            };
+
+
             const updatedData = [...state.indexingProgressData];
-            updatedData[existingIndex] = newData;
+            updatedData[existingIndex] = newDataWithFiles;
             return {
               indexingProgressData: updatedData,
             };
