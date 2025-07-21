@@ -483,6 +483,7 @@ export interface CodeReviewStorage {
   activeReviewSessionId: number;
   showReviewProcess: boolean;
   reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE';
+  repoId: number;
 }
 
 export interface CodeReviewSetting {

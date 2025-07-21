@@ -41,6 +41,7 @@ export const useCodeReviewStore = create<
       isFetchingChangedFiles: false,
       activeReviewId: 0,
       activeReviewSessionId: 0,
+      repoId: 0,
       steps: [],
       failedAgents: [],
       showFailedAgentsDialog: false,

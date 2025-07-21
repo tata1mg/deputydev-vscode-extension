@@ -1169,7 +1169,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async fetchPastReviews(data: any) {
     try {
-      const reviews = await this.reviewService.getPastReviews(data.sourceBranch);
+      const reviews = await this.reviewService.getPastReviews(data.sourceBranch, data.repoId);
       if (reviews && !reviews.is_error) {
         this.sendMessageToSidebar({
           id: uuidv4(),
