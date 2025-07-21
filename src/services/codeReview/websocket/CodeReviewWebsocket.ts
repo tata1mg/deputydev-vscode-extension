@@ -201,10 +201,12 @@ export class CodeReviewWebsocketService {
 
   public dispose(): void {
     if (this.reviewSocket) {
+      console.log('Closing review socket');
       this.reviewSocket.close();
       this.reviewSocket = null;
     }
     if (this.postProcessSocket) {
+      console.log('Closing post process socket');
       this.postProcessSocket.close();
       this.postProcessSocket = null;
     }

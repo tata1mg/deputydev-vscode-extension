@@ -2,13 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, X } from 'lucide-react';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { FailedAgentsDialog } from '@/views/codeReview/FailedAgentsDialog';
-
-type Status = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+import { StepStatus } from '@/types';
 
 interface Agent {
   id: number;
   name: string;
-  status: Status;
+  status: StepStatus;
 }
 
 const AnimatedCheck = () => (
@@ -30,10 +29,21 @@ const LoadingSpinner = () => (
   </motion.div>
 );
 
-const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
+const AgentStatus = ({ agent, status }: { agent: Agent; status: StepStatus }) => {
   const isCompleted = status === 'COMPLETED';
   const isActive = status === 'IN_PROGRESS';
   const isFailed = status === 'FAILED';
+  const isStopped = status === 'STOPPED';
+
+  const statusText = isCompleted
+    ? 'completed'
+    : isActive
+      ? 'in progress...'
+      : isFailed
+        ? 'failed'
+        : isStopped
+          ? 'stopped'
+          : 'pending';
 
   return (
     <motion.div
@@ -45,21 +55,27 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
         <AnimatedCheck />
       ) : isActive ? (
         <LoadingSpinner />
-      ) : isFailed ? (
+      ) : isFailed || isStopped ? (
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           className="flex h-4 w-4 items-center justify-center"
         >
-          <X className="h-3 w-3 text-red-500" />
+          <X className={`h-3 w-3 ${isFailed ? 'text-red-500' : 'text-gray-500'}`} />
         </motion.div>
       ) : null}
       <span
         className={`text-xs ${
-          isCompleted ? 'text-green-500' : isActive ? 'text-yellow-500' : 'text-red-500'
+          isCompleted
+            ? 'text-green-500'
+            : isActive
+              ? 'text-yellow-500'
+              : isFailed
+                ? 'text-red-500'
+                : 'text-gray-500'
         }`}
       >
-        {agent.name} agent {isCompleted ? 'completed' : isActive ? 'in progress...' : 'failed'}
+        {agent.name} agent {statusText}
       </span>
     </motion.div>
   );
@@ -68,20 +84,22 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: Status }) => {
 export const Review = () => {
   const { steps, failedAgents, showFailedAgentsDialog } = useCodeReviewStore();
 
-  const getStatusIcon = (status: Status) => {
+  const getStatusIcon = (status: StepStatus) => {
     switch (status) {
       case 'COMPLETED':
         return <AnimatedCheck />;
       case 'IN_PROGRESS':
         return <LoadingSpinner />;
       case 'FAILED':
-        return <div className="h-2 w-2 rounded-full bg-red-500" />;
+        return <X className="h-3 w-3 text-red-500" />;
+      case 'STOPPED':
+        return <X className="h-3 w-3 text-gray-500" />;
       default:
         return <div className="h-2 w-2 rounded-full bg-gray-400" />;
     }
   };
 
-  const getStatusTextColor = (status: Status) => {
+  const getStatusTextColor = (status: StepStatus) => {
     switch (status) {
       case 'COMPLETED':
         return 'text-green-600 dark:text-green-400';
@@ -89,6 +107,8 @@ export const Review = () => {
         return 'text-yellow-500 dark:text-yellow-400';
       case 'FAILED':
         return 'text-red-500 dark:text-red-400';
+      case 'STOPPED':
+        return 'text-gray-500 dark:text-gray-400';
       default:
         return 'text-gray-500 dark:text-gray-400';
     }

@@ -849,6 +849,7 @@ addCommandEventListener('new-review-created', ({ data }) => {
   useCodeReviewStore.setState({ new_review: data as NewReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
+  fetchPastReviews({ sourceBranch: useCodeReviewStore.getState().new_review.source_branch });
 });
 
 addCommandEventListener('search-branches-result', ({ data }) => {
@@ -1063,4 +1064,35 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
 addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
   console.error('Post process failed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'FAILED');
+});
+
+addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
+  console.log('Review cancelled:', data);
+
+  const store = useCodeReviewStore.getState();
+
+  // Update all in-progress steps and their agents to STOPPED
+  store.setSteps(
+    store.steps.map((step) => {
+      // Skip already completed or failed steps
+      if (step.status === 'COMPLETED' || step.status === 'FAILED') {
+        return step;
+      }
+
+      // Update the step status to STOPPED
+      const updatedStep = { ...step, status: 'STOPPED' as const };
+
+      // Update all in-progress agents to STOPPED
+      if (updatedStep.agents) {
+        updatedStep.agents = updatedStep.agents.map((agent) =>
+          agent.status === 'IN_PROGRESS' ? { ...agent, status: 'STOPPED' as const } : agent
+        );
+      }
+
+      return updatedStep;
+    })
+  );
+
+  // Update the overall review status
+  useCodeReviewStore.setState({ reviewStatus: 'STOPPED' });
 });

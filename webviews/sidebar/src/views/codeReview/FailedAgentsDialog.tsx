@@ -1,4 +1,4 @@
-import { startCodeReviewPostProcess } from '@/commandApi';
+import { cancelReview, startCodeReviewPostProcess } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -9,6 +9,7 @@ export const FailedAgentsDialog = () => {
   const handleReviewCancel = () => {
     console.log('Review cancelled');
     useCodeReviewStore.getState().setShowFailedAgentsDialog(false);
+    cancelReview();
   };
 
   const handleReviewProceed = () => {

@@ -402,3 +402,7 @@ export function performCrudOnUserAgent(
 export function startCodeReviewPostProcess(data: { review_id: number }) {
   return callCommand('code-review-post-process', data);
 }
+
+export function cancelReview() {
+  return callCommand('cancel-review', {});
+}
