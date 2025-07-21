@@ -85,8 +85,6 @@ export default function CodeReview() {
   const branchSelectorRef = useRef<HTMLDivElement>(null);
   const [expandedAgentId, setExpandedAgentId] = useState<number | null>(null);
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
-  const [agentCustomPrompts, setAgentCustomPrompts] = useState<Record<string, string>>({});
-  const [customAgentNames, setCustomAgentNames] = useState<Record<string, string>>({});
   const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -214,28 +212,19 @@ export default function CodeReview() {
     }
   };
 
-  const handleCustomPromptChange = (agentId: number, value: string) => {
-    setAgentCustomPrompts((prev) => ({
-      ...prev,
-      [agentId]: value,
-    }));
+  const handleUpdateCustomAgent = (agentId: number, agentName: string, agentPrompt: string) => {
+    console.log('Update custom agent', agentId, agentPrompt, agentName);
+    performCrudOnUserAgent('UPDATE', agentId, agentName, agentPrompt);
+    setExpandedAgentId(null);
   };
 
-  const handleCustomNameChange = (agentId: number, value: string) => {
-    setCustomAgentNames((prev) => ({
-      ...prev,
-      [agentId]: value,
-    }));
-  };
-
-  const handleSave = (agentId: number, isCustom: boolean) => {
-    // Handle save logic here
-    console.log('Save', agentId, isCustom);
+  const handleUpdatePredefinedAgent = (agentId: number, agentPrompt: string) => {
+    console.log('Update predefined agent', agentId, agentPrompt);
+    performCrudOnUserAgent('UPDATE', agentId, undefined, agentPrompt);
     setExpandedAgentId(null);
   };
 
   const handleDelete = (agentId: number) => {
-    // Handle delete logic here
     console.log('Delete', agentId);
     performCrudOnUserAgent('DELETE', agentId);
     setExpandedAgentId(null);
@@ -548,6 +537,21 @@ export default function CodeReview() {
                 </span>
               )}
 
+              {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
+                <div
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowReviewOptions(!showReviewOptions);
+                    setShowAgents(false);
+                  }}
+                >
+                  <ChevronDown
+                    className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
+                  />
+                </div>
+              )}
+
               {useCodeReviewStore.getState().reviewStatus === 'RUNNING' && (
                 <span
                   className="flex-1 cursor-pointer text-center text-red-700"
@@ -571,19 +575,6 @@ export default function CodeReview() {
                     Restart Review
                   </span>
                 ))}
-
-              <div
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowReviewOptions(!showReviewOptions);
-                  setShowAgents(false);
-                }}
-              >
-                <ChevronDown
-                  className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
-                />
-              </div>
             </div>
             <div className="flex items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <button
@@ -748,36 +739,35 @@ export default function CodeReview() {
                                   exit="hidden"
                                   transition={{ duration: 0.2 }}
                                 >
-                                  <motion.div
+                                  <form
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const formData = new FormData(e.currentTarget);
+                                      const agentPrompt = formData.get('agentPrompt') as string;
+                                      handleUpdatePredefinedAgent(agent.id, agentPrompt);
+                                    }}
                                     className="px-4 py-2"
-                                    variants={itemVariants}
-                                    custom={0}
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="mb-3">
                                       <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
                                         Custom Prompt
                                       </label>
-                                      <motion.textarea
+                                      <textarea
+                                        name="agentPrompt"
                                         className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
                                         rows={3}
-                                        value={agentCustomPrompts[agent.id] || ''}
-                                        onChange={(e) =>
-                                          handleCustomPromptChange(agent.id, e.target.value)
-                                        }
+                                        defaultValue={agent.custom_prompt || ''}
                                         onClick={(e) => e.stopPropagation()}
-                                        placeholder="Enter custom prompt..."
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.1 }}
+                                        placeholder={
+                                          agent.custom_prompt ? '' : 'Enter custom prompt...'
+                                        }
+                                        required
                                       />
                                     </div>
-                                    <motion.div
-                                      className="flex justify-end space-x-2"
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ delay: 0.15 }}
-                                    >
+                                    <div className="flex justify-end space-x-2">
                                       <button
+                                        type="button"
                                         className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
                                         onClick={(e) => {
                                           e.stopPropagation();
@@ -787,16 +777,13 @@ export default function CodeReview() {
                                         Cancel
                                       </button>
                                       <button
+                                        type="submit"
                                         className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleSave(agent.id, false);
-                                        }}
                                       >
                                         Save
                                       </button>
-                                    </motion.div>
-                                  </motion.div>
+                                    </div>
+                                  </form>
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -868,79 +855,63 @@ export default function CodeReview() {
                                   exit="hidden"
                                   transition={{ duration: 0.2 }}
                                 >
-                                  <motion.div
+                                  <form
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const formData = new FormData(e.currentTarget);
+                                      const agentName = formData.get('agentName') as string;
+                                      const agentPrompt = formData.get('agentPrompt') as string;
+                                      handleUpdateCustomAgent(agent.id, agentName, agentPrompt);
+                                    }}
                                     className="px-4 py-2"
-                                    variants={itemVariants}
-                                    custom={0}
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="mb-3">
-                                      <motion.div
-                                        className="mb-3"
-                                        variants={itemVariants}
-                                        custom={0}
-                                      >
-                                        <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
-                                          Agent Name
-                                        </label>
-                                        <motion.input
-                                          type="text"
-                                          className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
-                                          value={customAgentNames[agent.id] || ''}
-                                          onChange={(e) =>
-                                            handleCustomNameChange(agent.id, e.target.value)
-                                          }
-                                          onClick={(e) => e.stopPropagation()}
-                                          placeholder="Enter agent name..."
-                                          variants={itemVariants}
-                                          custom={0.5}
-                                        />
-                                      </motion.div>
-                                      <motion.div
-                                        className="mb-3"
-                                        variants={itemVariants}
-                                        custom={0.5}
-                                      >
-                                        <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
-                                          Custom Prompt
-                                        </label>
-                                        <motion.textarea
-                                          className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
-                                          rows={3}
-                                          value={agentCustomPrompts[agent.id] || ''}
-                                          onChange={(e) =>
-                                            handleCustomPromptChange(agent.id, e.target.value)
-                                          }
-                                          onClick={(e) => e.stopPropagation()}
-                                          placeholder="Enter custom prompt..."
-                                          variants={itemVariants}
-                                          custom={0.7}
-                                        />
-                                      </motion.div>
+                                      <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Agent Name
+                                      </label>
+                                      <input
+                                        name="agentName"
+                                        type="text"
+                                        className="mb-3 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                        defaultValue={agent.display_name || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder={
+                                          agent.display_name ? '' : 'Enter agent name...'
+                                        }
+                                        required
+                                      />
                                     </div>
-                                    <motion.div
-                                      className="flex justify-between"
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ delay: 0.2 }}
-                                    >
-                                      <motion.button
-                                        className="hover:bg-[var(--vscode-errorForeground)]/90 rounded bg-[var(--vscode-errorForeground)] px-3 py-1 text-xs text-white"
+                                    <div className="mb-3">
+                                      <label className="mb-1 block text-xs text-[var(--vscode-descriptionForeground)]">
+                                        Custom Prompt
+                                      </label>
+                                      <textarea
+                                        name="agentPrompt"
+                                        className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
+                                        rows={3}
+                                        defaultValue={agent.custom_prompt || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder={
+                                          agent.custom_prompt ? '' : 'Enter custom prompt...'
+                                        }
+                                        required
+                                      />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                      <button
+                                        type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleDelete(agent.id);
                                         }}
-                                        whileHover={{ scale: 1.02 }}
-                                        whileTap={{ scale: 0.98 }}
+                                        className="hover:bg-[var(--vscode-errorForeground)]/90 rounded bg-[var(--vscode-errorForeground)] px-3 py-1 text-xs text-white"
                                       >
                                         Delete
-                                      </motion.button>
-                                      <motion.div
-                                        className="flex justify-end space-x-2"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.15 }}
-                                      >
+                                      </button>
+                                      <div className="flex space-x-2">
                                         <button
+                                          type="button"
                                           className="rounded bg-[var(--vscode-button-secondaryBackground)] px-3 py-1 text-xs text-[var(--vscode-button-secondaryForeground)] hover:bg-[var(--vscode-button-secondaryHoverBackground)]"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -950,17 +921,14 @@ export default function CodeReview() {
                                           Cancel
                                         </button>
                                         <button
+                                          type="submit"
                                           className="rounded bg-[var(--vscode-button-background)] px-3 py-1 text-xs text-[var(--vscode-button-foreground)] hover:bg-[var(--vscode-button-hoverBackground)]"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSave(agent.id, false);
-                                          }}
                                         >
                                           Save
                                         </button>
-                                      </motion.div>
-                                    </motion.div>
-                                  </motion.div>
+                                      </div>
+                                    </div>
+                                  </form>
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -1026,6 +994,7 @@ export default function CodeReview() {
                                   name="agentPrompt"
                                   className="w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-input-background)] p-2 text-xs text-[var(--vscode-input-foreground)]"
                                   rows={3}
+                                  required
                                   onClick={(e) => e.stopPropagation()}
                                   placeholder="Enter custom prompt..."
                                 />
@@ -1038,7 +1007,6 @@ export default function CodeReview() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setShowCreateAgentForm(false);
-                                      // Get the closest form element and reset it
                                       const form = e.currentTarget.closest('form');
                                       if (form) {
                                         form.reset();
