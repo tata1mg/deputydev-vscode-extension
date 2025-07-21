@@ -477,6 +477,8 @@ export interface CodeReviewStorage {
   isFetchingChangedFiles: boolean;
   activeReviewId: number;
   activeReviewSessionId: number;
+  showReviewProcess: boolean;
+  reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE';
 }
 
 export interface CodeReviewSetting {
@@ -523,12 +525,14 @@ export interface AgentPayload {
   type: string;
 }
 
-export type AgentStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
+export type AgentStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'STOPPED';
+
+export type StepStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'STOPPED';
 
 export type ReviewStep = {
   id: string;
   label: string;
-  status: AgentStatus;
+  status: StepStatus;
   agents?: Array<{
     id: number;
     name: string | '';

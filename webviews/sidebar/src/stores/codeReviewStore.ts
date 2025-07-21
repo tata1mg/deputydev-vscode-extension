@@ -8,6 +8,7 @@ import {
   NewReview,
   ReviewOption,
   ReviewStep,
+  StepStatus,
 } from '@/types';
 
 export const useCodeReviewStore = create<
@@ -16,7 +17,7 @@ export const useCodeReviewStore = create<
     failedAgents: Array<{ id: number; name: string }>;
     showFailedAgentsDialog: boolean;
     setSteps: (steps: ReviewStep[]) => void;
-    updateStepStatus: (stepId: string, status: AgentStatus) => void;
+    updateStepStatus: (stepId: string, status: StepStatus) => void;
     updateAgentStatus: (stepId: string, agentId: number, status: AgentStatus) => void;
     addStep: (step: Omit<ReviewStep, 'status'> & { status?: AgentStatus }) => void;
     updateOrAddStep: (step: Omit<ReviewStep, 'status'> & { status?: AgentStatus }) => void;
@@ -94,6 +95,8 @@ export const useCodeReviewStore = create<
 
       setFailedAgents: (agents) => set({ failedAgents: agents }),
       setShowFailedAgentsDialog: (show) => set({ showFailedAgentsDialog: show }),
+      showReviewProcess: false,
+      reviewStatus: 'IDLE',
     }),
     {
       name: 'code-review-storage',

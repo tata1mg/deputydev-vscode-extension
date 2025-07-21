@@ -122,11 +122,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.outputChannel.info('Starting code review...');
           this.handleCodeReviewStart(data);
           break;
+        case 'cancel-review':
+          this.outputChannel.info('Stopping code review...');
+          this.codeReviewManager.cancelReview();
+          break;
         case 'code-review-post-process':
           this.outputChannel.info('Post-processing code review...');
           this.handleCodeReviewPostProcess(data);
           break;
-
         case 'new-review':
           this.newReview(data);
           break;
@@ -1032,8 +1035,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   public async handleCodeReviewPreProcess(data: NewReview) {
     console.log('Starting code review pre process with data:', data);
 
-    const { get_url, key } = await this.codeReviewManager.uploadDiffToS3(data);
-    console.log('Diff uploaded to S3:', get_url, key);
+    //TODO: Need to enable
+    // const { get_url, key } = await this.codeReviewManager.uploadDiffToS3(data);
+    // console.log('Diff uploaded to S3:', get_url, key);
 
     this.sendMessageToSidebar({
       id: uuidv4(),

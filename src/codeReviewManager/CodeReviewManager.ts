@@ -70,14 +70,6 @@ export class CodeReviewManager {
     }
   }
 
-  public async cancelCurrentReview(): Promise<void> {
-    if (this.currentAbortController) {
-      this.outputChannel.info('Cancelling current review...');
-      this.currentAbortController.abort();
-      this.cleanup();
-    }
-  }
-
   private async handleReviewEvent(event: ReviewEvent): Promise<void> {
     this.outputChannel.debug(`Processing review event: ${event.type}`);
     console.log(`Processing review event: ${JSON.stringify(event)}`);
@@ -427,6 +419,35 @@ export class CodeReviewManager {
           data: event,
         });
         break;
+    }
+  }
+
+  public async cancelReview(): Promise<void> {
+    try {
+      this.outputChannel.info('Cancelling review and cleaning up...');
+      console.log('Cancelling review and cleaning up...');
+
+      // Cancel any ongoing review or post-process
+      if (this.currentAbortController) {
+        this.currentAbortController.abort();
+      }
+
+      // Close WebSocket connections
+      this.reviewService.dispose();
+
+      // Notify the UI that the review was cancelled
+      this.sidebarProvider?.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'REVIEW_CANCELLED',
+        data: { message: 'Review was cancelled by user' },
+      });
+
+      this.outputChannel.info('Review cancelled successfully');
+    } catch (error: any) {
+      this.outputChannel.error(`Error while cancelling review: ${error.message}`, error);
+      throw error;
+    } finally {
+      this.cleanup();
     }
   }
 

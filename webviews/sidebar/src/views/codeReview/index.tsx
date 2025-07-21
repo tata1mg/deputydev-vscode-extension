@@ -21,6 +21,7 @@ import {
   openFileDiff,
   performCrudOnUserAgent,
   searchBranches,
+  cancelReview,
 } from '@/commandApi';
 import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
@@ -82,7 +83,6 @@ export default function CodeReview() {
   const dropDownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const branchSelectorRef = useRef<HTMLDivElement>(null);
-  const [isReviewRunning, setIsReviewRunning] = useState(false);
   const [expandedAgentId, setExpandedAgentId] = useState<number | null>(null);
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [agentCustomPrompts, setAgentCustomPrompts] = useState<Record<string, string>>({});
@@ -106,16 +106,11 @@ export default function CodeReview() {
   }, []);
 
   const handleStartReview = () => {
-    // TODO: make this in persist Store
-    setIsReviewRunning(true);
+    useCodeReviewStore.setState({ showReviewProcess: true, reviewStatus: 'RUNNING' });
   };
 
   useEffect(() => {
     handleNewReview();
-  }, []);
-
-  useEffect(() => {
-    fetchPastReviews({ sourceBranch: new_review.source_branch });
   }, []);
 
   const toggleAgent = (agentId: number, agentName: string) => {
@@ -139,6 +134,11 @@ export default function CodeReview() {
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
       reviewType: useCodeReviewStore.getState().activeReviewOption.value,
     });
+  };
+
+  const handleResetReview = () => {
+    useCodeReviewStore.setState({ showReviewProcess: false, reviewStatus: 'IDLE', steps: [] });
+    setShowFilesToReview(true);
   };
 
   useClickAway(dropDownRef, () => {
@@ -521,7 +521,7 @@ export default function CodeReview() {
           </div>
         )}
 
-        {isReviewRunning && <Review />}
+        {useCodeReviewStore.getState().showReviewProcess && <Review />}
 
         <ReviewModal
           isOpen={isModalOpen}
@@ -537,14 +537,41 @@ export default function CodeReview() {
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
             <div className="relative flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
-              <span
-                className="flex-1 cursor-pointer text-center"
-                onClick={() => {
-                  setIsModalOpen(true);
-                }}
-              >
-                {activeReviewOption.displayName}
-              </span>
+              {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
+                <span
+                  className="flex-1 cursor-pointer text-center"
+                  onClick={() => {
+                    setIsModalOpen(true);
+                  }}
+                >
+                  {activeReviewOption.displayName}
+                </span>
+              )}
+
+              {useCodeReviewStore.getState().reviewStatus === 'RUNNING' && (
+                <span
+                  className="flex-1 cursor-pointer text-center text-red-700"
+                  onClick={() => {
+                    cancelReview();
+                  }}
+                >
+                  Stop Review
+                </span>
+              )}
+
+              {useCodeReviewStore.getState().reviewStatus === 'COMPLETED' ||
+                (useCodeReviewStore.getState().reviewStatus === 'STOPPED' && (
+                  <span
+                    className="flex-1 cursor-pointer text-center"
+                    onClick={() => {
+                      console.log('Reset Review');
+                      handleResetReview();
+                    }}
+                  >
+                    Restart Review
+                  </span>
+                ))}
+
               <div
                 className="cursor-pointer"
                 onClick={(e) => {
