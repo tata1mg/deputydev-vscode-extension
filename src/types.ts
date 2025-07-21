@@ -264,4 +264,8 @@ export interface NewReview {
   file_wise_changes: FileWiseChange[];
   source_branch: string;
   target_branch: string;
+  source_commit: string;
+  target_commit: string;
+  origin_url: string;
+  repo_name: string;
 }

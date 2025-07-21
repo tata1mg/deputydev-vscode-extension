@@ -18,19 +18,11 @@ export class ReviewService {
   private apiErrorHandler = new ApiErrorHandler();
 
   // TODO: Need to send the payload
-  public async codeReviewPreProcess() {
+  public async codeReviewPreProcess(payload: any) {
     try {
       const authToken = await fetchAuthToken();
       const headers = {
         Authorization: `Bearer ${authToken}`,
-      };
-      const payload = {
-        user_team_id: 112,
-        repo_name: 'merch_service',
-        repo_origin: 'github/merch_service',
-        diff_s3_url: 'sadhkjhkhdkjs',
-        source_branch: 'merch_test1',
-        target_branch: 'master',
       };
 
       const response = await api.post(API_ENDPOINTS.CODE_REVIEW_PRE_PROCESS, payload, { headers });
