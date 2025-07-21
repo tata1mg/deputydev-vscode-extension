@@ -3,6 +3,8 @@ import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { TriangleAlert } from 'lucide-react';
 import { codeReviewPreProcess } from '@/commandApi';
+import { Info } from 'lucide-react';
+import { Tooltip } from 'react-tooltip';
 
 interface ReviewModalProps {
   isOpen: boolean;
@@ -94,40 +96,107 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
                 </p> */}
               </div>
 
-              <div className="max-h-[300px] space-y-2 overflow-y-auto rounded-md border border-[var(--vscode-editorWidget-border)] p-2">
-                <span className="mb-2 pl-1 text-lg font-semibold text-[var(--vscode-foreground)]">
-                  Active Review Agents
-                </span>
-
-                <hr className="border-[var(--vscode-editorWidget-border)]" />
-
-                {userAgents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    className="flex items-center justify-between rounded p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
-                  >
-                    <span className="text-sm">{agent.display_name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleAgent(agent.id, agent.display_name);
-                      }}
-                      className={`relative h-5 w-10 rounded-full transition-colors duration-300 ${
-                        enabledAgents.some((enabledAgent) => enabledAgent.id === agent.id)
-                          ? 'bg-green-500'
-                          : 'bg-gray-300'
-                      }`}
-                    >
-                      <div
-                        className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                          enabledAgents.some((enabledAgent) => enabledAgent.id === agent.id)
-                            ? 'translate-x-5'
-                            : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                ))}
+              <div className="space-y-2 rounded-md border border-[var(--vscode-editorWidget-border)] p-2">
+                <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2 text-sm font-semibold text-[var(--vscode-foreground)]">
+                  Predefined Agents
+                </div>
+                <div className="max-h-[90px] overflow-y-auto">
+                  {userAgents.filter((agent) => !agent.is_custom_agent).length === 0 && (
+                    <div className="p-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                      No predefined agents available.
+                    </div>
+                  )}
+                  {userAgents
+                    .filter((agent) => !agent.is_custom_agent)
+                    .map((agent) => (
+                      <div key={agent.id} className="w-full">
+                        <div className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="flex-1 truncate">{agent.display_name}</span>
+                            <Info
+                              className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
+                              data-tooltip-id="code-review-tooltips"
+                              data-tooltip-content={agent.objective}
+                              data-tooltip-place="top-start"
+                              data-tooltip-class-name="z-50 max-w-[80%]"
+                              data-tooltip-effect="solid"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAgent(agent.id, agent.display_name);
+                                }}
+                                className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                  enabledAgents.some((enabledAgent) => enabledAgent.id === agent.id)
+                                    ? 'bg-green-500'
+                                    : 'bg-gray-300'
+                                }`}
+                              >
+                                <div
+                                  className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                    enabledAgents.some(
+                                      (enabledAgent) => enabledAgent.id === agent.id
+                                    )
+                                      ? 'translate-x-4'
+                                      : 'translate-x-0'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2 text-sm font-semibold text-[var(--vscode-foreground)]">
+                  Custom Agents
+                </div>
+                <div className="max-h-[90px] overflow-y-auto">
+                  {userAgents.filter((agent) => agent.is_custom_agent).length === 0 && (
+                    <div className="p-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                      No custom agents available.
+                    </div>
+                  )}
+                  {userAgents
+                    .filter((agent) => agent.is_custom_agent)
+                    .map((agent) => (
+                      <div key={agent.id} className="w-full">
+                        <div className="flex w-full cursor-pointer items-center justify-between p-2 text-left text-xs hover:bg-[var(--vscode-list-hoverBackground)]">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span className="flex-1 truncate">{agent.display_name}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleAgent(agent.id, agent.display_name);
+                                }}
+                                className={`relative h-4 w-8 rounded-full transition-colors duration-300 ${
+                                  enabledAgents.some((enabledAgent) => enabledAgent.id === agent.id)
+                                    ? 'bg-green-500'
+                                    : 'bg-gray-300'
+                                }`}
+                              >
+                                <div
+                                  className={`absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                                    enabledAgents.some(
+                                      (enabledAgent) => enabledAgent.id === agent.id
+                                    )
+                                      ? 'translate-x-4'
+                                      : 'translate-x-0'
+                                  }`}
+                                />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
               </div>
             </div>
 
@@ -173,6 +242,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
           </motion.div>
         </motion.div>
       )}
+      <Tooltip id="code-review-tooltips" />
     </AnimatePresence>
   );
 };
