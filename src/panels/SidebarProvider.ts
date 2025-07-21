@@ -1036,8 +1036,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     console.log('Starting code review pre process with data:', data);
 
     //TODO: Need to enable
-    const { get_url, key } = await this.codeReviewManager.uploadDiffToS3({ review_files_dif: data.file_wise_changes });
-    console.log('Diff uploaded to S3:', get_url, key);
+    // const { get_url, key } = await this.codeReviewManager.uploadDiffToS3({ review_files_dif: data.file_wise_changes });
+    // console.log('Diff uploaded to S3:', get_url, key);
 
     this.sendMessageToSidebar({
       id: uuidv4(),
@@ -1045,17 +1045,26 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       data: {},
     });
 
-    const preProcessPayload = {
-      diff_attachment_id: key,
-      source_branch: data.source_branch,
-      target_branch: data.target_branch,
-      source_commit: data.source_commit,
-      target_commit: data.target_commit,
-      origin_url: data.origin_url,
-      repo_name: data.repo_name,
+    // const preProcessPayload = {
+    //   diff_attachment_id: key,
+    //   source_branch: data.source_branch,
+    //   target_branch: data.target_branch,
+    //   source_commit: data.source_commit,
+    //   target_commit: data.target_commit,
+    //   origin_url: data.origin_url,
+    //   repo_name: data.repo_name,
+    // };
+
+    const payload = {
+      user_team_id: 112,
+      repo_name: 'merch_service',
+      repo_origin: 'github/merch_service',
+      diff_s3_url: 'sadhkjhkhdkjs',
+      source_branch: 'merch_test1',
+      target_branch: 'master',
     };
 
-    const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
+    const preProcessResult = await this.reviewService.codeReviewPreProcess(payload);
     console.log('Pre-process result:', preProcessResult);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
@@ -1215,8 +1224,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     try {
       switch (operation) {
         case 'CREATE': {
-          if (!custom_prompt || !agent_name) {
-            throw new Error('Custom prompt and agent name are required for create operation');
+          if (!agent_name || !custom_prompt) {
+            return;
           }
           const agentCreationResponse = await this.reviewService.createAgent(agent_name, custom_prompt);
           if (agentCreationResponse.is_success) {
@@ -1226,17 +1235,19 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         }
 
         case 'UPDATE': {
-          if (!agent_id || !custom_prompt || !agent_name) {
-            throw new Error('Agent ID, custom prompt, and agent name are required for update operation');
+          if (!agent_id || !custom_prompt) {
+            return;
           }
-          const updateResponse = await this.reviewService.updateAgent(agent_id, custom_prompt, agent_name);
-          console.log('Agent Updated', updateResponse);
+          const agentUpdationResponse = await this.reviewService.updateAgent(agent_id, custom_prompt, agent_name);
+          if (agentUpdationResponse.is_success) {
+            this.fetchUserAgents();
+          }
           break;
         }
 
         case 'DELETE': {
           if (!agent_id) {
-            throw new Error('Agent ID is required for delete operation');
+            return;
           }
           const agentDeletionResponse = await this.reviewService.deleteAgent(agent_id);
           if (agentDeletionResponse.is_success) {
