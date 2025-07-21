@@ -19,8 +19,8 @@ import { getActiveRepo, getReviewId } from '../utilities/contextManager';
 import { resolveDirectoryRelative } from '../utilities/path';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
+import { ReferenceService } from '../services/references/ReferenceService';
 
 export class CodeReviewManager {
   private readonly reviewService: CodeReviewWebsocketService;
@@ -29,19 +29,18 @@ export class CodeReviewManager {
   private currentAbortController: AbortController | null = null;
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly outputChannel: vscode.LogOutputChannel;
-  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
+  private readonly referenceService: ReferenceService;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     outputChannel: vscode.LogOutputChannel,
     backendClient: BackendClient,
-    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
     private readonly apiErrorHandler: ApiErrorHandler,
   ) {
     this.outputChannel = outputChannel;
     this.logger = SingletonLogger.getInstance();
     this.reviewService = new CodeReviewWebsocketService(context, outputChannel, backendClient);
-    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
+    this.referenceService = new ReferenceService();
     this.apiErrorHandler = new ApiErrorHandler();
   }
 
@@ -428,6 +427,32 @@ export class CodeReviewManager {
           data: event,
         });
         break;
+    }
+  }
+
+  public async uploadDiffToS3(diff: unknown): Promise<{ get_url: string; key: string }> {
+    try {
+      // ── 1. Serialise / buffer ─────────────────────────────────────
+      const serialised = typeof diff === 'string' ? diff : JSON.stringify(diff, null, 0);
+      const buffer = Buffer.from(serialised, 'utf8');
+
+      // ── 2. Build file-upload descriptor ───────────────────────────
+      const fileDescriptor = {
+        name: uuidv4() + '.json',
+        type: 'application/json',
+        size: buffer.length,
+        content: buffer,
+        folder: 'review_diff' as const,
+      };
+
+      // ── 3. Upload via the underlying ReferenceService ────────────
+      const response = await this.referenceService.uploadFileToS3(fileDescriptor);
+
+      this.outputChannel.info('uploadDiffToS3-response', response);
+      return response; // { get_url, key }
+    } catch (err) {
+      this.outputChannel.error('uploadDiffToS3-error', err);
+      throw err;
     }
   }
 

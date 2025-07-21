@@ -246,3 +246,22 @@ export interface PostProcessEvent {
   };
   timestamp: string;
 }
+
+export interface LineChanges {
+  added: number;
+  removed: number;
+}
+
+export interface FileWiseChange {
+  file_name: string;
+  file_path: string;
+  line_changes: LineChanges;
+  status: string;
+  diff: string;
+}
+
+export interface NewReview {
+  file_wise_changes: FileWiseChange[];
+  source_branch: string;
+  target_branch: string;
+}
