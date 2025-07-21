@@ -562,18 +562,18 @@ export default function CodeReview() {
                 </span>
               )}
 
-              {useCodeReviewStore.getState().reviewStatus === 'COMPLETED' ||
-                (useCodeReviewStore.getState().reviewStatus === 'STOPPED' && (
-                  <span
-                    className="flex-1 cursor-pointer text-center"
-                    onClick={() => {
-                      console.log('Reset Review');
-                      handleResetReview();
-                    }}
-                  >
-                    Restart Review
-                  </span>
-                ))}
+              {(useCodeReviewStore.getState().reviewStatus === 'COMPLETED' ||
+                useCodeReviewStore.getState().reviewStatus === 'STOPPED') && (
+                <span
+                  className="flex-1 cursor-pointer text-center"
+                  onClick={() => {
+                    console.log('Reset Review');
+                    handleResetReview();
+                  }}
+                >
+                  Restart Review
+                </span>
+              )}
             </div>
             <div className="flex items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               <button
