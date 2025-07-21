@@ -40,7 +40,6 @@ export const useIndexingStore = create<
         }
       },
       updateOrAppendIndexingData: (newData) => {
-        console.log('Updating or appending indexing data:', newData);
         set((state) => {
           // Modified: Just update in place or append to the end
           const existingIndex = state.indexingProgressData.findIndex(
@@ -55,19 +54,18 @@ export const useIndexingStore = create<
 
             const item = state.indexingProgressData[existingIndex];
             const updatedIndexingStatus =
-                    item.indexing_status?.map((file) => ({
-                      ...file,
-                      status: updatedFiles.get(file.file_path) ?? file.status,
+              item.indexing_status?.map((file) => ({
+                ...file,
+                status: updatedFiles.get(file.file_path) ?? file.status,
               })) ?? [];
             const newFiles = (newData.indexing_status || []).filter(
-                    (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
-                  );
+              (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
+            );
             const newDataWithFiles = {
-                    ...item,
-                    ...newData,
-                    indexing_status: [...updatedIndexingStatus, ...newFiles],
+              ...item,
+              ...newData,
+              indexing_status: [...updatedIndexingStatus, ...newFiles],
             };
-
 
             const updatedData = [...state.indexingProgressData];
             updatedData[existingIndex] = newDataWithFiles;
