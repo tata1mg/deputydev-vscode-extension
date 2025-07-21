@@ -150,7 +150,6 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('active-file-store', undefined);
   await extensionContext.workspaceState.update('contextRepositories', undefined);
   await extensionContext.workspaceState.update('code-review-storage', undefined);
-  await extensionContext.workspaceState.update('code-review-setting-store', undefined);
 }
 
 // =====================================================================================
