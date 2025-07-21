@@ -1073,7 +1073,7 @@ export class ChatManager {
       related_code_searcher: () => this._runRelatedCodeSearcher(parsedContent.repo_path || activeRepo, parsedContent),
       focused_snippets_searcher: () =>
         this._runFocusedSnippetsSearcher(parsedContent.repo_path || activeRepo, parsedContent),
-      file_path_searcher: () => this._runFilePathSearcher(activeRepo, parsedContent),
+      file_path_searcher: () => this._runFilePathSearcher(parsedContent.repo_path || activeRepo, parsedContent),
       iterative_file_reader: () =>
         this._runIterativeFileReader(
           parsedContent.repo_path || activeRepo,
