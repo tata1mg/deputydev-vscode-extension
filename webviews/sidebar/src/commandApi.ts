@@ -1,4 +1,10 @@
-import { UsageTrackingRequestFromSidebar, SaveUrlRequest, Settings, AgentPayload } from './types';
+import {
+  UsageTrackingRequestFromSidebar,
+  SaveUrlRequest,
+  Settings,
+  AgentPayload,
+  NewReview,
+} from './types';
 import { callCommand } from './vscode';
 
 export function writeFile(params: {
@@ -341,11 +347,7 @@ export function downloadImageFile(key: string) {
 
 // Code Review
 
-export function codeReviewPreProcess(data: {
-  diff_s3_url: string;
-  source_branch: string;
-  target_branch: string;
-}) {
+export function codeReviewPreProcess(data: NewReview) {
   return callCommand('code-review-pre-process', data);
 }
 

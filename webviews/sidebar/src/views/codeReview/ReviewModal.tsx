@@ -17,7 +17,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
   const { enabledAgents } = useCodeReviewSettingStore();
 
   const handleCodeReview = () => {
-    codeReviewPreProcess({ diff_s3_url: '', source_branch: '', target_branch: '' });
+    codeReviewPreProcess(useCodeReviewStore.getState().new_review);
     onStartReview();
   };
 

@@ -38,7 +38,7 @@ import { ReviewService } from '../services/codeReview/CodeReviewService';
 import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
 import { CommentHandler } from '../codeReview/CommentHandler';
 import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
-import { AgentPayload } from '../types';
+import { AgentPayload, NewReview } from '../types';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -1029,8 +1029,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
-  public async handleCodeReviewPreProcess(data: any) {
+  public async handleCodeReviewPreProcess(data: NewReview) {
     console.log('Starting code review pre process with data:', data);
+
+    const { get_url, key } = await this.codeReviewManager.uploadDiffToS3(data);
+    console.log('Diff uploaded to S3:', get_url, key);
 
     this.sendMessageToSidebar({
       id: uuidv4(),
