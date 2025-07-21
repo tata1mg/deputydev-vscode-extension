@@ -1059,11 +1059,13 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
   console.log('Post process completed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
   fetchPastReviews({ sourceBranch: useCodeReviewStore.getState().new_review.source_branch });
+  useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
 });
 
 addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
   console.error('Post process failed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'FAILED');
+  useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
 });
 
 addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
