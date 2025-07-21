@@ -1045,26 +1045,28 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       data: {},
     });
 
-    // const preProcessPayload = {
-    //   diff_attachment_id: key,
-    //   source_branch: data.source_branch,
-    //   target_branch: data.target_branch,
-    //   source_commit: data.source_commit,
-    //   target_commit: data.target_commit,
-    //   origin_url: data.origin_url,
-    //   repo_name: data.repo_name,
-    // };
-
-    const payload = {
-      user_team_id: 112,
-      repo_name: 'merch_service',
-      repo_origin: 'github/merch_service',
-      diff_s3_url: 'sadhkjhkhdkjs',
-      source_branch: 'merch_test1',
-      target_branch: 'master',
+    const preProcessPayload = {
+      file_wise_diff: data.file_wise_changes,
+      source_branch: data.source_branch,
+      target_branch: data.target_branch,
+      source_commit: data.source_commit,
+      target_commit: data.target_commit,
+      origin_url: data.origin_url,
+      repo_name: data.repo_name,
     };
 
-    const preProcessResult = await this.reviewService.codeReviewPreProcess(payload);
+    console.log('Pre-process payload:', preProcessPayload);
+
+    // const payload = {
+    //   user_team_id: 112,
+    //   repo_name: 'merch_service',
+    //   repo_origin: 'github/merch_service',
+    //   diff_s3_url: 'sadhkjhkhdkjs',
+    //   source_branch: 'merch_test1',
+    //   target_branch: 'master',
+    // };
+
+    const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
     console.log('Pre-process result:', preProcessResult);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
