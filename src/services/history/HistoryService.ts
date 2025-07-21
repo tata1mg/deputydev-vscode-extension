@@ -126,28 +126,4 @@ export class HistoryService {
       this.apiErrorHandler.handleApiError(error);
     }
   }
-
-  public async getRelevantChatHistory(sessionId: number, query: string): Promise<any> {
-    try {
-      const authToken = await fetchAuthToken();
-      const headers = {
-        'X-Session-ID': sessionId,
-        Authorization: `Bearer ${authToken}`,
-        'X-Session-Type': SESSION_TYPE,
-      };
-      const response = await api.post(
-        API_ENDPOINTS.RELEVANT_CHAT_HISTORY,
-        {
-          query,
-        },
-        { headers },
-      );
-      refreshCurrentToken(response.headers);
-      return response.data.data;
-    } catch (error) {
-      this.logger.error('Error fetching relevant chat history');
-      this.errorTrackingManager.trackGeneralError(error, 'RELEVANT_CHAT_FETCHING_ERROR', 'BACKEND');
-      this.apiErrorHandler.handleApiError(error);
-    }
-  }
 }
