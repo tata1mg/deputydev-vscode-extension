@@ -303,10 +303,10 @@ export const PastReviews = () => {
                                         onClick={() => {
                                           openCommentInFile({
                                             // TODO Need to handle dynamic file paths
-                                            filePath: comment.file_path || 'app/exceptions.py',
+                                            filePath: comment.file_path,
                                             lineNumber: comment.line_number - 1,
-                                            commentText: `${comment.comment}\n\n${comment.corrective_code || 'No corrective code provided'}\n\n${comment.rationale || 'No rationale provided'}`,
-                                            promptText: `${comment.tag} : ${comment.title}`,
+                                            commentText: `${comment.comment}\n\n${comment.corrective_code || ''}\n\n${comment.rationale || ''}`,
+                                            promptText: `${comment.tag.toUpperCase()} : ${comment.title.toUpperCase()}`,
                                             commentId: comment.id,
                                           });
                                         }}

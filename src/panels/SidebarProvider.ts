@@ -125,6 +125,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'cancel-review':
           this.outputChannel.info('Stopping code review...');
           this.codeReviewManager.cancelReview();
+          this.reviewService.cancelReview();
           break;
         case 'code-review-post-process':
           this.outputChannel.info('Post-processing code review...');

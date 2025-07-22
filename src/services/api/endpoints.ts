@@ -55,4 +55,6 @@ export const API_ENDPOINTS = {
   PAST_REVIEWS: '/end_user/v1/extension-code-review/history',
   GET_USER_AGENTS: '/end_user/v1/agent/list',
   USER_AGENT_CRUD: '/end_user/v1/agent',
+  COMMENT_FIX_QUERY: '/end_user/v1/extension-code-review/generate-comment-fix-query',
+  CANCEL_REVIEW: 'end_user/v1/extension-code-review/cancel_review',
 };

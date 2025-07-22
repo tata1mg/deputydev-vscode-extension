@@ -45,6 +45,7 @@ export const useCodeReviewStore = create<
       steps: [],
       failedAgents: [],
       showFailedAgentsDialog: false,
+      commentFixQuery: '',
 
       setSteps: (steps) => set({ steps }),
 

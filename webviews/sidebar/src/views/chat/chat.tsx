@@ -52,6 +52,7 @@ import ChangedFilesBar from './chatElements/changedFilesBar';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { useActiveFileStore } from '@/stores/activeFileStore';
 import { ViewSwitcher } from '@/components/ViewSwitcher';
+import { useCodeReviewStore } from '@/stores/codeReviewStore';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -102,6 +103,7 @@ export function ChatUI() {
   const timeoutRef = useRef<number | null>(null);
   const [maxSize, setMaxSize] = useState<number>(5 * 1024 * 1024); // Default 5MB
   const [maxFiles, setMaxFiles] = useState<number>(5); // Default 5 files
+  const { commentFixQuery } = useCodeReviewStore();
 
   const handleGlobeToggle = () => {
     useChatStore.setState({ search_web: !useChatStore.getState().search_web });
@@ -159,6 +161,7 @@ export function ChatUI() {
     const editorReferences = [...useChatStore.getState().currentEditorReference];
     const s3References = [...useChatStore.getState().s3Objects];
     setUserInput('');
+    useCodeReviewStore.setState({ commentFixQuery: '' });
     setImagePreviews([]);
     fileInputRef.current!.value = '';
     timeoutRef.current = null;
@@ -172,6 +175,13 @@ export function ChatUI() {
       // Handle error if needed
     }
   };
+
+  useEffect(() => {
+    if (commentFixQuery && commentFixQuery !== '' && !isLoading && !enhancingUserQuery) {
+      setUserInput(commentFixQuery);
+      handleSend();
+    }
+  }, [commentFixQuery, userInput]);
 
   useEffect(() => {
     if (enhancedUserQuery && enhancingUserQuery) {

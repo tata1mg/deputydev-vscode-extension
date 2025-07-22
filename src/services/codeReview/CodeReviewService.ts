@@ -1,4 +1,4 @@
-import { getActiveRepo } from '../../utilities/contextManager';
+import { getActiveRepo, getReviewId } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { api, binaryApi } from '../api/axios';
@@ -151,7 +151,7 @@ export class ReviewService {
       const response = await api.patch(`${API_ENDPOINTS.USER_AGENT_CRUD}/${agent_id}`, payload, { headers });
       return response.data;
     } catch (error) {
-      this.logger.error('Error while fetching user agents');
+      this.logger.error('Error while updating user agent');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
@@ -170,7 +170,7 @@ export class ReviewService {
       const response = await api.post(API_ENDPOINTS.USER_AGENT_CRUD, payload, { headers });
       return response.data;
     } catch (error) {
-      this.logger.error('Error while fetching user agents');
+      this.logger.error('Error while creating user agent');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
@@ -185,7 +185,51 @@ export class ReviewService {
       const response = await api.delete(`${API_ENDPOINTS.USER_AGENT_CRUD}/${agent_id}`, { headers });
       return response.data;
     } catch (error) {
-      this.logger.error('Error while fetching user agents');
+      this.logger.error('Error while deleting user agent');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async getCommentFixQuery(comment_id: number) {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const response = await api.get(API_ENDPOINTS.COMMENT_FIX_QUERY, {
+        params: {
+          comment_id: comment_id,
+        },
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching comment fix query');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async cancelReview() {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const reviewId = getReviewId();
+      if (!reviewId) {
+        throw new Error('Review ID is not set in the context');
+      }
+      const response = await api.get(API_ENDPOINTS.CANCEL_REVIEW, {
+        params: {
+          review_id: reviewId,
+        },
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while cancelling review');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }

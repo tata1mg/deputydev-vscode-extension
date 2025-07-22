@@ -327,9 +327,23 @@ export async function activate(context: vscode.ExtensionContext) {
       commentHandler.closeThread(thread);
     }),
 
-    vscode.commands.registerCommand('deputydev.fixWithDeputyDev', () => {
-      // Handle Fix with DD action
-      console.log('Fix with DeputyDev action triggered');
+    vscode.commands.registerCommand('deputydev.fixWithDeputyDev', async (thread: vscode.CommentThread) => {
+      // Get the comment ID using the thread
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+      console.log('Fix with DeputyDev action triggered for comment ID:', commentId);
+
+      // Now you can use the commentId for your fix logic
+      if (commentId !== undefined) {
+        const commentFixQuery = await reviewService.getCommentFixQuery(commentId);
+
+        if (commentFixQuery?.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'fix-with-dd',
+            data: commentFixQuery.data,
+          });
+        }
+      }
     }),
 
     vscode.commands.registerCommand('deputydev.dislikeCodeReviewComment', () => {
