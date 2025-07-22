@@ -1115,3 +1115,11 @@ addCommandEventListener('user-agent-deleted', ({ data }) => {
       .enabledAgents.filter((agent) => agent.id !== agent_id.agent_id),
   });
 });
+
+addCommandEventListener('fix-with-dd', ({ data }) => {
+  console.log('Fix with DD response received:', data);
+  const { fix_query } = data as { fix_query: string };
+  useCodeReviewStore.setState({ commentFixQuery: fix_query });
+  useExtensionStore.setState({ viewType: 'chat' });
+  useChatSettingStore.setState({ chatType: 'write' });
+});

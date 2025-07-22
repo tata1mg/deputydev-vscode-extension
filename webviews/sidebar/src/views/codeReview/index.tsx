@@ -581,7 +581,7 @@ export default function CodeReview() {
                     handleResetReview();
                   }}
                 >
-                  Restart Review
+                  New Review
                 </span>
               )}
             </div>
