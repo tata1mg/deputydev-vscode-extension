@@ -313,9 +313,7 @@ export const PastReviews = () => {
                                       >
                                         <div className="flex w-full flex-col gap-1">
                                           <div className="flex w-full items-center justify-between">
-                                            <div className="truncate font-semibold">
-                                              {comment.title}
-                                            </div>
+                                            <div className="font-semibold">{comment.title}</div>
                                             <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
                                               Line {comment.line_number}
                                             </span>
