@@ -701,7 +701,7 @@ export class ChatManager {
     try {
       const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
         repo_path: repoPath,
-        file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always relative
+        file_path: await resolveDirectoryRelative(filePath), // Ensures the file path is always relative
         start_line: startLine,
         end_line: endLine,
       });
@@ -728,7 +728,7 @@ export class ChatManager {
         API_ENDPOINTS.GREP_SEARCH,
         {
           repo_path: repoPath,
-          directory_path: resolveDirectoryRelative(search_path), // Ensures the search path is always absolute
+          directory_path: await resolveDirectoryRelative(search_path), // Ensures the search path is always relative
           search_term: query,
           case_insensitive: case_insensitive || false,
           use_regex: use_regex || false,
@@ -743,7 +743,7 @@ export class ChatManager {
       try {
         this.apiErrorHandler.handleApiError(error);
       } catch (error: any) {
-        const errorData: any = error.response.data;
+        const errorData: any = error?.response?.data;
         if (
           errorData &&
           errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&
@@ -1069,12 +1069,13 @@ export class ChatManager {
     messageId: string | undefined,
   ): Promise<any> {
     const toolMap: Record<string, () => Promise<any>> = {
-      related_code_searcher: () => this._runRelatedCodeSearcher(activeRepo, parsedContent),
-      focused_snippets_searcher: () => this._runFocusedSnippetsSearcher(activeRepo, parsedContent),
-      file_path_searcher: () => this._runFilePathSearcher(activeRepo, parsedContent),
+      related_code_searcher: () => this._runRelatedCodeSearcher(parsedContent.repo_path || activeRepo, parsedContent),
+      focused_snippets_searcher: () =>
+        this._runFocusedSnippetsSearcher(parsedContent.repo_path || activeRepo, parsedContent),
+      file_path_searcher: () => this._runFilePathSearcher(parsedContent.repo_path || activeRepo, parsedContent),
       iterative_file_reader: () =>
         this._runIterativeFileReader(
-          activeRepo,
+          parsedContent.repo_path || activeRepo,
           parsedContent.file_path,
           parsedContent.start_line,
           parsedContent.end_line,
@@ -1082,7 +1083,7 @@ export class ChatManager {
       grep_search: () =>
         this._runGrepSearch(
           parsedContent.search_path,
-          activeRepo,
+          parsedContent.repo_path || activeRepo,
           parsedContent.query,
           parsedContent.case_insensitive,
           parsedContent.use_regex,
@@ -1139,6 +1140,11 @@ export class ChatManager {
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
+    // if the tool request is of type ask_user_input and the error message is Unknown tool requested, we handle it differently
+    if (toolRequest.tool_name === 'ask_user_input' && error.message.includes('Unknown tool requested')) {
+      return;
+    }
+
     if (this._isAborted()) return;
 
     this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
@@ -1396,7 +1402,7 @@ export class ChatManager {
       search_terms?: string[];
     },
   ): Promise<any> {
-    const directory = resolveDirectoryRelative(params.directory);
+    const directory = await resolveDirectoryRelative(params.directory);
     const searchTerms = params.search_terms; // Optional
     this.outputChannel.info(
       `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
