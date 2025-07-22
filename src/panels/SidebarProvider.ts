@@ -1141,7 +1141,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async handleSnapshot(data: any) {
     try {
-      const snapshot = await this.reviewService.hitSnapshot(data.reviewType);
+      const snapshot = await this.reviewService.hitSnapshot(data.reviewType, data.targetBranch);
       if (snapshot && !snapshot.is_error) {
         this.sendMessageToSidebar({
           id: uuidv4(),

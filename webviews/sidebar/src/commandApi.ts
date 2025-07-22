@@ -359,9 +359,9 @@ export function newReview(data: { targetBranch: string; reviewType: string }) {
   return callCommand('new-review', data);
 }
 
-export function hitSnapshot(reviewType: string) {
+export function hitSnapshot(reviewType: string, targetBranch: string) {
   if (reviewType !== 'COMMITTED_ONLY') {
-    return callCommand('hit-snapshot', { reviewType });
+    return callCommand('hit-snapshot', { reviewType, targetBranch });
   }
 }
 

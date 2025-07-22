@@ -34,6 +34,7 @@ import {
   startCodeReview,
   startCodeReviewPostProcess,
   fetchPastReviews,
+  hitSnapshot,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -846,8 +847,10 @@ addCommandEventListener('auth-response', ({ data }) => {
 addCommandEventListener('new-review-created', ({ data }) => {
   console.log('New review data received:', data);
   console.log('setting new review in store');
-  useCodeReviewStore.setState({ new_review: data as NewReview });
+  const newReview = data as NewReview;
+  useCodeReviewStore.setState({ new_review: newReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
+  useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
   fetchPastReviews({
     sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
@@ -1067,6 +1070,11 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
     repoId: useCodeReviewStore.getState().repoId,
   });
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
+  console.log('Review completed successfully and hitting snapshot for active review option');
+  hitSnapshot(
+    useCodeReviewStore.getState().activeReviewOption.value,
+    useCodeReviewStore.getState().selectedTargetBranch
+  );
 });
 
 addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
@@ -1122,4 +1130,12 @@ addCommandEventListener('fix-with-dd', ({ data }) => {
   useCodeReviewStore.setState({ commentFixQuery: fix_query });
   useExtensionStore.setState({ viewType: 'chat' });
   useChatSettingStore.setState({ chatType: 'write' });
+});
+
+addCommandEventListener('hit-new-review-after-file-event', () => {
+  console.log('Hit new review after file event');
+  newReview({
+    targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+    reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+  });
 });
