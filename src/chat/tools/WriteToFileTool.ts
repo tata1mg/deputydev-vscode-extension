@@ -42,7 +42,7 @@ export class WriteToFileTool {
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
     const diff = parsedContent.diff;
-    const relativePath = resolveDirectoryRelative(parsedContent.path);
+    const relativePath = await resolveDirectoryRelative(parsedContent.path);
     if (sessionId) {
       this.usageTrackingManager.trackUsage({
         eventType: 'GENERATED',
