@@ -302,9 +302,12 @@ export const PastReviews = () => {
                                         className="cursor-pointer border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                                         onClick={() => {
                                           openCommentInFile({
-                                            filePath: comment.file_path || 'utils/actions.ts',
+                                            // TODO Need to handle dynamic file paths
+                                            filePath: comment.file_path || 'app/exceptions.py',
                                             lineNumber: comment.line_number - 1,
-                                            commentText: comment.comment,
+                                            commentText: `${comment.comment}\n\n${comment.corrective_code || 'No corrective code provided'}\n\n${comment.rationale || 'No rationale provided'}`,
+                                            promptText: `${comment.tag} : ${comment.title}`,
+                                            commentId: comment.id,
                                           });
                                         }}
                                       >

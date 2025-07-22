@@ -146,7 +146,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.fetchPastReviews(data);
           break;
         case 'open-comment-in-file':
-          this.commentHandler.showCommentAtLine(data.filePath, data.lineNumber, data.commentText);
+          this.commentHandler.showCommentAtLine(
+            data.filePath,
+            data.lineNumber,
+            data.commentText,
+            data.promptText,
+            data.commentId,
+          );
           break;
         case 'fetch-user-agents':
           this.fetchUserAgents();
