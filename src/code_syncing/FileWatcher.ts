@@ -4,12 +4,15 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import ignore from 'ignore';
+import { v4 as uuidv4 } from 'uuid';
 
 import { IndexingService, UpdateVectorStoreParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
+import { SidebarProvider } from '../panels/SidebarProvider';
 export class WorkspaceFileWatcher {
   private readonly watcher: vscode.FileSystemWatcher | undefined;
   private readonly indexingService: IndexingService;
+  private readonly sidebarProvider: SidebarProvider;
   private readonly activeRepoPath: string;
   private readonly ignoreMatcher: ReturnType<typeof ignore>;
   private readonly configManager: ConfigManager;
@@ -27,12 +30,14 @@ export class WorkspaceFileWatcher {
     configManager: ConfigManager,
     outputChannel: vscode.LogOutputChannel,
     indexingService: IndexingService,
+    sidebarProvider: SidebarProvider,
   ) {
     this.activeRepoPath = activeRepoPath;
     this.configManager = configManager;
     this.outputChannel = outputChannel;
     this.ignoreMatcher = ignore();
     this.indexingService = indexingService;
+    this.sidebarProvider = sidebarProvider;
 
     // Load ignore patterns from .gitignore files and configuration.
     this.loadIgnorePatterns();
@@ -181,6 +186,14 @@ export class WorkspaceFileWatcher {
 
       this.outputChannel.info(`Files updated with websockets: ${fileList}`);
       this.pendingFileChanges.clear();
+
+      // Notify the sidebar to refresh the review state
+      console.log('hitting new review');
+      this.sidebarProvider.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'hit-new-review-after-file-event',
+        data: '',
+      });
     }
   }
 

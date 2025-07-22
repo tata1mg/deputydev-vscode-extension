@@ -77,7 +77,7 @@ export class ReviewService {
     }
   }
 
-  public async hitSnapshot(reviewType: string): Promise<any> {
+  public async hitSnapshot(reviewType: string, targetBranch: string): Promise<any> {
     try {
       const authToken = await fetchAuthToken();
       const headers = {
@@ -90,6 +90,7 @@ export class ReviewService {
           params: {
             repo_path: getActiveRepo(),
             review_type: reviewType,
+            target_branch: targetBranch,
           },
           headers,
         },
