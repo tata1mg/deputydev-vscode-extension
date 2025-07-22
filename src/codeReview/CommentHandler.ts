@@ -9,6 +9,7 @@ export class CommentHandler {
   public onDidChangeCommentThreads = this._onDidChangeCommentThreads.event;
   private activeThreads: WeakMap<vscode.CommentThread, string> = new WeakMap();
   private threadKeys: Map<string, vscode.CommentThread> = new Map();
+  private commentIds: Map<string, number> = new Map();
   private activeThread: vscode.CommentThread | null = null;
 
   private getThreadKey(uri: vscode.Uri, line: number): string {
@@ -46,12 +47,14 @@ export class CommentHandler {
    * @param lineNumber The line number (0-based) where to show the comment
    * @param commentText Optional initial text for the comment
    * @param promptText Optional custom text to show in the comment input
+   * @param commentId Optional comment ID
    */
   public async showCommentAtLine(
     filePath: string,
     lineNumber: number,
-    commentText: string = '',
-    promptText: string = '-Bug -Security -Performance',
+    commentText: string,
+    promptText: string,
+    commentId?: number,
   ): Promise<void> {
     try {
       const active_repo = getActiveRepo();
@@ -105,6 +108,11 @@ export class CommentHandler {
         commentThread.comments = [comment];
       }
 
+      // Store the comment ID
+      if (commentId !== undefined) {
+        this.commentIds.set(threadKey, commentId);
+      }
+
       // When the thread is disposed, clean up our references
       const disposable = vscode.workspace.onDidChangeTextDocument((e) => {
         if (e.document.uri.toString() === uri.toString()) {
@@ -113,6 +121,7 @@ export class CommentHandler {
             if (key) {
               this.threadKeys.delete(key);
               this.activeThreads.delete(commentThread);
+              this.commentIds.delete(key);
               if (this.activeThread === commentThread) {
                 this.activeThread = null;
               }
@@ -125,6 +134,27 @@ export class CommentHandler {
       vscode.window.showErrorMessage(`Failed to open file and show comment: ${error}`);
       console.error(error);
     }
+  }
+
+  /**
+   * Gets the comment ID for a specific thread
+   * @param uri The URI of the document
+   * @param lineNumber The line number of the comment
+   * @returns The comment ID if it exists, undefined otherwise
+   */
+  public getCommentId(uri: vscode.Uri, lineNumber: number): number | undefined {
+    const threadKey = this.getThreadKey(uri, lineNumber);
+    return this.commentIds.get(threadKey);
+  }
+
+  /**
+   * Gets the comment ID for a specific thread using the thread itself
+   * @param thread The comment thread
+   * @returns The comment ID if it exists, undefined otherwise
+   */
+  public getCommentIdFromThread(thread: vscode.CommentThread): number | undefined {
+    const threadKey = this.activeThreads.get(thread);
+    return threadKey ? this.commentIds.get(threadKey) : undefined;
   }
 }
 

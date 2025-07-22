@@ -382,6 +382,8 @@ export function openCommentInFile(data: {
   filePath: string;
   lineNumber: number;
   commentText: string;
+  promptText: string;
+  commentId: number;
 }) {
   return callCommand('open-comment-in-file', data);
 }
