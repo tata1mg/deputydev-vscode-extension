@@ -51,6 +51,7 @@ import { ChatArea } from './chatMessagesArea';
 import ChangedFilesBar from './chatElements/changedFilesBar';
 import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { useActiveFileStore } from '@/stores/activeFileStore';
+import { ViewSwitcher } from '@/components/ViewSwitcher';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -467,29 +468,24 @@ export function ChatUI() {
   return (
     <div className="relative flex h-full flex-col justify-between">
       <div className="flex-grow">
-        {/* Past Sessions */}
         {messages.length === 0 && (
-          <div>
+          <div className="sticky top-0 z-50 border-b border-transparent bg-inherit">
             <div>
-              <div className="mb-12 mt-8">
+              <div className="mt-8">
                 <img
                   src={deputyDevLogo}
                   alt="DeputyDev Logo"
                   className="h-10 w-auto px-4 opacity-90"
                 />
-                {/* <h1 className="animate-gradient bg-gradient-to-r from-blue-500 to-green-500 bg-clip-text px-4 text-3xl font-bold text-transparent">
-                  Develop with DeputyDev
-                </h1> */}
               </div>
-              <div className="h-[128px] px-4 fade-in">
-                <div className="flex items-center gap-2">
-                  <p className="mb-2 text-lg text-gray-400">You are ready to go.</p>
-                  <Check className="mb-1 animate-pulse text-sm text-green-500" />
+              <div className="mt-4 px-4 pb-4 fade-in">
+                <div className="flex flex-col items-start gap-2">
+                  <ViewSwitcher />
+                  <div className="flex items-center gap-2">
+                    <p className="text-lg text-gray-400">You are ready to go.</p>
+                    <Check className="animate-pulse text-sm text-green-500" />
+                  </div>
                 </div>
-                <p className="text-md">
-                  Ask questions about your repository or instantly generate code, tests, and
-                  documentation
-                </p>
               </div>
             </div>
           </div>

@@ -8,32 +8,43 @@ type PageTransitionProps = {
 };
 
 export function PageTransition({ children, key, direction = 'right' }: PageTransitionProps) {
-  // For entering animation
-  const initialX = direction === 'right' ? 40 : -40; // Increased from 20 to 40 for more noticeable slide
-  const exitX = direction === 'right' ? -40 : 40; // Increased from 20 to 40 for more noticeable slide
+  // Define slide directions more clearly
+  // 'right' means sliding from right to left (new content comes from right)
+  // 'left' means sliding from left to right (new content comes from left)
+  const slideDistance = 50; // Increased for more noticeable effect
+
+  const variants = {
+    initial: {
+      opacity: 0,
+      x: direction === 'right' ? slideDistance : -slideDistance,
+    },
+    animate: {
+      opacity: 1,
+      x: 0,
+    },
+    exit: {
+      opacity: 0,
+      x: direction === 'right' ? -slideDistance : slideDistance,
+    },
+  };
 
   return (
     <AnimatePresence mode="wait">
       <motion.div
         key={key}
-        initial={{ opacity: 0, x: initialX }}
-        animate={{
-          opacity: 1,
-          x: 0,
-          transition: {
-            duration: 0.4, // Increased from 0.2 to 0.4 seconds
-            ease: [0.2, 0, 0.1, 1], // Smoother easing function
-          },
-        }}
-        exit={{
-          opacity: 0,
-          x: exitX,
-          transition: {
-            duration: 0.3, // Slightly faster exit
-            ease: [0.4, 0, 0.2, 1], // Slightly different easing for exit
-          },
+        variants={variants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={{
+          duration: 0.5, // Slower for more visible effect
+          ease: [0.22, 1, 0.36, 1], // Better easing for smooth directional movement
         }}
         className="h-full w-full"
+        style={{
+          position: 'relative',
+          willChange: 'transform, opacity',
+        }}
       >
         {children}
       </motion.div>
