@@ -28,6 +28,7 @@ import { PastReviews } from './PastReviews';
 import { Review } from './review';
 import { ReviewModal } from './ReviewModal';
 import { Tooltip } from 'react-tooltip';
+import { ViewSwitcher } from '@/components/ViewSwitcher';
 
 const dropdownVariants: Variants = {
   hidden: {
@@ -237,17 +238,26 @@ export default function CodeReview() {
   };
 
   return (
-    <PageTransition direction="right">
+    <PageTransition key="review" direction="right">
       <div className="relative flex h-full flex-col gap-2 dark:bg-gray-900">
         {/* Header */}
         <div className="flex-grow">
-          <div className="mt-10">
-            <img src={deputyDevLogo} alt="DeputyDev Logo" className="h-10 w-auto px-4 opacity-90" />
-          </div>
-          <div className="mt-2 px-4 fade-in">
-            <div className="flex items-center gap-2">
-              <p className="mb-2 text-lg text-gray-400">You are ready to review your code.</p>
-              <Check className="mb-1 animate-pulse text-sm text-green-500" />
+          <div className="sticky top-0 z-50 border-b border-transparent bg-inherit">
+            <div className="mt-10">
+              <img
+                src={deputyDevLogo}
+                alt="DeputyDev Logo"
+                className="h-10 w-auto px-4 opacity-90"
+              />
+            </div>
+            <div className="mt-4 px-4 pb-4 fade-in">
+              <div className="flex flex-col items-start gap-2">
+                <ViewSwitcher />
+                <div className="flex items-center gap-2">
+                  <p className="text-lg text-gray-400">You are ready to review your code.</p>
+                  <Check className="animate-pulse text-sm text-green-500" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
