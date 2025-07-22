@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import fs from 'fs/promises';
-import { getActiveRepo, getRepoAndRelativeFilePath } from './contextManager';
+import { getActiveRepo, getContextRepositories, getRepoAndRelativeFilePath } from './contextManager';
 // Safe path comparison that works across different platforms
 export function arePathsEqual(path1?: string, path2?: string): boolean {
   if (!path1 && !path2) {
@@ -121,43 +121,40 @@ export async function checkFileExists(file_path: string): Promise<boolean> {
 
 /**
  * Resolve a directory path against a repo root,
- * but always return it relative to that root.
+ * always returning it relative to the correct context repo's root.
  *
- * @param directory - Either an absolute path or a path relative to the repo.
- * @returns A normalized path relative to the repo root ('.' if it is the root).
- * @throws If no repo is open or the input is invalid.
+ * @param directory - Either an absolute path or a path relative to some repo.
+ * @returns A normalized path relative to the matched repo root ('.' if it is the root).
+ * @throws If no repo is open, the input is invalid, or no matching repo is found.
  */
-export function resolveDirectoryRelative(directory?: string): string {
-  const repoPath = getActiveRepo();
-  if (!repoPath) {
-    throw new Error('No active repository found. Please open a workspace folder.');
-  }
+export async function resolveDirectoryRelative(directory?: string): Promise<string> {
   if (typeof directory !== 'string' || !directory.trim()) {
     throw new TypeError('directory must be a non-empty string');
   }
 
-  // Ensure repoPath is absolute
-  const repoRoot = path.resolve(repoPath);
-  if (!path.isAbsolute(repoRoot)) {
-    throw new Error(`repoPath must be absolute, got "${repoPath}"`);
+  // If already relative, just normalize and return
+  if (!path.isAbsolute(directory)) {
+    // Normalize separators to forward-slashes for consistency
+    return directory.replace(/\\/g, '/');
   }
 
-  // Determine absolute path from the input
-  let absPath: string;
-  if (path.isAbsolute(directory)) {
-    absPath = path.normalize(directory);
-  } else {
-    absPath = path.resolve(repoRoot, directory);
+  // For absolute path: check which repo it belongs to
+  const contextRepos = await getContextRepositories();
+  if (!contextRepos.length) {
+    throw new Error('No active repositories found.');
   }
 
-  // Compute the path relative to repoRoot
-  const rel = path.relative(repoRoot, absPath);
-
-  // If it's exactly the same as the repo root, return '.'
-  if (rel === '') {
-    return '.';
+  // Find the repo whose path is a prefix of the directory
+  for (const repo of contextRepos) {
+    // Make sure both paths are resolved and absolute
+    const repoRoot = path.resolve(repo.repo_path);
+    if (directory.startsWith(repoRoot)) {
+      // Get the relative path
+      const rel = path.relative(repoRoot, path.normalize(directory));
+      return rel === '' ? '.' : rel.replace(/\\/g, '/');
+    }
   }
 
-  // Normalize separators to forward-slashes for consistency
-  return rel.replace(/\\/g, '/');
+  // No matching repo found
+  throw new Error(`No matching repository found for path: "${directory}"`);
 }

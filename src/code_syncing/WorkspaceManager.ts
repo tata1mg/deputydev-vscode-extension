@@ -14,7 +14,7 @@ export class WorkspaceManager {
   private activeRepo: string | undefined; // Active repo stored as its folder path.
   private readonly sidebarProvider: SidebarProvider;
   private readonly outputChannel: vscode.LogOutputChannel;
-  private fileWatcher?: WorkspaceFileWatcher;
+  private fileWatchers?: Array<WorkspaceFileWatcher>;
   private readonly configManager: ConfigManager;
   private readonly activeRepoKey = 'activeRepo';
   private readonly _onDidSendRepos = new vscode.EventEmitter<{
@@ -122,20 +122,26 @@ export class WorkspaceManager {
    */
   private initializeFileWatcher(): void {
     // Dispose any existing watcher.
-    if (this.fileWatcher) {
-      this.fileWatcher.dispose();
-      this.fileWatcher = undefined;
+    if (this.fileWatchers) {
+      this.fileWatchers.forEach((watcher) => watcher.dispose());
+      this.fileWatchers = undefined;
       this.outputChannel.info('Disposed existing file watcher.');
     }
     // If activeRepo is defined, create a new file watcher.
     if (this.activeRepo) {
       this.outputChannel.info(`Creating file watcher for active repo: ${this.activeRepo}`);
-      this.fileWatcher = new WorkspaceFileWatcher(
-        this.activeRepo,
-        this.configManager,
-        this.outputChannel,
-        this.indexingService,
-      );
+
+      // Create a new file watcher instance for each workspace repo.
+      for (const [repoPath, _repoName] of this.workspaceRepos.entries()) {
+        const watcher = new WorkspaceFileWatcher(
+          repoPath,
+          this.configManager,
+          this.outputChannel,
+          this.indexingService,
+        );
+        this.fileWatchers ??= [];
+        this.fileWatchers.push(watcher);
+      }
       this.outputChannel.info(`Initialized file watcher for active repo: ${this.activeRepo}`);
     } else {
       this.outputChannel.info('No active repository defined. File watcher not initialized.');
@@ -223,7 +229,7 @@ export class WorkspaceManager {
     const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
     this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
     await this.indexingService
-      .updateVectorStoreWithResponse(params)
+      .updateVectorStore(params)
       .then((response) => {})
       .catch((error) => {
         this.outputChannel.info('Embedding failed 3 times...');

@@ -16,17 +16,6 @@ export class IndexingService {
     this.binaryClient = binaryClient;
   }
 
-  public async updateVectorStore(params: UpdateVectorStoreParams): Promise<{ status: string; error?: string }> {
-    try {
-      const socketConn = this.binaryClient.updateVectorDB();
-      await socketConn.sendMessageWithRetry(params);
-      socketConn.close();
-      return { status: 'sent' };
-    } catch (error: any) {
-      return { status: 'failed', error: error.message };
-    }
-  }
-
   private handleIndexingEvents(
     messageData: any,
     resolver: (value: any) => void,
@@ -49,7 +38,6 @@ export class IndexingService {
           repo_path: messageData.repo_path as string,
           progress: messageData.progress as number,
           indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
-          is_partial_state: messageData.is_partial_state as boolean,
         });
       } else if (messageData.task === 'INDEXING' && messageData.status === 'COMPLETED') {
         sendProgress({
@@ -58,7 +46,6 @@ export class IndexingService {
           repo_path: messageData.repo_path as string,
           progress: messageData.progress as number,
           indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
-          is_partial_state: messageData.is_partial_state as boolean,
         });
         resolver({ status: 'completed' });
       } else if (messageData.task === 'INDEXING' && messageData.status === 'FAILED') {
@@ -68,7 +55,6 @@ export class IndexingService {
           repo_path: messageData.repo_path as string,
           progress: messageData.progress as number,
           indexing_status: messageData.indexing_status as { file_path: string; status: string }[],
-          is_partial_state: messageData.is_partial_state as boolean,
         });
         socketConn.close();
         rejecter(new Error('Indexing failed'));
@@ -82,7 +68,7 @@ export class IndexingService {
     }
   }
 
-  public async updateVectorStoreWithResponse(params: UpdateVectorStoreParams): Promise<any> {
+  public async updateVectorStore(params: UpdateVectorStoreParams): Promise<any> {
     let resolver: (value: any) => void;
     let rejecter: (reason?: any) => void;
 
@@ -97,7 +83,6 @@ export class IndexingService {
           repo_path: params.repo_path,
           progress: 0,
           indexing_status: [],
-          is_partial_state: false,
         });
 
         const result = new Promise((resolve, reject) => {
@@ -124,7 +109,6 @@ export class IndexingService {
             repo_path: params.repo_path,
             progress: 0,
             indexing_status: [],
-            is_partial_state: false,
           });
           throw new Error(`Failed to update vector store after ${maxAttempts} attempts: ${error}`);
         }

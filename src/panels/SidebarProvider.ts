@@ -168,15 +168,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.chatService.killAllProcesses();
           deleteSessionId();
           break;
-        // case 'api-clear-chat':
-        //   promise = this.chatService.apiClearChat();
-        //   break;
-        // case 'api-save-session':
-        //   promise = this.chatService.apiSaveSession(data);
-        //   break;
-        // case 'api-chat-setting':
-        //   promise = this.chatService.apiChatSetting(data);
-        // break;
         case 'get-client-version':
           promise = this.sendMessageToSidebar({
             id: uuidv4(),
@@ -596,7 +587,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         repo_path: activeRepo,
         progress: 0,
         indexing_status: [],
-        is_partial_state: false,
       });
     }
 
@@ -643,7 +633,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
 
     try {
-      await this.indexingService.updateVectorStoreWithResponse(params);
+      await this.indexingService.updateVectorStore(params);
     } catch (error) {
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
@@ -659,7 +649,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     const params = { repo_path: repoPath, retried_by_user: true };
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
     try {
-      await this.indexingService.updateVectorStoreWithResponse(params);
+      await this.indexingService.updateVectorStore(params);
     } catch (error) {
       this.errorTrackingManager.trackGeneralError(error, 'RETRY_EMBEDDING_ERROR', 'BINARY');
       this.logger.warn('Embedding failed');
