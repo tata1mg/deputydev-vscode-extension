@@ -115,7 +115,7 @@ export async function getEnvironmentDetails(
     try {
       const req: any = {
         file_path: absolutePath,
-        repo_path: '', 
+        repo_path: '',
         number_of_lines: FILE_CONTEXT_THRESHOLD,
       };
       if (typeof start_line === 'number' && typeof end_line === 'number') {
