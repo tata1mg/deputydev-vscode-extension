@@ -486,6 +486,9 @@ export interface CodeReviewStorage {
   commentFixQuery: string;
   reviewErrorMessage: string;
   showReviewError: boolean;
+  isFetchingPastReviews: boolean;
+  resolvedCommentIds: number[];
+  ignoredCommentIds: number[];
 }
 
 export interface CodeReviewSetting {

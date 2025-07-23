@@ -878,6 +878,7 @@ addCommandEventListener('past-reviews', ({ data }) => {
   if (data) {
     useCodeReviewStore.setState({ pastReviews: result });
   }
+  useCodeReviewStore.setState({ isFetchingPastReviews: false });
 
   console.log('Past reviews data received:', useCodeReviewStore.getState().pastReviews);
 });
@@ -1146,4 +1147,24 @@ addCommandEventListener('hit-new-review-after-file-event', () => {
     targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
     reviewType: useCodeReviewStore.getState().activeReviewOption.value,
   });
+});
+
+addCommandEventListener('comment-is-resolved', ({ data }) => {
+  const commentId = data as number;
+  console.log('Comment is resolved:', commentId);
+  useCodeReviewStore.setState((state) => ({
+    resolvedCommentIds: state.resolvedCommentIds.includes(commentId)
+      ? state.resolvedCommentIds
+      : [...state.resolvedCommentIds, commentId],
+  }));
+});
+
+addCommandEventListener('comment-is-ignored', ({ data }) => {
+  const commentId = data as number;
+  console.log('Comment is ignored:', commentId);
+  useCodeReviewStore.setState((state) => ({
+    ignoredCommentIds: state.ignoredCommentIds.includes(commentId)
+      ? state.ignoredCommentIds
+      : [...state.ignoredCommentIds, commentId],
+  }));
 });

@@ -167,6 +167,16 @@
         "command": "deputydev.fixWithDeputyDev",
         "title": "Fix with DeputyDev",
         "icon": "$(sparkle)"
+      },
+      {
+        "command": "deputydev.collapseAllComments",
+        "title": "Collapse All Comments",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "deputydev.ignoreComment",
+        "title": "Ignore Comment",
+        "icon": "$(circle-slash)"
       }
     ],
     "menus": {
@@ -177,9 +187,19 @@
           "group": "inline@1"
         },
         {
-          "command": "deputydev.fixWithDeputyDev",
+          "command": "deputydev.ignoreComment",
           "when": "commentThread == editable && commentController == DeputyDevCodeReview",
           "group": "inline@2"
+        },
+        {
+          "command": "deputydev.fixWithDeputyDev",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@3"
+        },
+        {
+          "command": "deputydev.collapseAllComments",
+          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
+          "group": "inline@4"
         }
       ],
       "comments/commentThread/context": [

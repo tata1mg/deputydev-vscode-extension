@@ -551,14 +551,17 @@ export default function CodeReview() {
           <div className="flex gap-2">
             <div className="relative flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
               {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
-                <span
-                  className="flex-1 cursor-pointer text-center"
+                <button
+                  className={`flex-1 text-center ${useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0 ? 'cursor-not-allowed' : 'cursor-pointer'} `}
+                  disabled={
+                    useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0
+                  }
                   onClick={() => {
                     setIsModalOpen(true);
                   }}
                 >
                   {activeReviewOption.displayName}
-                </span>
+                </button>
               )}
 
               {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
@@ -1062,7 +1065,7 @@ export default function CodeReview() {
         </div>
 
         {/* Reviews History */}
-        {pastReviews && pastReviews.length > 0 && <PastReviews />}
+        <PastReviews />
         <Tooltip id="code-review-tooltips" />
       </div>
     </PageTransition>

@@ -51,6 +51,9 @@ export const useCodeReviewStore = create<
       commentFixQuery: '',
       reviewErrorMessage: '',
       showReviewError: false,
+      isFetchingPastReviews: true,
+      resolvedCommentIds: [],
+      ignoredCommentIds: [],
 
       setSteps: (steps) => set({ steps }),
 
