@@ -716,6 +716,7 @@ export default function CodeReview() {
                               onClick={() => toggleAgentExpansion(agent.id)}
                             >
                               <div className="flex min-w-0 items-center gap-2">
+                                <BotMessageSquare className="h-4 w-4 flex-shrink-0" />
                                 <span className="flex-1 truncate">{agent.display_name}</span>
                                 <Info
                                   className="mr-2 h-4 w-4 flex-shrink-0 opacity-30 hover:opacity-60"
@@ -840,6 +841,7 @@ export default function CodeReview() {
                               onClick={() => toggleAgentExpansion(agent.id)}
                             >
                               <div className="flex min-w-0 items-center gap-2">
+                                <BotMessageSquare className="h-4 w-4 flex-shrink-0" />
                                 <span className="flex-1 truncate">{agent.display_name}</span>
                               </div>
                               <div className="flex items-center gap-2">

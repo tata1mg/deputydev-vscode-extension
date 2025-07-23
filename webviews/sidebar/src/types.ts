@@ -487,8 +487,6 @@ export interface CodeReviewStorage {
   reviewErrorMessage: string;
   showReviewError: boolean;
   isFetchingPastReviews: boolean;
-  resolvedCommentIds: number[];
-  ignoredCommentIds: number[];
 }
 
 export interface CodeReviewSetting {
@@ -499,6 +497,7 @@ export interface CodeReviewComment {
   id: number;
   title: string;
   comment: string;
+  comment_status: string;
   rationale: string;
   corrective_code: string;
   file_path: string;

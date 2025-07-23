@@ -408,3 +408,7 @@ export function startCodeReviewPostProcess(data: { review_id: number }) {
 export function cancelReview() {
   return callCommand('cancel-review', {});
 }
+
+export function sendCommentStatusUpdate(commentId: number, status: string) {
+  return callCommand('send-comment-status-update', { commentId, status });
+}
