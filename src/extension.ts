@@ -345,16 +345,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       }
     }),
-
-    vscode.commands.registerCommand('deputydev.dislikeCodeReviewComment', () => {
-      // Handle dislike action
-      console.log('Dislike code review comment action triggered');
-    }),
-
-    vscode.commands.registerCommand('deputydev.likeCodeReviewComment', () => {
-      // Handle like action
-      console.log('Like code review comment action triggered');
-    }),
   );
 
   context.subscriptions.push(

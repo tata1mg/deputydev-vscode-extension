@@ -135,7 +135,12 @@ export default function CodeReview() {
   };
 
   const handleResetReview = () => {
-    useCodeReviewStore.setState({ showReviewProcess: false, reviewStatus: 'IDLE', steps: [] });
+    useCodeReviewStore.setState({
+      showReviewProcess: false,
+      reviewStatus: 'IDLE',
+      steps: [],
+      reviewErrorMessage: '',
+    });
     setShowFilesToReview(true);
   };
 
@@ -531,6 +536,15 @@ export default function CodeReview() {
           }}
         />
 
+        {useCodeReviewStore.getState().showReviewError && (
+          <div className="mb-2 flex items-center justify-center">
+            <span className="text-xs italic text-red-500">
+              {useCodeReviewStore.getState().reviewErrorMessage ||
+                'An error occurred during the review process.'}
+            </span>
+          </div>
+        )}
+
         {/* Review Button */}
         <div ref={dropDownRef} className="relative px-4">
           <div className="flex gap-2">
@@ -573,7 +587,8 @@ export default function CodeReview() {
               )}
 
               {(useCodeReviewStore.getState().reviewStatus === 'COMPLETED' ||
-                useCodeReviewStore.getState().reviewStatus === 'STOPPED') && (
+                useCodeReviewStore.getState().reviewStatus === 'STOPPED' ||
+                useCodeReviewStore.getState().reviewStatus === 'FAILED') && (
                 <span
                   className="flex-1 cursor-pointer text-center"
                   onClick={() => {

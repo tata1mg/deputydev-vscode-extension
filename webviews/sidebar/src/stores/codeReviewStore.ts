@@ -30,10 +30,13 @@ export const useCodeReviewStore = create<
       searchedBranches: [],
       selectedTargetBranch: '',
       new_review: {} as NewReview,
-      activeReviewOption: { displayName: 'Review All Changes', value: 'ALL' } as ReviewOption,
+      activeReviewOption: {
+        displayName: 'Review Uncommitted Changes',
+        value: 'UNCOMMITTED_ONLY',
+      } as ReviewOption,
       reviewOptions: [
-        { displayName: 'Review All Changes', value: 'ALL' },
         { displayName: 'Review Uncommitted Changes', value: 'UNCOMMITTED_ONLY' },
+        { displayName: 'Review All Changes', value: 'ALL' },
         { displayName: 'Review Committed Changes', value: 'COMMITTED_ONLY' },
       ] as ReviewOption[],
       pastReviews: [],
@@ -46,6 +49,8 @@ export const useCodeReviewStore = create<
       failedAgents: [],
       showFailedAgentsDialog: false,
       commentFixQuery: '',
+      reviewErrorMessage: '',
+      showReviewError: false,
 
       setSteps: (steps) => set({ steps }),
 

@@ -1033,8 +1033,6 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
       enabledAgentStatuses.every((status) => status === 'COMPLETED' || status === 'FAILED');
 
     if (allEnabledAgentsDone) {
-      useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
-
       const failedAgents = reviewingStep.agents
         .filter((agent) => agent.status === 'FAILED')
         .map((agent) => ({
@@ -1042,9 +1040,19 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
           name: agent.name,
         }));
 
-      if (failedAgents.length > 0) {
+      if (failedAgents.length > 0 && failedAgents.length != enabledAgents.length) {
         useCodeReviewStore.getState().setFailedAgents(failedAgents);
         useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+        useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+      }
+
+      if (failedAgents.length > 0 && failedAgents.length === enabledAgents.length) {
+        useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'FAILED');
+        useCodeReviewStore.setState({ reviewStatus: 'FAILED' });
+        useCodeReviewStore.setState({ showReviewError: true });
+        useCodeReviewStore.setState({
+          reviewErrorMessage: 'All agents failed to review the code.',
+        });
       }
     }
   }

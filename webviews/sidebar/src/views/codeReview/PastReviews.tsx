@@ -13,6 +13,46 @@ export const PastReviews = () => {
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const { pastReviews, userAgents } = useCodeReviewStore();
 
+  const formatCodeBlock = (code: string): string => {
+    if (!code?.trim()) return '';
+
+    // Replace escaped newlines with actual newlines and remove leading/trailing whitespace
+    const cleanCode = code.replace(/\\n/g, '\n').replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+
+    if (!cleanCode) return '';
+
+    // If code is already wrapped in triple backticks, return as is
+    const trimmedCode = cleanCode.trim();
+    if (trimmedCode.startsWith('```') && trimmedCode.endsWith('```')) {
+      return `\n${trimmedCode}\n`;
+    }
+
+    // Otherwise, wrap in triple backticks without language specification
+    return `\n\`\`\`\n${trimmedCode}\n\`\`\`\n`;
+  };
+
+  const getFormattedComment = (
+    comment: string,
+    correctiveCode: string,
+    rationale: string
+  ): string => {
+    let formattedComment = '';
+
+    if (comment?.trim()) {
+      formattedComment += `${comment.trim()}\n\n`;
+    }
+
+    if (rationale?.trim()) {
+      formattedComment += `**Rationale**: ${rationale.trim()}\n\n`;
+    }
+
+    if (correctiveCode?.trim()) {
+      formattedComment += `**Suggested Fix**:${formatCodeBlock(correctiveCode)}`;
+    }
+
+    return formattedComment.trim();
+  };
+
   const tagColors = (tag: string) => {
     const lowerTag = tag.toLowerCase();
     if (lowerTag === 'bug') return 'bg-red-700';
@@ -149,74 +189,78 @@ export const PastReviews = () => {
                     className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
                   >
                     {/* Agent Filter */}
-                    <div className="my-3 flex flex-col gap-2 pl-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs">Agents</span>
-                        {selectedAgents.size > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedAgents(new Set());
-                            }}
-                            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-                          >
-                            <X size={12} /> Clear
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {review.agent_summary.map((agent: AgentSummary) => {
-                          const isSelected = selectedAgents.has(agent.id);
-                          return (
-                            <div
-                              key={agent.id}
-                              onClick={(e) => toggleAgent(agent.id, e)}
-                              className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-800 text-white opacity-50 hover:opacity-75'}`}
+                    {review.agent_summary.length !== 0 && (
+                      <div className="my-3 flex flex-col gap-2 pl-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs">Agents</span>
+                          {selectedAgents.size > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAgents(new Set());
+                              }}
+                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                             >
-                              <User className="h-3 w-3" />
-                              <span className="text-xs">{agent.display_name}</span>
-                              <span className="ml-1 rounded-full bg-blue-500 px-1.5 text-[10px] font-bold">
-                                {agent.count}
-                              </span>
-                            </div>
-                          );
-                        })}
+                              <X size={12} /> Clear
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {review.agent_summary.map((agent: AgentSummary) => {
+                            const isSelected = selectedAgents.has(agent.id);
+                            return (
+                              <div
+                                key={agent.id}
+                                onClick={(e) => toggleAgent(agent.id, e)}
+                                className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-800 text-white opacity-50 hover:opacity-75'}`}
+                              >
+                                <User className="h-3 w-3" />
+                                <span className="text-xs">{agent.display_name}</span>
+                                <span className="ml-1 rounded-full bg-blue-500 px-1.5 text-[10px] font-bold">
+                                  {agent.count}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Tag Filter */}
-                    <div className="mb-3 flex flex-col gap-2 pl-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs">Tags</span>
-                        {selectedTags.size > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTags(new Set());
-                            }}
-                            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-                          >
-                            <X size={12} /> Clear
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {allTags.map((tag: string) => {
-                          const isSelected = selectedTags.has(tag);
-                          const Icon = tag.toLowerCase() === 'bug' ? Bug : TriangleAlert;
-                          return (
-                            <div
-                              key={tag}
-                              onClick={(e) => toggleTag(tag, e)}
-                              className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}`}
+                    {allTags.length !== 0 && (
+                      <div className="mb-3 flex flex-col gap-2 pl-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs">Tags</span>
+                          {selectedTags.size > 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTags(new Set());
+                              }}
+                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                             >
-                              <Icon size={12} />
-                              {tag.toUpperCase()}
-                            </div>
-                          );
-                        })}
+                              <X size={12} /> Clear
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {allTags.map((tag: string) => {
+                            const isSelected = selectedTags.has(tag);
+                            const Icon = tag.toLowerCase() === 'bug' ? Bug : TriangleAlert;
+                            return (
+                              <div
+                                key={tag}
+                                onClick={(e) => toggleTag(tag, e)}
+                                className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}`}
+                              >
+                                <Icon size={12} />
+                                {tag.toUpperCase()}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Files and Comments */}
                     {Object.entries(review.comments).map(
@@ -305,8 +349,12 @@ export const PastReviews = () => {
                                             // TODO Need to handle dynamic file paths
                                             filePath: comment.file_path,
                                             lineNumber: comment.line_number - 1,
-                                            commentText: `${comment.comment}\n\n${comment.corrective_code || ''}\n\n${comment.rationale || ''}`,
-                                            promptText: `${comment.tag.toUpperCase()} : ${comment.title.toUpperCase()}`,
+                                            commentText: getFormattedComment(
+                                              comment.comment,
+                                              comment.corrective_code,
+                                              comment.rationale
+                                            ),
+                                            promptText: `${comment.tag.toUpperCase()} : ${comment.title}`,
                                             commentId: comment.id,
                                           });
                                         }}

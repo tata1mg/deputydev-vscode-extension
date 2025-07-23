@@ -167,16 +167,6 @@
         "command": "deputydev.fixWithDeputyDev",
         "title": "Fix with DeputyDev",
         "icon": "$(sparkle)"
-      },
-      {
-        "command": "deputydev.likeCodeReviewComment",
-        "title": "Like DeputyDev Comment",
-        "icon": "$(thumbsup)"
-      },
-      {
-        "command": "deputydev.dislikeCodeReviewComment",
-        "title": "Dislike DeputyDev Comment",
-        "icon": "$(thumbsdown)"
       }
     ],
     "menus": {
@@ -190,16 +180,6 @@
           "command": "deputydev.fixWithDeputyDev",
           "when": "commentThread == editable && commentController == DeputyDevCodeReview",
           "group": "inline@2"
-        },
-        {
-          "command": "deputydev.likeCodeReviewComment",
-          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
-          "group": "inline@3"
-        },
-        {
-          "command": "deputydev.dislikeCodeReviewComment",
-          "when": "commentThread == editable && commentController == DeputyDevCodeReview",
-          "group": "inline@4"
         }
       ],
       "comments/commentThread/context": [

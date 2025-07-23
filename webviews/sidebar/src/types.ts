@@ -481,9 +481,11 @@ export interface CodeReviewStorage {
   activeReviewId: number;
   activeReviewSessionId: number;
   showReviewProcess: boolean;
-  reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE';
+  reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE' | 'FAILED';
   repoId: number;
   commentFixQuery: string;
+  reviewErrorMessage: string;
+  showReviewError: boolean;
 }
 
 export interface CodeReviewSetting {
@@ -495,7 +497,7 @@ export interface CodeReviewComment {
   title: string;
   comment: string;
   rationale: string;
-  corrective_code: string | null;
+  corrective_code: string;
   file_path: string;
   line_hash: string;
   line_number: number;
