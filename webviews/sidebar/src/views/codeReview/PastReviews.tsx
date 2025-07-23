@@ -2,8 +2,17 @@ import { openCommentInFile } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { AgentSummary, CodeReviewComment, Review } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, User, Bug, TriangleAlert, FileWarning, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import {
+  ChevronRight,
+  User,
+  Bug,
+  TriangleAlert,
+  FileWarning,
+  X,
+  LoaderCircle,
+  Undo2,
+} from 'lucide-react';
+import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 
 export const PastReviews = () => {
@@ -12,6 +21,28 @@ export const PastReviews = () => {
   const [selectedAgents, setSelectedAgents] = useState<Set<number>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const { pastReviews, userAgents } = useCodeReviewStore();
+
+  const markCommentUnresolved = (commentId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isResolved = useCodeReviewStore.getState().resolvedCommentIds.includes(commentId);
+    if (isResolved) {
+      useCodeReviewStore.setState((state) => ({
+        resolvedCommentIds: state.resolvedCommentIds.filter((id) => id !== commentId),
+      }));
+    }
+
+    const isIgnored = useCodeReviewStore.getState().ignoredCommentIds.includes(commentId);
+    if (isIgnored) {
+      useCodeReviewStore.setState((state) => ({
+        ignoredCommentIds: state.ignoredCommentIds.filter((id) => id !== commentId),
+      }));
+    }
+  };
+
+  const isCommentResolved = (commentId: number) =>
+    useCodeReviewStore.getState().resolvedCommentIds.includes(commentId);
+  const isCommentIgnored = (commentId: number) =>
+    useCodeReviewStore.getState().ignoredCommentIds.includes(commentId);
 
   const formatCodeBlock = (code: string): string => {
     if (!code?.trim()) return '';
@@ -49,6 +80,8 @@ export const PastReviews = () => {
     if (correctiveCode?.trim()) {
       formattedComment += `**Suggested Fix**:${formatCodeBlock(correctiveCode)}`;
     }
+
+    formattedComment += '\n\n';
 
     return formattedComment.trim();
   };
@@ -105,13 +138,17 @@ export const PastReviews = () => {
   };
 
   const getAllTags = (review: Review) => {
-    const tags = new Set<string>();
+    const tagCounts = new Map<string, number>();
     Object.values(review.comments).forEach((comments) => {
       comments.forEach((comment) => {
-        tags.add(comment.tag);
+        const normalizedTag = comment.tag.toLowerCase();
+        tagCounts.set(normalizedTag, (tagCounts.get(normalizedTag) || 0) + 1);
       });
     });
-    return Array.from(tags);
+    return Array.from(tagCounts.entries()).map(([tag, count]) => ({
+      tag: tag.charAt(0).toUpperCase() + tag.slice(1),
+      count,
+    }));
   };
 
   return (
@@ -123,297 +160,356 @@ export const PastReviews = () => {
         }}
       >
         <div className="flex w-full items-center justify-between px-4 py-2">
-          <div className="relative flex-1 text-sm font-medium">Past Reviews</div>
+          <div className="relative flex-1 text-sm font-medium">Reviews</div>
         </div>
       </div>
 
-      <div
-        className="flex-1 overflow-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
-        style={{
-          boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
-        }}
-      >
-        {pastReviews.map((review: Review) => {
-          const fileCount = review.meta.file_count;
-          const commentCount = review.meta.comment_count;
-          const reviewDate = review.review_datetime
-            ? new Date(review.review_datetime).toLocaleDateString()
-            : 'No date';
-          const allTags = getAllTags(review);
+      {pastReviews && pastReviews.length > 0 ? (
+        <div
+          className="min-h-[260px] flex-1 overflow-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+          style={{
+            boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
+          }}
+        >
+          {pastReviews.map((review: Review) => {
+            const fileCount = review.meta.file_count;
+            const commentCount = review.meta.comment_count;
+            const reviewDate = review.review_datetime
+              ? new Date(review.review_datetime).toLocaleDateString()
+              : '';
+            const allTags = getAllTags(review);
 
-          return (
-            <div key={review.id} className="m-1 text-sm">
-              <div
-                className="flex cursor-pointer items-center justify-between rounded px-2 py-0.5 hover:bg-[var(--vscode-list-hoverBackground)]"
-                onClick={() => toggleReview(review.id.toString())}
-              >
-                <div className="flex items-center">
-                  <motion.div
-                    animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </motion.div>
-                  <div className="flex flex-col px-2">
-                    <span className="text-sm font-medium">{review.title}</span>
-                    <span className="text-[8px] text-[var(--vscode-descriptionForeground)]">
-                      {reviewDate}
-                    </span>
+            return (
+              <div key={review.id} className="m-1 text-sm">
+                <div
+                  className={`flex cursor-pointer items-center justify-between rounded-t px-2 py-1.5 hover:bg-[var(--vscode-list-hoverBackground)] ${expandedReview === review.id.toString() ? 'border-l border-r border-t border-[var(--vscode-editorWidget-border)]' : 'rounded border border-[var(--vscode-editorWidget-border)]'}`}
+                  onClick={() => toggleReview(review.id.toString())}
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <motion.div
+                      animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="shrink-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </motion.div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{review.title}</div>
+                      <div className="flex items-center gap-2 text-[12px] text-[var(--vscode-descriptionForeground)]">
+                        {reviewDate !== '' && (
+                          <div className="flex items-center gap-2">
+                            <span>{reviewDate}</span>
+                            <span>•</span>
+                          </div>
+                        )}
+                        <span>
+                          {fileCount} {fileCount === 1 ? 'File' : 'Files'}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {commentCount} {commentCount === 1 ? 'Comment' : 'Comments'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-xs text-[var(--vscode-descriptionForeground)]">
-                  {fileCount} files • {commentCount} comments
-                </div>
-              </div>
 
-              <AnimatePresence>
-                {expandedReview === review.id.toString() && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{
-                      opacity: 1,
-                      height: 'auto',
-                      transition: {
-                        opacity: { duration: 0.2 },
-                        height: { duration: 0.3, ease: 'easeInOut' },
-                      },
-                    }}
-                    exit={{
-                      opacity: 0,
-                      height: 0,
-                      transition: {
-                        opacity: { duration: 0.15 },
-                        height: { duration: 0.25, ease: 'easeInOut' },
-                      },
-                    }}
-                    className="overflow-hidden border-t border-[var(--vscode-editorWidget-border)] text-xs"
-                  >
-                    {/* Agent Filter */}
-                    {review.agent_summary.length !== 0 && (
-                      <div className="my-3 flex flex-col gap-2 pl-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Agents</span>
-                          {selectedAgents.size > 0 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedAgents(new Set());
-                              }}
-                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-                            >
-                              <X size={12} /> Clear
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {review.agent_summary.map((agent: AgentSummary) => {
-                            const isSelected = selectedAgents.has(agent.id);
-                            return (
-                              <div
-                                key={agent.id}
-                                onClick={(e) => toggleAgent(agent.id, e)}
-                                className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-800 text-white opacity-50 hover:opacity-75'}`}
+                <AnimatePresence>
+                  {expandedReview === review.id.toString() && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{
+                        opacity: 1,
+                        height: 'auto',
+                        transition: {
+                          opacity: { duration: 0.2 },
+                          height: { duration: 0.3, ease: 'easeInOut' },
+                        },
+                      }}
+                      exit={{
+                        opacity: 0,
+                        height: 0,
+                        transition: {
+                          opacity: { duration: 0.15 },
+                          height: { duration: 0.25, ease: 'easeInOut' },
+                        },
+                      }}
+                      className="overflow-hidden rounded-b border-b border-l border-r border-[var(--vscode-editorWidget-border)]"
+                    >
+                      {/* Agent Filter */}
+                      {review.agent_summary.length !== 0 && (
+                        <div className="my-3 flex flex-col gap-2 pl-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs">Agents</span>
+                            {selectedAgents.size > 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAgents(new Set());
+                                }}
+                                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
                               >
-                                <User className="h-3 w-3" />
-                                <span className="text-xs">{agent.display_name}</span>
-                                <span className="ml-1 rounded-full bg-blue-500 px-1.5 text-[10px] font-bold">
-                                  {agent.count}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tag Filter */}
-                    {allTags.length !== 0 && (
-                      <div className="mb-3 flex flex-col gap-2 pl-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs">Tags</span>
-                          {selectedTags.size > 0 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedTags(new Set());
-                              }}
-                              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
-                            >
-                              <X size={12} /> Clear
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {allTags.map((tag: string) => {
-                            const isSelected = selectedTags.has(tag);
-                            const Icon = tag.toLowerCase() === 'bug' ? Bug : TriangleAlert;
-                            return (
-                              <div
-                                key={tag}
-                                onClick={(e) => toggleTag(tag, e)}
-                                className={`flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-100' : 'opacity-50 hover:opacity-75'}`}
-                              >
-                                <Icon size={12} />
-                                {tag.toUpperCase()}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Files and Comments */}
-                    {Object.entries(review.comments).map(
-                      ([filePath, comments]: [string, CodeReviewComment[]]) => {
-                        const filteredComments = getFilteredComments(comments);
-                        const hasComments = filteredComments.length > 0;
-
-                        return (
-                          <div key={filePath} className="pl-4">
-                            <div
-                              className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFile(filePath);
-                              }}
-                            >
-                              <div className="flex min-w-0 flex-1 items-center gap-2">
-                                <motion.div
-                                  animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
-                                  transition={{ duration: 0.2 }}
+                                <X size={12} /> Clear
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {review.agent_summary.map((agent: AgentSummary) => {
+                              const isSelected = selectedAgents.has(agent.id);
+                              return (
+                                <div
+                                  key={agent.id}
+                                  onClick={(e) => toggleAgent(agent.id, e)}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-600/50 text-white hover:bg-blue-600'}`}
                                 >
-                                  <ChevronRight size={12} className="flex-shrink-0" />
-                                </motion.div>
-                                <div className="flex min-w-0 flex-1 items-center">
-                                  <div
-                                    data-tooltip-id="code-review-tooltips"
-                                    data-tooltip-content={filePath}
-                                    data-tooltip-place="top-start"
-                                    data-tooltip-class-name="max-w-[80%] break-words whitespace-normal"
-                                    style={{
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      direction: 'rtl',
-                                      textAlign: 'left',
-                                      flex: 1,
-                                    }}
+                                  <User className="h-3 w-3" />
+                                  <span className="text-xs">{agent.display_name}</span>
+                                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold leading-none">
+                                    {agent.count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tag Filter */}
+                      {allTags.length !== 0 && (
+                        <div className="mb-3 flex flex-col gap-2 pl-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs">Tags</span>
+                            {selectedTags.size > 0 && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTags(new Set());
+                                }}
+                                className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                              >
+                                <X size={12} /> Clear
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {allTags.map(({ tag, count }) => {
+                              const isSelected = selectedTags.has(tag);
+                              const Icon = tag.toLowerCase() === 'bug' ? Bug : TriangleAlert;
+                              return (
+                                <div
+                                  key={tag}
+                                  onClick={(e) => toggleTag(tag, e)}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-100' : 'opacity-100 hover:opacity-90'}`}
+                                >
+                                  <Icon size={12} />
+                                  {tag.toUpperCase()}
+                                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold leading-none">
+                                    {count}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Files and Comments */}
+                      {Object.entries(review.comments).map(
+                        ([filePath, comments]: [string, CodeReviewComment[]]) => {
+                          const filteredComments = getFilteredComments(comments);
+                          const hasComments = filteredComments.length > 0;
+
+                          return (
+                            <div key={filePath} className="pl-4">
+                              <div
+                                className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFile(filePath);
+                                }}
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-2">
+                                  <motion.div
+                                    animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
+                                    transition={{ duration: 0.2 }}
                                   >
-                                    {filePath}
+                                    <ChevronRight size={12} className="flex-shrink-0" />
+                                  </motion.div>
+                                  <div className="flex min-w-0 flex-1 items-center">
+                                    <div
+                                      data-tooltip-id="code-review-tooltips"
+                                      data-tooltip-content={filePath}
+                                      data-tooltip-place="top-start"
+                                      data-tooltip-class-name="max-w-[80%] break-words whitespace-normal"
+                                      style={{
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        direction: 'rtl',
+                                        textAlign: 'left',
+                                        flex: 1,
+                                      }}
+                                    >
+                                      {filePath}
+                                    </div>
+                                  </div>
+                                  <div className="ml-2 flex items-center gap-1 whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
+                                    {hasComments ? (
+                                      <>
+                                        {filteredComments.length}
+                                        <FileWarning className="h-4 w-4 flex-shrink-0 text-red-600" />
+                                      </>
+                                    ) : (
+                                      <span className="text-[var(--vscode-descriptionForeground)]">
+                                        No comments
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="ml-2 flex items-center gap-1 whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
-                                  {hasComments ? (
-                                    <>
-                                      {filteredComments.length}
-                                      <FileWarning className="h-4 w-4 flex-shrink-0 text-red-600" />
-                                    </>
-                                  ) : (
-                                    <span className="text-[var(--vscode-descriptionForeground)]">
-                                      No comments
-                                    </span>
-                                  )}
-                                </div>
                               </div>
-                            </div>
 
-                            <AnimatePresence>
-                              {expandedFile === filePath && (
-                                <motion.div
-                                  initial={{ opacity: 0, height: 0 }}
-                                  animate={{
-                                    opacity: 1,
-                                    height: 'auto',
-                                    transition: {
-                                      opacity: { duration: 0.2 },
-                                      height: { duration: 0.3, ease: 'easeInOut' },
-                                    },
-                                  }}
-                                  exit={{
-                                    opacity: 0,
-                                    height: 0,
-                                    transition: {
-                                      opacity: { duration: 0.15 },
-                                      height: { duration: 0.25, ease: 'easeInOut' },
-                                    },
-                                  }}
-                                  className="overflow-hidden"
-                                >
-                                  {hasComments ? (
-                                    filteredComments.map((comment: CodeReviewComment) => (
-                                      <div
-                                        key={comment.id}
-                                        className="cursor-pointer border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
-                                        onClick={() => {
-                                          openCommentInFile({
-                                            // TODO Need to handle dynamic file paths
-                                            filePath: comment.file_path,
-                                            lineNumber: comment.line_number - 1,
-                                            commentText: getFormattedComment(
-                                              comment.comment,
-                                              comment.corrective_code,
-                                              comment.rationale
-                                            ),
-                                            promptText: `${comment.tag.toUpperCase()} : ${comment.title}`,
-                                            commentId: comment.id,
-                                          });
-                                        }}
-                                      >
-                                        <div className="flex w-full flex-col gap-1">
-                                          <div className="flex w-full items-center justify-between">
-                                            <div className="font-semibold">{comment.title}</div>
-                                            <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
-                                              Line {comment.line_number}
-                                            </span>
-                                          </div>
-                                          <div className="flex flex-wrap items-center gap-1">
-                                            {comment.agent_ids.map((agentId: number) => (
-                                              <div
-                                                key={agentId}
-                                                className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
-                                              >
-                                                <User className="h-3 w-3" />
-                                                <span>
-                                                  {
-                                                    userAgents.find((ua) => ua.id === agentId)
-                                                      ?.display_name
+                              <AnimatePresence>
+                                {expandedFile === filePath && (
+                                  <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{
+                                      opacity: 1,
+                                      height: 'auto',
+                                      transition: {
+                                        opacity: { duration: 0.2 },
+                                        height: { duration: 0.3, ease: 'easeInOut' },
+                                      },
+                                    }}
+                                    exit={{
+                                      opacity: 0,
+                                      height: 0,
+                                      transition: {
+                                        opacity: { duration: 0.15 },
+                                        height: { duration: 0.25, ease: 'easeInOut' },
+                                      },
+                                    }}
+                                    className="overflow-hidden"
+                                  >
+                                    {hasComments ? (
+                                      filteredComments.map((comment: CodeReviewComment) => {
+                                        const isResolved = isCommentResolved(comment.id);
+                                        const isIgnored = isCommentIgnored(comment.id);
+                                        return (
+                                          <div
+                                            key={comment.id}
+                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${
+                                              isResolved
+                                                ? 'line-through opacity-70'
+                                                : 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]'
+                                            } ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''}`}
+                                            onClick={
+                                              !isResolved
+                                                ? () => {
+                                                    openCommentInFile({
+                                                      filePath: comment.file_path,
+                                                      lineNumber: comment.line_number - 1,
+                                                      commentText: getFormattedComment(
+                                                        comment.comment,
+                                                        comment.corrective_code,
+                                                        comment.rationale
+                                                      ),
+                                                      promptText: `${comment.tag.toUpperCase()} : ${comment.title}`,
+                                                      commentId: comment.id,
+                                                    });
                                                   }
+                                                : undefined
+                                            }
+                                          >
+                                            <div className="flex w-full flex-col gap-1">
+                                              <div className="relative flex w-full items-start justify-between">
+                                                <span className="font-semibold">
+                                                  {comment.title}
                                                 </span>
+                                                <div className="flex flex-col items-end">
+                                                  <div className="flex h-5 items-center">
+                                                    <span className="whitespace-nowrap text-xs text-[var(--vscode-descriptionForeground)]">
+                                                      Line {comment.line_number}
+                                                    </span>
+                                                  </div>
+                                                  {(isCommentResolved(comment.id) ||
+                                                    isCommentIgnored(comment.id)) && (
+                                                    <div className="absolute right-0 top-6">
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          markCommentUnresolved(comment.id, e);
+                                                        }}
+                                                        className="rounded border border-[var(--vscode-editorWidget-border)] p-1 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]"
+                                                        title="Mark as unresolved"
+                                                      >
+                                                        <Undo2 className="h-3 w-3" />
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
                                               </div>
-                                            ))}
-                                            <div
-                                              className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
-                                            >
-                                              {comment.tag.toLowerCase() === 'bug' ? (
-                                                <Bug size={10} />
-                                              ) : (
-                                                <TriangleAlert size={10} />
-                                              )}
-                                              {comment.tag.toUpperCase()}
+                                              <div className="flex flex-wrap items-center gap-1">
+                                                {comment.agent_ids.map((agentId: number) => (
+                                                  <div
+                                                    key={agentId}
+                                                    className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
+                                                  >
+                                                    <User className="h-3 w-3" />
+                                                    <span>
+                                                      {
+                                                        userAgents.find((ua) => ua.id === agentId)
+                                                          ?.display_name
+                                                      }
+                                                    </span>
+                                                  </div>
+                                                ))}
+                                                <div
+                                                  className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
+                                                >
+                                                  {comment.tag.toLowerCase() === 'bug' ? (
+                                                    <Bug size={10} />
+                                                  ) : (
+                                                    <TriangleAlert size={10} />
+                                                  )}
+                                                  {comment.tag.toUpperCase()}
+                                                </div>
+                                              </div>
                                             </div>
                                           </div>
-                                        </div>
+                                        );
+                                      })
+                                    ) : (
+                                      <div className="py-2 pl-6 pr-2 text-xs text-[var(--vscode-descriptionForeground)]">
+                                        No comments in this file.
                                       </div>
-                                    ))
-                                  ) : (
-                                    <div className="py-2 pl-6 pr-2 text-xs text-[var(--vscode-descriptionForeground)]">
-                                      No comments in this file.
-                                    </div>
-                                  )}
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      }
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        }
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex min-h-[260px] items-center justify-center rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] italic">
+          {useCodeReviewStore.getState().isFetchingPastReviews && (
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <LoaderCircle className="h-10 w-10 animate-spin" />
+              <span className="text-md font-mono">Fetching Past Reviews Changes...</span>
             </div>
-          );
-        })}
-      </div>
+          )}
+          {!useCodeReviewStore.getState().isFetchingPastReviews && (
+            <span className="text-md font-mono">No Reviews Available.</span>
+          )}
+        </div>
+      )}
       <Tooltip id="code-review-tooltips" />
     </div>
   );

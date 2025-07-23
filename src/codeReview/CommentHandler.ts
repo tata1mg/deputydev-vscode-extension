@@ -42,6 +42,37 @@ export class CommentHandler {
   }
 
   /**
+   * Closes and cleans up all comment threads
+   */
+  public closeAllThreads(): void {
+    // Get all active threads from threadKeys map
+    const allThreads = Array.from(this.threadKeys.values());
+
+    // Process each thread
+    allThreads.forEach((thread) => {
+      try {
+        // Remove from activeThreads map
+        const threadKey = this.activeThreads.get(thread);
+        if (threadKey) {
+          this.threadKeys.delete(threadKey);
+          this.commentIds.delete(threadKey);
+        }
+
+        // Dispose the thread
+        thread.dispose();
+      } catch (error) {
+        console.error('Error closing thread:', error);
+      }
+    });
+
+    // Clear all maps
+    this.threadKeys.clear();
+    this.activeThreads = new WeakMap();
+    this.commentIds.clear();
+    this.activeThread = null;
+  }
+
+  /**
    * Opens a file, goes to a specific line, and shows a comment box
    * @param filePath The full path to the file
    * @param lineNumber The line number (0-based) where to show the comment

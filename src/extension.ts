@@ -323,8 +323,17 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.resolveComment', (thread: vscode.CommentThread) => {
       // Handle resolveComment action
-      console.log('Resolve comment action triggered');
-      commentHandler.closeThread(thread);
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+
+      if (commentId !== undefined) {
+        console.log('Resolve comment action triggered');
+        commentHandler.closeThread(thread);
+        sidebarProvider.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'comment-is-resolved',
+          data: commentId,
+        });
+      }
     }),
 
     vscode.commands.registerCommand('deputydev.fixWithDeputyDev', async (thread: vscode.CommentThread) => {
@@ -344,6 +353,25 @@ export async function activate(context: vscode.ExtensionContext) {
           });
         }
       }
+    }),
+
+    vscode.commands.registerCommand('deputydev.ignoreComment', (thread: vscode.CommentThread) => {
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+
+      if (commentId !== undefined) {
+        console.log('Ignore comment action triggered');
+        commentHandler.closeThread(thread);
+        sidebarProvider.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'comment-is-ignored',
+          data: commentId,
+        });
+      }
+    }),
+
+    vscode.commands.registerCommand('deputydev.collapseAllComments', () => {
+      console.log('Collapse all comments action triggered');
+      commentHandler.closeAllThreads();
     }),
   );
 
