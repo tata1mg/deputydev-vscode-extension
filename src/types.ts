@@ -199,7 +199,7 @@ export interface ReviewToolUseResponse {
 export interface AgentPayload {
   agent_id: number;
   review_id: number;
-  type: 'query' | 'tool_use_response';
+  type: 'query' | 'tool_use_response' | 'tool_use_failed';
   session_id?: number;
   tool_use_response?: ReviewToolUseResponse;
 }

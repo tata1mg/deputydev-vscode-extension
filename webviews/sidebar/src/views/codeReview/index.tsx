@@ -140,6 +140,7 @@ export default function CodeReview() {
       reviewStatus: 'IDLE',
       steps: [],
       reviewErrorMessage: '',
+      showReviewError: false,
     });
     setShowFilesToReview(true);
   };
