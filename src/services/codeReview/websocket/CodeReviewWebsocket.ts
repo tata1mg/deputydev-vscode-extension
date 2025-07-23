@@ -11,6 +11,8 @@ export class CodeReviewWebsocketService {
   private readonly backendClient: BackendClient;
   private reviewSocket: any = null;
   private postProcessSocket: any = null;
+  private eventsQueue: Array<ReviewEvent> = [];
+  private postProcessEventQueue: Array<PostProcessEvent> = [];
 
   constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
@@ -27,7 +29,6 @@ export class CodeReviewWebsocketService {
     payload: { review_id: number; agents: AgentPayload[] },
     signal?: AbortSignal,
   ): AsyncIterableIterator<ReviewEvent> {
-    const eventsQueue: ReviewEvent[] = [];
     let socketError: Error | null = null;
     let messageData: ReviewEvent;
 
@@ -40,10 +41,10 @@ export class CodeReviewWebsocketService {
       const handleMessage = (data: ReviewEvent): void => {
         messageData = data;
         try {
-          eventsQueue.push(data);
+          this.eventsQueue.push(data);
         } catch (error) {
           console.error('Error processing message:', error);
-          eventsQueue.push({
+          this.eventsQueue.push({
             type: 'REVIEW_FAIL',
             agent_id: messageData?.agent_id,
           });
@@ -53,7 +54,7 @@ export class CodeReviewWebsocketService {
       const handleError = (error: Error): void => {
         console.error('WebSocket error:', error);
         socketError = error;
-        eventsQueue.push({
+        this.eventsQueue.push({
           type: 'REVIEW_FAIL',
           agent_id: messageData?.agent_id,
         });
@@ -62,7 +63,7 @@ export class CodeReviewWebsocketService {
 
       const handleClose = (): void => {
         if (socketError) {
-          eventsQueue.push({
+          this.eventsQueue.push({
             type: 'REVIEW_FAIL',
             agent_id: messageData?.agent_id,
           });
@@ -91,8 +92,8 @@ export class CodeReviewWebsocketService {
           throw socketError;
         }
 
-        if (eventsQueue.length > 0) {
-          const event = eventsQueue.shift()!;
+        if (this.eventsQueue.length > 0) {
+          const event = this.eventsQueue.shift()!;
           // if (event.data) {
           //   throw new Error(event.data);
           // }
@@ -114,7 +115,6 @@ export class CodeReviewWebsocketService {
     payload: { review_id: number },
     signal?: AbortSignal,
   ): AsyncIterableIterator<PostProcessEvent> {
-    const eventsQueue: Array<PostProcessEvent> = [];
     let socketError: Error | null = null;
 
     try {
@@ -125,7 +125,7 @@ export class CodeReviewWebsocketService {
 
       const handleMessage = (data: PostProcessEvent): void => {
         try {
-          eventsQueue.push(data);
+          this.postProcessEventQueue.push(data);
 
           // Close connection if STREAM_END or POST_PROCESS_ERROR is received
           if (data.type === 'STREAM_END') {
@@ -133,7 +133,7 @@ export class CodeReviewWebsocketService {
           }
         } catch (error) {
           console.error('Error processing message:', error);
-          eventsQueue.push({
+          this.postProcessEventQueue.push({
             type: 'POST_PROCESS_ERROR',
             agent_id: null,
             data: {
@@ -149,7 +149,7 @@ export class CodeReviewWebsocketService {
       const handleError = (error: Error): void => {
         console.error('WebSocket error:', error);
         socketError = error;
-        eventsQueue.push({
+        this.postProcessEventQueue.push({
           type: 'POST_PROCESS_ERROR',
           agent_id: null,
           data: {
@@ -183,8 +183,8 @@ export class CodeReviewWebsocketService {
           throw socketError;
         }
 
-        if (eventsQueue.length > 0) {
-          const event = eventsQueue.shift()!;
+        if (this.postProcessEventQueue.length > 0) {
+          const event = this.postProcessEventQueue.shift()!;
           yield event;
         } else {
           await new Promise((resolve) => setTimeout(resolve, 50));
