@@ -26,7 +26,7 @@ export const API_ENDPOINTS = {
   PING: '/ping',
   SHUTDOWN: '/v1/shutdown',
   ITERATIVELY_READ_FILE: '/v1/iteratively-read-file',
-  READ_FILE_SUMMARY: '/v1/read-file-summary',
+  READ_FILE_OR_SUMMARY: '/v1/read-file-or-summary',
   GREP_SEARCH: '/v1/grep-search',
   GET_SAVED_URLS: '/v1/saved_url/list',
   SAVE_URL: '/v1/saved_url',
