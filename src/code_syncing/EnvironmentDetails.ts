@@ -1,14 +1,8 @@
-import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
-import { arePathsEqual } from '../utilities/path';
-import { ChatPayload, FileSummaryResponse } from '../types';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-const PREVIEW_LINES = 100; // Number of lines to preview in the active file
-const MIN_LINES_FOR_SUMMARY = 200;
+import { ChatPayload, FileSummaryResponse } from '../types';
+import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
 const FILE_CONTEXT_THRESHOLD = 100;
 
 export async function getEnvironmentDetails(
@@ -131,7 +125,7 @@ export async function getEnvironmentDetails(
           `Total lines in file: ${fileData.total_lines}\n\n` +
           `Below is the full file content:\n\n` +
           `${fileData.content}\n` +
-          `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant.)`;
+          `\n(The user currently has this file open in their VS Code. It may or may not be relevant.)`;
       } else if (fileData.type === 'selection') {
         details +=
           `\n\n# Active File Selection\n` +
@@ -147,8 +141,8 @@ export async function getEnvironmentDetails(
           `Total lines in file: ${fileData.total_lines}\n\n` +
           `Below is an auto-generated summary of the file (line no, function signatures, key lines, etc):\n\n` +
           `${fileData.content}\n` +
-          `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
-          `\n(The file is long, so only a summary is shown. You can request specific sections if needed.)`;
+          `\n(The user currently has this file open in their VS Code. It may or may not be relevant. ` +
+          `\n(The file is long, so only a summary is shown. If your task needs more context, you can load additional parts of the file using the appropriate tools.)`;
       } else {
         details += `\n\n# Active File\n(Absolute Path: ${absolutePath})\n(File context could not be loaded.)`;
       }
