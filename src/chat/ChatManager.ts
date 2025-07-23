@@ -341,7 +341,8 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
       payload.vscode_env = await getEnvironmentDetails(true, payload);
-
+      console.log("Hello")
+      console.log(payload.vscode_env)
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
 

@@ -196,3 +196,9 @@ export interface ThrottlingErrorData {
   message: string;
   detail?: string | null;
 }
+
+export interface FileReadOrSummaryResponse {
+  type: 'full' | 'summary';
+  content: string;
+  total_lines: number;
+}
