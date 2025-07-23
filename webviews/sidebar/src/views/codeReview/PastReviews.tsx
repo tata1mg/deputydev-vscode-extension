@@ -1,16 +1,16 @@
-import { openCommentInFile } from '@/commandApi';
+import { openCommentInFile, sendCommentStatusUpdate } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { AgentSummary, CodeReviewComment, Review } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight,
-  User,
   Bug,
   TriangleAlert,
   FileWarning,
   X,
   LoaderCircle,
   Undo2,
+  BotMessageSquare,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
@@ -24,25 +24,21 @@ export const PastReviews = () => {
 
   const markCommentUnresolved = (commentId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    const isResolved = useCodeReviewStore.getState().resolvedCommentIds.includes(commentId);
-    if (isResolved) {
-      useCodeReviewStore.setState((state) => ({
-        resolvedCommentIds: state.resolvedCommentIds.filter((id) => id !== commentId),
-      }));
-    }
-
-    const isIgnored = useCodeReviewStore.getState().ignoredCommentIds.includes(commentId);
-    if (isIgnored) {
-      useCodeReviewStore.setState((state) => ({
-        ignoredCommentIds: state.ignoredCommentIds.filter((id) => id !== commentId),
-      }));
-    }
+    useCodeReviewStore.setState((state) => ({
+      pastReviews: state.pastReviews.map((review) => ({
+        ...review,
+        comments: Object.fromEntries(
+          Object.entries(review.comments).map(([filePath, comments]) => [
+            filePath,
+            comments.map((comment) =>
+              comment.id === commentId ? { ...comment, comment_status: 'NOT_REVIEWED' } : comment
+            ),
+          ])
+        ),
+      })),
+    }));
+    sendCommentStatusUpdate(commentId, 'NOT_REVIEWED');
   };
-
-  const isCommentResolved = (commentId: number) =>
-    useCodeReviewStore.getState().resolvedCommentIds.includes(commentId);
-  const isCommentIgnored = (commentId: number) =>
-    useCodeReviewStore.getState().ignoredCommentIds.includes(commentId);
 
   const formatCodeBlock = (code: string): string => {
     if (!code?.trim()) return '';
@@ -119,10 +115,10 @@ export const PastReviews = () => {
     e.stopPropagation();
     setSelectedTags((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(tag)) {
-        newSet.delete(tag);
+      if (newSet.has(tag.toLowerCase())) {
+        newSet.delete(tag.toLowerCase());
       } else {
-        newSet.add(tag);
+        newSet.add(tag.toLowerCase());
       }
       return newSet;
     });
@@ -130,7 +126,7 @@ export const PastReviews = () => {
 
   const getFilteredComments = (comments: CodeReviewComment[]) => {
     return comments.filter((comment) => {
-      const tagMatch = selectedTags.size === 0 || selectedTags.has(comment.tag);
+      const tagMatch = selectedTags.size === 0 || selectedTags.has(comment.tag.toLowerCase());
       const agentMatch =
         selectedAgents.size === 0 || comment.agent_ids.some((id) => selectedAgents.has(id));
       return tagMatch && agentMatch;
@@ -260,11 +256,15 @@ export const PastReviews = () => {
                                 <div
                                   key={agent.id}
                                   onClick={(e) => toggleAgent(agent.id, e)}
-                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-blue-600/50 text-white hover:bg-blue-600'}`}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
+                                    isSelected
+                                      ? 'bg-blue-300 text-blue-800 opacity-100 dark:bg-blue-900 dark:text-blue-100'
+                                      : 'bg-blue-200 text-blue-700 hover:opacity-80 dark:bg-blue-800/50 dark:text-blue-100'
+                                  }`}
                                 >
-                                  <User className="h-3 w-3" />
+                                  <BotMessageSquare className="h-3 w-3" />
                                   <span className="text-xs">{agent.display_name}</span>
-                                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold leading-none">
+                                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 font-bold leading-none">
                                     {agent.count}
                                   </span>
                                 </div>
@@ -299,7 +299,7 @@ export const PastReviews = () => {
                                 <div
                                   key={tag}
                                   onClick={(e) => toggleTag(tag, e)}
-                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-100' : 'opacity-100 hover:opacity-90'}`}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-50' : 'hover:opacity-80'}`}
                                 >
                                   <Icon size={12} />
                                   {tag.toUpperCase()}
@@ -392,8 +392,8 @@ export const PastReviews = () => {
                                   >
                                     {hasComments ? (
                                       filteredComments.map((comment: CodeReviewComment) => {
-                                        const isResolved = isCommentResolved(comment.id);
-                                        const isIgnored = isCommentIgnored(comment.id);
+                                        const isResolved = comment.comment_status === 'RESOLVED';
+                                        const isIgnored = comment.comment_status === 'REJECTED';
                                         return (
                                           <div
                                             key={comment.id}
@@ -431,8 +431,8 @@ export const PastReviews = () => {
                                                       Line {comment.line_number}
                                                     </span>
                                                   </div>
-                                                  {(isCommentResolved(comment.id) ||
-                                                    isCommentIgnored(comment.id)) && (
+                                                  {(comment.comment_status === 'RESOLVED' ||
+                                                    comment.comment_status === 'REJECTED') && (
                                                     <div className="absolute right-0 top-6">
                                                       <button
                                                         onClick={(e) => {
@@ -454,7 +454,7 @@ export const PastReviews = () => {
                                                     key={agentId}
                                                     className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
                                                   >
-                                                    <User className="h-3 w-3" />
+                                                    <BotMessageSquare className="h-3 w-3" />
                                                     <span>
                                                       {
                                                         userAgents.find((ua) => ua.id === agentId)

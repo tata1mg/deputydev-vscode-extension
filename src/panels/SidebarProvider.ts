@@ -161,6 +161,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'user-agent-crud':
           this.userAgentCrud(data.operation, data.agent_id, data.agent_name, data.custom_prompt);
           break;
+        case 'send-comment-status-update':
+          this.reviewService.updateCommentStatus(data.commentId, data.status);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1113,7 +1116,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'new-review-error',
-        data: { error: 'Failed to create new review' },
+        data: result.meta.message,
       });
     }
   }

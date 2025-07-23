@@ -138,7 +138,7 @@ export class ReviewService {
       throw error;
     }
   }
-  // TODO: Proper Integration
+
   public async updateAgent(agent_id: number, custom_prompt: string, name?: string): Promise<any> {
     try {
       const authToken = await fetchAuthToken();
@@ -231,6 +231,46 @@ export class ReviewService {
       return response.data;
     } catch (error) {
       this.logger.error('Error while cancelling review');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async updateCommentStatus(comment_id: number, status: string) {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const params = {
+        comment_id: comment_id,
+        status: status,
+      };
+      const response = await api.post(API_ENDPOINTS.UPDATE_COMMENT_STATUS, {}, { params, headers });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while updating comment status');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
+  public async getRepoId(repo_name: string, origin_url: string) {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const response = await api.get(API_ENDPOINTS.GET_REPO_ID, {
+        params: {
+          repo_name: repo_name,
+          origin_url: origin_url,
+        },
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while fetching repo id');
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }

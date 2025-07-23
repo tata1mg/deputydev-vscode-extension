@@ -321,18 +321,23 @@ export async function activate(context: vscode.ExtensionContext) {
 
   // Code review
   context.subscriptions.push(
-    vscode.commands.registerCommand('deputydev.resolveComment', (thread: vscode.CommentThread) => {
+    vscode.commands.registerCommand('deputydev.resolveComment', async (thread: vscode.CommentThread) => {
       // Handle resolveComment action
       const commentId = commentHandler.getCommentIdFromThread(thread);
 
       if (commentId !== undefined) {
         console.log('Resolve comment action triggered');
         commentHandler.closeThread(thread);
-        sidebarProvider.sendMessageToSidebar({
-          id: uuidv4(),
-          command: 'comment-is-resolved',
-          data: commentId,
-        });
+
+        const result = await reviewService.updateCommentStatus(commentId, 'RESOLVED');
+        console.log('Resolve comment result:', result);
+        if (result.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'comment-is-resolved',
+            data: commentId,
+          });
+        }
       }
     }),
 
@@ -355,17 +360,21 @@ export async function activate(context: vscode.ExtensionContext) {
       }
     }),
 
-    vscode.commands.registerCommand('deputydev.ignoreComment', (thread: vscode.CommentThread) => {
+    vscode.commands.registerCommand('deputydev.ignoreComment', async (thread: vscode.CommentThread) => {
       const commentId = commentHandler.getCommentIdFromThread(thread);
 
       if (commentId !== undefined) {
         console.log('Ignore comment action triggered');
         commentHandler.closeThread(thread);
-        sidebarProvider.sendMessageToSidebar({
-          id: uuidv4(),
-          command: 'comment-is-ignored',
-          data: commentId,
-        });
+        const result = await reviewService.updateCommentStatus(commentId, 'REJECTED');
+        console.log('Ignore comment result:', result);
+        if (result.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'comment-is-ignored',
+            data: commentId,
+          });
+        }
       }
     }),
 

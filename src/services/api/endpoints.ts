@@ -57,4 +57,6 @@ export const API_ENDPOINTS = {
   USER_AGENT_CRUD: '/end_user/v1/agent',
   COMMENT_FIX_QUERY: '/end_user/v1/extension-code-review/generate-comment-fix-query',
   CANCEL_REVIEW: 'end_user/v1/extension-code-review/cancel_review',
+  UPDATE_COMMENT_STATUS: '/end_user/v1/extension-code-review/update-comment-status',
+  GET_REPO_ID: '/end_user/v1/extension-code-review/get-repo-id',
 };

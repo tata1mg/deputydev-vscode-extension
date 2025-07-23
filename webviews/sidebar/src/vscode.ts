@@ -1138,7 +1138,7 @@ addCommandEventListener('fix-with-dd', ({ data }) => {
   const { fix_query } = data as { fix_query: string };
   useCodeReviewStore.setState({ commentFixQuery: fix_query });
   useExtensionStore.setState({ viewType: 'chat' });
-  useChatSettingStore.setState({ chatType: 'write' });
+  useChatSettingStore.setState({ chatType: 'ask' });
 });
 
 addCommandEventListener('hit-new-review-after-file-event', () => {
@@ -1153,9 +1153,17 @@ addCommandEventListener('comment-is-resolved', ({ data }) => {
   const commentId = data as number;
   console.log('Comment is resolved:', commentId);
   useCodeReviewStore.setState((state) => ({
-    resolvedCommentIds: state.resolvedCommentIds.includes(commentId)
-      ? state.resolvedCommentIds
-      : [...state.resolvedCommentIds, commentId],
+    pastReviews: state.pastReviews.map((review) => ({
+      ...review,
+      comments: Object.fromEntries(
+        Object.entries(review.comments).map(([filePath, comments]) => [
+          filePath,
+          comments.map((comment) =>
+            comment.id === commentId ? { ...comment, comment_status: 'RESOLVED' } : comment
+          ),
+        ])
+      ),
+    })),
   }));
 });
 
@@ -1163,8 +1171,35 @@ addCommandEventListener('comment-is-ignored', ({ data }) => {
   const commentId = data as number;
   console.log('Comment is ignored:', commentId);
   useCodeReviewStore.setState((state) => ({
-    ignoredCommentIds: state.ignoredCommentIds.includes(commentId)
-      ? state.ignoredCommentIds
-      : [...state.ignoredCommentIds, commentId],
+    pastReviews: state.pastReviews.map((review) => ({
+      ...review,
+      comments: Object.fromEntries(
+        Object.entries(review.comments).map(([filePath, comments]) => [
+          filePath,
+          comments.map((comment) =>
+            comment.id === commentId ? { ...comment, comment_status: 'REJECTED' } : comment
+          ),
+        ])
+      ),
+    })),
   }));
+});
+
+addCommandEventListener('new-review-error', ({ data }) => {
+  console.log('New review error:', data);
+  useCodeReviewStore.setState({
+    new_review: {
+      file_wise_changes: [],
+      source_branch: '',
+      target_branch: '',
+      repo_name: '',
+      origin_url: '',
+      source_commit: '',
+      target_commit: '',
+    },
+  });
+  useCodeReviewStore.setState({ isFetchingChangedFiles: false });
+  useCodeReviewStore.setState({ isFetchingPastReviews: false });
+  useCodeReviewStore.setState({ showReviewError: true });
+  useCodeReviewStore.setState({ reviewErrorMessage: data as string });
 });
