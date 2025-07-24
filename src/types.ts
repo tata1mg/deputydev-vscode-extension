@@ -195,6 +195,7 @@ export interface ThrottlingErrorData {
   retry_after?: number | null;
   message: string;
   detail?: string | null;
+  region?: string | null;
 }
 
 export interface FileReadOrSummaryResponse {

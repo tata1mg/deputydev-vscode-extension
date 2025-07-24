@@ -342,6 +342,7 @@ export interface LLMModels {
   id: number;
   display_name: string;
   name: string;
+  provider: string;
 }
 
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
