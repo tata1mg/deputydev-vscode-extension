@@ -299,7 +299,6 @@ export class ChatManager {
       payload.os_name = await getOSName();
       payload.shell = getShell();
       payload.vscode_env = await getEnvironmentDetails(true, payload);
-
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
 
@@ -663,7 +662,6 @@ export class ChatManager {
         start_line: startLine,
         end_line: endLine,
       });
-
       return response.data;
     } catch (error: any) {
       this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
