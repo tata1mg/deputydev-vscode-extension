@@ -101,16 +101,8 @@ export class CommentHandler {
       // Check if a comment thread already exists at this position
       const existingThread = this.threadKeys.get(threadKey);
       if (existingThread) {
-        // If thread exists, just reveal it
-        existingThread.collapsibleState = vscode.CommentThreadCollapsibleState.Expanded;
-        const document = await vscode.workspace.openTextDocument(uri);
-        const editor = await vscode.window.showTextDocument(document);
-        // Scroll to and select the line
-        const position = new vscode.Position(lineNumber, 0);
-        const range = new vscode.Range(position, position);
-        editor.selection = new vscode.Selection(position, position);
-        editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
-        return;
+        // Close the existing thread before opening a new one
+        this.closeThread(existingThread);
       }
 
       // Open the document
