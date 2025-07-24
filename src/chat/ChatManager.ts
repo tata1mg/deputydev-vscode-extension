@@ -15,7 +15,6 @@ import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
 import { QuerySolverService, ThrottlingException } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
-import { HistoryService } from '../services/history/HistoryService';
 import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
@@ -40,7 +39,6 @@ interface ToolUseApprovalStatus {
 export class ChatManager {
   private readonly querySolverService = new QuerySolverService(this.context, this.outputChannel, this.backendClient);
   private sidebarProvider?: SidebarProvider; // Optional at first
-  private readonly historyService = new HistoryService();
   private readonly focusChunksService = new FocusChunksService();
   private readonly directoryStructureService = new DirectoryStructureService();
   private readonly authService = new AuthService();
@@ -202,39 +200,6 @@ export class ChatManager {
    * @param query The current user query.
    * @returns An object containing the concatenated text of relevant history and their IDs.
    */
-  private async _fetchRelevantHistory(
-    currentSessionId: number,
-    query: string,
-  ): Promise<{ text?: string; ids: number[] }> {
-    this.outputChannel.info(
-      `Fetching relevant history for session ${currentSessionId} and query "${query.substring(0, 50)}..."`,
-    );
-    try {
-      const relevantHistoryData = await this.historyService.getRelevantChatHistory(currentSessionId, query);
-      const relevantHistoryChats = relevantHistoryData?.chats || [];
-
-      if (!relevantHistoryChats.length) {
-        this.outputChannel.info('No relevant chat history found.');
-        return { ids: [] };
-      }
-
-      let combinedText = '';
-      const ids: number[] = [];
-      for (const chat of relevantHistoryChats) {
-        // Combine query and response for context
-        combinedText += `User: ${chat.query}\nAssistant: ${chat.response}\n\n`;
-        ids.push(chat.id);
-      }
-
-      this.outputChannel.info(`Found ${ids.length} relevant history items.`);
-      // this.outputChannel.debug(`Relevant history text: ${combinedText}`); // Can be very verbose
-      return { text: combinedText.trim(), ids };
-    } catch (error: any) {
-      this.outputChannel.error(`Error fetching relevant chat history: ${error.message}`, error);
-      this.onError(error);
-      return { ids: [] }; // Return empty on error
-    }
-  }
 
   private async getDeputyDevRulesContent(): Promise<string | null> {
     const active_repo = getActiveRepo();
@@ -313,13 +278,6 @@ export class ChatManager {
 
       // 1. Prepare Context: History and Focus Items
       const currentSessionId = getSessionId();
-      if (currentSessionId && payload.query && !payload.is_tool_response) {
-        const { ids: relevantHistoryQueryIds } = await this._fetchRelevantHistory(currentSessionId, payload.query);
-        if (relevantHistoryQueryIds.length > 0) {
-          payload.previous_query_ids = relevantHistoryQueryIds;
-        }
-      }
-      // if (payload.referenceList.)
       if (payload.referenceList) {
         const { focusChunksResult, directoryResults } = await this.getFocusChunks(payload);
         payload.focus_items = focusChunksResult;
