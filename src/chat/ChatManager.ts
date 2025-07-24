@@ -600,6 +600,7 @@ export class ChatManager {
         const extraErrorInfo = {
           detail: errorData.detail,
           model: errorData.model,
+          region: errorData.region,
         };
 
         this.errorTrackingManager.trackGeneralError(error, 'THROTTLING_ERROR', 'BACKEND', extraErrorInfo);
