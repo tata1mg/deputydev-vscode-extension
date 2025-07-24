@@ -16,7 +16,6 @@ export const API_ENDPOINTS = {
   GET_INLINE_EDIT_RESULT: '/end_user/v1/code-gen/get-job-status',
   DIFF_APPLIER: '/v1/diff-applicator/apply-diff',
   BATCH_CHUNKS_SEARCH: '/v1/batch_chunks_search',
-  RELEVANT_CHAT_HISTORY: '/end_user/v1/history/relevant-chat-history',
   INIT_BINARY: '/v1/init',
   FOCUS_CHUNKS: '/v1/get-focus-chunks',
   DIRECTORY_STRUCTURE: '/v1/get-directory-structure',
