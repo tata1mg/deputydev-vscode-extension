@@ -412,3 +412,7 @@ export function cancelReview() {
 export function sendCommentStatusUpdate(commentId: number, status: string) {
   return callCommand('send-comment-status-update', { commentId, status });
 }
+
+export function reviewNotification(reviewStatus: string) {
+  return callCommand('review-notification', { reviewStatus });
+}

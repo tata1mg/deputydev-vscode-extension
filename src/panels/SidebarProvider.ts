@@ -164,6 +164,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'send-comment-status-update':
           this.reviewService.updateCommentStatus(data.commentId, data.status);
           break;
+        case 'review-notification':
+          this.reviewNotification(data.reviewStatus);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1272,6 +1275,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         command: 'user-agent-crud-error',
         data: { error: String(error) },
       });
+    }
+  }
+
+  public reviewNotification(reviewStatus: string) {
+    if (reviewStatus === 'REVIEW_COMPLETED') {
+      vscode.window.showInformationMessage('Review completed successfully.');
+    }
+    if (reviewStatus === 'REVIEW_FAILED') {
+      vscode.window.showErrorMessage('Review failed. Please try again.');
     }
   }
 }

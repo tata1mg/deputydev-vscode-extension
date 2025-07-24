@@ -12,11 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
-import {
-  initialAutocompleteOptions,
-  useChatSettingStore,
-  useChatStore,
-} from '../../stores/chatStore';
+import { initialAutocompleteOptions, useChatStore } from '../../stores/chatStore';
 import { ChatTypeToggle } from './chatElements/chatTypeToggle';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import {
@@ -53,6 +49,7 @@ import { useChangedFilesStore } from '@/stores/changedFilesStore';
 import { useActiveFileStore } from '@/stores/activeFileStore';
 import { ViewSwitcher } from '@/components/ViewSwitcher';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
+import { PageTransition } from '@/components/PageTransition';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -488,12 +485,12 @@ export function ChatUI() {
                   className="h-10 w-auto px-4 opacity-90"
                 />
               </div>
-              <div className="mt-4 px-4 pb-4 fade-in">
+              <div className="mt-4 px-4 pb-4">
                 <div className="flex flex-col items-start gap-2">
                   <ViewSwitcher />
                   <div className="flex items-center gap-2">
                     <p className="text-lg text-gray-400">You are ready to go.</p>
-                    <Check className="animate-pulse text-sm text-green-500" />
+                    <Check className="text-sm text-green-500" />
                   </div>
                 </div>
               </div>
@@ -501,376 +498,382 @@ export function ChatUI() {
           </div>
         )}
       </div>
+      <PageTransition key="chat" direction="left">
+        <div className="relative flex h-full flex-col justify-between">
+          <div
+            className={`${useActiveFileStore.getState().activeFileUri ? 'mb-[200px]' : 'mb-[180px]'} h-full overflow-auto px-4`}
+          >
+            <ChatArea />
+            <div ref={messagesEndRef} />
+          </div>
 
-      <div
-        className={`${useActiveFileStore.getState().activeFileUri ? 'mb-[200px]' : 'mb-[180px]'} h-full overflow-auto px-4`}
-      >
-        <ChatArea />
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Layer */}
-      <div className="absolute bottom-0 left-0 right-0 mx-2 mb-0 mt-3.5">
-        <div className="">
-          {showAutocomplete && (
-            <div className="mb-1 w-full">
-              <AutocompleteMenu
-                showAddNewButton={showAddNewButton}
-                options={ChatAutocompleteOptions}
-                onSelect={handleAutoCompleteSelect}
-              />
-            </div>
-          )}
-
-          {messages.length === 0 &&
-            !showAutocomplete &&
-            !showAllMCPServers &&
-            !showMCPServerTools &&
-            changedFiles.length === 0 && (
-              <div className="px-4">
-                <p className="mb-1 mt-4 text-center text-[0.7rem] text-gray-500">
-                  DeputyDev is powered by AI. It can make mistakes. Please double check all output.
-                </p>
-              </div>
-            )}
-
-          {/* The textarea remains enabled even when a response is pending */}
-          <div className="relative w-full">
-            {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
-            {!showAutocomplete && changedFiles && changedFiles.length > 0 && <ChangedFilesBar />}
-            <div
-              className={`mb-1 flex flex-wrap items-center gap-0.5 rounded bg-[--deputydev-input-background] p-2 pb-6 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
-            >
-              <ActiveFileReferenceChip />
-              {useChatStore.getState().currentEditorReference?.map((chip) => (
-                <InputReferenceChip
-                  key={chip.index}
-                  chipIndex={chip.index}
-                  path={chip.path}
-                  text={chip.keyword}
-                  type={chip.type}
-                  value={chip.value}
-                  onDelete={() => {
-                    handleChipDelete(chip.index);
-                  }}
-                  chunks={chip.chunks}
-                  url={chip.url}
-                />
-              ))}
-
-              {imagePreviews.length > 0 && (
-                <div className="mb-2 flex max-w-full flex-wrap gap-2">
-                  {imagePreviews.map((preview, index) => (
-                    <div
-                      key={index}
-                      className={`group relative transition-all duration-500 ease-in-out ${
-                        expandedImageIndex === index ? 'h-32 w-32' : 'h-12 w-12'
-                      }`}
-                    >
-                      <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
-                        <img
-                          onClick={() => {
-                            if (expandedImageIndex !== index) {
-                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                              setExpandedImageIndex(index);
-                              timeoutRef.current = window.setTimeout(() => {
-                                setExpandedImageIndex(-1);
-                              }, 5000);
-                            } else {
-                              setExpandedImageIndex(-1);
-                              if (timeoutRef.current) clearTimeout(timeoutRef.current);
-                            }
-                          }}
-                          src={preview}
-                          alt={`Preview ${index + 1}`}
-                          className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
-                        />
-
-                        {/* Circular loader overlay */}
-                        {imageUploadProgress !== null &&
-                          imageUploadProgress < 100 &&
-                          index === imagePreviews.length - 1 && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
-                              <svg
-                                className="h-4 w-4 animate-spin text-white"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                                ></path>
-                              </svg>
-                            </div>
-                          )}
-                      </div>
-
-                      {/* Remove button */}
-                      <button
-                        onClick={() => {
-                          const newPreviews = imagePreviews.filter((_, i) => i !== index);
-                          const newS3Objects = useChatStore
-                            .getState()
-                            .s3Objects.filter((_, i) => i !== index);
-                          setImagePreviews(newPreviews);
-                          useChatStore.setState({ s3Objects: newS3Objects });
-
-                          // Reset expanded state if needed
-                          if (expandedImageIndex === index) {
-                            setExpandedImageIndex(-1);
-                          } else if (expandedImageIndex > index) {
-                            setExpandedImageIndex(expandedImageIndex - 1);
-                          }
-
-                          // Clear file input if no images left
-                          if (newPreviews.length === 0 && fileInputRef.current) {
-                            fileInputRef.current.value = '';
-                          }
-                        }}
-                        className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                        title={`Remove image ${index + 1}`}
-                        aria-label={`Remove image ${index + 1}`}
-                      >
-                        <X className="h-2.5 w-2.5" strokeWidth={3} />
-                      </button>
-                    </div>
-                  ))}
+          {/* Input Layer */}
+          <div className="absolute bottom-0 left-0 right-0 mx-2 mb-0 mt-3.5">
+            <div className="">
+              {showAutocomplete && (
+                <div className="mb-1 w-full">
+                  <AutocompleteMenu
+                    showAddNewButton={showAddNewButton}
+                    options={ChatAutocompleteOptions}
+                    onSelect={handleAutoCompleteSelect}
+                  />
                 </div>
               )}
 
-              <textarea
-                ref={textareaRef}
-                rows={1}
-                className={`no-scrollbar relative max-h-[300px] min-h-[80px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
-                placeholder={'Ask DeputyDev to do anything, @ to mention'}
-                value={userInput}
-                onChange={handleTextAreaChange}
-                onKeyDown={handleTextAreaKeyDown}
-                disabled={repoSelectorEmbedding || enhancingUserQuery}
-                {...(repoSelectorEmbedding &&
-                  activeRepo && {
-                    'data-tooltip-id': 'repo-tooltip',
-                    'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
-                  })}
-                autoFocus
-              />
-            </div>
+              {messages.length === 0 &&
+                !showAutocomplete &&
+                !showAllMCPServers &&
+                !showMCPServerTools &&
+                changedFiles.length === 0 && (
+                  <div className="px-4">
+                    <p className="mb-1 mt-4 text-center text-[0.7rem] text-gray-500">
+                      DeputyDev is powered by AI. It can make mistakes. Please double check all
+                      output.
+                    </p>
+                  </div>
+                )}
 
-            <div className="absolute bottom-1 left-1 flex items-center gap-1">
-              <RepoSelector />
-            </div>
+              {/* The textarea remains enabled even when a response is pending */}
+              <div className="relative w-full">
+                {!showAutocomplete && changedFiles.length === 0 && <FeaturesBar />}
+                {!showAutocomplete && changedFiles && changedFiles.length > 0 && (
+                  <ChangedFilesBar />
+                )}
+                <div
+                  className={`mb-1 flex flex-wrap items-center gap-0.5 rounded bg-[--deputydev-input-background] p-2 pb-6 focus-within:outline focus-within:outline-[1px] focus-within:outline-[--vscode-list-focusOutline] ${borderClass}`}
+                >
+                  <ActiveFileReferenceChip />
+                  {useChatStore.getState().currentEditorReference?.map((chip) => (
+                    <InputReferenceChip
+                      key={chip.index}
+                      chipIndex={chip.index}
+                      path={chip.path}
+                      text={chip.keyword}
+                      type={chip.type}
+                      value={chip.value}
+                      onDelete={() => {
+                        handleChipDelete(chip.index);
+                      }}
+                      chunks={chip.chunks}
+                      url={chip.url}
+                    />
+                  ))}
 
-            <div className="absolute bottom-1 right-2.5 flex items-center gap-1">
-              <button
-                className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
-                data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content="Add Context"
-                data-tooltip-place="top-start"
-                disabled={repoSelectorEmbedding || enhancingUserQuery}
-                onClick={() => {
-                  // Add @ to the end of the current input value
-                  const newValue = userInput + '@';
+                  {imagePreviews.length > 0 && (
+                    <div className="mb-2 flex max-w-full flex-wrap gap-2">
+                      {imagePreviews.map((preview, index) => (
+                        <div
+                          key={index}
+                          className={`group relative transition-all duration-500 ease-in-out ${
+                            expandedImageIndex === index ? 'h-32 w-32' : 'h-12 w-12'
+                          }`}
+                        >
+                          <div className="relative h-full w-full overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm">
+                            <img
+                              onClick={() => {
+                                if (expandedImageIndex !== index) {
+                                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                                  setExpandedImageIndex(index);
+                                  timeoutRef.current = window.setTimeout(() => {
+                                    setExpandedImageIndex(-1);
+                                  }, 5000);
+                                } else {
+                                  setExpandedImageIndex(-1);
+                                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                                }
+                              }}
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="h-full w-full cursor-pointer object-cover transition-opacity hover:opacity-90"
+                            />
 
-                  // Update store
-                  setUserInput(newValue);
+                            {/* Circular loader overlay */}
+                            {imageUploadProgress !== null &&
+                              imageUploadProgress < 100 &&
+                              index === imagePreviews.length - 1 && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
+                                  <svg
+                                    className="h-4 w-4 animate-spin text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                    ></path>
+                                  </svg>
+                                </div>
+                              )}
+                          </div>
 
-                  // Trigger the change to activate autocomplete
-                  setShowAutocomplete(true);
-                  setChipEditMode(true);
+                          {/* Remove button */}
+                          <button
+                            onClick={() => {
+                              const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                              const newS3Objects = useChatStore
+                                .getState()
+                                .s3Objects.filter((_, i) => i !== index);
+                              setImagePreviews(newPreviews);
+                              useChatStore.setState({ s3Objects: newS3Objects });
 
-                  // Make sure to update textarea and focus
-                  setTimeout(() => {
-                    if (textareaRef.current) {
-                      textareaRef.current.focus();
+                              // Reset expanded state if needed
+                              if (expandedImageIndex === index) {
+                                setExpandedImageIndex(-1);
+                              } else if (expandedImageIndex > index) {
+                                setExpandedImageIndex(expandedImageIndex - 1);
+                              }
 
-                      // Set cursor position to the end
-                      textareaRef.current.selectionStart = newValue.length;
-                      textareaRef.current.selectionEnd = newValue.length;
-                    }
-                  }, 0);
+                              // Clear file input if no images left
+                              if (newPreviews.length === 0 && fileInputRef.current) {
+                                fileInputRef.current.value = '';
+                              }
+                            }}
+                            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow-sm transition-all hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                            title={`Remove image ${index + 1}`}
+                            aria-label={`Remove image ${index + 1}`}
+                          >
+                            <X className="h-2.5 w-2.5" strokeWidth={3} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                  // Set autocomplete options
-                  useChatStore.setState({
-                    ChatAutocompleteOptions: initialAutocompleteOptions,
-                  });
-                  setShowAddNewButton(false);
-                }}
-              >
-                <AtSign className="h-4 w-4" />
-              </button>
+                  <textarea
+                    ref={textareaRef}
+                    rows={1}
+                    className={`no-scrollbar relative max-h-[300px] min-h-[80px] w-full flex-grow resize-none overflow-y-auto bg-transparent p-0 pb-2 text-[0.8rem] focus:outline-none disabled:cursor-not-allowed disabled:opacity-50`}
+                    placeholder={'Ask DeputyDev to do anything, @ to mention'}
+                    value={userInput}
+                    onChange={handleTextAreaChange}
+                    onKeyDown={handleTextAreaKeyDown}
+                    disabled={repoSelectorEmbedding || enhancingUserQuery}
+                    {...(repoSelectorEmbedding &&
+                      activeRepo && {
+                        'data-tooltip-id': 'repo-tooltip',
+                        'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
+                      })}
+                    autoFocus
+                  />
+                </div>
 
-              <button
-                className={`flex items-center justify-center rounded p-1 ${
-                  useChatStore.getState().search_web
-                    ? 'bg-blue-500 text-white hover:bg-blue-600'
-                    : 'hover:bg-slate-400 hover:bg-opacity-10'
-                }`}
-                onClick={handleGlobeToggle}
-                data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
-                data-tooltip-place="top-start"
-              >
-                <Globe className="h-4 w-4" />
-              </button>
+                <div className="absolute bottom-1 left-1 flex items-center gap-1">
+                  <RepoSelector />
+                </div>
 
-              {/* <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                <div className="absolute bottom-1 right-2.5 flex items-center gap-1">
+                  <button
+                    className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                    data-tooltip-id="sparkles-tooltip"
+                    data-tooltip-content="Add Context"
+                    data-tooltip-place="top-start"
+                    disabled={repoSelectorEmbedding || enhancingUserQuery}
+                    onClick={() => {
+                      // Add @ to the end of the current input value
+                      const newValue = userInput + '@';
+
+                      // Update store
+                      setUserInput(newValue);
+
+                      // Trigger the change to activate autocomplete
+                      setShowAutocomplete(true);
+                      setChipEditMode(true);
+
+                      // Make sure to update textarea and focus
+                      setTimeout(() => {
+                        if (textareaRef.current) {
+                          textareaRef.current.focus();
+
+                          // Set cursor position to the end
+                          textareaRef.current.selectionStart = newValue.length;
+                          textareaRef.current.selectionEnd = newValue.length;
+                        }
+                      }, 0);
+
+                      // Set autocomplete options
+                      useChatStore.setState({
+                        ChatAutocompleteOptions: initialAutocompleteOptions,
+                      });
+                      setShowAddNewButton(false);
+                    }}
+                  >
+                    <AtSign className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    className={`flex items-center justify-center rounded p-1 ${
+                      useChatStore.getState().search_web
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'hover:bg-slate-400 hover:bg-opacity-10'
+                    }`}
+                    onClick={handleGlobeToggle}
+                    data-tooltip-id="sparkles-tooltip"
+                    data-tooltip-content={`${useChatStore.getState().search_web ? 'Disable Web Search' : 'Enable Web Search'}`}
+                    data-tooltip-place="top-start"
+                  >
+                    <Globe className="h-4 w-4" />
+                  </button>
+
+                  {/* <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
                 data-tooltip-id="sparkles-tooltip"
                 data-tooltip-content="Upload image"
                 data-tooltip-place="top-start"
               >
                 <Image className="h-4 w-4" />
               </button> */}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                id="image-upload"
-                ref={fileInputRef}
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (files.length > 0) {
-                    const currentCount = imagePreviews.length;
-                    const availableSlots = maxFiles - currentCount;
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    id="image-upload"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length > 0) {
+                        const currentCount = imagePreviews.length;
+                        const availableSlots = maxFiles - currentCount;
 
-                    // If no slots available, don't process any files
-                    if (availableSlots <= 0) {
-                      showVsCodeMessageBox(
-                        'error',
-                        `Maximum ${maxFiles} images allowed. Please remove some images before uploading new ones.`
-                      );
-                      return;
-                    }
+                        // If no slots available, don't process any files
+                        if (availableSlots <= 0) {
+                          showVsCodeMessageBox(
+                            'error',
+                            `Maximum ${maxFiles} images allowed. Please remove some images before uploading new ones.`
+                          );
+                          return;
+                        }
 
-                    // Select only the files that can fit within the limit
-                    const filesToProcess = files.slice(0, availableSlots);
-                    const remainingFiles = files.length - filesToProcess.length;
+                        // Select only the files that can fit within the limit
+                        const filesToProcess = files.slice(0, availableSlots);
+                        const remainingFiles = files.length - filesToProcess.length;
 
-                    // Show message if some files were not selected
-                    if (currentCount + files.length > maxFiles) {
-                      showVsCodeMessageBox(
-                        'warning',
-                        `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
-                      );
-                    }
+                        // Show message if some files were not selected
+                        if (currentCount + files.length > maxFiles) {
+                          showVsCodeMessageBox(
+                            'warning',
+                            `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
+                          );
+                        }
 
-                    // Check file sizes
-                    const oversizedFiles = filesToProcess.filter((file) => file.size > maxSize);
-                    if (oversizedFiles.length > 0) {
-                      showVsCodeMessageBox(
-                        'error',
-                        `${oversizedFiles.length} file(s) exceed ${maxSize / 1048576} MB limit. Please upload smaller files.`
-                      );
-                      return;
-                    }
+                        // Check file sizes
+                        const oversizedFiles = filesToProcess.filter((file) => file.size > maxSize);
+                        if (oversizedFiles.length > 0) {
+                          showVsCodeMessageBox(
+                            'error',
+                            `${oversizedFiles.length} file(s) exceed ${maxSize / 1048576} MB limit. Please upload smaller files.`
+                          );
+                          return;
+                        }
 
-                    // Create previews for all valid files
-                    const newPreviews: string[] = [];
-                    filesToProcess.forEach((file) => {
-                      const previewUrl = URL.createObjectURL(file);
-                      newPreviews.push(previewUrl);
-                    });
+                        // Create previews for all valid files
+                        const newPreviews: string[] = [];
+                        filesToProcess.forEach((file) => {
+                          const previewUrl = URL.createObjectURL(file);
+                          newPreviews.push(previewUrl);
+                        });
 
-                    setImagePreviews((prev) => [...prev, ...newPreviews]);
+                        setImagePreviews((prev) => [...prev, ...newPreviews]);
 
-                    // Upload all files
-                    filesToProcess.forEach((file) => {
-                      uploadFileToS3(file);
-                    });
-                  }
-                }}
-              />
-
-              <label
-                htmlFor="image-upload"
-                className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
-                  imagePreviews.length >= maxFiles
-                    ? 'cursor-not-allowed opacity-50'
-                    : 'cursor-pointer'
-                }`}
-                data-tooltip-id="upload-tooltip"
-                data-tooltip-content={
-                  imagePreviews.length >= maxFiles
-                    ? `Maximum ${maxFiles} images allowed`
-                    : `Upload Images (${imagePreviews.length}/${maxFiles})`
-                }
-                data-tooltip-place="top-start"
-                style={{ pointerEvents: imagePreviews.length >= maxFiles ? 'none' : 'auto' }}
-              >
-                <Image className="h-4 w-4" />
-              </label>
-
-              {enhancingUserQuery ? (
-                <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </div>
-              ) : (
-                <button
-                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 disabled:cursor-not-allowed"
-                  onClick={() => {
-                    enhanceUserQuery(userInput);
-                    useChatStore.setState({ enhancingUserQuery: true });
-                  }}
-                  data-tooltip-id="sparkles-tooltip"
-                  data-tooltip-content={`${userInput ? 'Enhance your prompt' : 'Please write your prompt first.'}`}
-                  data-tooltip-place="top-start"
-                  disabled={!userInput}
-                >
-                  <Sparkles className="h-4 w-4" />
-                </button>
-              )}
-
-              {isLoading ? (
-                <button
-                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
-                  onClick={cancelChat}
-                  disabled={!setCancelButtonStatus}
-                  {...(!setCancelButtonStatus && {
-                    'data-tooltip-id': 'cancel-button-tooltip',
-                    'data-tooltip-content': 'Hold on... registering your query',
-                    'data-tooltip-place': 'top-start',
-                  })}
-                >
-                  <CircleStop
-                    className={`h-4 w-4 text-red-500 ${!setCancelButtonStatus && 'opacity-50'} `}
+                        // Upload all files
+                        filesToProcess.forEach((file) => {
+                          uploadFileToS3(file);
+                        });
+                      }
+                    }}
                   />
-                </button>
-              ) : (
-                <button
-                  className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
-                  onClick={() => {
-                    if (!isLoading) {
-                      handleSend();
+
+                  <label
+                    htmlFor="image-upload"
+                    className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
+                      imagePreviews.length >= maxFiles
+                        ? 'cursor-not-allowed opacity-50'
+                        : 'cursor-pointer'
+                    }`}
+                    data-tooltip-id="upload-tooltip"
+                    data-tooltip-content={
+                      imagePreviews.length >= maxFiles
+                        ? `Maximum ${maxFiles} images allowed`
+                        : `Upload Images (${imagePreviews.length}/${maxFiles})`
                     }
-                  }}
-                >
-                  <CornerDownLeft className="h-4 w-4" />
-                </button>
-              )}
+                    data-tooltip-place="top-start"
+                    style={{ pointerEvents: imagePreviews.length >= maxFiles ? 'none' : 'auto' }}
+                  >
+                    <Image className="h-4 w-4" />
+                  </label>
+
+                  {enhancingUserQuery ? (
+                    <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    </div>
+                  ) : (
+                    <button
+                      className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 disabled:cursor-not-allowed"
+                      onClick={() => {
+                        enhanceUserQuery(userInput);
+                        useChatStore.setState({ enhancingUserQuery: true });
+                      }}
+                      data-tooltip-id="sparkles-tooltip"
+                      data-tooltip-content={`${userInput ? 'Enhance your prompt' : 'Please write your prompt first.'}`}
+                      data-tooltip-place="top-start"
+                      disabled={!userInput}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                    </button>
+                  )}
+
+                  {isLoading ? (
+                    <button
+                      className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                      onClick={cancelChat}
+                      disabled={!setCancelButtonStatus}
+                      {...(!setCancelButtonStatus && {
+                        'data-tooltip-id': 'cancel-button-tooltip',
+                        'data-tooltip-content': 'Hold on... registering your query',
+                        'data-tooltip-place': 'top-start',
+                      })}
+                    >
+                      <CircleStop
+                        className={`h-4 w-4 text-red-500 ${!setCancelButtonStatus && 'opacity-50'} `}
+                      />
+                    </button>
+                  ) : (
+                    <button
+                      className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
+                      onClick={() => {
+                        if (!isLoading) {
+                          handleSend();
+                        }
+                      }}
+                    >
+                      <CornerDownLeft className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <Tooltip id="repo-tooltip" />
+                <Tooltip id="sparkles-tooltip" />
+                <Tooltip id="upload-tooltip" />
+                <Tooltip id="cancel-button-tooltip" />
+              </div>
             </div>
-            <Tooltip id="repo-tooltip" />
-            <Tooltip id="sparkles-tooltip" />
-            <Tooltip id="upload-tooltip" />
-            <Tooltip id="cancel-button-tooltip" />
+
+            {/* Chat Type Toggle and model selector */}
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <ModelSelector />
+              <ChatTypeToggle />
+            </div>
           </div>
         </div>
-
-        {/* Chat Type Toggle and model selector */}
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <ModelSelector />
-          <ChatTypeToggle />
-        </div>
-      </div>
+      </PageTransition>
     </div>
   );
 }

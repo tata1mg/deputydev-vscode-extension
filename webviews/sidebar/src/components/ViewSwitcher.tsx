@@ -1,7 +1,7 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import { MessageSquare, FileCode2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Sparkles, GitPullRequest } from 'lucide-react';
 import useExtensionStore from '@/stores/useExtensionStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 function ViewSwitcher() {
   const { themeKind } = useThemeStore();
@@ -24,61 +24,83 @@ function ViewSwitcher() {
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
       ? 'border border-[--deputydev-button-border]'
       : '';
-  const underlineColor = 'bg-[--deputydev-button-background]';
-
-  const containerClass = `flex w-full h-9 items-center relative ${borderClass}`;
+  const activeColor = 'var(--deputydev-button-background)';
 
   return (
-    <div className={containerClass}>
-      {/* Sliding Underline */}
+    <div
+      className={`relative flex h-9 w-full items-center overflow-hidden rounded-xl ${borderClass}`}
+    >
+      {/* Inactive Background Element */}
+      <div
+        className="absolute inset-y-1 left-0 right-0 rounded-lg bg-[--deputydev-button-secondaryBackground]"
+        aria-hidden="true"
+      />
+
+      {/* Sliding Indicator with Framer Motion */}
       <motion.div
-        className={`absolute bottom-0 h-[2.5px] ${underlineColor}`}
-        animate={{
-          left: isChat ? '0%' : '50%',
-          width: '50%', // Full width of each tab section
-        }}
-        transition={{
-          type: 'spring',
-          stiffness: 300,
-          damping: 25,
-        }}
+        className={`absolute left-0 top-0 z-10 h-full w-1/2 rounded-xl`}
+        style={{ backgroundColor: activeColor }}
+        initial={false}
+        animate={{ x: isChat ? '0%' : '100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        aria-hidden="true"
       />
 
       {/* Code Gen Tab */}
-      <button
+      <motion.button
         type="button"
         onClick={() => toggle(true)}
-        className="relative box-border flex h-full flex-1 items-center justify-center gap-1 font-medium transition-opacity duration-200 ease-in-out"
+        className="relative z-20 flex h-full w-1/2 items-center justify-center gap-1 font-medium"
+        style={{
+          color: isChat
+            ? 'var(--deputydev-button-foreground)'
+            : 'var(--deputydev-button-secondaryForeground)',
+        }}
         aria-pressed={isChat}
-        style={{ opacity: isChat ? 1 : 0.7 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <div className="flex items-center justify-center gap-1">
-          <MessageSquare className="h-4 w-4" strokeWidth={2.5} />
-          <span className="text-[0.9375rem]">Code Gen</span>
-        </div>
-      </button>
-
-      {/* Divider */}
-      <div
-        className="flex h-full items-center justify-center px-2 text-base"
-        style={{ opacity: 0.5 }}
-      >
-        |
-      </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={isChat ? 'code-gen-active' : 'code-gen-inactive'}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center justify-center gap-1"
+          >
+            <Sparkles className="h-4 w-4" strokeWidth={2.5} />
+            <span className="text-[0.9375rem]">Code Gen</span>
+          </motion.div>
+        </AnimatePresence>
+      </motion.button>
 
       {/* Code Review Tab */}
-      <button
+      <motion.button
         type="button"
         onClick={() => toggle(false)}
-        className="relative box-border flex h-full flex-1 items-center justify-center gap-1 font-medium transition-opacity duration-200 ease-in-out"
+        className="relative z-20 flex h-full w-1/2 items-center justify-center gap-1 font-medium"
+        style={{
+          color: !isChat
+            ? 'var(--deputydev-button-foreground)'
+            : 'var(--deputydev-button-secondaryForeground)',
+        }}
         aria-pressed={!isChat}
-        style={{ opacity: !isChat ? 1 : 0.7 }}
+        whileTap={{ scale: 0.98 }}
       >
-        <div className="flex items-center justify-center gap-1">
-          <FileCode2 className="h-4 w-4" strokeWidth={2.5} />
-          <span className="text-[0.9375rem]">Code Review</span>
-        </div>
-      </button>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={!isChat ? 'code-review-active' : 'code-review-inactive'}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center justify-center gap-1"
+          >
+            <GitPullRequest className="h-4 w-4" strokeWidth={2.5} />
+            <span className="text-[0.9375rem]">Code Review</span>
+          </motion.div>
+        </AnimatePresence>
+      </motion.button>
     </div>
   );
 }

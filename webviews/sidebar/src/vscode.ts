@@ -35,6 +35,7 @@ import {
   startCodeReviewPostProcess,
   fetchPastReviews,
   hitSnapshot,
+  reviewNotification,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -865,7 +866,7 @@ addCommandEventListener('search-branches-result', ({ data }) => {
 
 addCommandEventListener('snapshot-result', ({ data }: any) => {
   console.log('Snapshot response received:', data);
-  if (data && !data.is_error) {
+  if (data && !data.is_error && useExtensionStore.getState().viewType === 'code-review') {
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
       reviewType: useCodeReviewStore.getState().activeReviewOption.value,
@@ -949,6 +950,7 @@ addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
 addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
   console.error('Review pre process failed with data:', data);
   useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'FAILED');
+  reviewNotification('REVIEW_FAILED');
 });
 
 addCommandEventListener('REVIEW_STARTED', ({ data }) => {
@@ -1005,12 +1007,12 @@ addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
 
       if (failedAgents.length > 0) {
         useCodeReviewStore.getState().setFailedAgents(failedAgents);
-        useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+        // useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
       }
 
-      if (failedAgents.length === 0) {
-        startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
-      }
+      // if (failedAgents.length === 0) {
+      startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
+      // }
     }
   }
 });
@@ -1049,12 +1051,14 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
 
       if (failedAgents.length > 0 && failedAgents.length != enabledAgents.length) {
         useCodeReviewStore.getState().setFailedAgents(failedAgents);
-        useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+        // useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
         useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+        startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
       }
 
       if (failedAgents.length > 0 && failedAgents.length === enabledAgents.length) {
         useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'FAILED');
+        reviewNotification('REVIEW_FAILED');
         useCodeReviewStore.setState({ reviewStatus: 'FAILED' });
         useCodeReviewStore.setState({ showReviewError: true });
         useCodeReviewStore.setState({
@@ -1091,10 +1095,12 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
     useCodeReviewStore.getState().activeReviewOption.value,
     useCodeReviewStore.getState().selectedTargetBranch
   );
+  reviewNotification('REVIEW_COMPLETED');
 });
 
 addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
   console.error('Post process failed:', data);
+  reviewNotification('REVIEW_FAILED');
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'FAILED');
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
 });
@@ -1150,10 +1156,12 @@ addCommandEventListener('fix-with-dd', ({ data }) => {
 
 addCommandEventListener('hit-new-review-after-file-event', () => {
   console.log('Hit new review after file event');
-  newReview({
-    targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
-    reviewType: useCodeReviewStore.getState().activeReviewOption.value,
-  });
+  if (useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
 });
 
 addCommandEventListener('comment-is-resolved', ({ data }) => {
