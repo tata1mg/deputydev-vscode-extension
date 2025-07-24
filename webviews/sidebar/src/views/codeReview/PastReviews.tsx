@@ -60,9 +60,20 @@ export const PastReviews = () => {
   const getFormattedComment = (
     comment: string,
     correctiveCode: string,
-    rationale: string
+    rationale: string,
+    agentId?: number | null
   ): string => {
+    let userAgent = null;
+    if (agentId) {
+      userAgent = userAgents.find((ua) => ua.id === agentId);
+    }
+    const agentName = userAgent ? userAgent.display_name : null;
+
     let formattedComment = '';
+
+    if (agentName) {
+      formattedComment += `${agentName}: `;
+    }
 
     if (comment?.trim()) {
       formattedComment += `${comment.trim()}\n\n`;
@@ -261,7 +272,7 @@ export const PastReviews = () => {
                                   onClick={(e) => toggleAgent(agent.id, e)}
                                   className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${
                                     isSelected
-                                      ? 'border-[var(--vscode-editorWidget-border)] bg-gray-800 text-white opacity-50'
+                                      ? 'border-[2px] border-green-500 bg-gray-800 text-white opacity-50'
                                       : 'border-[var(--vscode-editorWidget-border)] bg-gray-800 text-white hover:opacity-80'
                                   }`}
                                 >
@@ -302,7 +313,7 @@ export const PastReviews = () => {
                                 <div
                                   key={tag}
                                   onClick={(e) => toggleTag(tag, e)}
-                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${tagColors(tag)} ${isSelected ? 'opacity-50' : 'hover:opacity-80'}`}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${tagColors(tag)} ${isSelected ? 'border-[2px] border-green-500 opacity-50' : 'hover:opacity-80'}`}
                                 >
                                   <Icon size={12} />
                                   {tag.toUpperCase()}
@@ -414,7 +425,10 @@ export const PastReviews = () => {
                                                       commentText: getFormattedComment(
                                                         comment.comment,
                                                         comment.corrective_code,
-                                                        comment.rationale
+                                                        comment.rationale,
+                                                        comment.agent_ids.length === 1
+                                                          ? comment.agent_ids[0]
+                                                          : null
                                                       ),
                                                       promptText: `${comment.tag.toUpperCase()} : ${comment.title}`,
                                                       commentId: comment.id,

@@ -98,12 +98,12 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
 
               <div className="space-y-2 rounded-md border border-[var(--vscode-editorWidget-border)] p-2">
                 <div className="sticky top-0 z-10 border-b border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2 text-sm font-semibold text-[var(--vscode-foreground)]">
-                  Predefined Agents
+                  DeputyDev Agents
                 </div>
                 <div className="max-h-[90px] overflow-y-auto">
                   {userAgents.filter((agent) => !agent.is_custom_agent).length === 0 && (
                     <div className="p-2 text-xs text-[var(--vscode-descriptionForeground)]">
-                      No predefined agents available.
+                      No DeputyDev agents available.
                     </div>
                   )}
                   {userAgents
@@ -202,7 +202,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
 
             <div className="mt-2">
               {enabledAgents.length === 0 ? (
-                <div className="mb-3 flex items-center gap-2">
+                <div className="mb-3 flex items-center justify-center gap-2">
                   <TriangleAlert className="h-4 w-4 text-yellow-600" />
                   <span className="text-xs italic text-yellow-600">
                     Please enable at least one agent to proceed.
