@@ -881,6 +881,12 @@ addCommandEventListener('past-reviews', ({ data }) => {
   useCodeReviewStore.setState({ isFetchingPastReviews: false });
 
   console.log('Past reviews data received:', useCodeReviewStore.getState().pastReviews);
+
+  if (useCodeReviewStore.getState().isPastReviewsFetchedAfterReviewCompletion) {
+    useCodeReviewStore.setState({
+      expandedReview: useCodeReviewStore.getState().pastReviews[0].id,
+    });
+  }
 });
 
 addCommandEventListener('user-agents', ({ data }) => {
@@ -1078,6 +1084,7 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
     sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
     repoId: useCodeReviewStore.getState().repoId,
   });
+  useCodeReviewStore.setState({ isPastReviewsFetchedAfterReviewCompletion: true });
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
   console.log('Review completed successfully and hitting snapshot for active review option');
   hitSnapshot(

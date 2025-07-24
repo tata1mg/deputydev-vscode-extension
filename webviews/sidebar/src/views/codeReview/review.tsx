@@ -3,6 +3,7 @@ import { Check, Loader2, X } from 'lucide-react';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { FailedAgentsDialog } from '@/views/codeReview/FailedAgentsDialog';
 import { StepStatus } from '@/types';
+import { useEffect, useRef, useState } from 'react';
 
 interface Agent {
   id: number;
@@ -83,6 +84,36 @@ const AgentStatus = ({ agent, status }: { agent: Agent; status: StepStatus }) =>
 
 export const Review = () => {
   const { steps, failedAgents, showFailedAgentsDialog } = useCodeReviewStore();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      const threshold = 50; // pixels from bottom to consider "at bottom"
+
+      if (distanceFromBottom < threshold) {
+        setIsAutoScrollEnabled(true);
+      } else {
+        setIsAutoScrollEnabled(false);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to bottom when steps change and auto-scroll is enabled
+  useEffect(() => {
+    if (isAutoScrollEnabled && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [steps, isAutoScrollEnabled]);
 
   const getStatusIcon = (status: StepStatus) => {
     switch (status) {
@@ -129,7 +160,10 @@ export const Review = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-2 px-4 py-2"
       >
-        <div className="overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-sm">
+        <div
+          ref={containerRef}
+          className="h-[260px] overflow-y-auto rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] shadow-sm"
+        >
           <motion.div className="flex flex-col p-4" layout>
             <motion.h2
               className="mb-4 text-lg font-medium"

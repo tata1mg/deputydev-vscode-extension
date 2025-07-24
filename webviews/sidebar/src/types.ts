@@ -487,6 +487,8 @@ export interface CodeReviewStorage {
   reviewErrorMessage: string;
   showReviewError: boolean;
   isFetchingPastReviews: boolean;
+  expandedReview: number | null;
+  isPastReviewsFetchedAfterReviewCompletion: boolean;
 }
 
 export interface CodeReviewSetting {

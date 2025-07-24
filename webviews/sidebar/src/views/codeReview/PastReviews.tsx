@@ -16,7 +16,6 @@ import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 
 export const PastReviews = () => {
-  const [expandedReview, setExpandedReview] = useState<string | null>(null);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [selectedAgents, setSelectedAgents] = useState<Set<number>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -89,8 +88,10 @@ export const PastReviews = () => {
     return 'bg-blue-600';
   };
 
-  const toggleReview = (reviewId: string) => {
-    setExpandedReview(expandedReview === reviewId ? null : reviewId);
+  const toggleReview = (reviewId: number) => {
+    useCodeReviewStore.setState({
+      expandedReview: useCodeReviewStore.getState().expandedReview === reviewId ? null : reviewId,
+    });
     setExpandedFile(null);
   };
 
@@ -178,12 +179,14 @@ export const PastReviews = () => {
             return (
               <div key={review.id} className="m-1 text-sm">
                 <div
-                  className={`flex cursor-pointer items-center justify-between rounded-t px-2 py-1.5 hover:bg-[var(--vscode-list-hoverBackground)] ${expandedReview === review.id.toString() ? 'border-l border-r border-t border-[var(--vscode-editorWidget-border)]' : 'rounded border border-[var(--vscode-editorWidget-border)]'}`}
-                  onClick={() => toggleReview(review.id.toString())}
+                  className={`flex cursor-pointer items-center justify-between rounded-t px-2 py-1.5 hover:bg-[var(--vscode-list-hoverBackground)] ${useCodeReviewStore.getState().expandedReview === review.id ? 'border-l border-r border-t border-[var(--vscode-editorWidget-border)]' : 'rounded border border-[var(--vscode-editorWidget-border)]'}`}
+                  onClick={() => toggleReview(review.id)}
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
                     <motion.div
-                      animate={{ rotate: expandedReview === review.id.toString() ? 90 : 0 }}
+                      animate={{
+                        rotate: useCodeReviewStore.getState().expandedReview === review.id ? 90 : 0,
+                      }}
                       transition={{ duration: 0.2 }}
                       className="shrink-0"
                     >
@@ -211,7 +214,7 @@ export const PastReviews = () => {
                 </div>
 
                 <AnimatePresence>
-                  {expandedReview === review.id.toString() && (
+                  {useCodeReviewStore.getState().expandedReview === review.id && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{
@@ -256,10 +259,10 @@ export const PastReviews = () => {
                                 <div
                                   key={agent.id}
                                   onClick={(e) => toggleAgent(agent.id, e)}
-                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${
                                     isSelected
-                                      ? 'bg-blue-300 text-blue-800 opacity-100 dark:bg-blue-900 dark:text-blue-100'
-                                      : 'bg-blue-200 text-blue-700 hover:opacity-80 dark:bg-blue-800/50 dark:text-blue-100'
+                                      ? 'border-[var(--vscode-editorWidget-border)] bg-gray-800 text-white opacity-50'
+                                      : 'border-[var(--vscode-editorWidget-border)] bg-gray-800 text-white hover:opacity-80'
                                   }`}
                                 >
                                   <BotMessageSquare className="h-3 w-3" />
@@ -293,13 +296,13 @@ export const PastReviews = () => {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {allTags.map(({ tag, count }) => {
-                              const isSelected = selectedTags.has(tag);
+                              const isSelected = selectedTags.has(tag.toLowerCase());
                               const Icon = tag.toLowerCase() === 'bug' ? Bug : TriangleAlert;
                               return (
                                 <div
                                   key={tag}
                                   onClick={(e) => toggleTag(tag, e)}
-                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] transition-colors ${tagColors(tag)} ${isSelected ? 'opacity-50' : 'hover:opacity-80'}`}
+                                  className={`relative flex cursor-pointer items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] ${tagColors(tag)} ${isSelected ? 'opacity-50' : 'hover:opacity-80'}`}
                                 >
                                   <Icon size={12} />
                                   {tag.toUpperCase()}
