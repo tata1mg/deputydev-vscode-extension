@@ -52,6 +52,8 @@ export const useCodeReviewStore = create<
       reviewErrorMessage: '',
       showReviewError: false,
       isFetchingPastReviews: true,
+      expandedReview: null,
+      isPastReviewsFetchedAfterReviewCompletion: false,
 
       setSteps: (steps) => set({ steps }),
 
