@@ -21,6 +21,43 @@ export const PastReviews = () => {
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const { pastReviews, userAgents } = useCodeReviewStore();
 
+  interface CommentFeedback {
+    commentId: number;
+    isPositive: boolean;
+    isOpen: boolean;
+    feedback: string;
+  }
+
+  const [commentFeedbacks, setCommentFeedbacks] = useState<Record<number, CommentFeedback>>({});
+
+  const toggleFeedbackForm = (commentId: number, isPositive: boolean) => {
+    setCommentFeedbacks((prev) => {
+      const isCurrentlyOpen = prev[commentId]?.isOpen;
+      return {
+        ...prev,
+        [commentId]: {
+          commentId,
+          isPositive,
+          isOpen: !isCurrentlyOpen || prev[commentId]?.isPositive !== isPositive,
+          feedback: prev[commentId]?.feedback || '',
+          isAnimating: true,
+        },
+      };
+    });
+  };
+
+  const handleFeedbackSubmit = (commentId: number) => {
+    const feedback = commentFeedbacks[commentId];
+    if (feedback) {
+      console.log('Feedback submitted:', feedback);
+      setCommentFeedbacks((prev) => {
+        const newFeedbacks = { ...prev };
+        delete newFeedbacks[commentId];
+        return newFeedbacks;
+      });
+    }
+  };
+
   const markCommentUnresolved = (commentId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     useCodeReviewStore.setState((state) => ({
@@ -72,7 +109,7 @@ export const PastReviews = () => {
     let formattedComment = '';
 
     if (agentName) {
-      formattedComment += `${agentName}: `;
+      formattedComment += `**${agentName}**: `;
     }
 
     if (comment?.trim()) {
@@ -411,13 +448,11 @@ export const PastReviews = () => {
                                         return (
                                           <div
                                             key={comment.id}
-                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${
-                                              isResolved
-                                                ? 'line-through opacity-70'
-                                                : 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]'
-                                            } ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''}`}
+                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${isResolved ? 'line-through opacity-70' : ''} ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''} ${!isResolved && !isIgnored && !commentFeedbacks[comment.id]?.isOpen ? 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]' : ''} `}
                                             onClick={
-                                              !isResolved
+                                              !isResolved &&
+                                              !isIgnored &&
+                                              !commentFeedbacks[comment.id]?.isOpen
                                                 ? () => {
                                                     openCommentInFile({
                                                       filePath: comment.file_path,
@@ -489,6 +524,155 @@ export const PastReviews = () => {
                                                     <TriangleAlert size={10} />
                                                   )}
                                                   {comment.tag.toUpperCase()}
+                                                </div>
+
+                                                {/* FEEDBACK */}
+                                                <div className="mt-1 flex w-full flex-col">
+                                                  <div className="flex items-center gap-2">
+                                                    <motion.button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleFeedbackForm(comment.id, true);
+                                                      }}
+                                                      whileHover={{ scale: 1.1 }}
+                                                      whileTap={{ scale: 0.95 }}
+                                                      className={`rounded p-1 hover:bg-green-900/30 ${
+                                                        commentFeedbacks[comment.id]?.isOpen &&
+                                                        commentFeedbacks[comment.id]?.isPositive
+                                                          ? 'bg-green-900/50'
+                                                          : ''
+                                                      }`}
+                                                      title="Helpful"
+                                                    >
+                                                      <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                      >
+                                                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                                                      </svg>
+                                                    </motion.button>
+                                                    <motion.button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleFeedbackForm(comment.id, false);
+                                                      }}
+                                                      whileHover={{ scale: 1.1 }}
+                                                      whileTap={{ scale: 0.95 }}
+                                                      className={`rounded p-1 hover:bg-red-900/30 ${
+                                                        commentFeedbacks[comment.id]?.isOpen &&
+                                                        !commentFeedbacks[comment.id]?.isPositive
+                                                          ? 'bg-red-900/50'
+                                                          : ''
+                                                      }`}
+                                                      title="Not helpful"
+                                                    >
+                                                      <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                      >
+                                                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17" />
+                                                      </svg>
+                                                    </motion.button>
+                                                  </div>
+
+                                                  <AnimatePresence>
+                                                    {commentFeedbacks[comment.id]?.isOpen && (
+                                                      <motion.div
+                                                        initial={{
+                                                          opacity: 0,
+                                                          height: 0,
+                                                          marginTop: 0,
+                                                        }}
+                                                        animate={{
+                                                          opacity: 1,
+                                                          height: 'auto',
+                                                          marginTop: 8,
+                                                          transition: {
+                                                            opacity: { duration: 0.2 },
+                                                            height: { duration: 0.3 },
+                                                            marginTop: { duration: 0.2 },
+                                                          },
+                                                        }}
+                                                        exit={{
+                                                          opacity: 0,
+                                                          height: 0,
+                                                          marginTop: 0,
+                                                          transition: {
+                                                            opacity: { duration: 0.15 },
+                                                            height: { duration: 0.25 },
+                                                            marginTop: { duration: 0.2 },
+                                                          },
+                                                        }}
+                                                        className="overflow-hidden"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                      >
+                                                        <div className="rounded border border-[var(--vscode-editorWidget-border)] p-2">
+                                                          <textarea
+                                                            value={
+                                                              commentFeedbacks[comment.id].feedback
+                                                            }
+                                                            onChange={(e) => {
+                                                              setCommentFeedbacks((prev) => ({
+                                                                ...prev,
+                                                                [comment.id]: {
+                                                                  ...prev[comment.id],
+                                                                  feedback: e.target.value,
+                                                                },
+                                                              }));
+                                                            }}
+                                                            placeholder="Please provide your feedback..."
+                                                            className="mb-2 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                                            rows={3}
+                                                          />
+                                                          <div className="flex justify-end gap-2">
+                                                            <motion.button
+                                                              whileHover={{ scale: 1.03 }}
+                                                              whileTap={{ scale: 0.98 }}
+                                                              onClick={() => {
+                                                                setCommentFeedbacks((prev) => {
+                                                                  const newFeedbacks = { ...prev };
+                                                                  delete newFeedbacks[comment.id];
+                                                                  return newFeedbacks;
+                                                                });
+                                                              }}
+                                                              className="rounded border border-[var(--vscode-editorWidget-border)] px-2 py-1 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
+                                                            >
+                                                              Cancel
+                                                            </motion.button>
+                                                            <motion.button
+                                                              whileHover={{ scale: 1.03 }}
+                                                              whileTap={{ scale: 0.98 }}
+                                                              onClick={() =>
+                                                                handleFeedbackSubmit(comment.id)
+                                                              }
+                                                              disabled={
+                                                                !commentFeedbacks[
+                                                                  comment.id
+                                                                ]?.feedback.trim()
+                                                              }
+                                                              className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600 disabled:opacity-50"
+                                                            >
+                                                              Submit Feedback
+                                                            </motion.button>
+                                                          </div>
+                                                        </div>
+                                                      </motion.div>
+                                                    )}
+                                                  </AnimatePresence>
                                                 </div>
                                               </div>
                                             </div>
