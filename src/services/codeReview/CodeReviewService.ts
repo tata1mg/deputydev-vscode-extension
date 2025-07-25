@@ -62,6 +62,9 @@ export class ReviewService {
       const headers = {
         Authorization: `Bearer ${authToken}`,
       };
+      if (keyword === '') {
+        return { data: [] };
+      }
       const response = await binaryApi().get(API_ENDPOINTS.SEARCH_BRANCHES, {
         params: {
           repo_path: getActiveRepo(),

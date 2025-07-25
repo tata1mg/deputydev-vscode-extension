@@ -29,6 +29,7 @@ import {
   getSessionId,
   sendProgress,
   setReviewId,
+  setReviewSessionId,
   setSessionId,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
@@ -1080,6 +1081,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     } else {
       console.log('Code review pre-process completed successfully.');
       const reviewId = preProcessResult.data.review_id;
+      const reviewSessionId = preProcessResult.data.session_id;
+      setReviewSessionId(reviewSessionId);
       setReviewId(reviewId);
       console.log('Review ID set:', reviewId);
       this.sendMessageToSidebar({

@@ -52,6 +52,17 @@ export function setReviewId(value: number) {
   return;
 }
 
+export function getReviewSessionId(): number | undefined {
+  const reviewId = extensionContext?.workspaceState.get<number>('reviewSessionId');
+  return reviewId;
+}
+
+export function setReviewSessionId(value: number) {
+  logOutputChannel?.info(`Setting review session ID received for update: ${value}`);
+  extensionContext?.workspaceState.update('reviewSessionId', value);
+  return;
+}
+
 export function sendEmbeddingDoneMessage(embeddingProgressData: {
   task: string;
   status: string;

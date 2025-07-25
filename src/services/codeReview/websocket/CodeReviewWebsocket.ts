@@ -3,6 +3,9 @@ import * as vscode from 'vscode';
 import { SingletonLogger } from '../../../utilities/Singleton-logger';
 import { BackendClient } from '../../../clients/backendClient';
 import { AgentPayload, ReviewEvent, PostProcessEvent } from '../../../types';
+import { getReviewSessionId } from '../../../utilities/contextManager';
+import { SESSION_TYPE } from '../../../constants';
+import { AuthService } from '../../auth/AuthService';
 
 export class CodeReviewWebsocketService {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -25,10 +28,16 @@ export class CodeReviewWebsocketService {
     }
   }
 
-  public async *startReview(
-    payload: { review_id: number; agents: AgentPayload[] },
-    signal?: AbortSignal,
-  ): AsyncIterableIterator<ReviewEvent> {
+  public async *startReview(payload: Record<string, any>, signal?: AbortSignal): AsyncIterableIterator<ReviewEvent> {
+    const authService = new AuthService();
+    const authToken = await authService.loadAuthToken();
+
+    // Adding essential data in payload
+    payload['session_id'] = getReviewSessionId();
+    payload['session_type'] = SESSION_TYPE;
+    payload['auth_token'] = authToken;
+    payload['action'] = 'run-agent';
+
     let socketError: Error | null = null;
     let messageData: ReviewEvent;
 
@@ -112,9 +121,10 @@ export class CodeReviewWebsocketService {
   }
 
   public async *startPostProcess(
-    payload: { review_id: number },
+    payload: Record<string, any>,
     signal?: AbortSignal,
   ): AsyncIterableIterator<PostProcessEvent> {
+    payload['action'] = 'post-process';
     let socketError: Error | null = null;
 
     try {
