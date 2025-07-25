@@ -693,8 +693,7 @@ const Setting = () => {
       updateSavedUrl({ id, name: finalName, isSettings: true });
     } else {
       const payload: SaveUrlRequest = {
-        name: finalName,
-        url: finalUrl,
+        url: { url: finalUrl, name: finalName },
         isSettings: true,
       };
       saveUrl(payload);
