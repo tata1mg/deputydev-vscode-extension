@@ -176,6 +176,7 @@ export function ChatUI() {
   useEffect(() => {
     if (commentFixQuery && commentFixQuery !== '' && !isLoading && !enhancingUserQuery) {
       setUserInput(commentFixQuery);
+      useChatStore.getState().clearChat();
       handleSend();
     }
   }, [commentFixQuery, userInput]);
