@@ -258,7 +258,7 @@ export class ReviewService {
     }
   }
 
-  public async getRepoId(repo_name: string, origin_url: string) {
+  public async getRepoDetails(repo_name: string, origin_url: string) {
     try {
       const authToken = await fetchAuthToken();
       const headers = {

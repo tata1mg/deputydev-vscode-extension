@@ -537,13 +537,26 @@ export default function CodeReview() {
           />
 
           {useCodeReviewStore.getState().showReviewError && (
-            <div className="mb-2 flex items-center justify-center">
-              <span className="text-xs italic text-red-500">
-                {useCodeReviewStore.getState().reviewErrorMessage ||
-                  'An error occurred during the review process.'}
-              </span>
+            <div className="mb-2 flex w-full items-center justify-center px-4">
+              <div className="text-center">
+                <span className="text-xs italic text-red-500">
+                  {useCodeReviewStore.getState().reviewErrorMessage ||
+                    'An error occurred during the review process.'}
+                </span>
+              </div>
             </div>
           )}
+
+          {useCodeReviewStore.getState().new_review.fail_message &&
+            !useCodeReviewStore.getState().new_review.eligible_for_review && (
+              <div className="mb-2 flex w-full items-center justify-center px-4">
+                <div className="text-center">
+                  <span className="text-xs italic text-yellow-500">
+                    {useCodeReviewStore.getState().new_review.fail_message}
+                  </span>
+                </div>
+              </div>
+            )}
 
           {/* Review Button */}
           <div ref={dropDownRef} className="relative px-4">
@@ -551,9 +564,15 @@ export default function CodeReview() {
               <div className="relative flex w-full items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
                 {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
                   <button
-                    className={`flex-1 text-center ${useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0 ? 'cursor-not-allowed' : 'cursor-pointer'} `}
+                    className={`flex-1 text-center ${
+                      useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0 ||
+                      !useCodeReviewStore.getState().new_review.eligible_for_review
+                        ? 'cursor-not-allowed'
+                        : 'cursor-pointer'
+                    } `}
                     disabled={
-                      useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0
+                      useCodeReviewStore.getState().new_review?.file_wise_changes?.length === 0 ||
+                      !useCodeReviewStore.getState().new_review.eligible_for_review
                     }
                     onClick={() => {
                       setIsModalOpen(true);
@@ -606,15 +625,15 @@ export default function CodeReview() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
+              <div className="flex cursor-pointer items-center rounded-md border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
                 <button
-                  className="flex cursor-pointer items-center gap-2"
+                  className="flex items-center gap-2"
                   onClick={() => {
                     setShowAgents(!showAgents);
                     setShowReviewOptions(false);
                   }}
                 >
-                  <BotMessageSquare className="h-4 w-4 cursor-pointer text-[var(--vscode-foreground)] transition-transform" />
+                  <BotMessageSquare className="h-4 w-4 text-[var(--vscode-foreground)]" />
                   <span className="text-[var(--vscode-foreground)]">Agents</span>
                 </button>
               </div>

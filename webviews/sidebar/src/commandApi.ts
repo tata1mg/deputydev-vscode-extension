@@ -416,3 +416,7 @@ export function sendCommentStatusUpdate(commentId: number, status: string) {
 export function reviewNotification(reviewStatus: string) {
   return callCommand('review-notification', { reviewStatus });
 }
+
+export function fetchRepoDetails(data: { repo_name: string; origin_url: string }) {
+  return callCommand('get-repo-details-for-review', data);
+}

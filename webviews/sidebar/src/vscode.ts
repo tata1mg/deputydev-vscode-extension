@@ -36,6 +36,7 @@ import {
   fetchPastReviews,
   hitSnapshot,
   reviewNotification,
+  fetchRepoDetails,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -853,10 +854,7 @@ addCommandEventListener('new-review-created', ({ data }) => {
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
   console.log('New review from state*************', useCodeReviewStore.getState().new_review);
-  fetchPastReviews({
-    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
-    repoId: useCodeReviewStore.getState().repoId,
-  });
+  fetchRepoDetails({ repo_name: newReview.repo_name, origin_url: newReview.origin_url });
 });
 
 addCommandEventListener('search-branches-result', ({ data }) => {
@@ -913,11 +911,10 @@ addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
 });
 
 addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
-  const preProcessData = data as { review_id: number; session_id: number; repo_id: number };
+  const preProcessData = data as { review_id: number; session_id: number };
   console.log('Review preprocess completed:', preProcessData);
   useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
   useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
-  useCodeReviewStore.setState({ repoId: preProcessData.repo_id });
   console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
 
   // Update setup step to COMPLETED
@@ -1062,7 +1059,7 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
         useCodeReviewStore.setState({ reviewStatus: 'FAILED' });
         useCodeReviewStore.setState({ showReviewError: true });
         useCodeReviewStore.setState({
-          reviewErrorMessage: 'All agents failed to review the code.',
+          reviewErrorMessage: 'All agents are failed to review the code.',
         });
       }
     }
@@ -1211,10 +1208,21 @@ addCommandEventListener('new-review-error', ({ data }) => {
       origin_url: '',
       source_commit: '',
       target_commit: '',
+      fail_message: '',
+      eligible_for_review: false,
     },
   });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   useCodeReviewStore.setState({ isFetchingPastReviews: false });
   useCodeReviewStore.setState({ showReviewError: true });
   useCodeReviewStore.setState({ reviewErrorMessage: data as string });
+});
+
+addCommandEventListener('repo-details-for-review-fetched', ({ data }) => {
+  const { repo_id } = data as { repo_id: number };
+  useCodeReviewStore.setState({ repoId: repo_id });
+  fetchPastReviews({
+    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
+    repoId: useCodeReviewStore.getState().repoId,
+  });
 });
