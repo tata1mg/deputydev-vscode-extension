@@ -92,6 +92,8 @@ export async function activate(context: vscode.ExtensionContext) {
     essentialConfigs['DD_HOST_WS'],
     {
       QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
+      REVIEW_SOLVER: essentialConfigs['REVIEW_SOLVER_ENDPOINT'],
+      POST_PROCESS_SOLVER: essentialConfigs['REVIEW_POST_PROCESS_SOLVER_ENDPOINT'],
     },
   );
 

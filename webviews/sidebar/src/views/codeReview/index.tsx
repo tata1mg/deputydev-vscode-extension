@@ -429,78 +429,91 @@ export default function CodeReview() {
                       >
                         {/* Loading State */}
                         {isFetchingChangedFiles && (
-                          <div className="flex h-[260px] flex-col items-center justify-center space-y-2">
-                            <LoaderCircle className="h-10 w-10 animate-spin" />
-                            <span className="text-md font-mono italic">Analyzing Changes...</span>
+                          <div className="flex min-h-0 flex-1 flex-col">
+                            <div className="p-5">
+                              <div className="flex items-center justify-center space-x-2">
+                                <LoaderCircle className="h-4 w-4 animate-spin" />
+                                <span className="font-mono text-xs italic">
+                                  Analyzing Changes...
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         )}
 
+                        {/* No files changed */}
                         {!isFetchingChangedFiles && new_review?.file_wise_changes?.length === 0 && (
-                          <div className="flex h-[260px] items-center justify-center">
-                            <span className="text-md font-mono italic">
-                              {getNoChangesFoundText()}
-                            </span>
+                          <div className="flex min-h-0 flex-1 flex-col">
+                            <div className="p-5">
+                              <div className="flex items-center justify-center">
+                                <span className="font-mono text-xs italic">
+                                  {getNoChangesFoundText()}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         )}
 
                         {!isFetchingChangedFiles && new_review?.file_wise_changes?.length !== 0 && (
-                          <div className="h-[260px] divide-y divide-[var(--vscode-editorWidget-border)] overflow-y-auto">
-                            {new_review?.file_wise_changes?.map((file) => (
-                              <motion.div
-                                key={file.file_path}
-                                className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
-                                onClick={() =>
-                                  openFileDiff({
-                                    udiff: file.diff,
-                                    filePath: file.file_path,
-                                    fileName: file.file_name,
-                                  })
-                                }
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{
-                                  opacity: 1,
-                                  x: 0,
-                                  transition: {
-                                    duration: 0.2,
-                                    ease: 'easeOut',
-                                  },
-                                }}
-                                exit={{
-                                  opacity: 0,
-                                  x: -10,
-                                  transition: {
-                                    duration: 0.15,
-                                    ease: 'easeIn',
-                                  },
-                                }}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex min-w-0 items-center">
-                                    <span
-                                      className={`mr-2 rounded px-1.5 py-0.5 font-mono text-xs ${getStatusColor(file.status)}`}
-                                    >
-                                      {file.status}
-                                    </span>
-                                    <div className="truncate">
-                                      <div className="truncate font-medium">{file.file_name}</div>
-                                      <div className="truncate text-xs text-[var(--vscode-descriptionForeground)]">
-                                        {file.file_path}
+                          <div className="flex min-h-0 flex-1 flex-col">
+                            <div className="max-h-[260px] divide-y divide-[var(--vscode-editorWidget-border)] overflow-y-auto">
+                              {new_review?.file_wise_changes?.map((file) => (
+                                <motion.div
+                                  key={file.file_path}
+                                  className="cursor-pointer p-3 hover:bg-[var(--vscode-list-hoverBackground)]"
+                                  onClick={() =>
+                                    openFileDiff({
+                                      udiff: file.diff,
+                                      filePath: file.file_path,
+                                      fileName: file.file_name,
+                                    })
+                                  }
+                                  initial={{ opacity: 0, x: -10 }}
+                                  animate={{
+                                    opacity: 1,
+                                    x: 0,
+                                    transition: {
+                                      duration: 0.2,
+                                      ease: 'easeOut',
+                                    },
+                                  }}
+                                  exit={{
+                                    opacity: 0,
+                                    x: -10,
+                                    transition: {
+                                      duration: 0.15,
+                                      ease: 'easeIn',
+                                    },
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex min-w-0 items-center">
+                                      <span
+                                        className={`mr-2 rounded px-1.5 py-0.5 font-mono text-xs ${getStatusColor(file.status)}`}
+                                      >
+                                        {file.status}
+                                      </span>
+                                      <div className="truncate">
+                                        <div className="truncate font-medium">{file.file_name}</div>
+                                        <div className="truncate text-xs text-[var(--vscode-descriptionForeground)]">
+                                          {file.file_path}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
-                                    <span className="flex gap-2 font-mono text-xs">
-                                      <span className="text-green-600">
-                                        +{file.line_changes.added}
+                                    <div className="flex items-center text-xs text-[var(--vscode-descriptionForeground)]">
+                                      <span className="flex gap-2 font-mono text-xs">
+                                        <span className="text-green-600">
+                                          +{file.line_changes.added}
+                                        </span>
+                                        <span className="text-red-600">
+                                          -{file.line_changes.removed}
+                                        </span>
                                       </span>
-                                      <span className="text-red-600">
-                                        -{file.line_changes.removed}
-                                      </span>
-                                    </span>
+                                    </div>
                                   </div>
-                                </div>
-                              </motion.div>
-                            ))}
+                                </motion.div>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </motion.div>
@@ -551,17 +564,20 @@ export default function CodeReview() {
                 )}
 
                 {useCodeReviewStore.getState().reviewStatus === 'IDLE' && (
-                  <div
-                    className="cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowReviewOptions(!showReviewOptions);
-                      setShowAgents(false);
-                    }}
-                  >
-                    <ChevronDown
-                      className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
-                    />
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-px bg-[var(--vscode-editorWidget-border)]" />
+                    <div
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowReviewOptions(!showReviewOptions);
+                        setShowAgents(false);
+                      }}
+                    >
+                      <ChevronDown
+                        className={`h-4 w-4 text-[var(--vscode-foreground)] transition-transform ${showReviewOptions ? 'rotate-180' : ''}`}
+                      />
+                    </div>
                   </div>
                 )}
 
