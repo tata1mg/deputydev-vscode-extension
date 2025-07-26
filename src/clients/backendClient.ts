@@ -6,8 +6,8 @@ export class BackendClient extends BaseClient {
   // Default endpoints can be set here if needed
   endpointMap: Record<string, string> = {
     QUERY_SOLVER: '/query/solve',
-    REVIEW_SOLVER: '/end_user/v1/extension-code-review/run-multi-agent-local-connection',
-    POST_PROCESS_SOLVER: '/end_user/v1/extension-code-review/post-process-local-connection',
+    REVIEW_SOLVER: '',
+    POST_PROCESS_SOLVER: '',
   };
 
   // endpoints

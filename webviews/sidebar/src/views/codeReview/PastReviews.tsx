@@ -1,4 +1,4 @@
-import { openCommentInFile, sendCommentStatusUpdate } from '@/commandApi';
+import { openCommentInFile, openFile, sendCommentStatusUpdate } from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { AgentSummary, CodeReviewComment, Review } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -369,6 +369,11 @@ export const PastReviews = () => {
                         ([filePath, comments]: [string, CodeReviewComment[]]) => {
                           const filteredComments = getFilteredComments(comments);
                           const hasComments = filteredComments.length > 0;
+                          const hasActiveFilters = selectedAgents.size > 0 || selectedTags.size > 0;
+                          // Skip files with no comments when filters are active
+                          if (hasActiveFilters && !hasComments) {
+                            return null;
+                          }
 
                           return (
                             <div key={filePath} className="pl-4">
@@ -376,12 +381,19 @@ export const PastReviews = () => {
                                 className="flex cursor-pointer items-center justify-between p-1.5 hover:bg-[var(--vscode-list-hoverBackground)]"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleFile(filePath);
+                                  if (hasComments) {
+                                    toggleFile(filePath);
+                                  }
+                                  if (!hasComments) {
+                                    openFile(filePath);
+                                  }
                                 }}
                               >
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
                                   <motion.div
-                                    animate={{ rotate: expandedFile === filePath ? 90 : 0 }}
+                                    animate={{
+                                      rotate: expandedFile === filePath && hasComments ? 90 : 0,
+                                    }}
                                     transition={{ duration: 0.2 }}
                                   >
                                     <ChevronRight size={12} className="flex-shrink-0" />
@@ -441,7 +453,7 @@ export const PastReviews = () => {
                                     }}
                                     className="overflow-hidden"
                                   >
-                                    {hasComments ? (
+                                    {hasComments &&
                                       filteredComments.map((comment: CodeReviewComment) => {
                                         const isResolved = comment.comment_status === 'RESOLVED';
                                         const isIgnored = comment.comment_status === 'REJECTED';
@@ -678,12 +690,7 @@ export const PastReviews = () => {
                                             </div>
                                           </div>
                                         );
-                                      })
-                                    ) : (
-                                      <div className="py-2 pl-6 pr-2 text-xs text-[var(--vscode-descriptionForeground)]">
-                                        No comments in this file.
-                                      </div>
-                                    )}
+                                      })}
                                   </motion.div>
                                 )}
                               </AnimatePresence>
