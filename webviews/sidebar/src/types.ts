@@ -442,6 +442,8 @@ export interface NewReview {
   target_commit: string;
   origin_url: string;
   repo_name: string;
+  fail_message: string;
+  eligible_for_review: boolean;
 }
 
 export interface ReviewOption {

@@ -147,6 +147,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'fetch-past-reviews':
           this.fetchPastReviews(data);
           break;
+        case 'get-repo-details-for-review':
+          this.getRepoDetailsForReview(data);
+          break;
         case 'open-comment-in-file':
           this.commentHandler.showCommentAtLine(
             data.filePath,
@@ -1288,5 +1291,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     if (reviewStatus === 'REVIEW_FAILED') {
       vscode.window.showErrorMessage('Review failed. Please try again.');
     }
+  }
+
+  public async getRepoDetailsForReview(data: any) {
+    const repoDetails = await this.reviewService.getRepoDetails(data.repo_name, data.origin_url);
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'repo-details-for-review-fetched',
+      data: repoDetails.data,
+    });
   }
 }
