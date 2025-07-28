@@ -209,18 +209,21 @@ export default function CodeReview() {
     console.log('Update custom agent', agentId, agentPrompt, agentName);
     performCrudOnUserAgent('UPDATE', agentId, agentName, agentPrompt);
     setExpandedAgentId(null);
+    setIsAgentExpanded(false);
   };
 
   const handleUpdatePredefinedAgent = (agentId: number, agentPrompt: string) => {
     console.log('Update predefined agent', agentId, agentPrompt);
     performCrudOnUserAgent('UPDATE', agentId, undefined, agentPrompt);
     setExpandedAgentId(null);
+    setIsAgentExpanded(false);
   };
 
   const handleDelete = (agentId: number) => {
     console.log('Delete', agentId);
     performCrudOnUserAgent('DELETE', agentId);
     setExpandedAgentId(null);
+    setIsAgentExpanded(false);
   };
 
   const handleCreateAgent = (agentName: string, agentPrompt: string) => {
@@ -340,6 +343,11 @@ export default function CodeReview() {
                               key={index}
                               className="cursor-pointer overflow-hidden p-2 hover:bg-[var(--vscode-list-hoverBackground)]"
                               onClick={() => handleBranchSelect(result)}
+                              data-tooltip-id="code-review-tooltips"
+                              data-tooltip-content={result}
+                              data-tooltip-place="top-start"
+                              data-tooltip-class-name="z-50 max-w-[80%]"
+                              data-tooltip-effect="solid"
                             >
                               <div className="flex items-center gap-2">
                                 <GitBranch className="h-3.5 w-3.5 flex-shrink-0 text-purple-600 dark:text-purple-400" />
@@ -822,6 +830,7 @@ export default function CodeReview() {
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             setExpandedAgentId(null);
+                                            setIsAgentExpanded(false);
                                           }}
                                         >
                                           Cancel
@@ -967,6 +976,7 @@ export default function CodeReview() {
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setExpandedAgentId(null);
+                                              setIsAgentExpanded(false);
                                             }}
                                           >
                                             Cancel
