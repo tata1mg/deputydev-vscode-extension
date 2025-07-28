@@ -180,6 +180,13 @@ export type EmbeddingProgressData = {
   progress: number;
 };
 
+export interface FileSummaryResponse {
+  file_path: string;
+  file_type: string; // "code", "text", etc.
+  strategy_used: string; // "code", "text", etc.
+  summary_content: string;
+}
+
 export interface ThrottlingErrorData {
   type: 'STREAM_ERROR';
   status: 'LLM_THROTTLED';
@@ -188,6 +195,13 @@ export interface ThrottlingErrorData {
   retry_after?: number | null;
   message: string;
   detail?: string | null;
+  region?: string | null;
+}
+
+export interface FileReadOrSummaryResponse {
+  type: 'full' | 'summary';
+  content: string;
+  total_lines: number;
 }
 
 export interface ReviewToolUseResponse {

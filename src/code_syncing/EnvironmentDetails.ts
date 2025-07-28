@@ -1,11 +1,10 @@
-import * as path from 'path';
-import * as os from 'os';
-import * as fs from 'fs';
 import * as vscode from 'vscode';
+import { binaryApi } from '../services/api/axios';
+import { API_ENDPOINTS } from '../services/api/endpoints';
+import { ChatPayload, FileSummaryResponse } from '../types';
 import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
-import { arePathsEqual } from '../utilities/path';
-import { ChatPayload } from '../types';
-const PREVIEW_LINES = 100; // Number of lines to preview in the active file
+const FILE_CONTEXT_THRESHOLD = 100;
+
 export async function getEnvironmentDetails(
   includeFileDetails: boolean = false,
   payload?: ChatPayload,
@@ -106,47 +105,62 @@ export async function getEnvironmentDetails(
   // --- OPTIONAL: Show active-file preview or selection ---
   if (payload?.active_file_reference?.active_file) {
     const { active_file, start_line, end_line } = payload.active_file_reference;
-    // Resolve path relative to cwd if it isn’t already absolute
     const absolutePath = active_file;
-
     try {
-      const fileText = await fs.promises.readFile(absolutePath, 'utf8');
-      const lines = fileText.split(/\r?\n/);
-      const totalLines = lines.length;
-
-      if (
-        typeof start_line === 'number' &&
-        typeof end_line === 'number' &&
-        start_line >= 1 &&
-        end_line >= start_line &&
-        end_line <= totalLines
-      ) {
-        // Show the explicitly selected region
-        const excerpt = lines.slice(start_line - 1, end_line).join('\n');
+      const req: any = {
+        file_path: absolutePath,
+        repo_path: '',
+        number_of_lines: FILE_CONTEXT_THRESHOLD,
+      };
+      if (typeof start_line === 'number' && typeof end_line === 'number') {
+        req.start_line = start_line;
+        req.end_line = end_line;
+      }
+      const response = await binaryApi().post(API_ENDPOINTS.READ_FILE_OR_SUMMARY, req);
+      const fileData = response.data;
+      if (fileData.type === 'full') {
+        details +=
+          `\n\n# Active File Content\n` +
+          `Absolute Path: ${absolutePath}\n` +
+          `Total lines in file: ${fileData.total_lines}\n\n` +
+          `Below is the full file content:\n\n` +
+          `${fileData.content}\n` +
+          `\n(The user currently has this file open in their VS Code. It may or may not be relevant.)`;
+      } else if (fileData.type === 'selection') {
         details +=
           `\n\n# Active File Selection\n` +
           `Absolute Path: ${absolutePath}\n` +
-          `Total lines in file: ${totalLines}\n\n` +
-          `Lines below are ${start_line}-${end_line} (as selected in the user's editor):\n` +
-          `${excerpt}\n` +
-          `\n(The user has this range selected in VS Code. It may or may not be relevant. ` +
-          `If your task needs more context, you can load additional parts of the file using the appropriate tools.)`;
-      } else {
-        // Show only the first N lines (or fewer if the file is shorter)
-        const previewLineCount = Math.min(PREVIEW_LINES, totalLines);
-        const excerpt = lines.slice(0, previewLineCount).join('\n');
+          `Total lines in file: ${fileData.total_lines}\n\n` +
+          `Lines below are ${fileData.start_line}-${fileData.end_line} (as selected in the user's editor):\n` +
+          `${fileData.content}\n` +
+          `\n(The user has this range selected in VS Code. It may or may not be relevant. If your task needs more context, you can load additional parts of the file using the appropriate tools.)`;
+      } else if (fileData.type === 'summary') {
         details +=
-          `\n\n# Active File Preview\n` +
+          `\n\n# Active File Summary\n` +
           `Absolute Path: ${absolutePath}\n` +
-          `First ${previewLineCount} line${previewLineCount !== 1 ? 's' : ''} of ${totalLines} total lines in the active file:\n` +
-          `${excerpt}\n` +
-          `\n(The user currently has this file open in their VsCode editor. It may or may not be relevant. ` +
-          `If your task needs more context, you can read further using the available tools.)`;
+          `Total lines in file: ${fileData.total_lines}\n\n` +
+          `Below is an auto-generated summary of the file (line no, function signatures, key lines, etc):\n\n` +
+          `${fileData.content}\n` +
+          `\n(The user currently has this file open in their VS Code. It may or may not be relevant. ` +
+          `\n(The file is long, so only a summary is shown. If your task needs more context, you can load additional parts of the file using the appropriate tools.)`;
+      } else {
+        details += `\n\n# Active File\n(Absolute Path: ${absolutePath})\n(File context could not be loaded.)`;
       }
     } catch (e: any) {
-      details += `\n\n# Active File Preview\n(Absolute Path: ${absolutePath})\n`;
+      details += `\n\n# Active File\n(Absolute Path: ${absolutePath})\n(File context could not be loaded.)`;
     }
   }
 
   return `<environment_details>\n${details.trim()}\n</environment_details>`;
+}
+
+async function _runFileSummaryReader(filePath: string): Promise<FileSummaryResponse | undefined> {
+  try {
+    const response = await binaryApi().post(API_ENDPOINTS.READ_FILE_OR_SUMMARY, {
+      file_path: filePath,
+    });
+    return response.data;
+  } catch (error: any) {
+    return undefined;
+  }
 }

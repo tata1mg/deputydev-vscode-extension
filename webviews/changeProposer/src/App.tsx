@@ -3,7 +3,6 @@ import Editor, { OnMount } from '@monaco-editor/react';
 import * as monacoEditor from 'monaco-editor';
 import { callCommand } from './vscode';
 
-
 const App: React.FC = () => {
   const editorRef = useRef<monacoEditor.editor.IStandaloneCodeEditor | null>(null);
   const contentWidgetsRef = useRef<monacoEditor.editor.IContentWidget[]>([]);
@@ -14,8 +13,10 @@ const App: React.FC = () => {
   const [contentLanguage, setContentLanguage] = useState<string>('plaintext');
   const [currentVSCodeTheme, setCurrentVSCodeTheme] = useState<string>('vs-dark'); // Default value
 
-  const ACCEPT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiM3N2ZkOGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS00LjI5IDEwLjI5TDguNzEgMTQuNzFsMi44NS0yLjg1IDQuNzEgNC43MS0xLjQxIDEuNDFMMTAuNzEgMTIuMjl6Ii8+PC9zdmc+';
-  const REJECT_ICON = 'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlMjQzNDMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEuNDEgMTMuNDFMMTIgMTMuNDFsLTMuNDEgMy40MS0xLjQxLTEuNDFMMTAuNTkgMTIgNy4xOCA4LjU5bDEuNDEtMS40MUwxMiAxMC41OWwzLjQxLTMuNDFsMS40MSAxLjQxTDEzLjQxIDEybDMuNDEgMy40MS0xLjQxIDEuNDF6Ii8+PC9zdmc+';
+  const ACCEPT_ICON =
+    'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiM3N2ZkOGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bS00LjI5IDEwLjI5TDguNzEgMTQuNzFsMi44NS0yLjg1IDQuNzEgNC43MS0xLjQxIDEuNDFMMTAuNzEgMTIuMjl6Ii8+PC9zdmc+';
+  const REJECT_ICON =
+    'PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9IiNlMjQzNDMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTEuNDEgMTMuNDFMMTIgMTMuNDFsLTMuNDEgMy40MS0xLjQxLTEuNDFMMTAuNTkgMTIgNy4xOCA4LjU5bDEuNDEtMS40MUwxMiAxMC41OWwzLjQxLTMuNDFsMS40MSAxLjQxTDEzLjQxIDEybDMuNDEgMy40MS0xLjQxIDEuNDF6Ii8+PC9zdmc+';
 
   useEffect(() => {
     const loadContent = async () => {
@@ -66,9 +67,12 @@ const App: React.FC = () => {
     if (!model) return;
     const lines = model.getLinesContent();
     const firstEditLine = lines.findIndex((line) => line.startsWith('+') || line.startsWith('-'));
-    editor.revealLineInCenterIfOutsideViewport(firstEditLine + 1, monaco.editor.ScrollType.Immediate);
+    editor.revealLineInCenterIfOutsideViewport(
+      firstEditLine + 1,
+      monaco.editor.ScrollType.Immediate
+    );
   };
-  
+
   const clearContentWidgets = () => {
     if (!editorRef.current) return;
     for (const widget of contentWidgetsRef.current) {
@@ -77,12 +81,15 @@ const App: React.FC = () => {
     contentWidgetsRef.current = [];
   };
 
-  const createContentWidget = (line: number, monaco: typeof monacoEditor): monacoEditor.editor.IContentWidget => {
+  const createContentWidget = (
+    line: number,
+    monaco: typeof monacoEditor
+  ): monacoEditor.editor.IContentWidget => {
     const widgetId = `diff-buttons-${line}`;
-  
+
     const domNode = document.createElement('span');
     domNode.className = 'inline-buttons';
-  
+
     const createButton = (label: string, base64: string, onClick: () => void) => {
       const btn = document.createElement('button');
       btn.className = 'diff-action-button';
@@ -98,17 +105,17 @@ const App: React.FC = () => {
       btn.onclick = onClick;
       return btn;
     };
-  
+
     const acceptBtn = createButton('Accept', ACCEPT_ICON, () => {
       handleAcceptChangeAtLine(line, acceptBtn, monaco);
     });
     const rejectBtn = createButton('Reject', REJECT_ICON, () => {
       handleRejectChangeAtLine(line, rejectBtn, monaco);
     });
-  
+
     domNode.appendChild(acceptBtn);
     domNode.appendChild(rejectBtn);
-  
+
     return {
       getId: () => widgetId,
       getDomNode: () => domNode,
@@ -135,10 +142,10 @@ const App: React.FC = () => {
 
   const createOverlayWidget = (monaco: typeof monacoEditor): monacoEditor.editor.IOverlayWidget => {
     const widgetId = 'top-right-actions';
-  
+
     const domNode = document.createElement('div');
     domNode.className = 'top-right-buttons';
-  
+
     const createButton = (label: string, base64: string, onClick: () => void) => {
       const btn = document.createElement('button');
       btn.className = 'diff-action-button';
@@ -154,19 +161,17 @@ const App: React.FC = () => {
       btn.onclick = onClick;
       return btn;
     };
-  
-    const acceptAll = createButton('Accept All', ACCEPT_ICON, () =>
-    {
+
+    const acceptAll = createButton('Accept All', ACCEPT_ICON, () => {
       handleAcceptAll(acceptAll, monaco);
     });
-    const rejectAll = createButton('Reject All', REJECT_ICON, () =>
-    {
+    const rejectAll = createButton('Reject All', REJECT_ICON, () => {
       handleRejectAll(rejectAll, monaco);
     });
-  
+
     domNode.appendChild(acceptAll);
     domNode.appendChild(rejectAll);
-  
+
     return {
       getId: () => widgetId,
       getDomNode: () => domNode,
@@ -176,7 +181,11 @@ const App: React.FC = () => {
     };
   };
 
-  const handleAcceptChangeAtLine = async (line: number, acceptBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+  const handleAcceptChangeAtLine = async (
+    line: number,
+    acceptBtn: HTMLButtonElement,
+    monaco: typeof monacoEditor
+  ) => {
     if (!editorRef.current) return;
     try {
       const newContent = await callCommand('accept-change', { line });
@@ -191,8 +200,11 @@ const App: React.FC = () => {
     }
   };
 
-
-  const handleRejectChangeAtLine = async (line: number, rejectBtn: HTMLButtonElement, monaco: typeof monacoEditor) => {
+  const handleRejectChangeAtLine = async (
+    line: number,
+    rejectBtn: HTMLButtonElement,
+    monaco: typeof monacoEditor
+  ) => {
     if (!editorRef.current) return;
     try {
       const newContent = await callCommand('reject-change', { line });
@@ -239,154 +251,158 @@ const App: React.FC = () => {
     }
   };
 
-  const addEditorListeners = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
-        // add listeners for content changes and key presses
-        editor.onDidChangeModelContent((e) => {
-          // send event to vscode
-          const model = editor.getModel();
-          if (!model) return;
-          const content = model.getValue();
-          callCommand('content-changed', { content });
-        });
-    
-        // custom keypress behavior, basically preserves the first column
-        editor.onKeyDown((e) => {
-          const editor = editorRef.current;
-          if (!editor) return;
-          const model = editor.getModel();
-          if (!model) return;
+  const addEditorListeners = (
+    editor: monacoEditor.editor.IStandaloneCodeEditor,
+    monaco: typeof monacoEditor
+  ) => {
+    // add listeners for content changes and key presses
+    editor.onDidChangeModelContent((e) => {
+      // send event to vscode
+      const model = editor.getModel();
+      if (!model) return;
+      const content = model.getValue();
+      callCommand('content-changed', { content });
+    });
 
-          // get the current selection and position
-          const selection = editor.getSelection();
-          const position = editor.getPosition();
+    // custom keypress behavior, basically preserves the first column
+    editor.onKeyDown((e) => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
 
-          // ensure selection and position are valid
-          if (!selection || !position) return;
-        
-          const { startColumn, endColumn, startLineNumber, endLineNumber } = selection;
-          console.log('selection', selection);
-          console.log('keycode', e.keyCode);
-        
-          const isSingleLine = startLineNumber === endLineNumber;
-          const currentLineContent = model.getLineContent(startLineNumber);
-    
-          if ((position && position.column === 1) || (currentLineContent.startsWith('-'))) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-        
-          // Block backspace at column 2
-          if (
-            e.keyCode === monaco.KeyCode.Backspace &&
-            isSingleLine &&
-            startColumn === 2 &&
-            endColumn === 2
-          ) {
-            // if current line is not empty
-            const lineContent = model.getLineContent(startLineNumber);
-            if (lineContent.length > 1) {
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            } else {
-              editor.executeEdits('', [
-                {
-                  range: new monaco.Range(startLineNumber - 1, 1, startLineNumber, 2),
-                  text: `${model.getLineContent(startLineNumber - 1)}`,
-                  forceMoveMarkers: true,
-                },
-              ]);
-              decorateEditor(editor, monaco);
-              e.preventDefault();
-              e.stopPropagation();
-              return;
-            }
-          }
-    
-          // --- BLOCK DELETE if selection includes column 1 (but not whole line) ---
-          if (
-            (e.keyCode === monaco.KeyCode.Delete || e.keyCode === monaco.KeyCode.Backspace) &&
-            isSingleLine &&
-            startColumn === 1 &&
-            !(startColumn === 1 && endColumn)
-          ) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-          }
-    
-          // Make sure enter only adds a new line from column 2
-          if (
-            e.keyCode === monaco.KeyCode.Enter
-          ) {
-            const lineContent = model.getLineContent(startLineNumber);
-            if (lineContent.startsWith('+')) {
-              editor.executeEdits('', [
-                {
-                  range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
-                  text: '\n+',
-                  forceMoveMarkers: true,
-                },
-              ]);
-              e.preventDefault();
-              e.stopPropagation();
-              decorateEditor(editor, monaco);
-              return;
-            } else {
-              editor.executeEdits('', [
-                {
-                  range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
-                  text: '\n ',
-                  forceMoveMarkers: true,
-                },
-              ]);
-              e.preventDefault();
-              e.stopPropagation();
-              decorateEditor(editor, monaco);
-              return;
-            }
-          }
-        });
-        
-        editor.onMouseDown((e) => {
-          const position = e.target.position;
-          if (!position) return;
-          if (position && position.column === 1) {
-            e.event.preventDefault();
-            e.event.stopPropagation();
-          }
-          const positionLineContent = editor.getModel()?.getLineContent(position.lineNumber);
-          if (position && positionLineContent?.startsWith('-')) {
-            e.event.preventDefault();
-            e.event.stopPropagation();
-          }
-        });
-    
-        editor.onDidChangeCursorPosition((e) => {
-          if (e.position.column === 1) {
-            editor.setPosition({ ...e.position, column: 2 });
-          }
-        });
-    
-        editor.onDidPaste((e) => {
-          const selection = editor.getSelection();
-          if (!selection) return;
-          const { startLineNumber, endLineNumber } = selection;
-          for (let i = startLineNumber; i <= endLineNumber; i++) {
-            const lineContent = editor.getModel()?.getLineContent(i);
-            if (!lineContent) continue;
-            if (lineContent.startsWith('-')) {
-              // cancel the paste
-              editor.trigger('keyboard', 'undo', null);
-              break;
-            }
-          }
+      // get the current selection and position
+      const selection = editor.getSelection();
+      const position = editor.getPosition();
+
+      // ensure selection and position are valid
+      if (!selection || !position) return;
+
+      const { startColumn, endColumn, startLineNumber, endLineNumber } = selection;
+      console.log('selection', selection);
+      console.log('keycode', e.keyCode);
+
+      const isSingleLine = startLineNumber === endLineNumber;
+      const currentLineContent = model.getLineContent(startLineNumber);
+
+      if ((position && position.column === 1) || currentLineContent.startsWith('-')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Block backspace at column 2
+      if (
+        e.keyCode === monaco.KeyCode.Backspace &&
+        isSingleLine &&
+        startColumn === 2 &&
+        endColumn === 2
+      ) {
+        // if current line is not empty
+        const lineContent = model.getLineContent(startLineNumber);
+        if (lineContent.length > 1) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        } else {
+          editor.executeEdits('', [
+            {
+              range: new monaco.Range(startLineNumber - 1, 1, startLineNumber, 2),
+              text: `${model.getLineContent(startLineNumber - 1)}`,
+              forceMoveMarkers: true,
+            },
+          ]);
           decorateEditor(editor, monaco);
-        });
-      };
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }
 
-  const decorateEditor = (editor: monacoEditor.editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
+      // --- BLOCK DELETE if selection includes column 1 (but not whole line) ---
+      if (
+        (e.keyCode === monaco.KeyCode.Delete || e.keyCode === monaco.KeyCode.Backspace) &&
+        isSingleLine &&
+        startColumn === 1 &&
+        !(startColumn === 1 && endColumn)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+
+      // Make sure enter only adds a new line from column 2
+      if (e.keyCode === monaco.KeyCode.Enter) {
+        const lineContent = model.getLineContent(startLineNumber);
+        if (lineContent.startsWith('+')) {
+          editor.executeEdits('', [
+            {
+              range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
+              text: '\n+',
+              forceMoveMarkers: true,
+            },
+          ]);
+          e.preventDefault();
+          e.stopPropagation();
+          decorateEditor(editor, monaco);
+          return;
+        } else {
+          editor.executeEdits('', [
+            {
+              range: new monaco.Range(startLineNumber, startColumn, startLineNumber, endColumn),
+              text: '\n ',
+              forceMoveMarkers: true,
+            },
+          ]);
+          e.preventDefault();
+          e.stopPropagation();
+          decorateEditor(editor, monaco);
+          return;
+        }
+      }
+    });
+
+    editor.onMouseDown((e) => {
+      const position = e.target.position;
+      if (!position) return;
+      if (position && position.column === 1) {
+        e.event.preventDefault();
+        e.event.stopPropagation();
+      }
+      const positionLineContent = editor.getModel()?.getLineContent(position.lineNumber);
+      if (position && positionLineContent?.startsWith('-')) {
+        e.event.preventDefault();
+        e.event.stopPropagation();
+      }
+    });
+
+    editor.onDidChangeCursorPosition((e) => {
+      if (e.position.column === 1) {
+        editor.setPosition({ ...e.position, column: 2 });
+      }
+    });
+
+    editor.onDidPaste((e) => {
+      const selection = editor.getSelection();
+      if (!selection) return;
+      const { startLineNumber, endLineNumber } = selection;
+      for (let i = startLineNumber; i <= endLineNumber; i++) {
+        const lineContent = editor.getModel()?.getLineContent(i);
+        if (!lineContent) continue;
+        if (lineContent.startsWith('-')) {
+          // cancel the paste
+          editor.trigger('keyboard', 'undo', null);
+          break;
+        }
+      }
+      decorateEditor(editor, monaco);
+    });
+  };
+
+  const decorateEditor = (
+    editor: monacoEditor.editor.IStandaloneCodeEditor,
+    monaco: typeof monacoEditor
+  ) => {
     editorRef.current = editor;
     const model = editor.getModel();
     if (!model) return;
@@ -401,7 +417,6 @@ const App: React.FC = () => {
     if (!lines.some((line) => line.startsWith('+') || line.startsWith('-'))) {
       return;
     }
-
 
     const lineDecorations: monacoEditor.editor.IModelDeltaDecoration[] = [];
 
@@ -430,7 +445,9 @@ const App: React.FC = () => {
 
       // add content widgets for accept/reject buttons on first line of each block
       const prev = i > 0 ? lines[i - 1] : '';
-      const isBlockStart = (line.startsWith('+') || line.startsWith('-')) && !(prev.startsWith('+') || prev.startsWith('-'));
+      const isBlockStart =
+        (line.startsWith('+') || line.startsWith('-')) &&
+        !(prev.startsWith('+') || prev.startsWith('-'));
       if (isBlockStart) {
         const widget = createContentWidget(lineNum, monaco);
         editor.addContentWidget(widget);
