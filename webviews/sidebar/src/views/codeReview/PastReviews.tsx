@@ -211,7 +211,7 @@ export const PastReviews = () => {
 
       {pastReviews && pastReviews.length > 0 ? (
         <div
-          className="min-h-[260px] flex-1 overflow-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+          className="h-auto max-h-[260px] flex-1 overflow-y-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
           style={{
             boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
           }}
