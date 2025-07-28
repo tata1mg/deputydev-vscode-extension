@@ -460,7 +460,7 @@ export const PastReviews = () => {
                                         return (
                                           <div
                                             key={comment.id}
-                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${isResolved ? 'line-through opacity-70' : ''} ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''} ${!isResolved && !isIgnored && !commentFeedbacks[comment.id]?.isOpen ? 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]' : ''} `}
+                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${!isResolved && !isIgnored && !commentFeedbacks[comment.id]?.isOpen ? 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]' : ''} `}
                                             onClick={
                                               !isResolved &&
                                               !isIgnored &&
@@ -485,7 +485,9 @@ export const PastReviews = () => {
                                             }
                                           >
                                             <div className="flex w-full flex-col gap-1">
-                                              <div className="relative flex w-full items-start justify-between">
+                                              <div
+                                                className={`relative flex w-full items-start justify-between ${isResolved ? 'line-through opacity-70' : ''} ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''}`}
+                                              >
                                                 <span className="font-semibold">
                                                   {comment.title}
                                                 </span>
@@ -516,7 +518,7 @@ export const PastReviews = () => {
                                                 {comment.agent_ids.map((agentId: number) => (
                                                   <div
                                                     key={agentId}
-                                                    className="flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white"
+                                                    className={`flex w-fit items-center gap-1 rounded-md border border-[var(--vscode-editorWidget-border)] bg-gray-800 px-1 py-0.5 text-[10px] text-white ${isResolved ? 'line-through opacity-70' : ''} ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''} `}
                                                   >
                                                     <BotMessageSquare className="h-3 w-3" />
                                                     <span>
@@ -528,7 +530,7 @@ export const PastReviews = () => {
                                                   </div>
                                                 ))}
                                                 <div
-                                                  className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1`}
+                                                  className={`w-fit rounded-md border px-1 py-0.5 text-[10px] text-white ${tagColors(comment.tag)} flex items-center gap-1 ${isResolved ? 'line-through opacity-70' : ''} ${isIgnored ? 'line-through decoration-red-600 opacity-70' : ''} `}
                                                 >
                                                   {comment.tag.toLowerCase() === 'bug' ? (
                                                     <Bug size={10} />
