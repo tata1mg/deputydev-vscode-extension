@@ -347,7 +347,7 @@ export function downloadImageFile(key: string) {
 
 // Code Review
 
-export function codeReviewPreProcess(data: NewReview) {
+export function codeReviewPreProcess(data: { newReview: NewReview; reviewType: string }) {
   return callCommand('code-review-pre-process', data);
 }
 
@@ -419,4 +419,12 @@ export function reviewNotification(reviewStatus: string) {
 
 export function fetchRepoDetails(data: { repo_name: string; origin_url: string }) {
   return callCommand('get-repo-details-for-review', data);
+}
+
+export function submitCommentFeedback(data: {
+  commentId: number;
+  isLike?: boolean;
+  feedbackComment?: string;
+}) {
+  return callCommand('submit-feedback-comment', data);
 }

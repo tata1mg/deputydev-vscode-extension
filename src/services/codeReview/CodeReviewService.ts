@@ -278,4 +278,25 @@ export class ReviewService {
       throw error;
     }
   }
+
+  public async submitCommentFeedback(commentId: number, isLike?: boolean, feedbackComment?: string) {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const payload = {
+        feedback_comment: feedbackComment,
+        like: isLike,
+      };
+      const response = await api.post(`${API_ENDPOINTS.SUBMIT_COMMENT_FEEDBACK}/${commentId}/feedback`, payload, {
+        headers,
+      });
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error while updating comment status');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
 }

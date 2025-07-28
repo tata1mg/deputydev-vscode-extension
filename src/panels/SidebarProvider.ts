@@ -171,6 +171,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'review-notification':
           this.reviewNotification(data.reviewStatus);
           break;
+        case 'submit-feedback-comment':
+          this.submitCommentFeedback(data);
+          break;
 
         // Code Generation
         case 'api-chat':
@@ -1039,7 +1042,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
-  public async handleCodeReviewPreProcess(data: NewReview) {
+  public async handleCodeReviewPreProcess(data: { newReview: NewReview; reviewType: string }) {
     console.log('Starting code review pre process with data:', data);
 
     //TODO: Need to enable
@@ -1053,13 +1056,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     });
 
     const preProcessPayload = {
-      file_wise_diff: data.file_wise_changes,
-      source_branch: data.source_branch,
-      target_branch: data.target_branch,
-      source_commit: data.source_commit,
-      target_commit: data.target_commit,
-      origin_url: data.origin_url,
-      repo_name: data.repo_name,
+      file_wise_diff: data.newReview.file_wise_changes,
+      source_branch: data.newReview.source_branch,
+      target_branch: data.newReview.target_branch,
+      source_commit: data.newReview.source_commit,
+      target_commit: data.newReview.target_commit,
+      origin_url: data.newReview.origin_url,
+      repo_name: data.newReview.repo_name,
+      review_type: data.reviewType,
     };
 
     console.log('Pre-process payload:', preProcessPayload);
@@ -1299,6 +1303,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       id: uuidv4(),
       command: 'repo-details-for-review-fetched',
       data: repoDetails.data,
+    });
+  }
+
+  public async submitCommentFeedback(data: any) {
+    const result = await this.reviewService.submitCommentFeedback(data.commentId, data.isLike, data.feedbackComment);
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'comment-feedback-submitted',
+      data: result.data,
     });
   }
 }

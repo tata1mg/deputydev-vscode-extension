@@ -67,7 +67,7 @@ export class CodeReviewWebsocketService {
           type: 'REVIEW_FAIL',
           agent_id: messageData?.agent_id,
         });
-        this.reviewSocket?.close();
+        this.dispose();
       };
 
       const handleClose = (): void => {
@@ -87,13 +87,13 @@ export class CodeReviewWebsocketService {
 
       if (signal) {
         signal.addEventListener('abort', () => {
-          this.reviewSocket?.close();
+          this.dispose();
         });
       }
 
       while (true) {
         if (signal?.aborted) {
-          this.reviewSocket?.close();
+          this.dispose();
           return;
         }
 
@@ -115,8 +115,7 @@ export class CodeReviewWebsocketService {
       console.error('WebSocket error in startReview:', error);
       throw error; // Re-throw to be handled by the caller
     } finally {
-      this.reviewSocket?.close();
-      this.reviewSocket = null;
+      this.dispose();
     }
   }
 
@@ -124,6 +123,13 @@ export class CodeReviewWebsocketService {
     payload: Record<string, any>,
     signal?: AbortSignal,
   ): AsyncIterableIterator<PostProcessEvent> {
+    const authService = new AuthService();
+    const authToken = await authService.loadAuthToken();
+
+    // Adding essential data in payload
+    payload['session_id'] = getReviewSessionId();
+    payload['session_type'] = SESSION_TYPE;
+    payload['auth_token'] = authToken;
     payload['action'] = 'post-process';
     let socketError: Error | null = null;
 
@@ -139,7 +145,7 @@ export class CodeReviewWebsocketService {
 
           // Close connection if STREAM_END or POST_PROCESS_ERROR is received
           if (data.type === 'STREAM_END') {
-            this.postProcessSocket?.close();
+            this.dispose();
           }
         } catch (error) {
           console.error('Error processing message:', error);
@@ -152,7 +158,7 @@ export class CodeReviewWebsocketService {
             },
             timestamp: new Date().toISOString(),
           });
-          this.postProcessSocket?.close();
+          this.dispose();
         }
       };
 
@@ -168,7 +174,7 @@ export class CodeReviewWebsocketService {
           },
           timestamp: new Date().toISOString(),
         });
-        this.postProcessSocket?.close();
+        this.dispose();
       };
 
       this.postProcessSocket.onMessage.on('message', handleMessage);
@@ -179,13 +185,13 @@ export class CodeReviewWebsocketService {
 
       if (signal) {
         signal.addEventListener('abort', () => {
-          this.postProcessSocket?.close();
+          this.dispose();
         });
       }
 
       while (true) {
         if (signal?.aborted) {
-          this.postProcessSocket?.close();
+          this.dispose();
           return;
         }
 
@@ -204,8 +210,7 @@ export class CodeReviewWebsocketService {
       console.error('WebSocket error in startPostProcess:', error);
       throw error;
     } finally {
-      this.postProcessSocket?.close();
-      this.postProcessSocket = null;
+      this.dispose();
     }
   }
 
