@@ -198,6 +198,16 @@ export interface ThrottlingErrorData {
   region?: string | null;
 }
 
+export interface InputTokenLimitErrorData {
+  type: 'STREAM_ERROR';
+  status: 'INPUT_TOKEN_LIMIT_EXCEEDED';
+  model: string;
+  current_tokens: number;
+  max_tokens: number;
+  message: string;
+  detail?: string;
+}
+
 export interface FileReadOrSummaryResponse {
   type: 'full' | 'summary';
   content: string;
