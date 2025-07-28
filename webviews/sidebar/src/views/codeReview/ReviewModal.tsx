@@ -17,7 +17,10 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, onSta
   const { enabledAgents } = useCodeReviewSettingStore();
 
   const handleCodeReview = () => {
-    codeReviewPreProcess(useCodeReviewStore.getState().new_review);
+    codeReviewPreProcess({
+      newReview: useCodeReviewStore.getState().new_review,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
     onStartReview();
   };
 

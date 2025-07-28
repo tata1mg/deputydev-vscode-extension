@@ -497,6 +497,11 @@ export interface CodeReviewSetting {
   enabledAgents: EnabledAgent[];
 }
 
+export interface CommentFeedback {
+  like: boolean;
+  feedback_comment: string;
+}
+
 export interface CodeReviewComment {
   id: number;
   title: string;
@@ -509,6 +514,7 @@ export interface CodeReviewComment {
   line_number: number;
   tag: string;
   agent_ids: number[];
+  feedback: CommentFeedback;
 }
 
 export interface AgentSummary {

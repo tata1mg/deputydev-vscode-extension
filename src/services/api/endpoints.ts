@@ -55,8 +55,9 @@ export const API_ENDPOINTS = {
   PAST_REVIEWS: '/end_user/v1/ide-reviews/history',
   GET_USER_AGENTS: '/end_user/v1/ide-reviews/agents',
   USER_AGENT_CRUD: '/end_user/v1/ide-reviews/agents',
-  COMMENT_FIX_QUERY: '/end_user/v1/ide-reviews/comments/generate-comment-fix-query',
+  COMMENT_FIX_QUERY: '/end_user/v1/ide-reviews/comments/generate-fix-query',
   CANCEL_REVIEW: 'end_user/v1/ide-reviews/cancel_review',
   UPDATE_COMMENT_STATUS: '/end_user/v1/ide-reviews/comments/update-comment-status',
   GET_REPO_ID: '/end_user/v1/ide-reviews/repos/get-repo-id',
+  SUBMIT_COMMENT_FEEDBACK: '/end_user/v1/extension-code-review/comments',
 };
