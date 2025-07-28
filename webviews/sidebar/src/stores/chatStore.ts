@@ -988,6 +988,10 @@ export const useChatStore = create(
                       model?: string;
                       retry_after?: number;
                       errorType?: string;
+                      current_tokens?: number;
+                      max_tokens?: number;
+                      detail?: string;
+                      query?: string
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
@@ -1050,6 +1054,24 @@ export const useChatStore = create(
                             type: 'THROTTLING_ERROR',
                             model_name: errorData.model,
                             retry_after: errorData.retry_after,
+                          },
+                        } as ChatErrorMessage);
+                      } else if (errorData.errorType === 'TOKEN_LIMIT_ERROR') {
+                        newHistory.push({
+                          type: 'ERROR',
+                          error_msg: err,
+                          retry: errorData.retry,
+                          payload_to_retry: errorData.payload_to_retry,
+                          actor: 'ASSISTANT',
+                          errorData: {
+                            type: 'TOKEN_LIMIT_ERROR',
+                            status: 'INPUT_TOKEN_LIMIT_EXCEEDED',
+                            model: errorData.model,
+                            query: errorData.query,
+                            current_tokens: errorData.current_tokens,
+                            max_tokens: errorData.max_tokens,
+                            message: err,
+                            detail: errorData.detail,
                           },
                         } as ChatErrorMessage);
                       } else {
