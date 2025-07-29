@@ -64,7 +64,7 @@
         "command": "deputydev.OpenCodeReview",
         "category": "DeputyDev",
         "title": "Open Code Review",
-        "icon": "$(code)"
+        "icon": "$(git-pull-request)"
       },
       {
         "command": "deputydev.editThisCode",
@@ -221,17 +221,17 @@
           "group": "navigation@2"
         },
         {
-          "command": "deputydev.UserProfile",
+          "command": "deputydev.OpenCodeReview",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@3"
         },
         {
-          "command": "deputydev.SettingsButtonClick",
+          "command": "deputydev.UserProfile",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@4"
         },
         {
-          "command": "deputydev.OpenCodeReview",
+          "command": "deputydev.SettingsButtonClick",
           "when": "view == deputydev-sidebar && deputydev.isAuthenticated",
           "group": "navigation@5"
         },
