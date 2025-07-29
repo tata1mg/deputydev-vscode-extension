@@ -58,5 +58,5 @@ export const API_ENDPOINTS = {
   CANCEL_REVIEW: 'end_user/v1/ide-reviews/cancel_review',
   UPDATE_COMMENT_STATUS: '/end_user/v1/ide-reviews/comments/update-comment-status',
   GET_REPO_ID: '/end_user/v1/ide-reviews/repos/get-repo-id',
-  SUBMIT_COMMENT_FEEDBACK: '/end_user/v1/extension-code-review/comments',
+  SUBMIT_COMMENT_FEEDBACK: '/end_user/v1/ide-reviews/comments',
 };
