@@ -7,13 +7,11 @@ export const FailedAgentsDialog = () => {
   const { failedAgents } = useCodeReviewStore();
 
   const handleReviewCancel = () => {
-    console.log('Review cancelled');
     useCodeReviewStore.getState().setShowFailedAgentsDialog(false);
     cancelReview();
   };
 
   const handleReviewProceed = () => {
-    console.log('Review proceeded');
     startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
     useCodeReviewStore.getState().setShowFailedAgentsDialog(false);
   };

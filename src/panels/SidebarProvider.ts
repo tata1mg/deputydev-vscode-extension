@@ -1037,8 +1037,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async handleCodeReviewPreProcess(data: { newReview: NewReview; reviewType: string }) {
-    console.log('Starting code review pre process with data:', data);
-
     //TODO: Need to enable
     // const { get_url, key } = await this.codeReviewManager.uploadDiffToS3({ review_files_dif: data.file_wise_changes });
     // console.log('Diff uploaded to S3:', get_url, key);
@@ -1060,8 +1058,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       review_type: data.reviewType,
     };
 
-    console.log('Pre-process payload:', preProcessPayload);
-
     // const payload = {
     //   user_team_id: 112,
     //   repo_name: 'merch_service',
@@ -1072,7 +1068,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     // };
 
     const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
-    console.log('Pre-process result:', preProcessResult);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
         id: uuidv4(),
@@ -1080,12 +1075,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         data: { error: preProcessResult.meta.message },
       });
     } else {
-      console.log('Code review pre-process completed successfully.');
       const reviewId = preProcessResult.data.review_id;
       const reviewSessionId = preProcessResult.data.session_id;
       setReviewSessionId(reviewSessionId);
       setReviewId(reviewId);
-      console.log('Review ID set:', reviewId);
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'REVIEW_PRE_PROCESS_COMPLETED',
@@ -1095,7 +1088,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async handleCodeReviewStart(data: any) {
-    console.log('Starting code review with data:', data);
     this.sendMessageToSidebar({
       id: uuidv4(),
       command: 'REVIEW_STARTED',
@@ -1107,7 +1099,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async handleCodeReviewPostProcess(data: any) {
-    console.log('Starting code review post process with data:', data);
     this.codeReviewManager.startCodeReviewPostProcess(data);
   }
 
@@ -1302,17 +1293,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   public async submitCommentFeedback(data: any) {
     if (data && data.commentId && (data.isLike === true || data.isLike === false)) {
-      const likeDislikeResponse = await this.reviewService.submitCommentFeedback(data.commentId, data.isLike);
-      console.log('Like dislike response: ', likeDislikeResponse);
+      await this.reviewService.submitCommentFeedback(data.commentId, data.isLike);
     }
 
     if (data && data.commentId && (data.isLike === true || data.isLike === false) && data.feedbackComment) {
-      const commentFeedbackTextResponse = await this.reviewService.submitCommentFeedback(
-        data.commentId,
-        data.isLike,
-        data.feedbackComment,
-      );
-      console.log('Comment feedback text response', commentFeedbackTextResponse);
+      await this.reviewService.submitCommentFeedback(data.commentId, data.isLike, data.feedbackComment);
     }
   }
 
