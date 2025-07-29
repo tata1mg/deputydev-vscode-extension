@@ -245,9 +245,10 @@ export default function CodeReview() {
             <div className="flex flex-col items-start gap-2">
               <ViewSwitcher />
               <div className="flex items-center gap-2">
-                <p className="text-lg text-gray-400">You are ready to review your code.</p>
+                <p className="text-lg opacity-80">Ready for review? So are we.</p>
                 <Check className="text-sm text-green-500" />
               </div>
+              <p className="text-lg opacity-80">DeputyDev checks your code with precision.</p>
             </div>
           </div>
         </div>

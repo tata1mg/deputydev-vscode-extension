@@ -28,17 +28,17 @@ function ViewSwitcher() {
 
   return (
     <div
-      className={`relative flex h-9 w-full items-center overflow-hidden rounded-xl ${borderClass}`}
+      className={`relative flex h-10 w-full items-center overflow-hidden rounded-full ${borderClass}`}
     >
       {/* Inactive Background Element */}
       <div
-        className="absolute inset-y-1 left-0 right-0 rounded-lg bg-[--deputydev-button-secondaryBackground]"
+        className="absolute inset-y-1 left-0 right-0 rounded-full bg-[--deputydev-button-secondaryBackground]"
         aria-hidden="true"
       />
 
       {/* Sliding Indicator with Framer Motion */}
       <motion.div
-        className={`absolute left-0 top-0 z-10 h-full w-1/2 rounded-xl`}
+        className={`absolute left-0 top-0 z-10 h-full w-1/2 rounded-full`}
         style={{ backgroundColor: activeColor }}
         initial={false}
         animate={{ x: isChat ? '0%' : '100%' }}

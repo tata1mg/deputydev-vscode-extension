@@ -490,9 +490,12 @@ export function ChatUI() {
                 <div className="flex flex-col items-start gap-2">
                   <ViewSwitcher />
                   <div className="flex items-center gap-2">
-                    <p className="text-lg text-gray-400">You are ready to go.</p>
+                    <p className="text-lg opacity-80">You're all set to go.</p>
                     <Check className="text-sm text-green-500" />
                   </div>
+                  <p className="text-lg opacity-80">
+                    DeputyDev has your back. Just start typing, and let the code write itself.
+                  </p>
                 </div>
               </div>
             </div>
