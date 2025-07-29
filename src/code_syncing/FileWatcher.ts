@@ -188,7 +188,6 @@ export class WorkspaceFileWatcher {
       this.pendingFileChanges.clear();
 
       // Notify the sidebar to refresh the review state
-      console.log('hitting new review');
       this.sidebarProvider.sendMessageToSidebar({
         id: uuidv4(),
         command: 'hit-new-review-after-file-event',

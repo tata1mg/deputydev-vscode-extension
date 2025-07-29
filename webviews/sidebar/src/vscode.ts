@@ -847,23 +847,18 @@ addCommandEventListener('auth-response', ({ data }) => {
 
 // Code Review
 addCommandEventListener('new-review-created', ({ data }) => {
-  console.log('New review data received:', data);
-  console.log('setting new review in store');
   const newReview = data as NewReview;
   useCodeReviewStore.setState({ new_review: newReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
-  console.log('New review from state*************', useCodeReviewStore.getState().new_review);
   fetchRepoDetails({ repo_name: newReview.repo_name, origin_url: newReview.origin_url });
 });
 
 addCommandEventListener('search-branches-result', ({ data }) => {
   useCodeReviewStore.setState({ searchedBranches: data as string[] });
-  console.log('Searched branches:', useCodeReviewStore.getState().searchedBranches);
 });
 
 addCommandEventListener('snapshot-result', ({ data }: any) => {
-  console.log('Snapshot response received:', data);
   if (data && !data.is_error && useExtensionStore.getState().viewType === 'code-review') {
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
@@ -879,8 +874,6 @@ addCommandEventListener('past-reviews', ({ data }) => {
   }
   useCodeReviewStore.setState({ isFetchingPastReviews: false });
 
-  console.log('Past reviews data received:', useCodeReviewStore.getState().pastReviews);
-
   if (useCodeReviewStore.getState().isPastReviewsFetchedAfterReviewCompletion) {
     useCodeReviewStore.setState({
       expandedReview: useCodeReviewStore.getState().pastReviews[0].id,
@@ -894,12 +887,9 @@ addCommandEventListener('user-agents', ({ data }) => {
   if (userAgents && userAgents.length > 0) {
     useCodeReviewStore.setState({ userAgents: userAgents });
   }
-
-  console.log('User agents data received:', useCodeReviewStore.getState().userAgents);
 });
 
 addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
-  console.log('Review pre-process started:', data);
   const store = useCodeReviewStore.getState();
 
   // Add setup step
@@ -912,10 +902,8 @@ addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
 
 addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
   const preProcessData = data as { review_id: number; session_id: number };
-  console.log('Review preprocess completed:', preProcessData);
   useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
   useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
-  console.log('Active review ID set to:', useCodeReviewStore.getState().activeReviewId);
 
   // Update setup step to COMPLETED
   useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'COMPLETED');
@@ -945,13 +933,11 @@ addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
 });
 
 addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
-  console.error('Review pre process failed with data:', data);
   useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'FAILED');
   reviewNotification('REVIEW_FAILED');
 });
 
 addCommandEventListener('REVIEW_STARTED', ({ data }) => {
-  console.log('Review started:', data);
   const store = useCodeReviewStore.getState();
   const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
 
@@ -971,7 +957,6 @@ addCommandEventListener('REVIEW_STARTED', ({ data }) => {
 addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
   const event = data as { agent_id: number; type: string; data: any };
   const agentId = event.agent_id;
-  console.log('Agent completed:', event);
 
   // Update the specific agent's status to COMPLETED
   useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'COMPLETED');
@@ -1067,7 +1052,6 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
 });
 
 addCommandEventListener('POST_PROCESS_START', ({ data }) => {
-  console.log('Post process started:', data);
   const store = useCodeReviewStore.getState();
 
   // Add setup step
@@ -1079,7 +1063,6 @@ addCommandEventListener('POST_PROCESS_START', ({ data }) => {
 });
 
 addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
-  console.log('Post process completed:', data);
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
   fetchPastReviews({
     sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
@@ -1087,7 +1070,6 @@ addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
   });
   useCodeReviewStore.setState({ isPastReviewsFetchedAfterReviewCompletion: true });
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
-  console.log('Review completed successfully and hitting snapshot for active review option');
   hitSnapshot(
     useCodeReviewStore.getState().activeReviewOption.value,
     useCodeReviewStore.getState().selectedTargetBranch
@@ -1103,8 +1085,6 @@ addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
 });
 
 addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
-  console.log('Review cancelled:', data);
-
   const store = useCodeReviewStore.getState();
 
   // Update all in-progress steps and their agents to STOPPED
@@ -1144,7 +1124,6 @@ addCommandEventListener('user-agent-deleted', ({ data }) => {
 });
 
 addCommandEventListener('fix-with-dd', ({ data }) => {
-  console.log('Fix with DD response received:', data);
   const { fix_query } = data as { fix_query: string };
   useCodeReviewStore.setState({ commentFixQuery: fix_query });
   useExtensionStore.setState({ viewType: 'chat' });
@@ -1152,7 +1131,6 @@ addCommandEventListener('fix-with-dd', ({ data }) => {
 });
 
 addCommandEventListener('hit-new-review-after-file-event', () => {
-  console.log('Hit new review after file event');
   if (useExtensionStore.getState().viewType === 'code-review') {
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
@@ -1163,7 +1141,6 @@ addCommandEventListener('hit-new-review-after-file-event', () => {
 
 addCommandEventListener('comment-is-resolved', ({ data }) => {
   const commentId = data as number;
-  console.log('Comment is resolved:', commentId);
   useCodeReviewStore.setState((state) => ({
     pastReviews: state.pastReviews.map((review) => ({
       ...review,
@@ -1181,7 +1158,6 @@ addCommandEventListener('comment-is-resolved', ({ data }) => {
 
 addCommandEventListener('comment-is-ignored', ({ data }) => {
   const commentId = data as number;
-  console.log('Comment is ignored:', commentId);
   useCodeReviewStore.setState((state) => ({
     pastReviews: state.pastReviews.map((review) => ({
       ...review,
@@ -1198,7 +1174,6 @@ addCommandEventListener('comment-is-ignored', ({ data }) => {
 });
 
 addCommandEventListener('new-review-error', ({ data }) => {
-  console.log('New review error:', data);
   useCodeReviewStore.setState({
     new_review: {
       file_wise_changes: [],

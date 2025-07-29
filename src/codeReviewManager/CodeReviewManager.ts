@@ -72,7 +72,6 @@ export class CodeReviewManager {
 
   private async handleReviewEvent(event: ReviewEvent): Promise<void> {
     this.outputChannel.debug(`Processing review event: ${event.type}`);
-    console.log(`Processing review event: ${JSON.stringify(event)}`);
     let currentToolRequest: ReviewToolUseRequest | undefined;
 
     switch (event.type) {
@@ -93,7 +92,6 @@ export class CodeReviewManager {
         break;
 
       case 'TOOL_USE_REQUEST':
-        console.log('Got tool use request:', event);
         if (event.data) {
           currentToolRequest = {
             agent_id: event.agent_id,
@@ -102,7 +100,6 @@ export class CodeReviewManager {
             tool_input: event.data.tool_input,
           };
         }
-        console.log('Current tool request:', currentToolRequest);
         break;
     }
     // 3. Handle Tool Requests
@@ -187,7 +184,6 @@ export class CodeReviewManager {
 
       this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
       const structuredResponse = this._structureToolResponse(toolRequest.tool_name, rawResult);
-      console.log('Structured response for agent id', agent_id, structuredResponse);
 
       const agentsToolUseResponses: any[] = [];
 
@@ -208,8 +204,6 @@ export class CodeReviewManager {
         review_id: reviewId,
         agents: agentsToolUseResponses,
       };
-
-      console.log('Continuation payload:', continuationPayload);
 
       await this.startCodeReview(continuationPayload);
     } catch (error: any) {
@@ -254,7 +248,6 @@ export class CodeReviewManager {
           agents: agentsToolUseResponses,
         };
 
-        console.log('Continuation payload:', continuationPayload);
         await this.startCodeReview(continuationPayload);
       }
     }
@@ -320,8 +313,6 @@ export class CodeReviewManager {
     use_regex?: boolean,
   ): Promise<any> {
     this.outputChannel.info(`Running grep search tool for ${search_path}`);
-    console.log('Running grep search tool for', search_path);
-    console.log('Repo path', repoPath);
 
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
@@ -396,7 +387,6 @@ export class CodeReviewManager {
 
   private async handleReviewPostProcessEvents(event: PostProcessEvent) {
     this.outputChannel.debug(`Processing review post process event: ${event.type}`);
-    console.log(`Processing review post process event: ${JSON.stringify(event)}`);
     switch (event.type) {
       case 'POST_PROCESS_START':
         this.sidebarProvider?.sendMessageToSidebar({
@@ -425,7 +415,6 @@ export class CodeReviewManager {
   public async cancelReview(): Promise<void> {
     try {
       this.outputChannel.info('Cancelling review and cleaning up...');
-      console.log('Cancelling review and cleaning up...');
 
       // Cancel any ongoing review or post-process
       if (this.currentAbortController) {

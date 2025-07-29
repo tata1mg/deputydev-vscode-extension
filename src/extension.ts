@@ -328,11 +328,9 @@ export async function activate(context: vscode.ExtensionContext) {
       const commentId = commentHandler.getCommentIdFromThread(thread);
 
       if (commentId !== undefined) {
-        console.log('Resolve comment action triggered');
         commentHandler.closeThread(thread);
 
         const result = await reviewService.updateCommentStatus(commentId, 'RESOLVED');
-        console.log('Resolve comment result:', result);
         if (result.is_success) {
           sidebarProvider.sendMessageToSidebar({
             id: uuidv4(),
@@ -346,7 +344,6 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('deputydev.fixWithDeputyDev', async (thread: vscode.CommentThread) => {
       // Get the comment ID using the thread
       const commentId = commentHandler.getCommentIdFromThread(thread);
-      console.log('Fix with DeputyDev action triggered for comment ID:', commentId);
 
       // Now you can use the commentId for your fix logic
       if (commentId !== undefined) {
@@ -376,10 +373,8 @@ export async function activate(context: vscode.ExtensionContext) {
       const commentId = commentHandler.getCommentIdFromThread(thread);
 
       if (commentId !== undefined) {
-        console.log('Ignore comment action triggered');
         commentHandler.closeThread(thread);
         const result = await reviewService.updateCommentStatus(commentId, 'REJECTED');
-        console.log('Ignore comment result:', result);
         if (result.is_success) {
           sidebarProvider.sendMessageToSidebar({
             id: uuidv4(),
@@ -391,7 +386,6 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
 
     vscode.commands.registerCommand('deputydev.collapseAllComments', () => {
-      console.log('Collapse all comments action triggered');
       commentHandler.closeAllThreads();
     }),
   );

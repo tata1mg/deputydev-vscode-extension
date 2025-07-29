@@ -110,10 +110,6 @@ export default function CodeReview() {
   };
 
   const handleNewReview = () => {
-    console.log(
-      'Triggering new review with branch:',
-      useCodeReviewStore.getState().selectedTargetBranch
-    );
     useCodeReviewStore.setState({ isFetchingChangedFiles: true });
     newReview({
       targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
@@ -180,7 +176,6 @@ export default function CodeReview() {
     setSearchQuery(''); // Clear search query
     setShowBranchDropdown(false);
     setIsEditing(false);
-    console.log('Trigger after branch selection');
     handleNewReview(); // Trigger new review with selected branch
   };
 
@@ -206,21 +201,18 @@ export default function CodeReview() {
   };
 
   const handleUpdateCustomAgent = (agentId: number, agentName: string, agentPrompt: string) => {
-    console.log('Update custom agent', agentId, agentPrompt, agentName);
     performCrudOnUserAgent('UPDATE', agentId, agentName, agentPrompt);
     setExpandedAgentId(null);
     setIsAgentExpanded(false);
   };
 
   const handleUpdatePredefinedAgent = (agentId: number, agentPrompt: string) => {
-    console.log('Update predefined agent', agentId, agentPrompt);
     performCrudOnUserAgent('UPDATE', agentId, undefined, agentPrompt);
     setExpandedAgentId(null);
     setIsAgentExpanded(false);
   };
 
   const handleDelete = (agentId: number) => {
-    console.log('Delete', agentId);
     performCrudOnUserAgent('DELETE', agentId);
     setExpandedAgentId(null);
     setIsAgentExpanded(false);
@@ -228,7 +220,6 @@ export default function CodeReview() {
 
   const handleCreateAgent = (agentName: string, agentPrompt: string) => {
     // Handle create agent logic here
-    console.log('Create agent', agentName, agentPrompt);
     performCrudOnUserAgent('CREATE', undefined, agentName, agentPrompt);
     setShowCreateAgentForm(false);
   };
@@ -626,7 +617,6 @@ export default function CodeReview() {
                   <span
                     className="flex-1 cursor-pointer text-center"
                     onClick={() => {
-                      console.log('Reset Review');
                       handleResetReview();
                     }}
                   >

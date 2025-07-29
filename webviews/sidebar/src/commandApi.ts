@@ -370,7 +370,6 @@ export function searchBranches(keyword: string) {
 }
 
 export function openFileDiff(data: { udiff: string; filePath: string; fileName: string }) {
-  console.log('openFileDiff called with', data);
   return callCommand('open-file-diff', data);
 }
 

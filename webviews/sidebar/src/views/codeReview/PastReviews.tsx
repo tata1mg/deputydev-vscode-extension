@@ -30,13 +30,10 @@ export const PastReviews = () => {
   const [currentFeedbackType, setCurrentFeedbackType] = useState<'like' | 'dislike' | null>(null);
 
   const handleCommentLikeOrDislike = (commentId: number, isLike: boolean) => {
-    console.log('Like or dislike on this comment: ', commentId, isLike);
     const pastReviews = useCodeReviewStore.getState().pastReviews;
     const comment = pastReviews
       .flatMap((review) => Object.values(review.comments).flat())
       .find((comment) => comment.id === commentId);
-
-    console.log('Like or dislike on this comment: ', comment);
 
     if (comment && comment.feedback && comment.feedback.like === isLike) {
       return;

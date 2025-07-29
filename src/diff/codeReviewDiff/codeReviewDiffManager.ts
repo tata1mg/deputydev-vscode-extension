@@ -8,7 +8,6 @@ export class CodeReviewDiffManager {
   constructor() {}
 
   public async openFileDiff(udiff: string, filePath: string, fileName: string) {
-    console.log('openFileDiff called with:', { udiff, filePath, fileName }); // Add this
     if (!udiff || !filePath || !fileName) {
       console.error('Missing required parameters:', { udiff, filePath, fileName });
       return;
