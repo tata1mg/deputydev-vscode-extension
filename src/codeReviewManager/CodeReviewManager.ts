@@ -269,9 +269,10 @@ export class CodeReviewManager {
   ): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
     try {
+      const file_path = await resolveDirectoryRelative(filePath);
       const response = await binaryApi().post(API_ENDPOINTS.ITERATIVELY_READ_FILE, {
         repo_path: repoPath,
-        file_path: resolveDirectoryRelative(filePath), // Ensures the file path is always relative
+        file_path: file_path, // Ensures the file path is always relative
         start_line: startLine,
         end_line: endLine,
       });
@@ -288,7 +289,7 @@ export class CodeReviewManager {
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
 
-    const resolvedDirectory = resolveDirectoryRelative(directory);
+    const resolvedDirectory = await resolveDirectoryRelative(directory);
     this.outputChannel.info(
       `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
     );
@@ -327,11 +328,12 @@ export class CodeReviewManager {
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
     try {
+      const searchPath = await resolveDirectoryRelative(search_path);
       const response = await binaryApi().post(
         API_ENDPOINTS.GREP_SEARCH,
         {
           repo_path: repoPath,
-          directory_path: resolveDirectoryRelative(search_path),
+          directory_path: searchPath,
           search_term: query,
           case_insensitive: case_insensitive || false,
           use_regex: use_regex || false,
