@@ -71,7 +71,7 @@ export class CodeReviewManager {
   }
 
   private async handleReviewEvent(event: ReviewEvent): Promise<void> {
-    this.outputChannel.debug(`Processing review event: ${event.type}`);
+    this.outputChannel.info(`Processing review event: ${event}`);
     let currentToolRequest: ReviewToolUseRequest | undefined;
 
     switch (event.type) {
@@ -218,7 +218,7 @@ export class CodeReviewManager {
         return;
       }
 
-      this.logger.error(`Error in _runTool: ${error.message}`, error);
+      this.logger.error(`Error in _runTool  while code review: ${error.message}`, error);
       const errorResponse = error.response?.data || {
         error_code: 500,
         error_type: 'SERVER_ERROR',
@@ -269,7 +269,7 @@ export class CodeReviewManager {
       });
       return response.data;
     } catch (error: any) {
-      this.logger.error(`Error calling Iterative file reader API: ${error.message}`);
+      this.logger.error(`Error calling Iterative file reader API while code review: ${error.message}`);
       this.outputChannel.error(`Error calling Iterative file reader API: ${error.message}`, error);
       this.apiErrorHandler.handleApiError(error);
     }
@@ -299,7 +299,7 @@ export class CodeReviewManager {
       this.outputChannel.info('File path search API call successful.');
       return response.data;
     } catch (error: any) {
-      this.logger.error(`Error calling file path search API: ${error.message}`);
+      this.logger.error(`Error calling file path search API while code review: ${error.message}`);
       this.outputChannel.error(`Error calling file path search API: ${error.message}`, error);
       this.apiErrorHandler.handleApiError(error);
     }
@@ -344,7 +344,7 @@ export class CodeReviewManager {
         ) {
           return { data: [] };
         } else {
-          this.logger.error(`Error calling Grep search API`);
+          this.logger.error(`Error calling Grep search API while code review`);
           this.apiErrorHandler.handleApiError(error);
         }
       }
@@ -386,7 +386,7 @@ export class CodeReviewManager {
   }
 
   private async handleReviewPostProcessEvents(event: PostProcessEvent) {
-    this.outputChannel.debug(`Processing review post process event: ${event.type}`);
+    this.outputChannel.info(`Processing review post process event: ${event}`);
     switch (event.type) {
       case 'POST_PROCESS_START':
         this.sidebarProvider?.sendMessageToSidebar({
