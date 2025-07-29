@@ -1,4 +1,9 @@
-import { openCommentInFile, openFile, sendCommentStatusUpdate } from '@/commandApi';
+import {
+  openCommentInFile,
+  openFile,
+  sendCommentStatusUpdate,
+  submitCommentFeedback,
+} from '@/commandApi';
 import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { AgentSummary, CodeReviewComment, Review } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,42 +25,85 @@ export const PastReviews = () => {
   const [selectedAgents, setSelectedAgents] = useState<Set<number>>(new Set());
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const { pastReviews, userAgents } = useCodeReviewStore();
+  const [showCommentFeedbackForm, setShowCommentFeedbackForm] = useState<number | null>(null);
+  const [feedbackText, setFeedbackText] = useState<string>('');
+  const [currentFeedbackType, setCurrentFeedbackType] = useState<'like' | 'dislike' | null>(null);
 
-  interface CommentFeedback {
-    commentId: number;
-    isPositive: boolean;
-    isOpen: boolean;
-    feedback: string;
-  }
+  const handleCommentLikeOrDislike = (commentId: number, isLike: boolean) => {
+    console.log('Like or dislike on this comment: ', commentId, isLike);
+    const pastReviews = useCodeReviewStore.getState().pastReviews;
+    const comment = pastReviews
+      .flatMap((review) => Object.values(review.comments).flat())
+      .find((comment) => comment.id === commentId);
 
-  const [commentFeedbacks, setCommentFeedbacks] = useState<Record<number, CommentFeedback>>({});
+    console.log('Like or dislike on this comment: ', comment);
 
-  const toggleFeedbackForm = (commentId: number, isPositive: boolean) => {
-    setCommentFeedbacks((prev) => {
-      const isCurrentlyOpen = prev[commentId]?.isOpen;
-      return {
-        ...prev,
-        [commentId]: {
-          commentId,
-          isPositive,
-          isOpen: !isCurrentlyOpen || prev[commentId]?.isPositive !== isPositive,
-          feedback: prev[commentId]?.feedback || '',
-          isAnimating: true,
-        },
-      };
-    });
+    if (comment && comment.feedback && comment.feedback.like === isLike) {
+      return;
+    }
+
+    // Update the feedback in the store immediately
+    useCodeReviewStore.setState((state) => ({
+      pastReviews: state.pastReviews.map((review) => ({
+        ...review,
+        comments: Object.fromEntries(
+          Object.entries(review.comments).map(([filePath, comments]) => [
+            filePath,
+            comments.map((comment) =>
+              comment.id === commentId
+                ? {
+                    ...comment,
+                    feedback: {
+                      like: isLike,
+                      feedback_comment: '',
+                    },
+                  }
+                : comment
+            ),
+          ])
+        ),
+      })),
+    }));
+
+    submitCommentFeedback({ commentId: commentId, isLike: isLike });
+
+    setCurrentFeedbackType(isLike ? 'like' : 'dislike');
+    setShowCommentFeedbackForm(commentId);
+    setFeedbackText('');
   };
 
-  const handleFeedbackSubmit = (commentId: number) => {
-    const feedback = commentFeedbacks[commentId];
-    if (feedback) {
-      console.log('Feedback submitted:', feedback);
-      setCommentFeedbacks((prev) => {
-        const newFeedbacks = { ...prev };
-        delete newFeedbacks[commentId];
-        return newFeedbacks;
-      });
-    }
+  const handleCommentFeedback = (commentId: number, isLike: boolean) => {
+    if (!currentFeedbackType) return;
+
+    // Update the feedback in the store
+    useCodeReviewStore.setState((state) => ({
+      pastReviews: state.pastReviews.map((review) => ({
+        ...review,
+        comments: Object.fromEntries(
+          Object.entries(review.comments).map(([filePath, comments]) => [
+            filePath,
+            comments.map((comment) =>
+              comment.id === commentId
+                ? {
+                    ...comment,
+                    feedback: {
+                      like: isLike,
+                      feedback_comment: feedbackText,
+                    },
+                  }
+                : comment
+            ),
+          ])
+        ),
+      })),
+    }));
+
+    submitCommentFeedback({ commentId: commentId, isLike: isLike, feedbackComment: feedbackText });
+
+    // Reset form state
+    setShowCommentFeedbackForm(null);
+    setFeedbackText('');
+    setCurrentFeedbackType(null);
   };
 
   const markCommentUnresolved = (commentId: number, e: React.MouseEvent) => {
@@ -211,7 +259,7 @@ export const PastReviews = () => {
 
       {pastReviews && pastReviews.length > 0 ? (
         <div
-          className="h-auto max-h-[260px] flex-1 overflow-y-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
+          className="h-auto flex-1 overflow-y-auto rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)]"
           style={{
             boxShadow: '0 1px 1px rgba(0,0,0,0.05)',
           }}
@@ -460,11 +508,9 @@ export const PastReviews = () => {
                                         return (
                                           <div
                                             key={comment.id}
-                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${!isResolved && !isIgnored && !commentFeedbacks[comment.id]?.isOpen ? 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]' : ''} `}
+                                            className={`border-t border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] py-1.5 pl-6 pr-2 text-xs ${!isResolved && !isIgnored && !showCommentFeedbackForm ? 'cursor-pointer hover:bg-[var(--vscode-list-hoverBackground)]' : ''} `}
                                             onClick={
-                                              !isResolved &&
-                                              !isIgnored &&
-                                              !commentFeedbacks[comment.id]?.isOpen
+                                              !isResolved && !isIgnored && !showCommentFeedbackForm
                                                 ? () => {
                                                     openCommentInFile({
                                                       filePath: comment.file_path,
@@ -546,17 +592,24 @@ export const PastReviews = () => {
                                                     <motion.button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        toggleFeedbackForm(comment.id, true);
+                                                        if (
+                                                          !comment.feedback ||
+                                                          comment.feedback.like !== true
+                                                        ) {
+                                                          handleCommentLikeOrDislike(
+                                                            comment.id,
+                                                            true
+                                                          );
+                                                        }
                                                       }}
                                                       whileHover={{ scale: 1.1 }}
                                                       whileTap={{ scale: 0.95 }}
                                                       className={`rounded p-1 hover:bg-green-900/30 ${
-                                                        commentFeedbacks[comment.id]?.isOpen &&
-                                                        commentFeedbacks[comment.id]?.isPositive
+                                                        comment.feedback &&
+                                                        comment.feedback.like === true
                                                           ? 'bg-green-900/50'
                                                           : ''
                                                       }`}
-                                                      title="Helpful"
                                                     >
                                                       <svg
                                                         xmlns="http://www.w3.org/2000/svg"
@@ -575,17 +628,24 @@ export const PastReviews = () => {
                                                     <motion.button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        toggleFeedbackForm(comment.id, false);
+                                                        if (
+                                                          !comment.feedback ||
+                                                          comment.feedback.like === true
+                                                        ) {
+                                                          handleCommentLikeOrDislike(
+                                                            comment.id,
+                                                            false
+                                                          );
+                                                        }
                                                       }}
                                                       whileHover={{ scale: 1.1 }}
                                                       whileTap={{ scale: 0.95 }}
                                                       className={`rounded p-1 hover:bg-red-900/30 ${
-                                                        commentFeedbacks[comment.id]?.isOpen &&
-                                                        !commentFeedbacks[comment.id]?.isPositive
+                                                        comment.feedback &&
+                                                        comment.feedback.like === false
                                                           ? 'bg-red-900/50'
                                                           : ''
                                                       }`}
-                                                      title="Not helpful"
                                                     >
                                                       <svg
                                                         xmlns="http://www.w3.org/2000/svg"
@@ -604,7 +664,7 @@ export const PastReviews = () => {
                                                   </div>
 
                                                   <AnimatePresence>
-                                                    {commentFeedbacks[comment.id]?.isOpen && (
+                                                    {showCommentFeedbackForm === comment.id && (
                                                       <motion.div
                                                         initial={{
                                                           opacity: 0,
@@ -636,19 +696,11 @@ export const PastReviews = () => {
                                                       >
                                                         <div className="rounded border border-[var(--vscode-editorWidget-border)] p-2">
                                                           <textarea
-                                                            value={
-                                                              commentFeedbacks[comment.id].feedback
+                                                            value={feedbackText}
+                                                            onChange={(e) =>
+                                                              setFeedbackText(e.target.value)
                                                             }
-                                                            onChange={(e) => {
-                                                              setCommentFeedbacks((prev) => ({
-                                                                ...prev,
-                                                                [comment.id]: {
-                                                                  ...prev[comment.id],
-                                                                  feedback: e.target.value,
-                                                                },
-                                                              }));
-                                                            }}
-                                                            placeholder="Please provide your feedback..."
+                                                            placeholder="Please provide your feedback (Optional)"
                                                             className="mb-2 w-full rounded border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                             rows={3}
                                                           />
@@ -657,11 +709,9 @@ export const PastReviews = () => {
                                                               whileHover={{ scale: 1.03 }}
                                                               whileTap={{ scale: 0.98 }}
                                                               onClick={() => {
-                                                                setCommentFeedbacks((prev) => {
-                                                                  const newFeedbacks = { ...prev };
-                                                                  delete newFeedbacks[comment.id];
-                                                                  return newFeedbacks;
-                                                                });
+                                                                setShowCommentFeedbackForm(null);
+                                                                setFeedbackText('');
+                                                                setCurrentFeedbackType(null);
                                                               }}
                                                               className="rounded border border-[var(--vscode-editorWidget-border)] px-2 py-1 text-xs hover:bg-[var(--vscode-list-hoverBackground)]"
                                                             >
@@ -671,16 +721,15 @@ export const PastReviews = () => {
                                                               whileHover={{ scale: 1.03 }}
                                                               whileTap={{ scale: 0.98 }}
                                                               onClick={() =>
-                                                                handleFeedbackSubmit(comment.id)
+                                                                handleCommentFeedback(
+                                                                  comment.id,
+                                                                  comment.feedback.like
+                                                                )
                                                               }
-                                                              disabled={
-                                                                !commentFeedbacks[
-                                                                  comment.id
-                                                                ]?.feedback.trim()
-                                                              }
+                                                              disabled={feedbackText === ''}
                                                               className="rounded bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600 disabled:opacity-50"
                                                             >
-                                                              Submit Feedback
+                                                              Submit
                                                             </motion.button>
                                                           </div>
                                                         </div>
@@ -708,11 +757,11 @@ export const PastReviews = () => {
           })}
         </div>
       ) : (
-        <div className="flex min-h-[260px] items-center justify-center rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] italic">
+        <div className="flex min-h-[300px] items-center justify-center rounded-b-lg border border-t-0 border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] italic">
           {useCodeReviewStore.getState().isFetchingPastReviews && (
             <div className="flex flex-col items-center justify-center space-y-2">
               <LoaderCircle className="h-10 w-10 animate-spin" />
-              <span className="text-md font-mono">Fetching Past Reviews Changes...</span>
+              <span className="text-md font-mono">Fetching Reviews...</span>
             </div>
           )}
           {!useCodeReviewStore.getState().isFetchingPastReviews && (

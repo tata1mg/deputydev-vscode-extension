@@ -279,7 +279,7 @@ export class ReviewService {
     }
   }
 
-  public async submitCommentFeedback(commentId: number, isLike?: boolean, feedbackComment?: string) {
+  public async submitCommentFeedback(commentId: number, isLike: boolean, feedbackComment?: string) {
     try {
       const authToken = await fetchAuthToken();
       const headers = {

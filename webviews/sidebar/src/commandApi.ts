@@ -423,8 +423,8 @@ export function fetchRepoDetails(data: { repo_name: string; origin_url: string }
 
 export function submitCommentFeedback(data: {
   commentId: number;
-  isLike?: boolean;
+  isLike: boolean;
   feedbackComment?: string;
 }) {
-  return callCommand('submit-feedback-comment', data);
+  return callCommand('submit-comment-feedback', data);
 }

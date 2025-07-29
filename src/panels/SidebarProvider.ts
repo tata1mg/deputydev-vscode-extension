@@ -171,7 +171,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'review-notification':
           this.reviewNotification(data.reviewStatus);
           break;
-        case 'submit-feedback-comment':
+        case 'submit-comment-feedback':
           this.submitCommentFeedback(data);
           break;
 
@@ -1307,11 +1307,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   public async submitCommentFeedback(data: any) {
-    const result = await this.reviewService.submitCommentFeedback(data.commentId, data.isLike, data.feedbackComment);
-    this.sendMessageToSidebar({
-      id: uuidv4(),
-      command: 'comment-feedback-submitted',
-      data: result.data,
-    });
+    if (data && data.commentId && (data.isLike === true || data.isLike === false)) {
+      const likeDislikeResponse = await this.reviewService.submitCommentFeedback(data.commentId, data.isLike);
+      console.log('Like dislike response: ', likeDislikeResponse);
+    }
+
+    if (data && data.commentId && (data.isLike === true || data.isLike === false) && data.feedbackComment) {
+      const commentFeedbackTextResponse = await this.reviewService.submitCommentFeedback(
+        data.commentId,
+        data.isLike,
+        data.feedbackComment,
+      );
+      console.log('Comment feedback text response', commentFeedbackTextResponse);
+    }
   }
 }
