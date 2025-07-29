@@ -438,14 +438,16 @@ export const PastReviews = () => {
                                 }}
                               >
                                 <div className="flex min-w-0 flex-1 items-center gap-2">
-                                  <motion.div
-                                    animate={{
-                                      rotate: expandedFile === filePath && hasComments ? 90 : 0,
-                                    }}
-                                    transition={{ duration: 0.2 }}
-                                  >
-                                    <ChevronRight size={12} className="flex-shrink-0" />
-                                  </motion.div>
+                                  {hasComments && (
+                                    <motion.div
+                                      animate={{
+                                        rotate: expandedFile === filePath && hasComments ? 90 : 0,
+                                      }}
+                                      transition={{ duration: 0.2 }}
+                                    >
+                                      <ChevronRight size={12} className="flex-shrink-0" />
+                                    </motion.div>
+                                  )}
                                   <div className="flex min-w-0 flex-1 items-center">
                                     <div
                                       data-tooltip-id="code-review-tooltips"

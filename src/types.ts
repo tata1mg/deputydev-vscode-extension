@@ -227,7 +227,7 @@ export interface GrepSearchInput {
 
 export interface FilePathSearchInput {
   directory: string;
-  search_terms: SearchTerm[];
+  search_terms: string[];
 }
 
 export interface IterativeFileReaderInput {
