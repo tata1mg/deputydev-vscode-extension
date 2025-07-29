@@ -68,8 +68,7 @@ export class ReferenceService {
       Authorization: `Bearer ${authToken}`,
     };
     try {
-      const postResponse = await binaryApi().post(API_ENDPOINTS.SAVE_URL, {
-        url: payload,
+      const postResponse = await binaryApi().post(API_ENDPOINTS.SAVE_URL, payload, {
         headers,
       });
 
