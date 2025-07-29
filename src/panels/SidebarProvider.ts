@@ -1058,15 +1058,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       review_type: data.reviewType,
     };
 
-    // const payload = {
-    //   user_team_id: 112,
-    //   repo_name: 'merch_service',
-    //   repo_origin: 'github/merch_service',
-    //   diff_s3_url: 'sadhkjhkhdkjs',
-    //   source_branch: 'merch_test1',
-    //   target_branch: 'master',
-    // };
-
     const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
     if (preProcessResult.is_error) {
       this.sendMessageToSidebar({
