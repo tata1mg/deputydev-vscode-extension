@@ -7,7 +7,7 @@ export enum AuthStatus {
 export type UsageTrackingRequest = {
   eventType: string;
   eventData: Record<string, any>;
-  sessionId: number;
+  sessionId?: number;
 };
 
 export interface ErrorTrackingRequestForBackend {
