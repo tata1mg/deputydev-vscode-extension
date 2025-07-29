@@ -125,8 +125,7 @@ export interface CurrentDiffRequest {
 
 export interface SaveUrlRequest {
   id?: string;
-  name: string;
-  url: string;
+  url: { url: string; name: string };
   isSettings?: boolean;
 }
 
