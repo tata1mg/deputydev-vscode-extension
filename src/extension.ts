@@ -350,6 +350,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
       // Now you can use the commentId for your fix logic
       if (commentId !== undefined) {
+        // Fix With DD usage tracking
+        const fixWithDDUsageTrackingPayload = {
+          eventType: 'FIX_WITH_DD',
+          eventData: {
+            comment_id: commentId,
+            source: 'IDE_CODE_REVIEW',
+          },
+        };
+        await usageTrackingManager.trackUsage(fixWithDDUsageTrackingPayload);
+
         const commentFixQuery = await reviewService.getCommentFixQuery(commentId);
 
         if (commentFixQuery?.is_success) {

@@ -151,13 +151,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.getRepoDetailsForReview(data);
           break;
         case 'open-comment-in-file':
-          this.commentHandler.showCommentAtLine(
-            data.filePath,
-            data.lineNumber,
-            data.commentText,
-            data.promptText,
-            data.commentId,
-          );
+          this.handleOpenCommentInFile(data);
           break;
         case 'fetch-user-agents':
           this.fetchUserAgents();
@@ -1320,5 +1314,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       );
       console.log('Comment feedback text response', commentFeedbackTextResponse);
     }
+  }
+
+  public async handleOpenCommentInFile(data: any) {
+    // Comment box view event for usage tracking
+    this.trackingManager.trackUsage({
+      eventType: 'COMMENT_BOX_VIEW',
+      eventData: {
+        comment_id: data.commentId,
+        source: 'IDE_CODE_REVIEW',
+      },
+    });
+
+    this.commentHandler.showCommentAtLine(
+      data.filePath,
+      data.lineNumber,
+      data.commentText,
+      data.promptText,
+      data.commentId,
+    );
   }
 }
