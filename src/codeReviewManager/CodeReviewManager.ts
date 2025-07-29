@@ -90,6 +90,7 @@ export class CodeReviewManager {
           command: 'AGENT_FAIL',
           data: event,
         });
+        this.logger.error('Agent Failed while code review:', event);
         break;
 
       case 'TOOL_USE_REQUEST':
@@ -282,7 +283,7 @@ export class CodeReviewManager {
     }
   }
 
-  private async _runFilePathSearcher(repoPath: string, directory: string, searchTerms?: SearchTerm[]): Promise<any> {
+  private async _runFilePathSearcher(repoPath: string, directory: string, searchTerms?: string[]): Promise<any> {
     this.outputChannel.info(`Calling file path search API.`);
     const authToken = await this.authService.loadAuthToken();
     const headers = { Authorization: `Bearer ${authToken}` };
