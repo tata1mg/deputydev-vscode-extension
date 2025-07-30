@@ -148,24 +148,22 @@ export class ReferenceService {
     }
   }
   public async uploadFileToS3(
-    payload: { name: string; type: string; size: number; content: Buffer; folder?: 'payload' | 'review_diff' },
+    payload: { name: string; type: string; size: number; content: Buffer; folder?: 'payload' },
     onProgress?: (percent: number) => void,
   ): Promise<any> {
     try {
       const mainConfig = getMainConfig();
-      if (payload.folder !== 'review_diff') {
-        if (!mainConfig) {
-          throw new Error('Main config not found');
-        }
-        if (!payload.name || !payload.type || !payload.size || !payload.content) {
-          throw new Error('Invalid payload: missing required fields');
-        }
-        if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
-          throw new Error('File size exceeds the maximum allowed limit');
-        }
-        if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
-          throw new Error('Invalid file type');
-        }
+      if (!mainConfig) {
+        throw new Error('Main config not found');
+      }
+      if (!payload.name || !payload.type || !payload.size || !payload.content) {
+        throw new Error('Invalid payload: missing required fields');
+      }
+      if (payload.size > mainConfig['CHAT_IMAGE_UPLOAD']['MAX_BYTES']) {
+        throw new Error('File size exceeds the maximum allowed limit');
+      }
+      if (!mainConfig['CHAT_IMAGE_UPLOAD']['SUPPORTED_MIMETYPES'].includes(payload.type)) {
+        throw new Error('Invalid file type');
       }
       const authToken = await this.fetchAuthToken();
       const headers = { Authorization: `Bearer ${authToken}` };

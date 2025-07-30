@@ -443,31 +443,31 @@ export class CodeReviewManager {
     }
   }
 
-  public async uploadDiffToS3(diff: unknown): Promise<{ get_url: string; key: string }> {
-    try {
-      // ── 1. Serialise / buffer ─────────────────────────────────────
-      const serialised = typeof diff === 'string' ? diff : JSON.stringify(diff, null, 0);
-      const buffer = Buffer.from(serialised, 'utf8');
+  // public async uploadDiffToS3(diff: unknown): Promise<{ get_url: string; key: string }> {
+  //   try {
+  //     // ── 1. Serialise / buffer ─────────────────────────────────────
+  //     const serialised = typeof diff === 'string' ? diff : JSON.stringify(diff, null, 0);
+  //     const buffer = Buffer.from(serialised, 'utf8');
 
-      // ── 2. Build file-upload descriptor ───────────────────────────
-      const fileDescriptor = {
-        name: uuidv4() + '.json',
-        type: 'application/json',
-        size: buffer.length,
-        content: buffer,
-        folder: 'review_diff' as const,
-      };
+  //     // ── 2. Build file-upload descriptor ───────────────────────────
+  //     const fileDescriptor = {
+  //       name: uuidv4() + '.json',
+  //       type: 'application/json',
+  //       size: buffer.length,
+  //       content: buffer,
+  //       folder: 'review_diff' as const,
+  //     };
 
-      // ── 3. Upload via the underlying ReferenceService ────────────
-      const response = await this.referenceService.uploadFileToS3(fileDescriptor);
+  //     // ── 3. Upload via the underlying ReferenceService ────────────
+  //     const response = await this.referenceService.uploadFileToS3(fileDescriptor);
 
-      this.outputChannel.info('uploadDiffToS3-response', response);
-      return response; // { get_url, key }
-    } catch (err) {
-      this.outputChannel.error('uploadDiffToS3-error', err);
-      throw err;
-    }
-  }
+  //     this.outputChannel.info('uploadDiffToS3-response', response);
+  //     return response; // { get_url, key }
+  //   } catch (err) {
+  //     this.outputChannel.error('uploadDiffToS3-error', err);
+  //     throw err;
+  //   }
+  // }
 
   private cleanup(): void {
     if (this.currentAbortController) {
