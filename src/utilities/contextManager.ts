@@ -41,6 +41,28 @@ export function setSessionId(value: number) {
   return;
 }
 
+export function getReviewId(): number | undefined {
+  const reviewId = extensionContext?.workspaceState.get<number>('reviewId');
+  return reviewId;
+}
+
+export function setReviewId(value: number) {
+  logOutputChannel?.info(`Setting review ID received for update: ${value}`);
+  extensionContext?.workspaceState.update('reviewId', value);
+  return;
+}
+
+export function getReviewSessionId(): number | undefined {
+  const reviewId = extensionContext?.workspaceState.get<number>('reviewSessionId');
+  return reviewId;
+}
+
+export function setReviewSessionId(value: number) {
+  logOutputChannel?.info(`Setting review session ID received for update: ${value}`);
+  extensionContext?.workspaceState.update('reviewSessionId', value);
+  return;
+}
+
 export function sendEmbeddingDoneMessage(embeddingProgressData: {
   task: string;
   status: string;
@@ -138,6 +160,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('indexing-data-storage', undefined);
   await extensionContext.workspaceState.update('active-file-store', undefined);
   await extensionContext.workspaceState.update('contextRepositories', undefined);
+  await extensionContext.workspaceState.update('code-review-storage', undefined);
 }
 
 // =====================================================================================

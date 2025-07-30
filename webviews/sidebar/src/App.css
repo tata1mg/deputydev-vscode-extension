@@ -13,6 +13,24 @@
   }
 }
 
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-20px); }
+}
+
+.animate-fade-in-right {
+  animation: fadeInRight 0.2s ease-in-out forwards;
+}
+
+.animate-fade-out-left {
+  animation: fadeOutLeft 0.2s ease-in-out forwards;
+}
+
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
