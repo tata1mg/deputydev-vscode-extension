@@ -718,11 +718,11 @@ export class FileChangeStateManager {
   public deleteFileFromDisk = async (filePath: string, repoPath: string): Promise<void> => {
     const fullPath = path.join(repoPath, filePath);
     const fileUri = vscode.Uri.file(fullPath);
-    
+
     try {
       // Check if file exists before attempting to delete
       await vscode.workspace.fs.stat(fileUri);
-      
+
       // Delete the file
       await vscode.workspace.fs.delete(fileUri);
       this.outputChannel.info(`Deleted file: ${filePath}`);
