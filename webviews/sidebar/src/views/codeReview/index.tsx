@@ -239,7 +239,7 @@ export default function CodeReview() {
                 <p className="text-lg opacity-80">Ready for review? So are we.</p>
                 <Check className="text-sm text-green-500" />
               </div>
-              <p className="text-lg opacity-80">DeputyDev checks your code with precision.</p>
+              <p className="text-md opacity-80">DeputyDev checks your code with precision.</p>
             </div>
           </div>
         </div>

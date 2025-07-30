@@ -4,8 +4,8 @@ import { useChatStore } from '../../../stores/chatStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { ChevronDown, RefreshCw, Square, Check, Info } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip } from 'react-tooltip';
 
 const RepoSelector = () => {
   const { workspaceRepos, activeRepo, setActiveRepo, contextRepositories } = useWorkspaceStore();
@@ -13,6 +13,9 @@ const RepoSelector = () => {
   const { indexingProgressData } = useIndexingStore();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const repoSelectorInfo =
+    'DeputyDev can now access context from multiple repositories.Select the repos you want to include.The active repo is where DeputyDev will apply changes.';
 
   const disableRepoSelector = isLoading || messages.length > 0;
   const activeRepoData = workspaceRepos.find((repo) => repo.repoPath === activeRepo);
@@ -80,6 +83,38 @@ const RepoSelector = () => {
     });
   };
 
+  const getIndexingStatusForTooltip = () => {
+    if (!isOpen) {
+      return disableRepoSelector
+        ? 'Create new chat to select new repo'
+        : `${Math.round(
+            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.progress ?? 0
+          )}% ${
+            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
+            'COMPLETED'
+              ? 'Indexing Completed'
+              : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
+                  'IN_PROGRESS'
+                ? 'Indexed'
+                : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
+                    'FAILED'
+                  ? 'Indexing Failed, Retry'
+                  : 'Indexed'
+          }`;
+    }
+    return 'Indexed';
+  };
+
+  const getCheckBoxTooltip = (repoPath: string) => {
+    if (repoPath === activeRepo) {
+      return 'Active repository is always in context';
+    } else if (contextRepositories.some((r) => r.repoPath === repoPath)) {
+      return 'Remove this repo from context';
+    } else {
+      return 'Add this repo to context';
+    }
+  };
+
   const IndexingStatusIcon: React.FC = () => {
     const currentIndexingProgressData = indexingProgressData.find(
       (repo) => repo.repo_path === activeRepo
@@ -128,65 +163,29 @@ const RepoSelector = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <Tooltip.Provider>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <motion.button
-              onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
-              disabled={disableRepoSelector}
-              className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${
-                disableRepoSelector
-                  ? 'cursor-not-allowed opacity-50'
-                  : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
-              }`}
-              whileTap={{ scale: 0.98 }}
-            >
-              <IndexingStatusIcon />
-              <div className="flex items-center gap-1">
-                <span className="max-w-[70px] truncate">
-                  {activeRepoData?.repoName ?? 'Select Repo'}
-                </span>
-                <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown className="h-3 w-3 opacity-70" />
-                </motion.span>
-              </div>
-            </motion.button>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              side="top"
-              align="center"
-              className="whitespace-nowrap rounded px-2 py-1 text-xs"
-              style={{
-                backgroundColor: 'var(--vscode-editorHoverWidget-background)',
-                color: 'var(--vscode-editorHoverWidget-foreground)',
-                border: '1px solid var(--vscode-editorHoverWidget-border)',
-              }}
-            >
-              {!isOpen &&
-                (disableRepoSelector
-                  ? 'Create new chat to select new repo'
-                  : `${Math.round(
-                      indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                        ?.progress ?? 0
-                    )}% ${
-                      indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                      'COMPLETED'
-                        ? 'Indexing Completed'
-                        : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                              ?.status === 'IN_PROGRESS'
-                          ? 'Indexed'
-                          : indexingProgressData.find((repo) => repo.repo_path === activeRepo)
-                                ?.status === 'FAILED'
-                            ? 'Indexing Failed, Retry'
-                            : 'Indexed'
-                    }`)}
-              <Tooltip.Arrow style={{ fill: 'var(--vscode-editorHoverWidget-background)' }} />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Tooltip.Provider>
-
+      <motion.button
+        onClick={() => !disableRepoSelector && setIsOpen(!isOpen)}
+        disabled={disableRepoSelector}
+        className={`flex items-center gap-2 rounded-full border border-[--vscode-commandCenter-inactiveBorder] px-1 py-0.5 text-xs ${
+          disableRepoSelector
+            ? 'cursor-not-allowed opacity-50'
+            : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
+        }`}
+        whileTap={{ scale: 0.98 }}
+        data-tooltip-id="repo-selector-tooltip"
+        data-tooltip-content={getIndexingStatusForTooltip()}
+        data-tooltip-place="top-start"
+        data-tooltip-class-name="z-50"
+        data-tooltip-effect="solid"
+      >
+        <IndexingStatusIcon />
+        <div className="flex items-center gap-1">
+          <span className="max-w-[70px] truncate">{activeRepoData?.repoName ?? 'Select Repo'}</span>
+          <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronDown className="h-3 w-3 opacity-70" />
+          </motion.span>
+        </div>
+      </motion.button>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -208,24 +207,14 @@ const RepoSelector = () => {
               transition={{ delay: 0.1 }}
             >
               <span className="text-xs">Select to add in context</span>
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <Info className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100" />
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="z-50 max-w-[250px] rounded-md bg-[var(--vscode-editorHoverWidget-background)] px-3 py-2 text-xs text-[var(--vscode-editorHoverWidget-foreground)] shadow-lg"
-                      side="top"
-                      sideOffset={5}
-                    >
-                      DeputyDev can now access context from multiple repositories. Select the repos
-                      you want to include. The active repo is where DeputyDev will apply changes.
-                      <Tooltip.Arrow className="fill-[var(--vscode-editorHoverWidget-background)]" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              </Tooltip.Provider>
+              <Info
+                className="h-4 w-4 opacity-50 transition-opacity hover:bg-slate-700 hover:bg-opacity-10 hover:opacity-100"
+                data-tooltip-id="repo-selector-tooltip"
+                data-tooltip-content={repoSelectorInfo}
+                data-tooltip-place="top"
+                data-tooltip-class-name="z-50 max-w-[250px]"
+                data-tooltip-effect="solid"
+              />
             </motion.div>
             <motion.div
               className="flex w-full items-center justify-end gap-2 border-t border-t-[var(--vscode-editorWidget-border)] py-1 pl-2 pr-1"
@@ -261,14 +250,14 @@ const RepoSelector = () => {
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 + index * 0.02 }}
-                  className={`flex w-full items-center pr-1 text-xs ${
+                  className={`flex items-center pr-1 text-xs ${
                     activeRepo === repo.repoPath
                       ? 'bg-[--vscode-list-activeSelectionBackground] text-[--vscode-list-activeSelectionForeground]'
                       : ''
                   }`}
                 >
                   <div
-                    className={`w-full flex-1 cursor-pointer py-1 pl-2 text-left text-[--vscode-foreground] ${
+                    className={`flex-1 cursor-pointer truncate py-1 pl-2 text-left text-[--vscode-foreground] ${
                       activeRepo !== repo.repoPath
                         ? 'hover:bg-[--vscode-list-hoverBackground] hover:text-[--vscode-list-activeSelectionForeground]'
                         : ''
@@ -277,75 +266,59 @@ const RepoSelector = () => {
                       e.stopPropagation();
                       handleSelect(repo.repoPath);
                     }}
+                    data-tooltip-id="repo-selector-tooltip"
+                    data-tooltip-content={repo.repoName}
+                    data-tooltip-place="top-start"
+                    data-tooltip-class-name="z-50"
+                    data-tooltip-effect="solid"
                   >
-                    {repo.repoName}
+                    <span className="truncate">{repo.repoName}</span>
                   </div>
                   {activeRepo === repo.repoPath && (
                     <div className="ml-2 flex max-h-4 items-center justify-center rounded-sm border border-green-600 bg-green-600 p-0.5 text-[8px]">
                       <span>ACTIVE</span>
                     </div>
                   )}
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger asChild>
-                        <div className="relative ml-2 h-5 w-5">
-                          {repo.repoPath === activeRepo ? (
-                            <div className="h-5 w-5 opacity-50">
-                              <Square className="absolute h-5 w-5 text-[--vscode-descriptionForeground] outline-none" />
-                              <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
-                            </div>
-                          ) : (
-                            <div>
-                              <Square className="absolute h-5 w-5 hover:opacity-50" />
-                              {contextRepositories.some((r) => r.repoPath === repo.repoPath) && (
-                                <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
-                              )}
-                              <div
-                                className="absolute inset-0 cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (
-                                    contextRepositories.some((r) => r.repoPath === repo.repoPath)
-                                  ) {
-                                    removeRepoFromContext(repo.repoPath, repo.repoName);
-                                  } else {
-                                    addRepoToContext(repo.repoPath, repo.repoName);
-                                  }
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </Tooltip.Trigger>
-                      <Tooltip.Portal>
-                        <Tooltip.Content
-                          className="z-50 rounded-md px-2 py-1 text-xs"
-                          side="top"
-                          sideOffset={5}
-                          style={{
-                            backgroundColor: 'var(--vscode-editorHoverWidget-background)',
-                            color: 'var(--vscode-editorHoverWidget-foreground)',
-                            border: '1px solid var(--vscode-editorHoverWidget-border)',
+                  <div
+                    className="relative ml-2 h-5 w-5"
+                    data-tooltip-id="repo-selector-tooltip"
+                    data-tooltip-content={getCheckBoxTooltip(repo.repoPath)}
+                    data-tooltip-place="top"
+                    data-tooltip-class-name="z-50"
+                    data-tooltip-effect="solid"
+                  >
+                    {repo.repoPath === activeRepo ? (
+                      <div className="h-5 w-5 opacity-50">
+                        <Square className="absolute h-5 w-5 text-[--vscode-descriptionForeground] outline-none" />
+                        <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
+                      </div>
+                    ) : (
+                      <div>
+                        <Square className="absolute h-5 w-5 hover:opacity-50" />
+                        {contextRepositories.some((r) => r.repoPath === repo.repoPath) && (
+                          <Check className="absolute left-0.5 top-0.5 h-4 w-4 text-green-400" />
+                        )}
+                        <div
+                          className="absolute inset-0 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (contextRepositories.some((r) => r.repoPath === repo.repoPath)) {
+                              removeRepoFromContext(repo.repoPath, repo.repoName);
+                            } else {
+                              addRepoToContext(repo.repoPath, repo.repoName);
+                            }
                           }}
-                        >
-                          {repo.repoPath === activeRepo
-                            ? 'Active repository is always in context'
-                            : contextRepositories.some((r) => r.repoPath === repo.repoPath)
-                              ? 'Remove this repo from context'
-                              : 'Add this repo to context'}
-                          <Tooltip.Arrow
-                            style={{ fill: 'var(--vscode-editorHoverWidget-background)' }}
-                          />
-                        </Tooltip.Content>
-                      </Tooltip.Portal>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
+                        />
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+      <Tooltip id="repo-selector-tooltip" />
     </div>
   );
 };
