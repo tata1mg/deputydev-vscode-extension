@@ -493,7 +493,7 @@ export function ChatUI() {
                     <p className="text-lg opacity-80">You're all set to go.</p>
                     <Check className="text-sm text-green-500" />
                   </div>
-                  <p className="text-lg opacity-80">
+                  <p className="text-md opacity-80">
                     DeputyDev has your back. Just start typing, and let the code write itself.
                   </p>
                 </div>
