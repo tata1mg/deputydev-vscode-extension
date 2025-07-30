@@ -483,7 +483,7 @@ export function ChatUI() {
                 <img
                   src={deputyDevLogo}
                   alt="DeputyDev Logo"
-                  className="h-13 w-auto px-4 opacity-90"
+                  className="h-12 w-auto px-4 opacity-90"
                 />
               </div>
               <div className="mt-4 px-4 pb-4">
