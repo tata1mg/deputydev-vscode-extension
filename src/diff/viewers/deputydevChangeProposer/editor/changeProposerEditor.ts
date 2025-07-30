@@ -165,8 +165,12 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               document.filePath,
               document.repoPath,
             );
-            
-            if (fileChangeState && fileChangeState.initialFileContent === '' && fileChangeState.modifiedContent === '') {
+
+            if (
+              fileChangeState &&
+              fileChangeState.initialFileContent === '' &&
+              fileChangeState.modifiedContent === ''
+            ) {
               // Delete the file from disk since it was newly created and all changes were rejected
               await this.fileChangeStateManager.deleteFileFromDisk(document.filePath, document.repoPath);
               this.outputChannel.info(`Deleted newly created file: ${document.filePath}`);
@@ -179,7 +183,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               // Only save the document if we're not deleting it
               await this.saveCustomDocument(document, cancellationToken.token);
             }
-            
+
             this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
@@ -228,7 +232,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               command: 'result',
               data: newUdiff,
             });
-            
+
             if (shouldDeleteFile) {
               // Delete the file from disk since it was newly created
               await this.fileChangeStateManager.deleteFileFromDisk(document.filePath, document.repoPath);
@@ -242,7 +246,7 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               // Only save the document if we're not deleting it
               await this.saveCustomDocument(document, cancellationToken.token);
             }
-            
+
             this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             // close this editor
             selectedPanel.dispose();
