@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { RotateCw } from 'lucide-react';
 import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
 
 interface TokenLimitExceededPanelProps {
@@ -7,6 +8,12 @@ interface TokenLimitExceededPanelProps {
   errorMessage: string;
   retry?: boolean;
   payloadToRetry?: unknown;
+  betterModels?: Array<{
+    id: number;
+    display_name: string;
+    name: string;
+    input_token_limit: number;
+  }>;
 }
 
 export function TokenLimitExceededPanel({
@@ -15,6 +22,7 @@ export function TokenLimitExceededPanel({
   errorMessage,
   retry = false,
   payloadToRetry,
+  betterModels = [],
 }: TokenLimitExceededPanelProps): React.JSX.Element {
   const { llmModels } = useChatStore();
   const [selectedModel, setSelectedModel] = useState(currentModel);
@@ -24,21 +32,21 @@ export function TokenLimitExceededPanel({
   const [autoRetryInProgress, setAutoRetryInProgress] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const autoRetryRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Sort models by token limits (highest first) - show all models
+
+  // Use better models from error payload
   const modelsWithLimits = useMemo(() => {
-    const currentModelData = llmModels.find((m) => m.name === currentModel);
-    const currentModelLimit = currentModelData?.input_token_limit || 100000;
-    
-    return llmModels
-      .filter((m) => m.name !== currentModel)
-      .map((model) => ({
+    // Only use betterModels provided from error payload
+    if (betterModels && betterModels.length > 0) {
+      return betterModels.map((model) => ({
         ...model,
-        tokenLimit: model.input_token_limit || 100000,
-        hasHigherCapacity: (model.input_token_limit || 100000) > currentModelLimit,
-      }))
-      .sort((a, b) => b.tokenLimit - a.tokenLimit);
-  }, [llmModels, currentModel]);
+        tokenLimit: model.input_token_limit,
+        hasHigherCapacity: true, // All models in betterModels list have higher capacity
+      }));
+    }
+
+    // Return empty array if no better models available
+    return [];
+  }, [betterModels]);
 
   // Reset states when current model changes (indicates a new error or retry)
   useEffect(() => {
@@ -47,7 +55,7 @@ export function TokenLimitExceededPanel({
     setRetryMessage('');
     setAutoRetryCountdown(60);
     setAutoRetryInProgress(false);
-    
+
     // Clear any existing timers
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
@@ -61,9 +69,13 @@ export function TokenLimitExceededPanel({
   useEffect(() => {
     if (!retry || !payloadToRetry) return;
 
-    // Find the model with highest token limit that has higher capacity
-    const highestTokenModel = modelsWithLimits.find(m => m.hasHigherCapacity);
+    let highestTokenModel = modelsWithLimits.find((m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity);
     
+
+    if (!highestTokenModel) {
+      highestTokenModel = modelsWithLimits.find((m) => m.hasHigherCapacity);
+    }
+
     if (!highestTokenModel) return;
 
     setAutoRetryInProgress(true);
@@ -71,7 +83,7 @@ export function TokenLimitExceededPanel({
 
     // Start countdown
     countdownRef.current = setInterval(() => {
-      setAutoRetryCountdown(prev => {
+      setAutoRetryCountdown((prev) => {
         if (prev <= 1) {
           if (countdownRef.current) {
             clearInterval(countdownRef.current);
@@ -113,7 +125,8 @@ export function TokenLimitExceededPanel({
   }, []);
 
   // Find current model display name
-  const currentModelDisplay = llmModels.find((m) => m.name === currentModel)?.display_name || currentModel;
+  const currentModelDisplay =
+    llmModels.find((m) => m.name === currentModel)?.display_name || currentModel;
 
   // Function to handle both manual and auto retry
   async function performRetry(modelToUse: string) {
@@ -128,20 +141,20 @@ export function TokenLimitExceededPanel({
 
     try {
       console.log('Starting fresh query with model:', modelToUse);
-      
+
       // Set the new model as active
       useChatSettingStore.setState({ activeModel: modelToUse });
-      
+
       // Small delay to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Extract information from the original payload to create a fresh query
       const originalQuery = query;
-      const originalReferences = payload.referenceList as any[] || [];
-      const originalS3References = Array.isArray(payload.attachments) 
+      const originalReferences = (payload.referenceList as any[]) || [];
+      const originalS3References = Array.isArray(payload.attachments)
         ? payload.attachments.map((att: any) => ({ key: att.attachment_id }))
         : [];
-      
+
       // Get fresh instance of sendChatMessage and send as a new message (not retry)
       const { sendChatMessage } = useChatStore.getState();
       await sendChatMessage(
@@ -152,7 +165,7 @@ export function TokenLimitExceededPanel({
         false, // Not a retry - this is a fresh message
         undefined // No retry payload needed
       );
-      
+
       setRetryMessage(`Started fresh query with ${selectedModelDisplay}.`);
     } catch (error) {
       console.error('Fresh query failed:', error);
@@ -164,7 +177,7 @@ export function TokenLimitExceededPanel({
 
   async function handleRetry() {
     if (selectedModel === currentModel) return;
-    
+
     // Cancel auto-retry if manual retry is triggered
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
@@ -173,7 +186,7 @@ export function TokenLimitExceededPanel({
       clearTimeout(autoRetryRef.current);
     }
     setAutoRetryInProgress(false);
-    
+
     await performRetry(selectedModel);
   }
 
@@ -193,20 +206,27 @@ export function TokenLimitExceededPanel({
       >
         {/* Show retry message */}
         {retryMessage && (
-          <div className="mb-2 flex items-center gap-2 rounded px-2 py-1" 
-               style={{ 
-                 background: retryMessage.includes('failed') 
-                   ? 'var(--vscode-inputValidation-errorBackground)'
-                   : 'var(--vscode-inputValidation-infoBackground)',
-                 border: `1px solid ${retryMessage.includes('failed') 
-                   ? 'var(--vscode-inputValidation-errorBorder)'
-                   : 'var(--vscode-inputValidation-infoBorder)'}` 
-               }}>
-            <span className="text-xs" style={{ 
-              color: retryMessage.includes('failed')
-                ? 'var(--vscode-inputValidation-errorForeground)'
-                : 'var(--vscode-inputValidation-infoForeground)' 
-            }}>
+          <div
+            className="mb-2 flex items-center gap-2 rounded px-2 py-1"
+            style={{
+              background: retryMessage.includes('failed')
+                ? 'var(--vscode-inputValidation-errorBackground)'
+                : 'var(--vscode-inputValidation-infoBackground)',
+              border: `1px solid ${
+                retryMessage.includes('failed')
+                  ? 'var(--vscode-inputValidation-errorBorder)'
+                  : 'var(--vscode-inputValidation-infoBorder)'
+              }`,
+            }}
+          >
+            <span
+              className="text-xs"
+              style={{
+                color: retryMessage.includes('failed')
+                  ? 'var(--vscode-inputValidation-errorForeground)'
+                  : 'var(--vscode-inputValidation-infoForeground)',
+              }}
+            >
               {retryMessage}
             </span>
           </div>
@@ -221,40 +241,49 @@ export function TokenLimitExceededPanel({
             borderColor: 'var(--vscode-inputValidation-errorBorder)',
           }}
         >
-          <span className="font-medium text-xs">Input Too Large</span>
+          <span className="text-xs font-medium">Input Too Large</span>
         </div>
 
         {/* Auto-retry countdown*/}
-        {autoRetryInProgress && modelsWithLimits.some(m => m.hasHigherCapacity) && (() => {
-          const highestCapacityModel = modelsWithLimits.find(m => m.hasHigherCapacity);
-          return (
-            <div className="mb-2">
-              {/* Progress bar */}
-              <div
-                className="mb-2 h-1 w-full overflow-hidden rounded"
-                style={{ background: 'var(--vscode-inputValidation-errorBackground)' }}
-              >
+        {autoRetryInProgress &&
+          modelsWithLimits.some((m) => m.hasHigherCapacity) &&
+          (() => {
+            // Prioritize Gemini 2.5 Pro if available and has higher capacity
+            let highestCapacityModel = modelsWithLimits.find((m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity);
+            
+            // If Gemini 2.5 Pro is not available or doesn't have higher capacity, find the model with highest token limit
+            if (!highestCapacityModel) {
+              highestCapacityModel = modelsWithLimits.find((m) => m.hasHigherCapacity);
+            }
+            
+            return (
+              <div className="mb-2">
+                {/* Progress bar */}
                 <div
-                  className="h-full transition-[width] duration-1000 ease-linear"
+                  className="mb-2 h-1 w-full overflow-hidden rounded"
+                  style={{ background: 'var(--vscode-inputValidation-errorBackground)' }}
+                >
+                  <div
+                    className="h-full transition-[width] duration-1000 ease-linear"
+                    style={{
+                      width: `${((60 - autoRetryCountdown) / 60) * 100}%`,
+                      background: 'var(--vscode-inputValidation-errorBorder)',
+                    }}
+                  />
+                </div>
+
+                {/* Countdown text */}
+                <div
+                  className="mb-2 w-full text-center text-xs font-semibold"
                   style={{
-                    width: `${((60 - autoRetryCountdown) / 60) * 100}%`,
-                    background: 'var(--vscode-inputValidation-errorBorder)',
+                    color: 'var(--vscode-descriptionForeground)',
                   }}
-                />
+                >
+                  Auto-retrying with {highestCapacityModel?.display_name} in {autoRetryCountdown}s
+                </div>
               </div>
-              
-              {/* Countdown text */}
-              <div
-                className="w-full text-center text-xs font-semibold mb-2"
-                style={{
-                  color: 'var(--vscode-descriptionForeground)',
-                }}
-              >
-                Auto-retrying with {highestCapacityModel?.display_name} in {autoRetryCountdown}s
-              </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {/* Main error message */}
         <div className="mb-2 text-center">
@@ -266,16 +295,13 @@ export function TokenLimitExceededPanel({
           </span>
         </div>
 
-
         {/* Compact suggestions */}
         <div className="mb-2 text-xs" style={{ color: 'var(--vscode-descriptionForeground)' }}>
-          <div className="mb-1 font-medium text-xs">Try:</div>
-          <ul className="text-xs space-y-0.5">
-            <li>• Reduce selected code/files</li>
-            <li>• Shorten your query</li>
-            {modelsWithLimits.some(m => m.hasHigherCapacity) && (
-              <li>• Send fresh query with higher capacity model</li>
-            )}
+          <div className="mb-1 text-xs font-medium">To proceed, you can try the following:</div>
+          <ul className="space-y-0.5 text-xs">
+            <li>• Reduce the number of selected files or folders</li>
+            <li>• Start a new chat</li>
+            <li>• Switch to a model with a higher context window</li>
           </ul>
         </div>
 
@@ -296,14 +322,15 @@ export function TokenLimitExceededPanel({
               <option value={currentModel}>{currentModelDisplay} (Current)</option>
               {modelsWithLimits.map((model) => (
                 <option key={model.name} value={model.name}>
-                  {model.display_name}{model.hasHigherCapacity ? ' (Higher capacity)' : ''}
+                  {model.display_name}
+                  {model.hasHigherCapacity ? ' (Higher context window)' : ''}
                 </option>
               ))}
             </select>
 
             {retry && payloadToRetry ? (
               <button
-                className="rounded border bg-transparent px-2 py-1 text-xs focus:outline-none hover:opacity-80 disabled:opacity-50"
+                className="rounded border bg-transparent px-2 py-1 text-xs hover:opacity-80 focus:outline-none disabled:opacity-50"
                 style={{
                   borderColor: 'var(--vscode-button-border)',
                   color: 'var(--vscode-button-foreground)',
@@ -311,18 +338,31 @@ export function TokenLimitExceededPanel({
                 }}
                 onClick={handleRetry}
                 disabled={isRetrying || selectedModel === currentModel}
-                title={selectedModel === currentModel ? "Select a different model to retry" : "Retry with selected model"}>
-                {isRetrying ? 'Sending...' : 'Retry'}
+                title={
+                  selectedModel === currentModel
+                    ? 'Select a different model to retry'
+                    : 'Retry with selected model'
+                }
+              >
+                {isRetrying ? (
+                  'Sending...'
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <RotateCw className="h-3 w-3" />
+                    Retry
+                  </span>
+                )}
               </button>
             ) : null}
           </div>
         )}
 
         {/* Show message when no higher capacity models are available */}
-        {!modelsWithLimits.some(m => m.hasHigherCapacity) && (
-          <div className="text-center py-1">
+        {!modelsWithLimits.some((m) => m.hasHigherCapacity) && (
+          <div className="py-1 text-center">
             <span className="text-xs" style={{ color: 'var(--vscode-descriptionForeground)' }}>
-              No higher capacity models available. Try reducing your input size or opening a new chat.
+              No higher capacity models available. Try reducing your input size or opening a new
+              chat.
             </span>
           </div>
         )}

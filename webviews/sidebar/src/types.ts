@@ -253,6 +253,12 @@ export interface InputTokenLimitErrorData {
   message: string;
   detail?: string;
   query?: string;
+  better_models?: Array<{
+    id: number;
+    display_name: string;
+    name: string;
+    input_token_limit: number;
+  }>;
 }
 
 export interface LLMinputTokenLimitException {

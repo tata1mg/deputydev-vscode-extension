@@ -206,6 +206,7 @@ export interface InputTokenLimitErrorData {
   max_tokens: number;
   message: string;
   detail?: string;
+  better_models?: Array<{
 }
 
 export interface FileReadOrSummaryResponse {
