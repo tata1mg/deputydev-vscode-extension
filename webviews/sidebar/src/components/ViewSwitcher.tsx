@@ -28,7 +28,7 @@ function ViewSwitcher() {
 
   return (
     <div
-      className={`relative flex h-10 w-full items-center overflow-hidden rounded-full ${borderClass}`}
+      className={`relative flex h-9 w-full items-center overflow-hidden rounded-full ${borderClass}`}
     >
       {/* Inactive Background Element */}
       <div
