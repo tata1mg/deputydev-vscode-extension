@@ -33,6 +33,7 @@ export function TokenLimitExceededPanel({
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const autoRetryRef = useRef<NodeJS.Timeout | null>(null);
 
+
   // Use better models from error payload
   const modelsWithLimits = useMemo(() => {
     // Only use betterModels provided from error payload
@@ -47,6 +48,7 @@ export function TokenLimitExceededPanel({
     // Return empty array if no better models available
     return [];
   }, [betterModels]);
+
 
   // Reset states when current model changes (indicates a new error or retry)
   useEffect(() => {
