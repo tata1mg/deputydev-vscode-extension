@@ -230,7 +230,7 @@ export default function CodeReview() {
       <div className="flex-grow">
         <div className="sticky top-0 z-50 border-b border-transparent bg-inherit">
           <div className="mt-10">
-            <img src={deputyDevLogo} alt="DeputyDev Logo" className="h-13 w-auto px-4 opacity-90" />
+            <img src={deputyDevLogo} alt="DeputyDev Logo" className="h-12 w-auto px-4 opacity-90" />
           </div>
           <div className="mt-4 px-4 pb-4">
             <div className="flex flex-col items-start gap-2">
