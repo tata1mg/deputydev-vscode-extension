@@ -567,6 +567,7 @@ export function ChatArea() {
                   errorMessage={msg.error_msg}
                   retry={msg.retry}
                   payloadToRetry={msg.payload_to_retry}
+                  betterModels={msg.errorData.better_models}
                 />
               );
             } else {

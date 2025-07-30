@@ -991,7 +991,13 @@ export const useChatStore = create(
                       current_tokens?: number;
                       max_tokens?: number;
                       detail?: string;
-                      query?: string
+                      query?: string;
+                      better_models?: Array<{
+                        id: number;
+                        display_name: string;
+                        name: string;
+                        input_token_limit: number;
+                      }>;
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
@@ -1072,6 +1078,7 @@ export const useChatStore = create(
                             max_tokens: errorData.max_tokens,
                             message: err,
                             detail: errorData.detail,
+                            better_models: errorData.better_models,
                           },
                         } as ChatErrorMessage);
                       } else {
