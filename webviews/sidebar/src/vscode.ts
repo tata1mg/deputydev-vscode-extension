@@ -851,6 +851,7 @@ addCommandEventListener('new-review-created', ({ data }) => {
   useCodeReviewStore.setState({ new_review: newReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
+  useCodeReviewStore.setState({ showReviewError: false });
   fetchRepoDetails({ repo_name: newReview.repo_name, origin_url: newReview.origin_url });
 });
 
