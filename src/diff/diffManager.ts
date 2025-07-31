@@ -397,23 +397,36 @@ export class DiffManager {
     // parallely reject all the files
     const rejectPromises = filePathAndRepoPathArray.map(async ({ filePath, repoPath }) => {
       try {
-        await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
-        const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
-          filePath,
-          repoPath,
-        );
-        if (newState) {
-          // Write the modified content to the file system
-          await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+        const { newUdiff, shouldDeleteFile } = await (
+          this.fileChangeStateManager as FileChangeStateManager
+        ).rejectAllChangesInFile(filePath, repoPath);
+
+        if (shouldDeleteFile) {
+          // Delete the file from disk since it was newly created
+          await (this.fileChangeStateManager as FileChangeStateManager).deleteFileFromDisk(filePath, repoPath);
+          this.outputChannel.info(`Deleted newly created file: ${filePath}`);
+        } else {
+          const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+            filePath,
+            repoPath,
+          );
+          if (newState) {
+            await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+          }
         }
+
         await this.updateDiffView(filePath, repoPath);
         await this.disposeDiffView(filePath, repoPath);
         (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
         this.removeFileFromSessions(filePath, repoPath);
-        const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
-        await vscode.window.showTextDocument(originalFileUri, {
-          preview: false,
-        });
+
+        if (!shouldDeleteFile) {
+          const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+          await vscode.window.showTextDocument(originalFileUri, {
+            preview: false,
+          });
+        }
+
         this.outputChannel.info(`Rejected changes for file: ${filePath}`);
       } catch (error) {
         this.outputChannel.error(`Failed to reject changes for file ${filePath}: ${(error as Error).message}`);
@@ -456,22 +469,37 @@ export class DiffManager {
   public rejectFile = async (filePath: string, repoPath: string) => {
     this.checkInit();
     try {
-      await (this.fileChangeStateManager as FileChangeStateManager).rejectAllChangesInFile(filePath, repoPath);
-      const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
-        filePath,
-        repoPath,
-      );
-      if (newState) {
-        // Write the modified content to the file system
-        await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+      const { newUdiff, shouldDeleteFile } = await (
+        this.fileChangeStateManager as FileChangeStateManager
+      ).rejectAllChangesInFile(filePath, repoPath);
+
+      if (shouldDeleteFile) {
+        // Delete the file from disk since it was newly created
+        await (this.fileChangeStateManager as FileChangeStateManager).deleteFileFromDisk(filePath, repoPath);
+        this.outputChannel.info(`Deleted newly created file: ${filePath}`);
+      } else {
+        // Write the modified content to the file system (for existing files)
+        const newState = await (this.fileChangeStateManager as FileChangeStateManager).getFileChangeState(
+          filePath,
+          repoPath,
+        );
+        if (newState) {
+          await this.writeModifiedContentToFile(filePath, repoPath, newState.modifiedContent);
+        }
       }
+
       await this.updateDiffView(filePath, repoPath);
       await this.disposeDiffView(filePath, repoPath);
       (this.fileChangeStateManager as FileChangeStateManager).removeFileChangeState(filePath, repoPath);
-      const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
-      await vscode.window.showTextDocument(originalFileUri, {
-        preview: false,
-      });
+
+      if (!shouldDeleteFile) {
+        // Only open the file if it wasn't deleted
+        const originalFileUri = vscode.Uri.file(path.join(repoPath, filePath));
+        await vscode.window.showTextDocument(originalFileUri, {
+          preview: false,
+        });
+      }
+
       this.fileChangeStateManager?.finalizeFileChangeState(filePath, repoPath);
     } catch (error) {
       this.outputChannel.error(`rejectFile failed:\n${(error as Error).message}`);

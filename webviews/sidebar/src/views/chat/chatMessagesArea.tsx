@@ -1,6 +1,13 @@
 import { submitFeedback } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { ChatMessage, ChatReferenceItem, S3Object } from '@/types';
+import {
+  ChatMessage,
+  ChatReferenceItem,
+  S3Object,
+  InputTokenLimitErrorData,
+  LLMinputTokenLimitException,
+  LLMThrottlingException,
+} from '@/types';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { CircleUserRound, ThumbsDown, ThumbsUp, TriangleAlert } from 'lucide-react';
 import { JSX, useRef } from 'react';
@@ -26,6 +33,27 @@ import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import { AskUserInput } from './chatElements/Tools/askUserInput';
 import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
+import { TokenLimitExceededPanel } from './chatElements/TokenLimitExceededPanel';
+
+// Type guard functions for error data
+const isInputTokenLimitErrorData = (errorData: any): errorData is InputTokenLimitErrorData => {
+  return (
+    errorData &&
+    (errorData.type === 'STREAM_ERROR' || errorData.type === 'TOKEN_LIMIT_ERROR') &&
+    typeof errorData.current_tokens === 'number' &&
+    typeof errorData.max_tokens === 'number'
+  );
+};
+
+const isLLMInputTokenLimitException = (
+  errorData: any
+): errorData is LLMinputTokenLimitException => {
+  return errorData && errorData.type === 'INPUT_TOKEN_LIMIT_ERROR';
+};
+
+const isLLMThrottlingException = (errorData: any): errorData is LLMThrottlingException => {
+  return errorData && errorData.type === 'THROTTLING_ERROR';
+};
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
@@ -518,35 +546,41 @@ export function ChatArea() {
 
           case 'ERROR': {
             let contentComponent: JSX.Element | null = null;
-            const errorType = msg.errorData?.type; // use optional chaining
 
-            switch (errorType) {
-              case 'THROTTLING_ERROR': {
-                contentComponent = (
-                  <ThrottledChatMessage
-                    key={index}
-                    retryAfterSeconds={msg.errorData?.retry_after}
-                    currentModel={msg.errorData?.model_name}
-                    errorMessage={msg.error_msg}
+            if (isLLMThrottlingException(msg.errorData)) {
+              contentComponent = (
+                <ThrottledChatMessage
+                  key={index}
+                  retryAfterSeconds={msg.errorData.retry_after}
+                  currentModel={msg.errorData.model_name}
+                  errorMessage={msg.error_msg}
+                  retry={msg.retry}
+                  payloadToRetry={msg.payload_to_retry}
+                />
+              );
+            } else if (isInputTokenLimitErrorData(msg.errorData)) {
+              contentComponent = (
+                <TokenLimitExceededPanel
+                  key={index}
+                  currentModel={msg.errorData.model || 'Unknown'}
+                  query={msg.errorData.query || ''}
+                  errorMessage={msg.error_msg}
+                  retry={msg.retry}
+                  payloadToRetry={msg.payload_to_retry}
+                  betterModels={msg.errorData.better_models}
+                />
+              );
+            } else {
+              // Otherwise, show the old error UI
+              contentComponent = (
+                <div key={index}>
+                  <RetryChip
+                    error_msg={msg.error_msg}
                     retry={msg.retry}
-                    payloadToRetry={msg.payload_to_retry}
+                    payload_to_retry={msg.payload_to_retry}
                   />
-                );
-                break;
-              }
-              default: {
-                // Otherwise, show the old error UI
-                contentComponent = (
-                  <div key={index}>
-                    <RetryChip
-                      error_msg={msg.error_msg}
-                      retry={msg.retry}
-                      payload_to_retry={msg.payload_to_retry}
-                    />
-                  </div>
-                );
-                break;
-              }
+                </div>
+              );
             }
             return contentComponent;
           }

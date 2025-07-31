@@ -11,7 +11,7 @@ import * as vscode from 'vscode';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
 import { BackendClient } from '../../clients/backendClient';
-import { ThrottlingErrorData } from '../../types';
+import { ThrottlingErrorData, InputTokenLimitErrorData } from '../../types';
 
 interface StreamEvent {
   type: string;
@@ -99,6 +99,10 @@ export class QuerySolverService {
         } else if (messageData.type === 'STREAM_ERROR') {
           if (messageData.status === 'LLM_THROTTLED') {
             streamError = new ThrottlingException(messageData);
+            socketConn.close();
+            return;
+          } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
+            streamError = new TokenLimitException(messageData);
             socketConn.close();
             return;
           } else if (messageData.status) {
@@ -219,5 +223,16 @@ export class ThrottlingException extends Error {
     this.data = data;
 
     Object.setPrototypeOf(this, ThrottlingException.prototype);
+  }
+}
+
+export class TokenLimitException extends Error {
+  public data: InputTokenLimitErrorData;
+  constructor(data: InputTokenLimitErrorData) {
+    super(data.message);
+    this.name = 'TokenLimitException';
+    this.data = data;
+
+    Object.setPrototypeOf(this, TokenLimitException.prototype);
   }
 }

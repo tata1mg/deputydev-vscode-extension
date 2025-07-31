@@ -13,7 +13,7 @@ import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 import { api, binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
-import { QuerySolverService, ThrottlingException } from '../services/chat/ChatService';
+import { QuerySolverService, ThrottlingException, TokenLimitException } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
@@ -571,6 +571,31 @@ export class ChatManager {
             errorType: 'THROTTLING_ERROR',
             model: originalPayload.llm_model,
             retry_after: errorData.retry_after || 60, // Default to 60 seconds if not provided
+          },
+        });
+      } else if (error instanceof TokenLimitException) {
+        const errorData = error.data;
+        const extraErrorInfo = {
+          detail: errorData.detail,
+          model: errorData.model,
+          current_tokens: errorData.current_tokens,
+          max_tokens: errorData.max_tokens,
+        };
+
+        this.errorTrackingManager.trackGeneralError(error, 'TOKEN_LIMIT_ERROR', 'BACKEND', extraErrorInfo);
+
+        chunkCallback({
+          name: 'error',
+          data: {
+            payload_to_retry: originalPayload,
+            error_msg: errorData.message,
+            retry: true,
+            errorType: 'TOKEN_LIMIT_ERROR',
+            model: originalPayload.llm_model,
+            current_tokens: errorData.current_tokens,
+            max_tokens: errorData.max_tokens,
+            query: originalPayload.query || '',
+            better_models: errorData.better_models
           },
         });
       } else {
