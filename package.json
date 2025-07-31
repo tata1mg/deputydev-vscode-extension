@@ -63,7 +63,7 @@
       {
         "command": "deputydev.OpenCodeReview",
         "category": "DeputyDev",
-        "title": "Open Code Review",
+        "title": "Code Review",
         "icon": "$(git-pull-request)"
       },
       {
