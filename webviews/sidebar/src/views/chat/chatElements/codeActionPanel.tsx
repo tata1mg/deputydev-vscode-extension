@@ -71,7 +71,7 @@ export function CodeActionPanel({
   }, [filepath]);
 
   useEffect(() => {
-    if (isApplicable && isStreaming) {
+    if (is_diff && isStreaming) {
       const usageTrackingData: UsageTrackingRequestFromSidebar = {
         eventType: 'GENERATED',
         eventData: {
@@ -82,7 +82,25 @@ export function CodeActionPanel({
       };
       usageTracking(usageTrackingData);
     }
-  }, [isApplicable]);
+  }, [is_diff, isStreaming, filepath, added_lines, removed_lines]);
+
+  useEffect(() => {
+    if (
+      is_diff && // must be a diff
+      isApplicable === false && // not applicable
+      isStreaming // streaming
+    ) {
+      const usageTrackingData: UsageTrackingRequestFromSidebar = {
+        eventType: 'INVALID_DIFF',
+        eventData: {
+          source: getSource(),
+          file_path: filepath || '',
+          lines: Math.abs(added_lines || 0) + Math.abs(removed_lines || 0),
+        },
+      };
+      usageTracking(usageTrackingData);
+    }
+  }, [isApplicable, isStreaming, is_diff, filepath, added_lines, removed_lines]);
 
   const getSource = () => {
     const chatSource = useChatSettingStore.getState().chatSource;
@@ -114,18 +132,6 @@ export function CodeActionPanel({
 
   const handleCopy = () => {
     if (!copyCooldown) {
-      if (!showApplyButton && isStreaming) {
-        const usageTrackingData: UsageTrackingRequestFromSidebar = {
-          eventType: 'GENERATED',
-          eventData: {
-            file_path: filepath || '',
-            lines: getLineCountFromContent(content),
-            source: getSource(),
-          },
-        };
-        usageTracking(usageTrackingData);
-      }
-
       const usageTrackingData: UsageTrackingRequestFromSidebar = {
         eventType: 'COPIED',
         eventData: {
@@ -140,7 +146,7 @@ export function CodeActionPanel({
 
       // Start cooldown
       setCopyCooldown(true);
-      setTimeout(() => setCopyCooldown(false), 10000); // 3 sec cooldown
+      setTimeout(() => setCopyCooldown(false), 10000); // 10 sec cooldown
     }
 
     navigator.clipboard.writeText(content);
