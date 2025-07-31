@@ -23,9 +23,10 @@ export function TokenLimitExceededPanel({
   retry = false,
   payloadToRetry,
   betterModels = [],
-}: TokenLimitExceededPanelProps): React.JSX.Element {
+}: Readonly<TokenLimitExceededPanelProps>): React.JSX.Element {
+  const firstModelName = betterModels?.[0]?.name ?? '';
   const { llmModels } = useChatStore();
-  const [selectedModel, setSelectedModel] = useState(currentModel);
+  const [selectedModel, setSelectedModel] = useState(firstModelName);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryMessage, setRetryMessage] = useState('');
   const [autoRetryCountdown, setAutoRetryCountdown] = useState(60);
@@ -52,7 +53,7 @@ export function TokenLimitExceededPanel({
 
   // Reset states when current model changes (indicates a new error or retry)
   useEffect(() => {
-    setSelectedModel(currentModel);
+    setSelectedModel(firstModelName);
     setIsRetrying(false);
     setRetryMessage('');
     setAutoRetryCountdown(60);
@@ -321,7 +322,6 @@ export function TokenLimitExceededPanel({
               onChange={handleModelChange}
               disabled={isRetrying}
             >
-              <option value={currentModel}>{currentModelDisplay} (Current)</option>
               {modelsWithLimits.map((model) => (
                 <option key={model.name} value={model.name}>
                   {model.display_name}
