@@ -573,7 +573,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   sendChatMessage(
     'create new workspace payload',
     [],
-    () => {},
+    () => { },
     undefined,
     false,
     {},
@@ -668,7 +668,7 @@ addCommandEventListener('update-workspace-dd', () => {
     sendChatMessage(
       'create new workspace payload',
       [],
-      () => {},
+      () => { },
       undefined,
       false,
       {},
@@ -851,6 +851,7 @@ addCommandEventListener('new-review-created', ({ data }) => {
   useCodeReviewStore.setState({ new_review: newReview });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
   useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
+  useCodeReviewStore.setState({ showReviewError: false });
   fetchRepoDetails({ repo_name: newReview.repo_name, origin_url: newReview.origin_url });
 });
 
