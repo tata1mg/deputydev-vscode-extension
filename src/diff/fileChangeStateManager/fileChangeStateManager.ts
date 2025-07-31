@@ -649,7 +649,7 @@ export class FileChangeStateManager {
   public rejectAllChangesInFile = async (
     filePath: string, // relative path of the file from the repo
     repoPath: string, // absolute path of the repo
-  ): Promise<string> => {
+  ): Promise<{ newUdiff: string; shouldDeleteFile: boolean }> => {
     // reject all changes in the file, until either the end of file is reached or the diff block ends
     // to reject, just navigate through the udiff and add all lines that are removed
     const fileChangeState = this.fileChangeStateMap.get(path.join(repoPath, filePath));
@@ -657,7 +657,7 @@ export class FileChangeStateManager {
     if (!fileChangeState) {
       throw new Error(`File change state not found for ${filePath}`);
     }
-    const { originalContent, modifiedContent, currentUdiff } = fileChangeState;
+    const { originalContent, modifiedContent, currentUdiff, initialFileContent } = fileChangeState;
     const currentUdiffLineEol = currentUdiff.includes('\r\n') ? '\r\n' : '\n';
     const currentUdiffLines = currentUdiff.split(currentUdiffLineEol);
     const newUdiffLines: string[] = [];
@@ -697,8 +697,43 @@ export class FileChangeStateManager {
       modifiedContent: originalAndModifiedContent.modifiedContent,
     });
 
-    // return the new udiff
-    return newUdiff;
+    const shouldDeleteFile = this.isNewlyCreatedFile(initialFileContent, originalAndModifiedContent.modifiedContent);
+
+    return { newUdiff, shouldDeleteFile };
+  };
+
+  /**
+   * Determines if a file is newly created and should be deleted when rejected
+   * A file is considered newly created if:
+   * 1. The initial file content was empty (file didn't exist before)
+   * 2. After rejection, the modified content is also empty (all changes were removed)
+   */
+  private isNewlyCreatedFile = (initialFileContent: string, modifiedContent: string): boolean => {
+    return initialFileContent === '' && modifiedContent === '';
+  };
+
+  /**
+   * Deletes a file from the file system
+   */
+  public deleteFileFromDisk = async (filePath: string, repoPath: string): Promise<void> => {
+    const fullPath = path.join(repoPath, filePath);
+    const fileUri = vscode.Uri.file(fullPath);
+
+    try {
+      // Check if file exists before attempting to delete
+      await vscode.workspace.fs.stat(fileUri);
+
+      // Delete the file
+      await vscode.workspace.fs.delete(fileUri);
+      this.outputChannel.info(`Deleted file: ${filePath}`);
+    } catch (error: any) {
+      if (error.code === 'FileNotFound') {
+        this.outputChannel.warn(`File not found for deletion: ${filePath}`);
+      } else {
+        this.outputChannel.error(`Error deleting file ${filePath}: ${error}`);
+        throw error;
+      }
+    }
   };
 
   public changeUdiffContent = async (

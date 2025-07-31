@@ -155,19 +155,41 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
               data: newContent,
             });
           }
-          await this.saveCustomDocument(document, cancellationToken.token);
           // if there is no line with changes now, close the editor
           const newContentLineEol = newContent.includes('\r\n') ? '\r\n' : '\n';
           const newContentLines = newContent.split(newContentLineEol);
           const hasChanges = newContentLines.some((line) => line.startsWith('+') || line.startsWith('-'));
           if (!hasChanges) {
+            // Check if this is a newly created file that should be deleted
+            const fileChangeState = await this.fileChangeStateManager.getFileChangeState(
+              document.filePath,
+              document.repoPath,
+            );
+
+            if (
+              fileChangeState &&
+              fileChangeState.initialFileContent === '' &&
+              fileChangeState.modifiedContent === ''
+            ) {
+              // Delete the file from disk since it was newly created and all changes were rejected
+              await this.fileChangeStateManager.deleteFileFromDisk(document.filePath, document.repoPath);
+              this.outputChannel.info(`Deleted newly created file: ${document.filePath}`);
+            } else {
+              // open the original file in vscode native editor (only if not deleted)
+              const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+              await vscode.window.showTextDocument(originalFileUri, {
+                preview: false,
+              });
+              // Only save the document if we're not deleting it
+              await this.saveCustomDocument(document, cancellationToken.token);
+            }
+
             this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             selectedPanel.dispose();
             this.panels.delete(key);
-            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
-            await vscode.window.showTextDocument(originalFileUri, {
-              preview: false,
-            });
+          } else {
+            // If there are still changes, save the document
+            await this.saveCustomDocument(document, cancellationToken.token);
           }
           break;
         }
@@ -199,23 +221,31 @@ export class ChangeProposerEditor implements vscode.CustomEditorProvider<ChangeP
           break;
         }
         case 'reject-all-changes': {
-          const newContent = await this.fileChangeStateManager.rejectAllChangesInFile(
+          const { newUdiff, shouldDeleteFile } = await this.fileChangeStateManager.rejectAllChangesInFile(
             document.filePath,
             document.repoPath,
           );
-          if (newContent !== null && newContent !== undefined) {
-            document.content = newContent;
+          if (newUdiff !== null && newUdiff !== undefined) {
+            document.content = newUdiff;
             webviewPanel.webview.postMessage({
               id: message.id,
               command: 'result',
-              data: newContent,
+              data: newUdiff,
             });
-            // open the original file in vscode native editor
-            const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
-            await vscode.window.showTextDocument(originalFileUri, {
-              preview: false,
-            });
-            await this.saveCustomDocument(document, cancellationToken.token);
+
+            if (shouldDeleteFile) {
+              // Delete the file from disk since it was newly created
+              await this.fileChangeStateManager.deleteFileFromDisk(document.filePath, document.repoPath);
+              this.outputChannel.info(`Deleted newly created file: ${document.filePath}`);
+            } else {
+              // open the original file in vscode native editor (only if not deleted)
+              const originalFileUri = vscode.Uri.file(path.join(document.repoPath, document.filePath));
+              await vscode.window.showTextDocument(originalFileUri, {
+                preview: false,
+              });
+              // Only save the document if we're not deleting it
+              await this.saveCustomDocument(document, cancellationToken.token);
+            }
 
             this.fileChangeStateManager.finalizeFileChangeState(document.filePath, document.repoPath);
             // close this editor
