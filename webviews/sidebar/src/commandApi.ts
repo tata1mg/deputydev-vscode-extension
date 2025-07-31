@@ -1,4 +1,10 @@
-import { UsageTrackingRequestFromSidebar, SaveUrlRequest, Settings } from './types';
+import {
+  UsageTrackingRequestFromSidebar,
+  SaveUrlRequest,
+  Settings,
+  AgentPayload,
+  NewReview,
+} from './types';
 import { callCommand } from './vscode';
 
 export function writeFile(params: {
@@ -337,4 +343,87 @@ export function deleteImage(key: string) {
 
 export function downloadImageFile(key: string) {
   return callCommand('download-image-file', { key });
+}
+
+// Code Review
+
+export function codeReviewPreProcess(data: { newReview: NewReview; reviewType: string }) {
+  return callCommand('code-review-pre-process', data);
+}
+
+export function startCodeReview(data: { review_id: number; agents: AgentPayload[] }) {
+  return callCommand('start-code-review', data);
+}
+
+export function newReview(data: { targetBranch: string; reviewType: string }) {
+  return callCommand('new-review', data);
+}
+
+export function hitSnapshot(reviewType: string, targetBranch: string) {
+  if (reviewType !== 'COMMITTED_ONLY') {
+    return callCommand('hit-snapshot', { reviewType, targetBranch });
+  }
+}
+
+export function searchBranches(keyword: string) {
+  return callCommand('search-branches', { keyword });
+}
+
+export function openFileDiff(data: { udiff: string; filePath: string; fileName: string }) {
+  return callCommand('open-file-diff', data);
+}
+
+export function fetchPastReviews(data: { sourceBranch: string; repoId: number }) {
+  return callCommand('fetch-past-reviews', data);
+}
+
+export function openCommentInFile(data: {
+  filePath: string;
+  lineNumber: number;
+  commentText: string;
+  promptText: string;
+  commentId: number;
+}) {
+  return callCommand('open-comment-in-file', data);
+}
+
+export function getUserAgents() {
+  return callCommand('fetch-user-agents', {});
+}
+
+export function performCrudOnUserAgent(
+  operation: 'CREATE' | 'UPDATE' | 'DELETE',
+  agent_id?: number,
+  agent_name?: string,
+  custom_prompt?: string
+) {
+  return callCommand('user-agent-crud', { operation, agent_id, agent_name, custom_prompt });
+}
+
+export function startCodeReviewPostProcess(data: { review_id: number }) {
+  return callCommand('code-review-post-process', data);
+}
+
+export function cancelReview() {
+  return callCommand('cancel-review', {});
+}
+
+export function sendCommentStatusUpdate(commentId: number, status: string) {
+  return callCommand('send-comment-status-update', { commentId, status });
+}
+
+export function reviewNotification(reviewStatus: string) {
+  return callCommand('review-notification', { reviewStatus });
+}
+
+export function fetchRepoDetails(data: { repo_name: string; origin_url: string }) {
+  return callCommand('get-repo-details-for-review', data);
+}
+
+export function submitCommentFeedback(data: {
+  commentId: number;
+  isLike: boolean;
+  feedbackComment?: string;
+}) {
+  return callCommand('submit-comment-feedback', data);
 }

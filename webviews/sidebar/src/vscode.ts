@@ -18,6 +18,10 @@ import {
   ChangedFile,
   IndexingProgressData,
   EmbeddingProgressData,
+  NewReview,
+  Review,
+  UserAgent,
+  AgentPayload,
 } from '@/types';
 import {
   logToOutput,
@@ -26,6 +30,13 @@ import {
   rejectAllChangesInSession,
   hitEmbedding,
   updateContextRepositories,
+  newReview,
+  startCodeReview,
+  startCodeReviewPostProcess,
+  fetchPastReviews,
+  hitSnapshot,
+  reviewNotification,
+  fetchRepoDetails,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -38,6 +49,7 @@ import { useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
+import { useCodeReviewSettingStore, useCodeReviewStore } from './stores/codeReviewStore';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -831,4 +843,361 @@ addCommandEventListener('auth-response', ({ data }) => {
     useAuthStore.setState({ isAuthenticated: false });
     useExtensionStore.setState({ viewType: 'auth' });
   }
+});
+
+// Code Review
+addCommandEventListener('new-review-created', ({ data }) => {
+  const newReview = data as NewReview;
+  useCodeReviewStore.setState({ new_review: newReview });
+  useCodeReviewStore.setState({ isFetchingChangedFiles: false });
+  useCodeReviewStore.setState({ selectedTargetBranch: newReview.target_branch });
+  fetchRepoDetails({ repo_name: newReview.repo_name, origin_url: newReview.origin_url });
+});
+
+addCommandEventListener('search-branches-result', ({ data }) => {
+  useCodeReviewStore.setState({ searchedBranches: data as string[] });
+});
+
+addCommandEventListener('snapshot-result', ({ data }: any) => {
+  if (data && !data.is_error && useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
+});
+
+addCommandEventListener('past-reviews', ({ data }) => {
+  const result = data as Review[];
+  if (data) {
+    useCodeReviewStore.setState({ pastReviews: result });
+  }
+  useCodeReviewStore.setState({ isFetchingPastReviews: false });
+
+  if (useCodeReviewStore.getState().isPastReviewsFetchedAfterReviewCompletion) {
+    useCodeReviewStore.setState({
+      expandedReview: useCodeReviewStore.getState().pastReviews[0].id,
+    });
+  }
+});
+
+addCommandEventListener('user-agents', ({ data }) => {
+  const userAgents = data as UserAgent[];
+
+  if (userAgents && userAgents.length > 0) {
+    useCodeReviewStore.setState({ userAgents: userAgents });
+  }
+});
+
+addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
+  const store = useCodeReviewStore.getState();
+
+  // Add setup step
+  store.updateOrAddStep({
+    id: 'INITIAL_SETUP',
+    label: 'Setting Up Review',
+    status: 'IN_PROGRESS',
+  });
+});
+
+addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
+  const preProcessData = data as { review_id: number; session_id: number };
+  useCodeReviewStore.setState({ activeReviewId: preProcessData.review_id });
+  useCodeReviewStore.setState({ activeReviewSessionId: preProcessData.session_id });
+
+  // Update setup step to COMPLETED
+  useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'COMPLETED');
+
+  // Start Review now
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
+  const activeReviewId = useCodeReviewStore.getState().activeReviewId;
+
+  // Ensure we have a valid activeReviewId
+  if (!activeReviewId) {
+    console.error('No active review ID found');
+    return;
+  }
+
+  // Create the agents payload list
+  const agents: AgentPayload[] = enabledAgents.map((agent) => ({
+    agent_id: agent.id,
+    review_id: activeReviewId,
+    type: 'query',
+  }));
+
+  // Start the code review with the agents payload list
+  startCodeReview({
+    review_id: activeReviewId,
+    agents: agents,
+  });
+});
+
+addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
+  useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'FAILED');
+  reviewNotification('REVIEW_FAILED');
+});
+
+addCommandEventListener('REVIEW_STARTED', ({ data }) => {
+  const store = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
+
+  // Add or update reviewing step with all enabled agents
+  store.updateOrAddStep({
+    id: 'REVIEWING',
+    label: 'Reviewing files',
+    status: 'IN_PROGRESS',
+    agents: enabledAgents.map((agent) => ({
+      id: agent.id,
+      name: agent.displayName,
+      status: 'IN_PROGRESS' as const,
+    })),
+  });
+});
+
+addCommandEventListener('AGENT_COMPLETE', ({ data }) => {
+  const event = data as { agent_id: number; type: string; data: any };
+  const agentId = event.agent_id;
+
+  // Update the specific agent's status to COMPLETED
+  useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'COMPLETED');
+
+  // Check if all enabled agents have completed or failed
+  const { steps } = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
+  const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
+
+  if (reviewingStep?.agents) {
+    // Get only the enabled agents' statuses
+    const enabledAgentStatuses = reviewingStep.agents
+      .filter((agent) => enabledAgents.some((ea) => ea.id === agent.id))
+      .map((agent) => agent.status);
+
+    // Check if all enabled agents are either COMPLETED or FAILED
+    const allEnabledAgentsDone =
+      enabledAgentStatuses.length > 0 &&
+      enabledAgentStatuses.every((status) => status === 'COMPLETED' || status === 'FAILED');
+
+    if (allEnabledAgentsDone) {
+      useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+
+      const failedAgents = reviewingStep.agents
+        .filter((agent) => agent.status === 'FAILED')
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+        }));
+
+      if (failedAgents.length > 0) {
+        useCodeReviewStore.getState().setFailedAgents(failedAgents);
+        // useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+      }
+
+      // if (failedAgents.length === 0) {
+      startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
+      // }
+    }
+  }
+});
+
+addCommandEventListener('AGENT_FAIL', ({ data }) => {
+  const event = data as { agent_id: number; type: string; data: any };
+  const agentId = event.agent_id;
+  console.error('Agent failed:', event);
+
+  // Update the specific agent's status to FAILED
+  useCodeReviewStore.getState().updateAgentStatus('REVIEWING', agentId, 'FAILED');
+
+  // Check if all enabled agents have completed or failed
+  const { steps } = useCodeReviewStore.getState();
+  const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
+  const reviewingStep = steps.find((step) => step.id === 'REVIEWING');
+
+  if (reviewingStep?.agents) {
+    // Get only the enabled agents' statuses
+    const enabledAgentStatuses = reviewingStep.agents
+      .filter((agent) => enabledAgents.some((ea) => ea.id === agent.id))
+      .map((agent) => agent.status);
+
+    // Check if all enabled agents are either COMPLETED or FAILED
+    const allEnabledAgentsDone =
+      enabledAgentStatuses.length > 0 &&
+      enabledAgentStatuses.every((status) => status === 'COMPLETED' || status === 'FAILED');
+
+    if (allEnabledAgentsDone) {
+      const failedAgents = reviewingStep.agents
+        .filter((agent) => agent.status === 'FAILED')
+        .map((agent) => ({
+          id: agent.id,
+          name: agent.name,
+        }));
+
+      if (failedAgents.length > 0 && failedAgents.length != enabledAgents.length) {
+        useCodeReviewStore.getState().setFailedAgents(failedAgents);
+        // useCodeReviewStore.getState().setShowFailedAgentsDialog(true);
+        useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'COMPLETED');
+        startCodeReviewPostProcess({ review_id: useCodeReviewStore.getState().activeReviewId });
+      }
+
+      if (failedAgents.length > 0 && failedAgents.length === enabledAgents.length) {
+        useCodeReviewStore.getState().updateStepStatus('REVIEWING', 'FAILED');
+        reviewNotification('REVIEW_FAILED');
+        useCodeReviewStore.setState({ reviewStatus: 'FAILED' });
+        useCodeReviewStore.setState({ showReviewError: true });
+        useCodeReviewStore.setState({
+          reviewErrorMessage: 'All agents are failed to review the code.',
+        });
+      }
+    }
+  }
+});
+
+addCommandEventListener('POST_PROCESS_START', ({ data }) => {
+  const store = useCodeReviewStore.getState();
+
+  // Add setup step
+  store.updateOrAddStep({
+    id: 'FINALIZING_REVIEW',
+    label: 'Finalizing Review',
+    status: 'IN_PROGRESS',
+  });
+});
+
+addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
+  useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
+  fetchPastReviews({
+    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
+    repoId: useCodeReviewStore.getState().repoId,
+  });
+  useCodeReviewStore.setState({ isPastReviewsFetchedAfterReviewCompletion: true });
+  useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
+  hitSnapshot(
+    useCodeReviewStore.getState().activeReviewOption.value,
+    useCodeReviewStore.getState().selectedTargetBranch
+  );
+  reviewNotification('REVIEW_COMPLETED');
+});
+
+addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
+  console.error('Post process failed:', data);
+  reviewNotification('REVIEW_FAILED');
+  useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'FAILED');
+  useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
+});
+
+addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
+  const store = useCodeReviewStore.getState();
+
+  // Update all in-progress steps and their agents to STOPPED
+  store.setSteps(
+    store.steps.map((step) => {
+      // Skip already completed or failed steps
+      if (step.status === 'COMPLETED' || step.status === 'FAILED') {
+        return step;
+      }
+
+      // Update the step status to STOPPED
+      const updatedStep = { ...step, status: 'STOPPED' as const };
+
+      // Update all in-progress agents to STOPPED
+      if (updatedStep.agents) {
+        updatedStep.agents = updatedStep.agents.map((agent) =>
+          agent.status === 'IN_PROGRESS' ? { ...agent, status: 'STOPPED' as const } : agent
+        );
+      }
+
+      return updatedStep;
+    })
+  );
+
+  // Update the overall review status
+  useCodeReviewStore.setState({ reviewStatus: 'STOPPED' });
+});
+
+addCommandEventListener('user-agent-deleted', ({ data }) => {
+  const agent_id = data as { agent_id: number };
+
+  useCodeReviewSettingStore.setState({
+    enabledAgents: useCodeReviewSettingStore
+      .getState()
+      .enabledAgents.filter((agent) => agent.id !== agent_id.agent_id),
+  });
+});
+
+addCommandEventListener('fix-with-dd', ({ data }) => {
+  const { fix_query } = data as { fix_query: string };
+  useCodeReviewStore.setState({ commentFixQuery: fix_query });
+  useExtensionStore.setState({ viewType: 'chat' });
+  useChatSettingStore.setState({ chatType: 'ask' });
+});
+
+addCommandEventListener('hit-new-review-after-file-event', () => {
+  if (useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
+});
+
+addCommandEventListener('comment-is-resolved', ({ data }) => {
+  const commentId = data as number;
+  useCodeReviewStore.setState((state) => ({
+    pastReviews: state.pastReviews.map((review) => ({
+      ...review,
+      comments: Object.fromEntries(
+        Object.entries(review.comments).map(([filePath, comments]) => [
+          filePath,
+          comments.map((comment) =>
+            comment.id === commentId ? { ...comment, comment_status: 'RESOLVED' } : comment
+          ),
+        ])
+      ),
+    })),
+  }));
+});
+
+addCommandEventListener('comment-is-ignored', ({ data }) => {
+  const commentId = data as number;
+  useCodeReviewStore.setState((state) => ({
+    pastReviews: state.pastReviews.map((review) => ({
+      ...review,
+      comments: Object.fromEntries(
+        Object.entries(review.comments).map(([filePath, comments]) => [
+          filePath,
+          comments.map((comment) =>
+            comment.id === commentId ? { ...comment, comment_status: 'REJECTED' } : comment
+          ),
+        ])
+      ),
+    })),
+  }));
+});
+
+addCommandEventListener('new-review-error', ({ data }) => {
+  useCodeReviewStore.setState({
+    new_review: {
+      file_wise_changes: [],
+      source_branch: '',
+      target_branch: '',
+      repo_name: '',
+      origin_url: '',
+      source_commit: '',
+      target_commit: '',
+      fail_message: '',
+      eligible_for_review: false,
+    },
+  });
+  useCodeReviewStore.setState({ isFetchingChangedFiles: false });
+  useCodeReviewStore.setState({ isFetchingPastReviews: false });
+  useCodeReviewStore.setState({ showReviewError: true });
+  useCodeReviewStore.setState({ reviewErrorMessage: data as string });
+});
+
+addCommandEventListener('repo-details-for-review-fetched', ({ data }) => {
+  const { repo_id } = data as { repo_id: number };
+  useCodeReviewStore.setState({ repoId: repo_id });
+  fetchPastReviews({
+    sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
+    repoId: useCodeReviewStore.getState().repoId,
+  });
 });

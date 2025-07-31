@@ -42,16 +42,8 @@ export default function Profile() {
     signOut();
   };
 
-  const handleShowLogs = () => {
-    showUserLogs();
-  };
-
   const handleBack = () => {
     extensionState.setViewType('chat');
-  };
-
-  const opensetting = () => {
-    extensionState.setViewType('setting');
   };
 
   return (

@@ -420,7 +420,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       if (formState.mode === 'edit' && data.id) {
         await updateSavedUrl({ id: data.id, name: data.name });
       } else {
-        await saveUrl({ name: data.name, url: data.url } as SaveUrlRequest);
+        await saveUrl({ url: { url: data.url, name: data.name } } as SaveUrlRequest);
       }
       setFormState({ mode: 'closed', option: null });
     },
@@ -435,7 +435,7 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
       case 'reindex':
         setIsLoading(true);
         if (option.label && option.url) {
-          await saveUrl({ name: option.label, url: option.url });
+          await saveUrl({ id: option.id, url: { url: option.url, name: option.label } });
         }
         break;
       case 'open':

@@ -4,7 +4,7 @@ import { getMainConfig } from '../../config/configSetGet';
 interface UsageTrackingRequestForBackend {
   event_type: string;
   event_data: Record<string, any>;
-  session_id: number;
+  session_id?: number;
   client: string;
   client_version: string;
   timestamp: string;
