@@ -235,7 +235,7 @@ export interface ChatErrorMessage {
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
-  errorData: LLMThrottlingException | LLMinputTokenLimitException;
+  errorData: LLMThrottlingException | LLMinputTokenLimitException | InputTokenLimitErrorData;
   content?: any;
 }
 
@@ -244,6 +244,24 @@ export interface LLMThrottlingException {
   model_name?: string;
   retry_after?: number;
 }
+
+export interface InputTokenLimitErrorData {
+  type: 'STREAM_ERROR' | 'TOKEN_LIMIT_ERROR';
+  status: 'INPUT_TOKEN_LIMIT_EXCEEDED';
+  model: string;
+  current_tokens: number;
+  max_tokens: number;
+  message: string;
+  detail?: string;
+  query?: string;
+  better_models?: Array<{
+    id: number;
+    display_name: string;
+    name: string;
+    input_token_limit: number;
+  }>;
+}
+
 export interface LLMinputTokenLimitException {
   type: 'INPUT_TOKEN_LIMIT_ERROR';
   model_name?: string;
@@ -343,6 +361,7 @@ export interface LLMModels {
   display_name: string;
   name: string;
   provider: string;
+  input_token_limit?: number;
 }
 
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';
