@@ -92,6 +92,17 @@ export class ReplaceInFile {
       });
       return 'successfully modified the file, please continue with the next steps';
     } catch (error) {
+      if (sessionId) {
+        this.usageTrackingManager.trackUsage({
+          eventType: 'INVALID_DIFF',
+          eventData: {
+            file_path: relativePath,
+            lines: calculateDiffMetric(parsedContent.diff),
+            source: toolRequest.is_inline ? 'inline-chat-act' : 'act',
+          },
+          sessionId: sessionId,
+        });
+      }
       const enhancedErrorMessage = `Failed to apply changes. Please read the conflicting file content first using the iterative_file_reader tool.\n${(error as Error).message}`;
       this.logger.error(`Error applying diff: ${enhancedErrorMessage}`);
 
