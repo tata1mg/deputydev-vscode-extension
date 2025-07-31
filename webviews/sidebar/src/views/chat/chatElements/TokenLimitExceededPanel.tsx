@@ -34,7 +34,6 @@ export function TokenLimitExceededPanel({
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const autoRetryRef = useRef<NodeJS.Timeout | null>(null);
 
-
   // Use better models from error payload
   const modelsWithLimits = useMemo(() => {
     // Only use betterModels provided from error payload
@@ -49,7 +48,6 @@ export function TokenLimitExceededPanel({
     // Return empty array if no better models available
     return [];
   }, [betterModels]);
-
 
   // Reset states when current model changes (indicates a new error or retry)
   useEffect(() => {
@@ -72,8 +70,9 @@ export function TokenLimitExceededPanel({
   useEffect(() => {
     if (!retry || !payloadToRetry) return;
 
-    let highestTokenModel = modelsWithLimits.find((m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity);
-    
+    let highestTokenModel = modelsWithLimits.find(
+      (m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity
+    );
 
     if (!highestTokenModel) {
       highestTokenModel = modelsWithLimits.find((m) => m.hasHigherCapacity);
@@ -252,13 +251,15 @@ export function TokenLimitExceededPanel({
           modelsWithLimits.some((m) => m.hasHigherCapacity) &&
           (() => {
             // Prioritize Gemini 2.5 Pro if available and has higher capacity
-            let highestCapacityModel = modelsWithLimits.find((m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity);
-            
+            let highestCapacityModel = modelsWithLimits.find(
+              (m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity
+            );
+
             // If Gemini 2.5 Pro is not available or doesn't have higher capacity, find the model with highest token limit
             if (!highestCapacityModel) {
               highestCapacityModel = modelsWithLimits.find((m) => m.hasHigherCapacity);
             }
-            
+
             return (
               <div className="mb-2">
                 {/* Progress bar */}
