@@ -7,7 +7,7 @@ export enum AuthStatus {
 export type UsageTrackingRequest = {
   eventType: string;
   eventData: Record<string, any>;
-  sessionId: number;
+  sessionId?: number;
 };
 
 export interface ErrorTrackingRequestForBackend {
@@ -125,8 +125,7 @@ export interface CurrentDiffRequest {
 
 export interface SaveUrlRequest {
   id?: string;
-  name: string;
-  url: string;
+  url: { url: string; name: string };
   isSettings?: boolean;
 }
 
@@ -218,4 +217,83 @@ export interface FileReadOrSummaryResponse {
   type: 'full' | 'summary';
   content: string;
   total_lines: number;
+}
+
+export interface ReviewToolUseResponse {
+  tool_name: string;
+  tool_use_id: string;
+  response: any;
+}
+
+export interface AgentPayload {
+  agent_id: number;
+  review_id: number;
+  type: 'query' | 'tool_use_response' | 'tool_use_failed';
+  session_id?: number;
+  tool_use_response?: ReviewToolUseResponse;
+}
+
+export interface GrepSearchInput {
+  search_path: string;
+  query: string;
+  case_insensitive: boolean;
+  use_regex: boolean;
+}
+
+export interface FilePathSearchInput {
+  directory: string;
+  search_terms: string[];
+}
+
+export interface IterativeFileReaderInput {
+  file_path: string;
+  start_line: number;
+  end_line: number;
+}
+
+export interface ReviewToolUseRequest {
+  agent_id: number;
+  tool_use_id: string;
+  tool_name: string;
+  tool_input: GrepSearchInput | FilePathSearchInput | IterativeFileReaderInput;
+}
+
+export interface ReviewEvent {
+  type: 'REVIEW_FAIL' | 'AGENT_START' | 'AGENT_COMPLETE' | 'AGENT_FAIL' | 'TOOL_USE_REQUEST';
+  agent_id: number;
+  data?: ReviewToolUseRequest;
+}
+
+export interface PostProcessEvent {
+  type: 'POST_PROCESS_ERROR' | 'POST_PROCESS_COMPLETE' | 'POST_PROCESS_START' | 'STREAM_END';
+  agent_id: number | null;
+  data: {
+    message: string;
+    result?: { status: string };
+    progress?: number;
+  };
+  timestamp: string;
+}
+
+export interface LineChanges {
+  added: number;
+  removed: number;
+}
+
+export interface FileWiseChange {
+  file_name: string;
+  file_path: string;
+  line_changes: LineChanges;
+  status: string;
+  diff: string;
+}
+
+export interface NewReview {
+  file_wise_changes: FileWiseChange[];
+  source_branch: string;
+  target_branch: string;
+  source_commit: string;
+  target_commit: string;
+  origin_url: string;
+  repo_name: string;
 }

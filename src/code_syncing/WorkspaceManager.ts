@@ -138,6 +138,7 @@ export class WorkspaceManager {
           this.configManager,
           this.outputChannel,
           this.indexingService,
+          this.sidebarProvider,
         );
         this.fileWatchers ??= [];
         this.fileWatchers.push(watcher);

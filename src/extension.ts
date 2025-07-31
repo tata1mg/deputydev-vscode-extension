@@ -49,6 +49,10 @@ import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
+import { ReviewService } from './services/codeReview/CodeReviewService';
+import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
+import { CommentHandler } from './codeReview/CommentHandler';
+import { CodeReviewManager } from './codeReviewManager/CodeReviewManager';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -88,6 +92,8 @@ export async function activate(context: vscode.ExtensionContext) {
     essentialConfigs['DD_HOST_WS'],
     {
       QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
+      REVIEW_SOLVER: essentialConfigs['REVIEW_SOLVER_ENDPOINT'],
+      POST_PROCESS_SOLVER: essentialConfigs['REVIEW_POST_PROCESS_SOLVER_ENDPOINT'],
     },
   );
 
@@ -104,6 +110,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const mcpService = new MCPService();
   const indexingService = new IndexingService();
   const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
+  const reviewService = new ReviewService();
+  const codeReviewDiffManager = new CodeReviewDiffManager();
+  const commentHandler = new CommentHandler(context);
 
   const pathToDDFolderChangeProposerFile = path.join(os.homedir(), '.deputydev', 'current_change_proposer_state.txt');
   const diffManager = new DiffManager(context, pathToDDFolderChangeProposerFile, outputChannel, authService);
@@ -128,6 +137,8 @@ export async function activate(context: vscode.ExtensionContext) {
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
   await continueNewWorkspace.init();
 
+  const codeReviewManager = new CodeReviewManager(context, outputChannel, backendClient, apiErrorHandler);
+
   //  4) Register the Sidebar (webview)
   const sidebarProvider = new SidebarProvider(
     context,
@@ -147,8 +158,15 @@ export async function activate(context: vscode.ExtensionContext) {
     errorTrackingManager,
     continueNewWorkspace,
     indexingService,
+    reviewService,
+    codeReviewDiffManager,
+    commentHandler,
+    codeReviewManager,
   );
+
   diffManager.setSidebarProvider(sidebarProvider);
+  codeReviewManager.setSidebarProvider(sidebarProvider);
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('deputydev-sidebar', sidebarProvider, {
       webviewOptions: { retainContextWhenHidden: true },
@@ -250,6 +268,13 @@ export async function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  // Code review button click
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.OpenCodeReview', () => {
+      sidebarProvider.setViewType('code-review');
+    }),
+  );
+
   // add button click
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
@@ -293,6 +318,75 @@ export async function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('deputydev.SettingsButtonClick', () => {
       outputChannel.info('Settings button clicked!');
       sidebarProvider.setViewType('setting');
+    }),
+  );
+
+  // Code review
+  context.subscriptions.push(
+    vscode.commands.registerCommand('deputydev.resolveComment', async (thread: vscode.CommentThread) => {
+      // Handle resolveComment action
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+
+      if (commentId !== undefined) {
+        commentHandler.closeThread(thread);
+
+        const result = await reviewService.updateCommentStatus(commentId, 'RESOLVED');
+        if (result.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'comment-is-resolved',
+            data: commentId,
+          });
+        }
+      }
+    }),
+
+    vscode.commands.registerCommand('deputydev.fixWithDeputyDev', async (thread: vscode.CommentThread) => {
+      // Get the comment ID using the thread
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+
+      // Now you can use the commentId for your fix logic
+      if (commentId !== undefined) {
+        // Fix With DD usage tracking
+        const fixWithDDUsageTrackingPayload = {
+          eventType: 'FIX_WITH_DD',
+          eventData: {
+            comment_id: commentId,
+            source: 'IDE_CODE_REVIEW',
+          },
+        };
+        await usageTrackingManager.trackUsage(fixWithDDUsageTrackingPayload);
+
+        const commentFixQuery = await reviewService.getCommentFixQuery(commentId);
+
+        if (commentFixQuery?.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'fix-with-dd',
+            data: commentFixQuery.data,
+          });
+        }
+      }
+    }),
+
+    vscode.commands.registerCommand('deputydev.ignoreComment', async (thread: vscode.CommentThread) => {
+      const commentId = commentHandler.getCommentIdFromThread(thread);
+
+      if (commentId !== undefined) {
+        commentHandler.closeThread(thread);
+        const result = await reviewService.updateCommentStatus(commentId, 'REJECTED');
+        if (result.is_success) {
+          sidebarProvider.sendMessageToSidebar({
+            id: uuidv4(),
+            command: 'comment-is-ignored',
+            data: commentId,
+          });
+        }
+      }
+    }),
+
+    vscode.commands.registerCommand('deputydev.collapseAllComments', () => {
+      commentHandler.closeAllThreads();
     }),
   );
 

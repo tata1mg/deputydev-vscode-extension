@@ -6,10 +6,14 @@ export class BackendClient extends BaseClient {
   // Default endpoints can be set here if needed
   endpointMap: Record<string, string> = {
     QUERY_SOLVER: '/query/solve',
+    REVIEW_SOLVER: '',
+    POST_PROCESS_SOLVER: '',
   };
 
   // endpoints
   public querySolver!: () => BaseWebsocketEndpoint;
+  public codeReviewSolver!: () => BaseWebsocketEndpoint;
+  public postProcessSolver!: () => BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
     super(httpHost, wsHost);
@@ -19,6 +23,14 @@ export class BackendClient extends BaseClient {
 
   initEndpoints() {
     this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER'], undefined, [
+      ForceUpgradeHandler,
+      UnauthenticatedHandler,
+    ]);
+    this.codeReviewSolver = this.createWebsocketEndpoint(this.endpointMap['REVIEW_SOLVER'], undefined, [
+      ForceUpgradeHandler,
+      UnauthenticatedHandler,
+    ]);
+    this.postProcessSolver = this.createWebsocketEndpoint(this.endpointMap['POST_PROCESS_SOLVER'], undefined, [
       ForceUpgradeHandler,
       UnauthenticatedHandler,
     ]);

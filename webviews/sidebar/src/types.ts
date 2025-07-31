@@ -1,5 +1,6 @@
 export type ViewType =
   | 'chat'
+  | 'code-review'
   | 'setting'
   | 'loader'
   | 'history'
@@ -337,8 +338,7 @@ export type UsageTrackingRequestFromSidebar = {
 
 export interface SaveUrlRequest {
   id?: string;
-  name: string;
-  url: string;
+  url: { url: string; name: string };
   isSettings?: boolean;
 }
 
@@ -438,3 +438,142 @@ export interface IndexingDataStorage {
   indexingProgressData: IndexingProgressData[];
   embeddingProgressData: EmbeddingProgressData[];
 }
+
+// Code review
+export interface LineChanges {
+  added: number;
+  removed: number;
+}
+
+export interface FileWiseChange {
+  file_name: string;
+  file_path: string;
+  line_changes: LineChanges;
+  status: string;
+  diff: string;
+}
+
+export interface NewReview {
+  file_wise_changes: FileWiseChange[];
+  source_branch: string;
+  target_branch: string;
+  source_commit: string;
+  target_commit: string;
+  origin_url: string;
+  repo_name: string;
+  fail_message: string;
+  eligible_for_review: boolean;
+}
+
+export interface ReviewOption {
+  displayName: 'Review All Changes' | 'Review Uncommitted Changes' | 'Review Committed Changes';
+  value: 'ALL' | 'UNCOMMITTED_ONLY' | 'COMMITTED_ONLY';
+}
+
+export interface UserAgent {
+  id: number;
+  agent_name: string;
+  user_team_id: number;
+  display_name: string;
+  custom_prompt: string;
+  exclusions: [];
+  inclusions: [];
+  confidence_score: number;
+  objective: string;
+  is_custom_agent: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EnabledAgent {
+  id: number;
+  displayName: string;
+}
+
+export interface CodeReviewStorage {
+  searchedBranches: string[];
+  selectedTargetBranch: string;
+  new_review: NewReview;
+  activeReviewOption: ReviewOption;
+  reviewOptions: ReviewOption[];
+  pastReviews: Review[];
+  userAgents: UserAgent[];
+  isFetchingChangedFiles: boolean;
+  activeReviewId: number;
+  activeReviewSessionId: number;
+  showReviewProcess: boolean;
+  reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE' | 'FAILED';
+  repoId: number;
+  commentFixQuery: string;
+  reviewErrorMessage: string;
+  showReviewError: boolean;
+  isFetchingPastReviews: boolean;
+  expandedReview: number | null;
+  isPastReviewsFetchedAfterReviewCompletion: boolean;
+}
+
+export interface CodeReviewSetting {
+  enabledAgents: EnabledAgent[];
+}
+
+export interface CommentFeedback {
+  like: boolean;
+  feedback_comment: string;
+}
+
+export interface CodeReviewComment {
+  id: number;
+  title: string;
+  comment: string;
+  comment_status: string;
+  rationale: string;
+  corrective_code: string;
+  file_path: string;
+  line_hash: string;
+  line_number: number;
+  tag: string;
+  agent_ids: number[];
+  feedback: CommentFeedback;
+}
+
+export interface AgentSummary {
+  count: number;
+  id: number;
+  name: string;
+  display_name: string;
+}
+
+export interface Review {
+  id: number;
+  title: string;
+  execution_time_seconds: number | null;
+  review_datetime: string | null;
+  comments: Record<string, CodeReviewComment[]>;
+  agent_summary: AgentSummary[];
+  tag_summary: Record<string, number>;
+  meta: {
+    file_count: number;
+    comment_count: number;
+  };
+}
+
+export interface AgentPayload {
+  agent_id: number;
+  review_id: number;
+  type: string;
+}
+
+export type AgentStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'STOPPED';
+
+export type StepStatus = 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'STOPPED';
+
+export type ReviewStep = {
+  id: string;
+  label: string;
+  status: StepStatus;
+  agents?: Array<{
+    id: number;
+    name: string | '';
+    status: AgentStatus;
+  }>;
+};

@@ -28,11 +28,18 @@ import {
   getRepoAndRelativeFilePath,
   getSessionId,
   sendProgress,
+  setReviewId,
+  setReviewSessionId,
   setSessionId,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
 import { Logger } from '../utilities/Logger';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
+import { ReviewService } from '../services/codeReview/CodeReviewService';
+import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
+import { CommentHandler } from '../codeReview/CommentHandler';
+import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
+import { AgentPayload, NewReview } from '../types';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -64,6 +71,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly continueWorkspace: ContinueNewWorkspace,
     private readonly indexingService: IndexingService,
+    private readonly reviewService: ReviewService,
+    private readonly codeReviewDiffManager: CodeReviewDiffManager,
+    private readonly commentHandler: CommentHandler,
+    private readonly codeReviewManager: CodeReviewManager,
   ) {}
 
   public resolveWebviewView(
@@ -103,6 +114,62 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       };
       // Depending on `command`, handle each case
       switch (command) {
+        // Code Review
+        case 'code-review-pre-process':
+          this.outputChannel.info('Pre-processing code review...');
+          this.handleCodeReviewPreProcess(data);
+          break;
+        case 'start-code-review':
+          this.outputChannel.info('Starting code review...');
+          this.handleCodeReviewStart(data);
+          break;
+        case 'cancel-review':
+          this.outputChannel.info('Stopping code review...');
+          this.codeReviewManager.cancelReview();
+          this.reviewService.cancelReview();
+          break;
+        case 'code-review-post-process':
+          this.outputChannel.info('Post-processing code review...');
+          this.handleCodeReviewPostProcess(data);
+          break;
+        case 'new-review':
+          this.newReview(data);
+          break;
+        case 'hit-snapshot':
+          this.handleSnapshot(data);
+          break;
+        case 'search-branches':
+          this.searchBranches(data.keyword);
+          break;
+        case 'open-file-diff':
+          this.handleDiffForCodeReview(data);
+          break;
+        case 'fetch-past-reviews':
+          this.fetchPastReviews(data);
+          break;
+        case 'get-repo-details-for-review':
+          this.getRepoDetailsForReview(data);
+          break;
+        case 'open-comment-in-file':
+          this.handleOpenCommentInFile(data);
+          break;
+        case 'fetch-user-agents':
+          this.fetchUserAgents();
+          break;
+        case 'user-agent-crud':
+          this.userAgentCrud(data.operation, data.agent_id, data.agent_name, data.custom_prompt);
+          break;
+        case 'send-comment-status-update':
+          this.reviewService.updateCommentStatus(data.commentId, data.status);
+          break;
+        case 'review-notification':
+          this.reviewNotification(data.reviewStatus);
+          break;
+        case 'submit-comment-feedback':
+          this.submitCommentFeedback(data);
+          break;
+
+        // Code Generation
         case 'api-chat':
           data.message_id = message.id;
           promise = this.chatService.apiChat(data, chunkCallback);
@@ -812,6 +879,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   setViewType(
     viewType:
       | 'chat'
+      | 'code-review'
       | 'setting'
       | 'history'
       | 'auth'
@@ -966,5 +1034,280 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     } else {
       this.pendingMessages.push(message);
     }
+  }
+
+  public async handleCodeReviewPreProcess(data: { newReview: NewReview; reviewType: string }) {
+    //TODO: Need to enable
+    // const { get_url, key } = await this.codeReviewManager.uploadDiffToS3({ review_files_dif: data.file_wise_changes });
+    // console.log('Diff uploaded to S3:', get_url, key);
+
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'REVIEW_PRE_PROCESS_STARTED',
+      data: {},
+    });
+
+    const preProcessPayload = {
+      file_wise_diff: data.newReview.file_wise_changes,
+      source_branch: data.newReview.source_branch,
+      target_branch: data.newReview.target_branch,
+      source_commit: data.newReview.source_commit,
+      target_commit: data.newReview.target_commit,
+      origin_url: data.newReview.origin_url,
+      repo_name: data.newReview.repo_name,
+      review_type: data.reviewType,
+    };
+
+    const preProcessResult = await this.reviewService.codeReviewPreProcess(preProcessPayload);
+    if (preProcessResult.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'REVIEW_PRE_PROCESS_FAILED',
+        data: { error: preProcessResult.meta.message },
+      });
+    } else {
+      const reviewId = preProcessResult.data.review_id;
+      const reviewSessionId = preProcessResult.data.session_id;
+      setReviewSessionId(reviewSessionId);
+      setReviewId(reviewId);
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'REVIEW_PRE_PROCESS_COMPLETED',
+        data: preProcessResult.data,
+      });
+    }
+  }
+
+  public async handleCodeReviewStart(data: any) {
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'REVIEW_STARTED',
+      data: {},
+    });
+
+    const agentsPayload = data as { review_id: number; agents: AgentPayload[] };
+    this.codeReviewManager.startCodeReview(agentsPayload);
+  }
+
+  public async handleCodeReviewPostProcess(data: any) {
+    this.codeReviewManager.startCodeReviewPostProcess(data);
+  }
+
+  public async newReview(data: any) {
+    const result = await this.reviewService.newReview(data.targetBranch, data.reviewType);
+    if (result && !result.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'new-review-created',
+        data: result.data,
+      });
+    } else {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'new-review-error',
+        data: result.meta.message,
+      });
+    }
+  }
+
+  public async searchBranches(keyword: string) {
+    const result = await this.reviewService.searchBranch(keyword);
+    if (result && !result.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'search-branches-result',
+        data: result.data,
+      });
+    } else {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'search-branches-error',
+        data: { error: 'Failed to search branches' },
+      });
+    }
+  }
+
+  public async handleDiffForCodeReview(data: any) {
+    await this.codeReviewDiffManager.openFileDiff(data.udiff, data.filePath, data.fileName);
+  }
+
+  public async handleSnapshot(data: any) {
+    try {
+      const snapshot = await this.reviewService.hitSnapshot(data.reviewType, data.targetBranch);
+      if (snapshot && !snapshot.is_error) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'snapshot-result',
+          data: snapshot,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'snapshot-error',
+          data: { error: 'Failed to fetch snapshot' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'snapshot-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async fetchPastReviews(data: any) {
+    try {
+      const reviews = await this.reviewService.getPastReviews(data.sourceBranch, data.repoId);
+      if (reviews && !reviews.is_error) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'past-reviews',
+          data: reviews.data,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'past-reviews-error',
+          data: { error: 'Failed to fetch past reviews' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'past-reviews-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async fetchUserAgents() {
+    try {
+      const userAgents = await this.reviewService.getUserAgents();
+      if (userAgents && !userAgents.is_error) {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'user-agents',
+          data: userAgents.data.agents,
+        });
+      } else {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'user-agents-error',
+          data: { error: 'Failed to fetch user agents' },
+        });
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'user-agents-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public async userAgentCrud(
+    operation: 'CREATE' | 'UPDATE' | 'DELETE',
+    agent_id?: number,
+    agent_name?: string,
+    custom_prompt?: string,
+  ): Promise<any> {
+    try {
+      switch (operation) {
+        case 'CREATE': {
+          if (!agent_name || !custom_prompt) {
+            return;
+          }
+          const agentCreationResponse = await this.reviewService.createAgent(agent_name, custom_prompt);
+          if (agentCreationResponse.is_success) {
+            this.fetchUserAgents();
+          }
+          break;
+        }
+
+        case 'UPDATE': {
+          if (!agent_id || !custom_prompt) {
+            return;
+          }
+          const agentUpdationResponse = await this.reviewService.updateAgent(agent_id, custom_prompt, agent_name);
+          if (agentUpdationResponse.is_success) {
+            this.fetchUserAgents();
+          }
+          break;
+        }
+
+        case 'DELETE': {
+          if (!agent_id) {
+            return;
+          }
+          const agentDeletionResponse = await this.reviewService.deleteAgent(agent_id);
+          if (agentDeletionResponse.is_success) {
+            this.fetchUserAgents();
+            this.sendMessageToSidebar({
+              id: uuidv4(),
+              command: 'user-agent-deleted',
+              data: { agent_id },
+            });
+          }
+          break;
+        }
+
+        default:
+          throw new Error(`Invalid operation: ${operation}`);
+      }
+    } catch (error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'user-agent-crud-error',
+        data: { error: String(error) },
+      });
+    }
+  }
+
+  public reviewNotification(reviewStatus: string) {
+    if (reviewStatus === 'REVIEW_COMPLETED') {
+      vscode.window.showInformationMessage('Review completed successfully.');
+    }
+    if (reviewStatus === 'REVIEW_FAILED') {
+      vscode.window.showErrorMessage('Review failed. Please try again.');
+    }
+  }
+
+  public async getRepoDetailsForReview(data: any) {
+    const repoDetails = await this.reviewService.getRepoDetails(data.repo_name, data.origin_url);
+    this.sendMessageToSidebar({
+      id: uuidv4(),
+      command: 'repo-details-for-review-fetched',
+      data: repoDetails.data,
+    });
+  }
+
+  public async submitCommentFeedback(data: any) {
+    if (data && data.commentId && (data.isLike === true || data.isLike === false)) {
+      await this.reviewService.submitCommentFeedback(data.commentId, data.isLike);
+    }
+
+    if (data && data.commentId && (data.isLike === true || data.isLike === false) && data.feedbackComment) {
+      await this.reviewService.submitCommentFeedback(data.commentId, data.isLike, data.feedbackComment);
+    }
+  }
+
+  public async handleOpenCommentInFile(data: any) {
+    // Comment box view event for usage tracking
+    this.trackingManager.trackUsage({
+      eventType: 'COMMENT_BOX_VIEW',
+      eventData: {
+        comment_id: data.commentId,
+        source: 'IDE_CODE_REVIEW',
+      },
+    });
+
+    this.commentHandler.showCommentAtLine(
+      data.filePath,
+      data.lineNumber,
+      data.commentText,
+      data.promptText,
+      data.commentId,
+    );
   }
 }

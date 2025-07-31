@@ -14,6 +14,7 @@ import Profile from './views/profile';
 import Error from './views/error';
 import ForceUpgradeView from './views/forceUpgradeView';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
+import CodeReview from './views/codeReview';
 
 function App() {
   // Retrieve state from the extension store
@@ -42,6 +43,9 @@ function App() {
       break;
     case 'chat':
       view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Chat /> : <Auth />;
+      break;
+    case 'code-review':
+      view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <CodeReview /> : <Auth />;
       break;
     case 'profile':
       view = showForceUpgrade ? <ForceUpgradeView /> : isAuthenticated ? <Profile /> : <Auth />;
