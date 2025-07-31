@@ -595,7 +595,7 @@ export class ChatManager {
             current_tokens: errorData.current_tokens,
             max_tokens: errorData.max_tokens,
             query: originalPayload.query || '',
-            better_models: errorData.better_models
+            better_models: errorData.better_models,
           },
         });
       } else {
