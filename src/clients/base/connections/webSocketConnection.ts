@@ -1,5 +1,6 @@
 import { WebSocket, RawData } from 'ws';
 import { CLIENT, CLIENT_VERSION } from '../../../config';
+import { AuthService } from '../../../services/auth/AuthService';
 
 interface WebSocketConnectionOptions {
   baseUrl: string;
@@ -13,6 +14,12 @@ interface WebSocketConnectionOptions {
   reconnectBackoffMs?: number;
   heartbeatIntervalMs?: number;
 }
+
+const fetchAuthToken = async () => {
+  const authService = new AuthService();
+  const authToken = await authService.loadAuthToken();
+  return authToken;
+};
 
 export class WebSocketConnection {
   private socket!: WebSocket;
@@ -52,10 +59,12 @@ export class WebSocketConnection {
     } catch (error: any) {
       this.options.onError?.(error);
     }
+    const authToken = await fetchAuthToken();
     this.socket = new WebSocket(this.url, {
       headers: {
         'X-Client': CLIENT,
         'X-Client-Version': CLIENT_VERSION,
+        Authorization: `Bearer ${authToken}`,
         ...(latestExtraHeaders || {}),
       },
     });
