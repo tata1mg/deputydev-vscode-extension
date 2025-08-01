@@ -1,6 +1,8 @@
 import { WebSocket, RawData } from 'ws';
 import { CLIENT, CLIENT_VERSION } from '../../../config';
 import { AuthService } from '../../../services/auth/AuthService';
+import { SESSION_TYPE } from '../../../constants';
+import { getSessionId } from '../../../utilities/contextManager';
 
 interface WebSocketConnectionOptions {
   baseUrl: string;
@@ -60,10 +62,13 @@ export class WebSocketConnection {
       this.options.onError?.(error);
     }
     const authToken = await fetchAuthToken();
+    const currentSessionId = getSessionId();
     this.socket = new WebSocket(this.url, {
       headers: {
         'X-Client': CLIENT,
         'X-Client-Version': CLIENT_VERSION,
+        'X-Session-Type': SESSION_TYPE,
+        'X-Session-ID': currentSessionId,
         Authorization: `Bearer ${authToken}`,
         ...(latestExtraHeaders || {}),
       },
