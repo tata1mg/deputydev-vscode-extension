@@ -63,8 +63,6 @@ export class QuerySolverService {
     payload: Record<string, any>,
     signal?: AbortSignal,
   ): AsyncIterableIterator<any> {
-    const authService = new AuthService();
-    let authToken = await authService.loadAuthToken();
     const repositories = await getContextRepositories();
 
     const currentSessionId = getSessionId();
@@ -75,7 +73,6 @@ export class QuerySolverService {
     const finalPayload = await this.preparePayload(payload);
     finalPayload.session_id = currentSessionId;
     finalPayload.session_type = SESSION_TYPE;
-    finalPayload.auth_token = authToken;
 
     let streamDone = false;
     let streamError: Error | null = null;
@@ -156,12 +153,10 @@ export class QuerySolverService {
           if (!isAuthenticated) {
             throw new Error('Session not verified');
           }
-          authToken = await authService.loadAuthToken();
           streamDone = false;
           streamError = null;
           await socketConn.sendMessageWithRetry({
             ...finalPayload,
-            auth_token: authToken,
           });
           continue; // Retry the querySolver call
         }
