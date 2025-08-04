@@ -5,7 +5,6 @@ import {
   CircleStop,
   CornerDownLeft,
   Globe,
-  Image,
   Loader2,
   Sparkles,
   X,
@@ -18,14 +17,17 @@ import { ChatTypeToggle } from './chatElements/chatTypeToggle';
 import {
   enhanceUserQuery,
   getSavedUrls,
+  getWorkspaceState,
   keywordSearch,
   keywordTypeSearch,
   logToOutput,
-  showVsCodeMessageBox,
-  uploadFileToS3,
   urlSearch,
-  getWorkspaceState,
 } from '@/commandApi';
+import { PageTransition } from '@/components/PageTransition';
+import { ViewSwitcher } from '@/components/ViewSwitcher';
+import { useActiveFileStore } from '@/stores/activeFileStore';
+import { useChangedFilesStore } from '@/stores/changedFilesStore';
+import { useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useMcpStore } from '@/stores/mcpStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -40,16 +42,12 @@ import '../../styles/markdown-body.css';
 import ActiveFileReferenceChip from './chatElements/autocomplete/ActiveFileReferenceChip';
 import { AutocompleteMenu } from './chatElements/autocomplete/autocomplete';
 import InputReferenceChip from './chatElements/autocomplete/inputReferenceChip';
+import ChangedFilesBar from './chatElements/changedFilesBar';
 import FeaturesBar from './chatElements/features_bar';
+import ImageUploadButton from './chatElements/inputAreaComponents/ImageUploadButton';
 import ModelSelector from './chatElements/modelSelector';
 import RepoSelector from './chatElements/RepoSelector';
 import { ChatArea } from './chatMessagesArea';
-import ChangedFilesBar from './chatElements/changedFilesBar';
-import { useChangedFilesStore } from '@/stores/changedFilesStore';
-import { useActiveFileStore } from '@/stores/activeFileStore';
-import { ViewSwitcher } from '@/components/ViewSwitcher';
-import { useCodeReviewStore } from '@/stores/codeReviewStore';
-import { PageTransition } from '@/components/PageTransition';
 
 export function ChatUI() {
   // Extract state and actions from the chat store.
@@ -728,92 +726,13 @@ export function ChatUI() {
                     <Globe className="h-4 w-4" />
                   </button>
 
-                  {/* <button className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10"
-                data-tooltip-id="sparkles-tooltip"
-                data-tooltip-content="Upload image"
-                data-tooltip-place="top-start"
-              >
-                <Image className="h-4 w-4" />
-              </button> */}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    id="image-upload"
-                    ref={fileInputRef}
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length > 0) {
-                        const currentCount = imagePreviews.length;
-                        const availableSlots = maxFiles - currentCount;
-
-                        // If no slots available, don't process any files
-                        if (availableSlots <= 0) {
-                          showVsCodeMessageBox(
-                            'error',
-                            `Maximum ${maxFiles} images allowed. Please remove some images before uploading new ones.`
-                          );
-                          return;
-                        }
-
-                        // Select only the files that can fit within the limit
-                        const filesToProcess = files.slice(0, availableSlots);
-                        const remainingFiles = files.length - filesToProcess.length;
-
-                        // Show message if some files were not selected
-                        if (currentCount + files.length > maxFiles) {
-                          showVsCodeMessageBox(
-                            'warning',
-                            `Only the first ${filesToProcess.length} file(s) were selected. ${remainingFiles} file(s) were not selected as you can upload only ${maxFiles} files maximum.`
-                          );
-                        }
-
-                        // Check file sizes
-                        const oversizedFiles = filesToProcess.filter((file) => file.size > maxSize);
-                        if (oversizedFiles.length > 0) {
-                          showVsCodeMessageBox(
-                            'error',
-                            `${oversizedFiles.length} file(s) exceed ${maxSize / 1048576} MB limit. Please upload smaller files.`
-                          );
-                          return;
-                        }
-
-                        // Create previews for all valid files
-                        const newPreviews: string[] = [];
-                        filesToProcess.forEach((file) => {
-                          const previewUrl = URL.createObjectURL(file);
-                          newPreviews.push(previewUrl);
-                        });
-
-                        setImagePreviews((prev) => [...prev, ...newPreviews]);
-
-                        // Upload all files
-                        filesToProcess.forEach((file) => {
-                          uploadFileToS3(file);
-                        });
-                      }
-                    }}
+                  <ImageUploadButton
+                    imagePreviews={imagePreviews}
+                    setImagePreviews={setImagePreviews}
+                    maxFiles={maxFiles}
+                    maxSize={maxSize}
+                    fileInputRef={fileInputRef}
                   />
-
-                  <label
-                    htmlFor="image-upload"
-                    className={`flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10 ${
-                      imagePreviews.length >= maxFiles
-                        ? 'cursor-not-allowed opacity-50'
-                        : 'cursor-pointer'
-                    }`}
-                    data-tooltip-id="upload-tooltip"
-                    data-tooltip-content={
-                      imagePreviews.length >= maxFiles
-                        ? `Maximum ${maxFiles} images allowed`
-                        : `Upload Images (${imagePreviews.length}/${maxFiles})`
-                    }
-                    data-tooltip-place="top-start"
-                    style={{ pointerEvents: imagePreviews.length >= maxFiles ? 'none' : 'auto' }}
-                  >
-                    <Image className="h-4 w-4" />
-                  </label>
 
                   {enhancingUserQuery ? (
                     <div className="flex items-center justify-center p-1 hover:rounded hover:bg-slate-400 hover:bg-opacity-10">

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
-import { ChatPayload, FileSummaryResponse } from '../types';
+import { ChatPayload } from '../types';
 import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
 const FILE_CONTEXT_THRESHOLD = 100;
 
@@ -152,15 +152,4 @@ export async function getEnvironmentDetails(
   }
 
   return `<environment_details>\n${details.trim()}\n</environment_details>`;
-}
-
-async function _runFileSummaryReader(filePath: string): Promise<FileSummaryResponse | undefined> {
-  try {
-    const response = await binaryApi().post(API_ENDPOINTS.READ_FILE_OR_SUMMARY, {
-      file_path: filePath,
-    });
-    return response.data;
-  } catch (error: any) {
-    return undefined;
-  }
 }
