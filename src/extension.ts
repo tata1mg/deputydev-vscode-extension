@@ -360,6 +360,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const commentFixQuery = await reviewService.getCommentFixQuery(commentId);
 
         if (commentFixQuery?.is_success) {
+          deleteSessionId();
           sidebarProvider.sendMessageToSidebar({
             id: uuidv4(),
             command: 'fix-with-dd',
