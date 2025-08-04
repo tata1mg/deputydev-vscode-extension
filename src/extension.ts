@@ -53,6 +53,7 @@ import { ReviewService } from './services/codeReview/CodeReviewService';
 import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
 import { CommentHandler } from './codeReview/CommentHandler';
 import { CodeReviewManager } from './codeReviewManager/CodeReviewManager';
+import { closeDeputyDevDebugTabs } from './utilities/closeOpenedLogs';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
@@ -61,6 +62,7 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
 
+  closeDeputyDevDebugTabs();
   setExtensionContext(context);
   setUserSystemData(context);
   await clearWorkspaceStorage();
