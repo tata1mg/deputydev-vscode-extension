@@ -11,7 +11,6 @@ import {
   FilePathSearchInput,
   IterativeFileReaderInput,
   GrepSearchInput,
-  SearchTerm,
   PostProcessEvent,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';

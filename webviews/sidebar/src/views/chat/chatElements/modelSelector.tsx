@@ -24,7 +24,7 @@ const ModelSelector = () => {
     const fetchConfigFromWorkspaceState = async () => {
       const essentialConfig = await getWorkspaceState({ key: 'essentialConfigData' });
       const models = essentialConfig['LLM_MODELS'];
-      if (models.length) {
+      if (models.length > 0) {
         useChatStore.setState({ llmModels: models });
         if (!useChatSettingStore.getState().activeModel) {
           useChatSettingStore.setState({ activeModel: models[0].name });
