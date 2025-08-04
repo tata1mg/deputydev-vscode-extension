@@ -85,7 +85,7 @@ export class QuerySolverService {
     }
 
     const handleMessage = (messageData: any): void => {
-      console.log(messageData.type);
+      console.log(`[${new Date().toISOString()}] Received message type:`, messageData.type);
       try {
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
@@ -99,6 +99,7 @@ export class QuerySolverService {
             this.socketConn.close();
             this.socketConn = null;
           }
+          return;
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
           return;
