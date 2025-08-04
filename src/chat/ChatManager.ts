@@ -318,6 +318,7 @@ export class ChatManager {
       const pendingToolRequests: ToolRequest[] = [];
 
       for await (const event of querySolverIterator) {
+        console.log('Processing event', JSON.stringify(event));
         if (abortController.signal.aborted) {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
           break; // Exit loop if cancelled

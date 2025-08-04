@@ -62,20 +62,18 @@ export class WebSocketConnection {
       this.options.onError?.(error);
     }
     const authToken = await fetchAuthToken();
-    console.log("****AUTH TOKEN:", authToken)
     const currentSessionId = getSessionId();
-    console.log("****Session ID:", currentSessionId)
-    let headers: any = {
+    const headers: any = {
       'X-Client': CLIENT,
       'X-Client-Version': CLIENT_VERSION,
       'X-Session-Type': SESSION_TYPE,
       Authorization: `Bearer ${authToken}`,
       ...(latestExtraHeaders || {}),
+    };
+    if (currentSessionId && currentSessionId !== undefined) {
+      headers['X-Session-ID'] = currentSessionId;
     }
-    if (currentSessionId !== undefined && currentSessionId){
-      headers["X-Session-ID"] = currentSessionId
-    }
-    
+
     this.socket = new WebSocket(this.url, {
       headers,
     });

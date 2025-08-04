@@ -24,6 +24,7 @@ export class QuerySolverService {
   private readonly referenceManager: ReferenceManager;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly backendClient: BackendClient;
+  private socketConn: any | null = null;
 
   constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
@@ -78,9 +79,13 @@ export class QuerySolverService {
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
 
-    const socketConn = this.backendClient.querySolver();
+    if (!this.socketConn) {
+      console.log('Using new socket');
+      this.socketConn = this.backendClient.querySolver();
+    }
 
     const handleMessage = (messageData: any): void => {
+      console.log(messageData.type);
       try {
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
@@ -89,41 +94,50 @@ export class QuerySolverService {
             });
           }
           setCancelButtonStatus(true);
+        } else if (messageData.type === 'REQUEST_COMPLETED') {
+          if (this.socketConn) {
+            this.socketConn.close();
+            this.socketConn = null;
+          }
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
-          socketConn.close();
           return;
         } else if (messageData.type === 'STREAM_ERROR') {
           if (messageData.status === 'LLM_THROTTLED') {
             streamError = new ThrottlingException(messageData);
-            socketConn.close();
+            this.socketConn.close();
+            this.socketConn = null;
             return;
           } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
             streamError = new TokenLimitException(messageData);
-            socketConn.close();
+            this.socketConn.close();
+            this.socketConn = null;
             return;
           } else if (messageData.status) {
             streamError = new Error(messageData.status);
-            socketConn.close();
+            this.socketConn.close();
+            this.socketConn = null;
             return;
           }
 
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
-          socketConn.close();
+          this.socketConn.close();
+          this.socketConn = null;
           return;
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
-        socketConn.close();
+        this.socketConn.close();
+        this.socketConn = null;
       }
     };
 
     // call the querySolver websocket endpoint
     try {
-      socketConn.onMessage.on('message', handleMessage);
-      await socketConn.sendMessageWithRetry(finalPayload);
+      this.socketConn.onMessage.on('message', handleMessage);
+      await this.socketConn.sendMessageWithRetry(finalPayload);
     } catch (error: any) {
       this.logger.error('Error calling querySolver endpoint:', error);
       streamError = error;
@@ -131,14 +145,16 @@ export class QuerySolverService {
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        socketConn.close();
+        this.socketConn.close();
+        this.socketConn = null;
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        socketConn.close();
+        this.socketConn.close();
+        this.socketConn = null;
         console.log('Error in querysolver WebSocket stream:', streamError);
         if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
@@ -155,7 +171,7 @@ export class QuerySolverService {
           }
           streamDone = false;
           streamError = null;
-          await socketConn.sendMessageWithRetry({
+          await this.socketConn.sendMessageWithRetry({
             ...finalPayload,
           });
           continue; // Retry the querySolver call
@@ -164,7 +180,8 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        socketConn.close();
+        this.socketConn.close();
+        this.socketConn = null;
         return;
       }
 
@@ -176,7 +193,8 @@ export class QuerySolverService {
     }
 
     // Clean up the WebSocket connection
-    socketConn.close();
+    // this.socketConn.close();
+    // this.socketConn = null;
   }
 
   /**
