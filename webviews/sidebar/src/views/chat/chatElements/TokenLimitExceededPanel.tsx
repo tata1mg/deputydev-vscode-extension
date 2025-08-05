@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { useChatStore } from '@/stores/chatStore';
+import { useLLMModelStore } from '@/stores/llmModelStore';
 import { RotateCw } from 'lucide-react';
-import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface TokenLimitExceededPanelProps {
   currentModel: string;
@@ -25,7 +26,7 @@ export function TokenLimitExceededPanel({
   betterModels = [],
 }: Readonly<TokenLimitExceededPanelProps>): React.JSX.Element {
   const firstModelName = betterModels?.[0]?.name ?? '';
-  const { llmModels } = useChatStore();
+  const { llmModels, setActiveModel } = useLLMModelStore();
   const [selectedModel, setSelectedModel] = useState(firstModelName);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryMessage, setRetryMessage] = useState('');
@@ -145,7 +146,7 @@ export function TokenLimitExceededPanel({
       console.log('Starting fresh query with model:', modelToUse);
 
       // Set the new model as active
-      useChatSettingStore.setState({ activeModel: modelToUse });
+      setActiveModel(modelToUse);
 
       // Small delay to ensure state is updated
       await new Promise((resolve) => setTimeout(resolve, 100));
