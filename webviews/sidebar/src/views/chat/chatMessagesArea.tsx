@@ -1,21 +1,21 @@
-import { submitFeedback } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
 import {
-  ChatMessage,
   ChatReferenceItem,
-  S3Object,
   InputTokenLimitErrorData,
   LLMinputTokenLimitException,
   LLMThrottlingException,
+  S3Object,
 } from '@/types';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { CircleUserRound, ThumbsDown, ThumbsUp, TriangleAlert } from 'lucide-react';
-import { JSX, useRef } from 'react';
+import { CircleUserRound, TriangleAlert } from 'lucide-react';
+import { JSX } from 'react';
 import Markdown from 'react-markdown';
 import { useChatStore } from '../../stores/chatStore';
 import '../../styles/markdown-body.css';
 import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
+import { TaskCompletionChip } from './chatElements/TaskCompletionChip';
 import { TerminalPanel } from './chatElements/TerminalPanel';
+import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
+import { TokenLimitExceededPanel } from './chatElements/TokenLimitExceededPanel';
 import {
   FileEditedChip,
   RetryChip,
@@ -24,16 +24,14 @@ import {
 } from './chatElements/ToolChips';
 import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
 import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
-import MCPTool from './chatElements/Tools/mcpTool';
-import { CodeActionPanel } from './chatElements/codeActionPanel';
-import { Shimmer } from './chatElements/shimmerEffect';
-import GeneratingLoader from './chatElements/chatLoader';
-import { ImageWithDownload } from './chatElements/imageView';
-import QueryReferenceChip from './chatElements/autocomplete/referencechip';
-import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import { AskUserInput } from './chatElements/Tools/askUserInput';
-import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
-import { TokenLimitExceededPanel } from './chatElements/TokenLimitExceededPanel';
+import MCPTool from './chatElements/Tools/mcpTool';
+import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
+import QueryReferenceChip from './chatElements/autocomplete/referencechip';
+import GeneratingLoader from './chatElements/chatLoader';
+import { CodeActionPanel } from './chatElements/codeActionPanel';
+import { ImageWithDownload } from './chatElements/imageView';
+import { Shimmer } from './chatElements/shimmerEffect';
 
 // Type guard functions for error data
 const isInputTokenLimitErrorData = (errorData: any): errorData is InputTokenLimitErrorData => {
@@ -58,18 +56,11 @@ const isLLMThrottlingException = (errorData: any): errorData is LLMThrottlingExc
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
   const { themeKind } = useThemeStore();
-  const queryCompleteTimestampsRef = useRef(new Map());
-  const queryIdMap = new Map();
-  let queryId: number;
 
   return (
     <>
       {messages.map((msg, index) => {
         switch (msg.type) {
-          case 'RESPONSE_METADATA': {
-            queryId = msg.content.query_id;
-            break;
-          }
           case 'TEXT_BLOCK':
             if (msg.actor === 'USER') {
               if (msg.content.focus_items?.length) {
@@ -370,161 +361,14 @@ export function ChatArea() {
             return contentComponent;
           }
 
-          case 'QUERY_COMPLETE': {
-            if (!queryCompleteTimestampsRef.current.has(index)) {
-              const elapsed = msg.content.elapsedTime;
-
-              if (elapsed !== null) {
-                queryCompleteTimestampsRef.current.set(index, elapsed);
-              }
-            }
-
-            const rawElapsed = queryCompleteTimestampsRef.current.get(index);
-            let timeElapsed;
-
-            if (rawElapsed != null) {
-              const totalSeconds = Math.round(rawElapsed / 1000);
-              if (totalSeconds >= 60) {
-                const min = Math.floor(totalSeconds / 60);
-                const sec = totalSeconds % 60;
-                timeElapsed = `${min} min ${Math.floor(sec)} sec`;
-              } else {
-                timeElapsed = `${Math.floor(totalSeconds)} sec`;
-              }
-            }
-
-            queryIdMap.set(index, queryId);
-            const feedback = msg.content.feedbackState;
+          case 'TASK_COMPLETION': {
             return (
-              <div key={index} className="mt-1.5 flex items-center justify-between font-medium">
-                <div className="flex items-center space-x-2 text-green-500">
-                  <span>✓</span>
-                  {timeElapsed !== null ? (
-                    <span>{`Task Completed in ${timeElapsed}.`}</span>
-                  ) : (
-                    <span>Task Completed</span>
-                  )}
-                </div>
-                <div className="flex items-center space-x-3">
-                  {/* Thumbs up */}
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger>
-                        <div className={`${feedback === 'UPVOTE' && 'animate-thumbs-up'}`}>
-                          <ThumbsUp
-                            className={`h-4 w-4 cursor-pointer ${
-                              feedback === 'UPVOTE'
-                                ? 'fill-green-500 text-green-500'
-                                : 'hover:fill-green-500 hover:text-green-500'
-                            }`}
-                            onClick={() => {
-                              if (feedback !== 'UPVOTE') {
-                                const updatedMessages = useChatStore
-                                  .getState()
-                                  .history.map((m, i) => {
-                                    if (i !== index) return m;
-                                    if (
-                                      m.type === 'QUERY_COMPLETE' ||
-                                      (m.type === 'TEXT_BLOCK' && m.actor === 'ASSISTANT')
-                                    ) {
-                                      return {
-                                        ...m,
-                                        content: {
-                                          ...m.content,
-                                          feedbackState: 'UPVOTE',
-                                        },
-                                      };
-                                    }
-
-                                    return m;
-                                  });
-
-                                useChatStore.setState({
-                                  history: updatedMessages as ChatMessage[],
-                                });
-                                submitFeedback('UPVOTE', queryIdMap.get(index));
-                              }
-                            }}
-                          />
-                        </div>
-                      </Tooltip.Trigger>
-                      <Tooltip.Portal>
-                        <Tooltip.Content
-                          side="top"
-                          className="rounded-md px-2 py-1 text-xs shadow-md"
-                          style={{
-                            backgroundColor: 'var(--vscode-editorHoverWidget-background)',
-                            color: 'var(--vscode-editorHoverWidget-foreground)',
-                            border: '1px solid var(--vscode-editorHoverWidget-border)',
-                          }}
-                        >
-                          Like
-                        </Tooltip.Content>
-                      </Tooltip.Portal>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-
-                  {/* Thumbs down */}
-                  <Tooltip.Provider>
-                    <Tooltip.Root>
-                      <Tooltip.Trigger>
-                        <div className={`${feedback === 'DOWNVOTE' && 'animate-thumbs-down'}`}>
-                          <ThumbsDown
-                            className={`h-4 w-4 cursor-pointer ${
-                              feedback === 'DOWNVOTE'
-                                ? 'fill-red-500 text-red-500'
-                                : 'hover:fill-red-500 hover:text-red-500'
-                            }`}
-                            onClick={() => {
-                              if (feedback !== 'DOWNVOTE') {
-                                const updatedMessages = useChatStore
-                                  .getState()
-                                  .history.map((m, i) => {
-                                    if (i !== index) return m;
-                                    if (
-                                      m.type === 'QUERY_COMPLETE' ||
-                                      (m.type === 'TEXT_BLOCK' && m.actor === 'ASSISTANT')
-                                    ) {
-                                      return {
-                                        ...m,
-                                        content: {
-                                          ...m.content,
-                                          feedbackState: 'DOWNVOTE',
-                                        },
-                                      };
-                                    }
-                                    return m;
-                                  });
-
-                                useChatStore.setState({
-                                  history: updatedMessages as ChatMessage[],
-                                });
-
-                                submitFeedback('DOWNVOTE', queryIdMap.get(index));
-                              }
-                            }}
-                          />
-                        </div>
-                      </Tooltip.Trigger>
-                      <Tooltip.Portal>
-                        <Tooltip.Content
-                          side="top"
-                          className="rounded-md px-2 py-1 text-xs shadow-md"
-                          style={{
-                            backgroundColor: 'var(--vscode-editorHoverWidget-background)',
-                            color: 'var(--vscode-editorHoverWidget-foreground)',
-                            border: '1px solid var(--vscode-editorHoverWidget-border)',
-                          }}
-                        >
-                          Dislike
-                        </Tooltip.Content>
-                      </Tooltip.Portal>
-                    </Tooltip.Root>
-                  </Tooltip.Provider>
-                </div>
+              <div key={index}>
+                <TaskCompletionChip index={index} msg={msg} />
               </div>
             );
           }
+
           case 'TERMINAL_NO_SHELL_INTEGRATION':
             return (
               <div

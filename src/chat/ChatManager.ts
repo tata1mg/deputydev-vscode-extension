@@ -529,6 +529,48 @@ export class ChatManager {
             }
             break;
           }
+          case 'MALFORMED_TOOL_USE_REQUEST': {
+            this.outputChannel.error(`Malformed tool use request: ${JSON.stringify(event.content.reason)}`);
+            this.logger.error(`Malformed tool use request: ${JSON.stringify(event.content.reason)}`);
+
+            const errorData = event.content;
+            const rawPayload = errorData?.raw_payload || 'No raw payload available';
+
+            const query =
+              `You tried to use a tool that is not available, or the request was malformed. ` +
+              `Please check the tool name and parameters. Here's the raw payload:\n\n${rawPayload}` +
+              `Do not apologize or mention the error, just continue with correct tool usage.`;
+
+            // Build a retry payload safely
+            const retryPayload = {
+              ...originalPayload,
+              query,
+              batch_tool_responses: [],
+              is_tool_response: false,
+            };
+
+            chunkCallback({ name: event.type, data: event.content });
+
+            // Retry as a regular query instead of tool-use fallback
+            await this.apiChat(retryPayload, chunkCallback);
+
+            const errorEventData = {
+              error_msg: 'Malformed tool use request',
+              model: originalPayload.llm_model,
+              errorData: errorData,
+            };
+
+            const sessionId = getSessionId();
+            if (sessionId) {
+              this.usageTrackingManager.trackUsage({
+                eventType: 'MALFORMED_TOOL_USE_REQUEST',
+                eventData: errorEventData,
+                sessionId: sessionId,
+              });
+            }
+
+            break;
+          }
 
           default:
             chunkCallback({ name: event.type, data: event.content });
@@ -732,7 +774,13 @@ export class ChatManager {
           errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&
           errorData.error_type === 'HANDLED_TOOL_ERROR'
         ) {
-          return { data: [] };
+          return {
+            data: [],
+            search_term: query,
+            directory_path: search_path,
+            case_insensitive: case_insensitive,
+            use_regex: use_regex,
+          };
         } else {
           this.logger.error(`Error calling Grep search API`);
           this.apiErrorHandler.handleApiError(error);

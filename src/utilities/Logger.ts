@@ -58,7 +58,19 @@ export class Logger {
   }
 
   private formatArgs(level: string, args: any[]): string {
-    const timestamp = new Date().toISOString();
+    const now = new Date();
+
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = now.toLocaleString('en-US', { month: 'short' });
+    const time = now.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    const timestamp = `${day} ${month} ${time}`;
+
     const formattedArgs = args.map((arg) => {
       if (typeof arg === 'string') return arg;
       try {
@@ -67,6 +79,7 @@ export class Logger {
         return String(arg);
       }
     });
+
     return `[${timestamp}] ${level.toUpperCase()}: ${formattedArgs.join(' ')}\n`;
   }
 
