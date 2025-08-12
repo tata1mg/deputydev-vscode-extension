@@ -10,7 +10,7 @@ import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tooltip } from 'react-tooltip';
 
-const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
+const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   switch (status) {
     case 'pending':
       return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
@@ -81,23 +81,34 @@ const BaseTool: React.FC<BaseToolProps> = ({
         <div className="flex w-full items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex w-full min-w-0 items-center gap-2">
-              <StatusIcon status={toolRunStatus} />
+
+              {/* Tool status icon */}
+              <ToolStatusIcon status={toolRunStatus} />
+
+              {/* Tool request display text */}
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <span className="text-xs font-bold">
                   {requestRejected ? 'Tool Use Request Rejected' : displayText}
                 </span>
-                <span
-                  className="truncate text-xs text-gray-400"
-                  data-tooltip-id="tool-chip-tool-tip"
-                  data-tooltip-content={`${toolRequest?.toolMeta.serverName}/${toolRequest?.toolMeta.toolName}`}
-                  data-tooltip-place="top-start"
-                >
-                  {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
-                </span>
+
+                {/* In case of MCP tools. */}
+                {toolRequest?.toolMeta && (
+                  <span
+                    className="truncate text-xs text-gray-400"
+                    data-tooltip-id="tool-chip-tool-tip"
+                    data-tooltip-content={`${toolRequest?.toolMeta.serverName}/${toolRequest?.toolMeta.toolName}`}
+                    data-tooltip-place="top-start"
+                  >
+                    {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
+                  </span>
+                )}
               </div>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
+
+            {/* Auto approval checkbox in case of MCP tools */}
             {toolRequest?.requiresApproval && (
               <div>
                 {showConsent && (
@@ -113,11 +124,15 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 )}
               </div>
             )}
+
+            {/* Dropdown icon to show/hide request/response */}
             <div className="cursor-pointer" onClick={() => handleDropDown()}>
               {!showDropDown ? <ChevronDown /> : <ChevronUp />}
             </div>
           </div>
         </div>
+
+        {/* Show request and response details */}
         {showDropDown && toolRequest && (
           <div className="space-y-4">
             {/* Request JSON with copy */}
@@ -168,6 +183,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 </SyntaxHighlighter>
               </div>
             </div>
+
             {/* Response JSON with copy */}
             {toolResponse && (
               <div className="relative overflow-x-hidden rounded bg-gray-500/10 p-2">
@@ -218,6 +234,8 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Consent for MCP tool use */}
             {toolRequest.requiresApproval && (
               <div>
                 {showConsent && (

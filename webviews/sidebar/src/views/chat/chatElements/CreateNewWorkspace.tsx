@@ -8,10 +8,8 @@ export function CreateNewWorkspace({ tool_id, status }: { tool_id: string; statu
     createNewWorkspace(tool_id);
   };
 
-  const { cancelChat } = useChatStore();
-
   const handleCancel = () => {
-    cancelChat();
+    useChatStore.getState().cancelChat();
   };
 
   const { themeKind } = useThemeStore();

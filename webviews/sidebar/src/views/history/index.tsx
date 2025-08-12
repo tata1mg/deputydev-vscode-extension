@@ -356,11 +356,6 @@ export default function History() {
     noPinnedSessions,
     noUnpinnedSessions,
   } = useSessionsStore();
-  const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [disableLoader, setDisableLoader] = useState(false);
-  const [noActiveSessionsMessage, setNoActiveSessionsMessage] = useState(
-    'Loading your DeputyDev sessions history...'
-  );
 
   const handleGetSessionChats = async (sessionId: number) => {
     const data = await getSessionChats(sessionId);
@@ -410,11 +405,9 @@ export default function History() {
   };
 
   const fetchSessions = async (pageNumber: number) => {
-    setSessionsLoading(true);
     const limit = sessionsPerPage;
     const offset = (pageNumber - 1) * sessionsPerPage;
     getSessions(limit, offset);
-    setSessionsLoading(false);
     setCurrentSessionsPage((prev) => prev + 1);
   };
 
