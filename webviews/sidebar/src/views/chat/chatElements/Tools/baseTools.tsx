@@ -81,7 +81,6 @@ const BaseTool: React.FC<BaseToolProps> = ({
         <div className="flex w-full items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex w-full min-w-0 items-center gap-2">
-
               {/* Tool status icon */}
               <ToolStatusIcon status={toolRunStatus} />
 
@@ -107,7 +106,6 @@ const BaseTool: React.FC<BaseToolProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-
             {/* Auto approval checkbox in case of MCP tools */}
             {toolRequest?.requiresApproval && (
               <div>
