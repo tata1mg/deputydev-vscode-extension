@@ -124,7 +124,6 @@ export const useChatStore = create(
           async sendChatMessage(
             message: string,
             editorReferences: ChatReferenceItem[],
-            chunkCallback: (data: { name: string; data: any }) => void,
             s3References: S3Object[] = [],
             retryChat?: boolean,
             retry_payload?: any,
@@ -272,8 +271,6 @@ export const useChatStore = create(
               }
             }
 
-            // console.log("stream received in FE : ", stream);
-
             try {
               for await (const event of stream) {
                 switch (event.name) {
@@ -301,7 +298,6 @@ export const useChatStore = create(
                       },
                     }));
                     useChatStore.setState({ showGeneratingEffect: false });
-                    chunkCallback({ name: 'TEXT_START', data: event.data });
                     break;
                   }
 
@@ -320,8 +316,6 @@ export const useChatStore = create(
                           }
                         : state.current,
                     }));
-
-                    chunkCallback({ name: 'TEXT_DELTA', data: event.data });
                     break;
                   }
 
@@ -341,7 +335,6 @@ export const useChatStore = create(
                       return state;
                     });
                     useChatStore.setState({ showGeneratingEffect: true });
-                    chunkCallback({ name: 'TEXT_BLOCK_END', data: event.data });
                     break;
                   }
 
@@ -364,11 +357,6 @@ export const useChatStore = create(
                         } as ChatThinkingMessage,
                       ],
                     }));
-
-                    chunkCallback({
-                      name: 'THINKING_BLOCK_START',
-                      data: event.data,
-                    });
                     break;
                   }
 
@@ -387,11 +375,6 @@ export const useChatStore = create(
                         }
                       }
                       return { history: newHistory };
-                    });
-
-                    chunkCallback({
-                      name: 'THINKING_BLOCK_DELTA',
-                      data: event.data,
                     });
                     break;
                   }
@@ -439,11 +422,6 @@ export const useChatStore = create(
                     set((state) => ({
                       history: [...state.history, codeBlockMsg],
                     }));
-
-                    chunkCallback({
-                      name: 'CODE_BLOCK_START',
-                      data: event.data,
-                    });
                     break;
                   }
 
@@ -462,11 +440,6 @@ export const useChatStore = create(
                       }
 
                       return { history: newHistory };
-                    });
-
-                    chunkCallback({
-                      name: 'CODE_BLOCK_DELTA',
-                      data: event.data,
                     });
                     break;
                   }
@@ -494,8 +467,6 @@ export const useChatStore = create(
                       return { history: newHistory };
                     });
                     useChatStore.setState({ showGeneratingEffect: true });
-
-                    chunkCallback({ name: 'CODE_BLOCK_END', data: event.data });
                     break;
                   }
 
@@ -606,8 +577,6 @@ export const useChatStore = create(
                     }));
 
                     logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
-
-                    chunkCallback({ name: 'TASK_COMPLETION', data: event.data });
                     break;
                   }
 
@@ -626,8 +595,6 @@ export const useChatStore = create(
                     useSettingsStore.setState({
                       disableShellIntegration: true,
                     });
-
-                    chunkCallback({ name: 'TERMINAL_NO_SHELL_INTEGRATION', data: event.data });
                     break;
                   }
 
@@ -665,8 +632,6 @@ export const useChatStore = create(
 
                       return {}; // ✅ Return an empty object if no condition matches
                     });
-
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
 
@@ -693,8 +658,6 @@ export const useChatStore = create(
                     set((state) => ({
                       history: [...state.history, newToolMsg],
                     }));
-
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
                   case 'TOOL_USE_REQUEST_DELTA': {
@@ -727,8 +690,6 @@ export const useChatStore = create(
                         });
                         break;
                     }
-
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
                   case 'TOOL_USE_REQUEST_END': {
@@ -767,8 +728,6 @@ export const useChatStore = create(
                         });
                         break;
                     }
-
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
 
@@ -801,7 +760,6 @@ export const useChatStore = create(
                       });
                       return { history: newHistory };
                     });
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
 
@@ -984,8 +942,6 @@ export const useChatStore = create(
                     ) {
                       useChatStore.setState({ showGeneratingEffect: true });
                     }
-
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
 
@@ -1114,29 +1070,15 @@ export const useChatStore = create(
                     });
 
                     set({ isLoading: false, currentChatRequest: undefined });
-                    chunkCallback({ name: 'error', data: { error: err } });
                     break;
                   }
 
                   case 'end': {
                     set({ isLoading: false, currentChatRequest: undefined });
                     logToOutput('info', 'Chat stream ended');
-                    // await apiSaveSession({
-                    //   session: get().history.map((msg) => ({
-                    //     role: msg.type,
-                    //     content:
-                    //       msg.type === 'user'
-                    //         ? msg.text
-                    //         : msg.type === 'assistant'
-                    //         ? msg.text
-                    //         : (msg as ChatToolUseMessage).input_params_json || '',
-                    //   })),
-                    // });
-                    chunkCallback({ name: 'end', data: {} });
                     break;
                   }
                   default: {
-                    chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
                 }

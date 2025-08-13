@@ -163,7 +163,6 @@ export function TokenLimitExceededPanel({
       await sendChatMessage(
         originalQuery,
         originalReferences,
-        () => {},
         originalS3References,
         false, // Not a retry - this is a fresh message
         undefined // No retry payload needed
