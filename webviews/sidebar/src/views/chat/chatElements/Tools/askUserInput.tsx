@@ -2,12 +2,9 @@ import { useThemeStore } from '@/stores/useThemeStore';
 import { parse, Allow } from 'partial-json';
 import Markdown from 'react-markdown';
 import '../../../../styles/markdown-body.css';
+import { AskUserInputProps } from '@/types';
 
-interface AskUserInputProps {
-  input: string;
-}
-
-export function AskUserInput({ input }: AskUserInputProps) {
+const AskUserInput: React.FC<AskUserInputProps> = ({ input }) => {
   let promptText = input;
   const { themeKind } = useThemeStore();
 
@@ -17,7 +14,7 @@ export function AskUserInput({ input }: AskUserInputProps) {
       promptText = parsed.prompt;
     }
   } catch {
-    // If parsing fails, just show raw input as-is
+    // If parsing fails, just show raw input as-it-is
   }
 
   return (
@@ -27,4 +24,6 @@ export function AskUserInput({ input }: AskUserInputProps) {
       <Markdown>{promptText}</Markdown>
     </div>
   );
-}
+};
+
+export default AskUserInput;

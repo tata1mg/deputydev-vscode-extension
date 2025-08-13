@@ -24,14 +24,14 @@ import {
 } from './chatElements/ToolChips';
 import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
 import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
-import { AskUserInput } from './chatElements/Tools/askUserInput';
-import MCPTool from './chatElements/Tools/mcpTool';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { ImageWithDownload } from './chatElements/imageView';
 import { Shimmer } from './chatElements/shimmerEffect';
+import AskUserInput from './chatElements/Tools/AskUserInput';
+import ToolChipSelector from './chatElements/Tools/ToolChipSelector';
 
 // Type guard functions for error data
 const isInputTokenLimitErrorData = (errorData: any): errorData is InputTokenLimitErrorData => {
@@ -181,7 +181,7 @@ export function ChatArea() {
 
           case 'TOOL_CHIP_UPSERT': {
             const contentComponent = (
-              <MCPTool
+              <ToolChipSelector
                 toolRequest={msg.content.toolRequest}
                 toolResponse={msg.content.toolResponse}
                 toolUseId={msg.content.tool_use_id}
