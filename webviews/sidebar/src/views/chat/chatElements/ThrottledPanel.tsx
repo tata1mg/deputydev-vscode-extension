@@ -72,7 +72,7 @@ export function ThrottledChatMessage({
       ...(payloadToRetry as Record<string, unknown>),
       llm_model: selectedModel,
     };
-    sendChatMessage('retry', [], () => {}, undefined, true, newPayload);
+    sendChatMessage('retry', [], undefined, true, newPayload);
   }
 
   function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
