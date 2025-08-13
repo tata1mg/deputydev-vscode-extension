@@ -42,19 +42,6 @@ export function IterativeFileReader({
     }
   }, [toolInputJson]);
 
-  let displayText: string;
-  switch (status) {
-    case 'pending':
-      displayText = 'Reading files';
-      break;
-    case 'error':
-      displayText = 'Error analyzing files';
-      break;
-    default:
-      displayText = 'File analyzed';
-      break;
-  }
-
   const lineRange = startLine != null && endLine != null ? `#${startLine}-${endLine}` : '';
 
   return (

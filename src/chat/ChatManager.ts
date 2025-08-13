@@ -363,7 +363,16 @@ export class ChatManager {
                 },
               });
             } else {
-              chunkCallback({ name: event.type, data: event.content });
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    toolName: event.content.tool_name,
+                  },
+                  toolRunStatus: 'pending',
+                  toolUseId: event.content.tool_use_id,
+                },
+              });
             }
             break;
           }
@@ -392,11 +401,14 @@ export class ChatManager {
                 });
               } else {
                 chunkCallback({
-                  name: event.type,
+                  name: 'TOOL_CHIP_UPSERT',
                   data: {
-                    tool_name: currentToolRequest.tool_name,
-                    tool_use_id: currentToolRequest.tool_use_id,
-                    delta: event.content?.input_params_json_delta || '',
+                    toolRequest: {
+                      requestData: currentToolRequest.accumulatedContent,
+                      toolName: currentToolRequest.tool_name,
+                    },
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
                 });
               }
@@ -427,10 +439,15 @@ export class ChatManager {
                 });
               } else {
                 chunkCallback({
-                  name: event.type,
+                  name: 'TOOL_CHIP_UPSERT',
                   data: {
-                    tool_name: currentToolRequest.tool_name,
-                    tool_use_id: currentToolRequest.tool_use_id,
+                    toolRequest: {
+                      requestData: null,
+                      toolName: currentToolRequest.tool_name,
+                    },
+                    toolResponse: null,
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
                 });
               }
@@ -1255,17 +1272,20 @@ export class ChatManager {
 
   private _sendToolResult(
     chunkCallback: ChunkCallback,
-    toolRequest: ToolRequest,
+    currentToolRequest: ToolRequest,
     result: any,
     status: 'completed' | 'error',
   ): void {
     chunkCallback({
-      name: 'TOOL_USE_RESULT',
+      name: 'TOOL_CHIP_UPSERT',
       data: {
-        tool_name: toolRequest.tool_name,
-        tool_use_id: toolRequest.tool_use_id,
-        result_json: result,
-        status,
+        toolRequest: {
+          requestData: currentToolRequest.accumulatedContent,
+          toolName: currentToolRequest.tool_name,
+        },
+        toolResponse: result,
+        toolRunStatus: status,
+        toolUseId: currentToolRequest.tool_use_id,
       },
     });
   }

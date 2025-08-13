@@ -397,6 +397,10 @@ export interface MCPToolProps {
   toolUseId: string;
 }
 
+export interface AskUserInputProps {
+  input: string;
+}
+
 export interface MCPServer {
   name: string;
   status: string;
