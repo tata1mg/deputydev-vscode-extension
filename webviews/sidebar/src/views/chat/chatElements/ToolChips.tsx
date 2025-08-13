@@ -205,7 +205,7 @@ export function RetryChip({
         ...(errorData.payload_to_retry as Record<string, unknown>),
         llm_model: activeModel,
       };
-      sendChatMessage('retry', [], () => {}, undefined, true, newPayload);
+      sendChatMessage('retry', [], undefined, true, newPayload);
     } else {
       // console.log("No error found to retry.");
     }

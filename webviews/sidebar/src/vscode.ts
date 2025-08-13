@@ -570,15 +570,7 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     },
   };
   const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage(
-    'create new workspace payload',
-    [],
-    () => {},
-    undefined,
-    false,
-    {},
-    continuationPayload
-  );
+  sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
@@ -665,15 +657,7 @@ addCommandEventListener('update-workspace-dd', () => {
       },
     };
     const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage(
-      'create new workspace payload',
-      [],
-      () => {},
-      undefined,
-      false,
-      {},
-      continuationPayload
-    );
+    sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
   } else {
     logToOutput(
       'error',
