@@ -10,7 +10,7 @@ import { TerminalPanelProps } from '@/types';
 import { LoaderCircle, Skull, TerminalIcon } from 'lucide-react';
 import { Allow, parse } from 'partial-json';
 import { useEffect, useRef, useState } from 'react';
-import { SnippetReference } from './CodeBlockStyle';
+import { SnippetReference } from '../CodeBlockStyle';
 
 /**
  * Updates the terminal approval status for a specific tool use request in the chat history.

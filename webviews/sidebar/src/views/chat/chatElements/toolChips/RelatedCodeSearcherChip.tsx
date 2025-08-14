@@ -1,8 +1,8 @@
 import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import BaseTool from './BaseTools';
 import React from 'react';
 
-const FilePathSearcherTool: React.FC<MCPToolProps> = ({
+const RelatedCodeSearcher: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,16 +11,16 @@ const FilePathSearcherTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Scanning File Paths...';
+      displayText = 'Searching Codebase...';
       break;
     case 'error':
-      displayText = 'Error Scanning File Paths';
+      displayText = 'Error Searching Codebase';
       break;
     case 'completed':
-      displayText = 'Scanned File Paths';
+      displayText = 'Scanned Codebase';
       break;
     case 'aborted':
-      displayText = 'Scanning File Paths Aborted';
+      displayText = 'Searching Codebase Aborted';
       break;
     default:
       displayText = '';
@@ -38,4 +38,4 @@ const FilePathSearcherTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default FilePathSearcherTool;
+export default RelatedCodeSearcher;

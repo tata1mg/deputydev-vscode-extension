@@ -1,57 +1,24 @@
 import { useThemeStore } from '@/stores/useThemeStore';
-import {
-  ChatReferenceItem,
-  InputTokenLimitErrorData,
-  LLMinputTokenLimitException,
-  LLMThrottlingException,
-  S3Object,
-} from '@/types';
+import { ChatReferenceItem, S3Object } from '@/types';
 import { CircleUserRound, TriangleAlert } from 'lucide-react';
 import { JSX } from 'react';
 import Markdown from 'react-markdown';
 import { useChatStore } from '../../stores/chatStore';
 import '../../styles/markdown-body.css';
-import { CreateNewWorkspace } from './chatElements/CreateNewWorkspace';
-import { TaskCompletionChip } from './chatElements/TaskCompletionChip';
-import { TerminalPanel } from './chatElements/TerminalPanel';
-import { ThrottledChatMessage } from './chatElements/ThrottledPanel';
-import { TokenLimitExceededPanel } from './chatElements/TokenLimitExceededPanel';
-import {
-  FileEditedChip,
-  RetryChip,
-  ThinkingChip,
-  ToolUseStatusMessage,
-} from './chatElements/ToolChips';
-import { IterativeFileReader } from './chatElements/Tools/IterativeFileReader';
-import { TerminalPanelHistory } from './chatElements/Tools/TerminalPanelHistory';
+import { TaskCompletionChip } from './chatElements/toolChips/TaskCompletionChip';
+import { TerminalPanelHistory } from './chatElements/toolChips/TerminalPanelHistory';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
 import { CodeActionPanel } from './chatElements/codeActionPanel';
 import { ImageWithDownload } from './chatElements/imageView';
-import { Shimmer } from './chatElements/shimmerEffect';
-import AskUserInput from './chatElements/Tools/AskUserInput';
-import ToolChipSelector from './chatElements/Tools/ToolChipSelector';
-
-// Type guard functions for error data
-const isInputTokenLimitErrorData = (errorData: any): errorData is InputTokenLimitErrorData => {
-  return (
-    errorData &&
-    (errorData.type === 'STREAM_ERROR' || errorData.type === 'TOKEN_LIMIT_ERROR') &&
-    typeof errorData.current_tokens === 'number' &&
-    typeof errorData.max_tokens === 'number'
-  );
-};
-
-const isLLMInputTokenLimitException = (
-  errorData: any
-): errorData is LLMinputTokenLimitException => {
-  return errorData && errorData.type === 'INPUT_TOKEN_LIMIT_ERROR';
-};
-
-const isLLMThrottlingException = (errorData: any): errorData is LLMThrottlingException => {
-  return errorData && errorData.type === 'THROTTLING_ERROR';
-};
+import { Shimmer } from '../../components/Shimmer';
+import ToolChipSelector from './chatElements/toolChips/ToolChipSelector';
+import { ThinkingChip } from './chatElements/toolChips/ThinkingChip';
+import { FileEditedChip } from './chatElements/toolChips/FileEditedChip';
+import { TerminalPanel } from './chatElements/toolChips/TerminalPanel';
+import ErrorChipSelector from './chatElements/errorChips/ErrorChipSelector';
+import { TerminalNoShellIntegration } from './chatElements/toolChips/TerminalNoShellIntegrationChip';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
@@ -140,6 +107,7 @@ export function ChatArea() {
                 </div>
               );
             }
+
             if (msg.actor === 'ASSISTANT') {
               return (
                 <div
@@ -181,12 +149,14 @@ export function ChatArea() {
 
           case 'TOOL_CHIP_UPSERT': {
             const contentComponent = (
-              <ToolChipSelector
-                toolRequest={msg.content.toolRequest}
-                toolResponse={msg.content.toolResponse}
-                toolUseId={msg.content.tool_use_id}
-                toolRunStatus={msg.content.status}
-              />
+              <div key={index}>
+                <ToolChipSelector
+                  toolRequest={msg.content.toolRequest}
+                  toolResponse={msg.content.toolResponse}
+                  toolUseId={msg.content.tool_use_id}
+                  toolRunStatus={msg.content.status}
+                />
+              </div>
             );
             return contentComponent;
           }
@@ -195,9 +165,6 @@ export function ChatArea() {
             let contentComponent: JSX.Element;
 
             switch (msg.content.tool_name) {
-              case 'ask_user_input':
-                contentComponent = <AskUserInput input={msg.content.input_params_json} />;
-                break;
               case 'execute_command':
                 contentComponent = (
                   <TerminalPanel
@@ -213,52 +180,33 @@ export function ChatArea() {
                 );
                 break;
 
-              case 'create_new_workspace':
-                contentComponent = (
-                  <CreateNewWorkspace
-                    tool_id={msg.content.tool_use_id}
-                    status={msg.content.status || 'pending'}
-                  />
-                );
-                break;
-              case 'iterative_file_reader':
-                contentComponent = (
-                  <IterativeFileReader
-                    status={msg.content.status}
-                    tool_name={msg.content.tool_name}
-                    toolInputJson={msg.content.input_params_json as string}
-                  />
-                );
-                break;
               case 'replace_in_file': {
-                const isStreaming = true;
                 contentComponent = (
                   <div key={index}>
                     <FileEditedChip
                       isToolUse={true}
                       isWriteToFileTool={false}
                       content={msg.content.input_params_json as string}
-                      status={isStreaming ? msg.content.status : 'idle'}
+                      status={msg.content.status}
                       addedLines={msg.content.diff?.addedLines}
                       removedLines={msg.content.diff?.removedLines}
-                      isStreaming={isStreaming}
+                      isStreaming={true}
                     />
                   </div>
                 );
                 break;
               }
               case 'write_to_file': {
-                const isStreaming = true;
                 contentComponent = (
                   <div key={index}>
                     <FileEditedChip
                       isToolUse={true}
                       isWriteToFileTool={true}
                       content={msg.content.input_params_json as string}
-                      status={isStreaming ? msg.content.status : 'idle'}
+                      status={msg.content.status}
                       addedLines={msg.content.diff?.addedLines}
                       removedLines={msg.content.diff?.removedLines}
-                      isStreaming={isStreaming}
+                      isStreaming={true}
                     />
                   </div>
                 );
@@ -266,17 +214,13 @@ export function ChatArea() {
               }
 
               default:
-                contentComponent = (
-                  <ToolUseStatusMessage
-                    status={msg.content.status}
-                    tool_name={msg.content.tool_name}
-                  />
-                );
+                contentComponent = <></>;
                 break;
             }
 
             return <div key={index}>{contentComponent}</div>;
           }
+
           case 'TOOL_USE_REQUEST_BLOCK': {
             let contentComponent: JSX.Element | null = null;
 
@@ -361,6 +305,14 @@ export function ChatArea() {
             return contentComponent;
           }
 
+          case 'TERMINAL_NO_SHELL_INTEGRATION': {
+            return (
+              <div key={index}>
+                <TerminalNoShellIntegration />
+              </div>
+            );
+          }
+
           case 'TASK_COMPLETION': {
             return (
               <div key={index}>
@@ -369,72 +321,26 @@ export function ChatArea() {
             );
           }
 
-          case 'TERMINAL_NO_SHELL_INTEGRATION':
+          case 'ERROR': {
             return (
-              <div
-                key={index}
-                className={`mt-2 flex flex-col items-start gap-1.5 rounded-md ${['light', 'high-contrast-light'].includes(themeKind) ? 'bg-yellow-200/60' : 'bg-yellow-800/40'} px-3 py-2`}
-              >
-                <div
-                  className={`flex items-center ${['light', 'high-contrast-light'].includes(themeKind) ? 'text-gray-900' : 'text-yellow-500'} gap-2`}
-                >
-                  <TriangleAlert className="h-4 w-4" />
-                  <p className="text-sm font-medium">Shell Integration Unavailable</p>
-                </div>
-                <div className="text-xs">
-                  DeputyDev won't be able to view the command's output. Future terminal commands
-                  will use the fallback terminal provider.
-                </div>
+              <div key={index}>
+                <ErrorChipSelector msg={msg} />
               </div>
             );
-
-          case 'ERROR': {
-            let contentComponent: JSX.Element | null = null;
-
-            if (isLLMThrottlingException(msg.errorData)) {
-              contentComponent = (
-                <ThrottledChatMessage
-                  key={index}
-                  retryAfterSeconds={msg.errorData.retry_after}
-                  currentModel={msg.errorData.model_name}
-                  errorMessage={msg.error_msg}
-                  retry={msg.retry}
-                  payloadToRetry={msg.payload_to_retry}
-                />
-              );
-            } else if (isInputTokenLimitErrorData(msg.errorData)) {
-              contentComponent = (
-                <TokenLimitExceededPanel
-                  key={index}
-                  currentModel={msg.errorData.model || 'Unknown'}
-                  query={msg.errorData.query || ''}
-                  errorMessage={msg.error_msg}
-                  retry={msg.retry}
-                  payloadToRetry={msg.payload_to_retry}
-                  betterModels={msg.errorData.better_models}
-                />
-              );
-            } else {
-              // Otherwise, show the old error UI
-              contentComponent = (
-                <div key={index}>
-                  <RetryChip
-                    error_msg={msg.error_msg}
-                    retry={msg.retry}
-                    payload_to_retry={msg.payload_to_retry}
-                  />
-                </div>
-              );
-            }
-            return contentComponent;
           }
 
           default:
             return null;
         }
       })}
+
+      {/* Render Generating Loader */}
       {showGeneratingEffect && !showSkeleton && <GeneratingLoader text="Generating" />}
+
+      {/* Render Shimmer */}
       {showSkeleton && <Shimmer />}
+
+      {/* Render Streaming Text */}
       {current && typeof current.content?.text === 'string' && (
         <div
           key="streaming"

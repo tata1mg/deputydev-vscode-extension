@@ -1,8 +1,8 @@
 import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import BaseTool from './BaseTools';
 import React from 'react';
 
-const PublicUrlContentReaderTool: React.FC<MCPToolProps> = ({
+const FilePathSearcherTool: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,16 +11,16 @@ const PublicUrlContentReaderTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Analysing URL...';
+      displayText = 'Scanning File Paths...';
       break;
     case 'error':
-      displayText = 'Error Analysing URL';
+      displayText = 'Error Scanning File Paths';
       break;
     case 'completed':
-      displayText = 'Analyzed URL';
+      displayText = 'Scanned File Paths';
       break;
     case 'aborted':
-      displayText = 'Analysing URL Aborted';
+      displayText = 'Scanning File Paths Aborted';
       break;
     default:
       displayText = '';
@@ -38,4 +38,4 @@ const PublicUrlContentReaderTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default PublicUrlContentReaderTool;
+export default FilePathSearcherTool;

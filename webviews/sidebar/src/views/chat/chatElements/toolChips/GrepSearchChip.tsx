@@ -1,8 +1,8 @@
 import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import BaseTool from './BaseTools';
 import React from 'react';
 
-const MCPTool: React.FC<MCPToolProps> = ({
+const GrepSearchTool: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,13 +11,19 @@ const MCPTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Calling MCP Server';
+      displayText = 'Running Grep Search...';
       break;
     case 'error':
-      displayText = 'MCP Server Failed';
+      displayText = 'Error Running Grep Search';
+      break;
+    case 'completed':
+      displayText = 'Grep Search Completed.';
+      break;
+    case 'aborted':
+      displayText = 'Grep Search Aborted.';
       break;
     default:
-      displayText = 'Called MCP Server';
+      displayText = '';
       break;
   }
 
@@ -32,4 +38,4 @@ const MCPTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default MCPTool;
+export default GrepSearchTool;

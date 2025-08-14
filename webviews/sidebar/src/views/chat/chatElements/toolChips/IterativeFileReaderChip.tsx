@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Status, StatusIcon } from '../ToolChips';
-import { parse as parsePath } from 'path';
 import { openFile } from '@/commandApi';
 import { joinPath } from '@/utils/joinPath';
+import { ToolRunStatus } from '@/types';
+import { StatusIcon } from './ThinkingChip';
 
-/**
- * Completely handles only the iterative_file_reader status display
- */
 export function IterativeFileReader({
   status,
   tool_name,
   toolInputJson,
   fileCount,
 }: {
-  status: Status;
+  status: ToolRunStatus;
   tool_name: string;
   toolInputJson: string;
   fileCount?: number;

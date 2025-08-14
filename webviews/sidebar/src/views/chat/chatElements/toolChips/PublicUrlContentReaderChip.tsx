@@ -1,8 +1,8 @@
 import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import BaseTool from './BaseTools';
 import React from 'react';
 
-const WebSearchTool: React.FC<MCPToolProps> = ({
+const PublicUrlContentReaderTool: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,16 +11,16 @@ const WebSearchTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Searching Web...';
+      displayText = 'Analysing URL...';
       break;
     case 'error':
-      displayText = 'Error Searching Web';
+      displayText = 'Error Analysing URL';
       break;
     case 'completed':
-      displayText = 'Searched Web';
+      displayText = 'Analyzed URL';
       break;
     case 'aborted':
-      displayText = 'Searching Web Aborted';
+      displayText = 'Analysing URL Aborted';
       break;
     default:
       displayText = '';
@@ -38,4 +38,4 @@ const WebSearchTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default WebSearchTool;
+export default PublicUrlContentReaderTool;

@@ -1,7 +1,7 @@
 import { createNewWorkspace } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { StatusIcon } from './ToolChips';
 import { useChatStore } from '@/stores/chatStore';
+import { StatusIcon } from './ThinkingChip';
 
 export function CreateNewWorkspace({ tool_id, status }: { tool_id: string; status: string }) {
   const handleContinue = () => {

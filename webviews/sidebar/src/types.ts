@@ -235,7 +235,7 @@ export interface ChatErrorMessage {
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
-  errorData: LLMThrottlingException | LLMinputTokenLimitException | InputTokenLimitErrorData;
+  errorData: LLMThrottlingException | InputTokenLimitErrorData;
   content?: any;
 }
 
@@ -260,13 +260,6 @@ export interface InputTokenLimitErrorData {
     name: string;
     input_token_limit: number;
   }>;
-}
-
-export interface LLMinputTokenLimitException {
-  type: 'INPUT_TOKEN_LIMIT_ERROR';
-  model_name?: string;
-  actor: 'ASSISTANT';
-  retry_after?: number;
 }
 
 export interface ChatCompleteMessage {
@@ -395,6 +388,10 @@ export interface MCPToolProps {
   toolRequest?: ToolRequest | null;
   toolResponse?: any;
   toolUseId: string;
+}
+
+export interface ThinkingChipProps {
+  status: ToolRunStatus;
 }
 
 export interface AskUserInputProps {
