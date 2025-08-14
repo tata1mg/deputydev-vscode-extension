@@ -442,7 +442,7 @@ export class ChatManager {
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
                     toolRequest: {
-                      requestData: null,
+                      requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
                     },
                     toolResponse: null,

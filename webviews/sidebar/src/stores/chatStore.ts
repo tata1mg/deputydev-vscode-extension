@@ -910,40 +910,6 @@ export const useChatStore = create(
                     useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
-                  case 'TOOL_USE_RESULT': {
-                    const toolResultData = event.data as {
-                      tool_name: string;
-                      tool_use_id: string;
-                      result_json: string;
-                      status: 'completed' | 'error' | 'aborted';
-                    };
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
-                        if (msg.type === 'TOOL_USE_REQUEST') {
-                          const toolMsg = msg as ChatToolUseMessage;
-                          if (toolMsg.content.tool_use_id === toolResultData.tool_use_id) {
-                            return {
-                              ...toolMsg,
-                              content: {
-                                ...toolMsg.content,
-                                result_json: toolResultData.result_json, // ✅ Now correctly inside content
-                                status: toolResultData.status, // ✅ Now correctly inside content
-                              },
-                            };
-                          }
-                        }
-                        return msg;
-                      });
-                      return { history: newHistory };
-                    });
-                    if (
-                      toolResultData.status !== 'aborted' &&
-                      toolResultData.tool_name !== 'ask_user_input'
-                    ) {
-                      useChatStore.setState({ showGeneratingEffect: true });
-                    }
-                    break;
-                  }
 
                   case 'MALFORMED_TOOL_USE_REQUEST': {
                     useChatStore.setState({ showGeneratingEffect: true });

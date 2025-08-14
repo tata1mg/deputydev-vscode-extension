@@ -1,8 +1,8 @@
 import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import BaseTool from './BaseTools';
 import React from 'react';
 
-const GrepSearchTool: React.FC<MCPToolProps> = ({
+const FocusedSnippetSearcher: React.FC<MCPToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,16 +11,16 @@ const GrepSearchTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Running Grep Search...';
+      displayText = 'Searching Codebase...';
       break;
     case 'error':
-      displayText = 'Error Running Grep Search';
+      displayText = 'Error Searching Codebase';
       break;
     case 'completed':
-      displayText = 'Grep Search Completed.';
+      displayText = 'Scanned Codebase';
       break;
     case 'aborted':
-      displayText = 'Grep Search Aborted.';
+      displayText = 'Searching Codebase Aborted';
       break;
     default:
       displayText = '';
@@ -38,4 +38,4 @@ const GrepSearchTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default GrepSearchTool;
+export default FocusedSnippetSearcher;
