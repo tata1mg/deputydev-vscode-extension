@@ -1,13 +1,10 @@
-import { BaseToolProps } from '@/types';
-import React, { useEffect } from 'react';
+import { ToolProps, ToolRunStatus } from '@/types';
+import React, { useEffect, useState } from 'react';
 import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
-import { ToolRunStatus } from '@/types';
-import { useState } from 'react';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { toolUseApprovalUpdate } from '@/commandApi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { dracula, duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tooltip } from 'react-tooltip';
 
 const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
@@ -25,7 +22,7 @@ const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   }
 };
 
-const BaseTool: React.FC<BaseToolProps> = ({
+const ChipBase: React.FC<ToolProps> = ({
   toolRunStatus,
   toolRequest,
   toolResponse,
@@ -276,4 +273,4 @@ const BaseTool: React.FC<BaseToolProps> = ({
   );
 };
 
-export default BaseTool;
+export default ChipBase;

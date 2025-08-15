@@ -1,8 +1,8 @@
-import { MCPToolProps } from '@/types';
-import BaseTool from './BaseTools';
+import { ToolProps } from '@/types';
+import ChipBase from './ChipBase';
 import React from 'react';
 
-const GrepSearchTool: React.FC<MCPToolProps> = ({
+const GrepSearchTool: React.FC<ToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -28,7 +28,7 @@ const GrepSearchTool: React.FC<MCPToolProps> = ({
   }
 
   return (
-    <BaseTool
+    <ChipBase
       toolRunStatus={toolRunStatus}
       toolRequest={toolRequest}
       toolUseId={toolUseId}
