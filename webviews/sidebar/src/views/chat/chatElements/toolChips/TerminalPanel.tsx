@@ -23,7 +23,7 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
   const history = useChatStore.getState().history;
 
   const updatedHistory = history.map((msg) => {
-    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
+    if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
       // Ensure terminal exists before updating
       if (msg.content.terminal !== undefined) {
         return {
@@ -207,7 +207,7 @@ export function TerminalPanel({
 
             default:
               return (
-                <div className="flex items-center px-2 pb-2 pt-2.5">
+                <div className="flex items-center px-2 py-1">
                   <textarea
                     ref={textareaRef}
                     className="no-scrollbar min-h-[1.5rem] w-full resize-none overflow-hidden whitespace-pre-wrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"

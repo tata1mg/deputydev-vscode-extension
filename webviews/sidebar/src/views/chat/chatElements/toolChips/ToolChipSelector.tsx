@@ -1,4 +1,4 @@
-import { MCPToolProps } from '@/types';
+import { ToolProps } from '@/types';
 import React from 'react';
 import FilePathSearcherTool from './FilePathSearcherChip';
 import GrepSearchTool from './GrepSearchChip';
@@ -10,12 +10,14 @@ import AskUserInput from './AskUserInputChip';
 import { CreateNewWorkspace } from './CreateNewWorkspaceChip';
 import RelatedCodeSearcher from './RelatedCodeSearcherChip';
 import FocusedSnippetSearcher from './FocusedSnippetSearcherChip';
+import { TerminalPanel } from './TerminalPanel';
 
-const ToolChipSelector: React.FC<MCPToolProps> = ({
+const ToolChipSelector: React.FC<ToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
   toolRunStatus,
+  terminal,
 }) => {
   if (toolRequest?.toolName === 'ask_user_input') {
     return <AskUserInput input={toolRequest?.requestData} />;
@@ -81,6 +83,19 @@ const ToolChipSelector: React.FC<MCPToolProps> = ({
         status={toolRunStatus}
         tool_name={toolRequest.toolName}
         toolInputJson={toolRequest.requestData}
+      />
+    );
+  } else if (toolRequest?.toolName === 'execute_command') {
+    return (
+      <TerminalPanel
+        tool_id={toolUseId}
+        terminal_command={(toolRequest?.requestData as string) || ''}
+        status={toolRunStatus}
+        show_approval_options={terminal?.terminal_approval_required}
+        is_execa_process={terminal?.is_execa_process || false}
+        process_id={terminal?.process_id}
+        terminal_output={terminal?.terminal_output || ''}
+        exit_code={terminal?.exit_code}
       />
     );
   } else {

@@ -6,7 +6,6 @@ import { apiChat, apiStopChat, logToOutput, showErrorMessage } from '@/commandAp
 import {
   ActiveFileChatReferenceItem,
   AutocompleteOption,
-  BaseToolProps,
   ChatAssistantMessage,
   ChatCodeBlockMessage,
   ChatCompleteMessage,
@@ -21,6 +20,7 @@ import {
   ChatType,
   ChatUserMessage,
   S3Object,
+  ToolProps,
 } from '@/types';
 import pick from 'lodash/pick';
 import { useActiveFileStore } from './activeFileStore';
@@ -180,7 +180,7 @@ export const useChatStore = create(
               set((state) => {
                 const newHistory = [...state.history];
                 const lastMsg = newHistory[newHistory.length - 1];
-                if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
                   const toolMsg = lastMsg as ChatToolUseMessage;
                   newHistory[newHistory.length - 1] = {
                     ...toolMsg,
@@ -580,24 +580,6 @@ export const useChatStore = create(
                     break;
                   }
 
-                  case 'TERMINAL_NO_SHELL_INTEGRATION': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    set((state) => ({
-                      history: [
-                        ...state.history,
-                        {
-                          type: 'TERMINAL_NO_SHELL_INTEGRATION',
-                          actor: 'ASSISTANT',
-                        } as ChatTerminalNoShell,
-                      ],
-                    }));
-                    useSettingsStore.setState({
-                      disableShellIntegration: true,
-                    });
-                    break;
-                  }
-
                   case 'APPLY_DIFF_RESULT': {
                     const diffResultData = event.data as {
                       status: 'completed' | 'error';
@@ -615,7 +597,7 @@ export const useChatStore = create(
                           status,
                         };
                         return { history: newHistory };
-                      } else if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                      } else if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
                         const toolMsg = lastMsg as ChatToolUseMessage;
                         newHistory[newHistory.length - 1] = {
                           ...toolMsg,
@@ -635,138 +617,10 @@ export const useChatStore = create(
                     break;
                   }
 
-                  case 'TOOL_USE_REQUEST_START': {
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    const toolData = event.data as {
-                      tool_name: string;
-                      tool_use_id: string;
-                      write_mode: boolean;
-                    };
-
-                    // For normal tools, create a tool use message.
-                    const newToolMsg: ChatToolUseMessage = {
-                      type: 'TOOL_USE_REQUEST',
-                      content: {
-                        tool_name: toolData.tool_name || '',
-                        tool_use_id: toolData.tool_use_id || '',
-                        input_params_json: '',
-                        result_json: '',
-                        status: 'pending',
-                        write_mode: toolData.write_mode,
-                      },
-                    };
-                    set((state) => ({
-                      history: [...state.history, newToolMsg],
-                    }));
-                    break;
-                  }
-                  case 'TOOL_USE_REQUEST_DELTA': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    const { delta, tool_use_id, tool_name } = event.data as {
-                      tool_name: string;
-                      delta: string;
-                      tool_use_id: string;
-                    };
-                    switch (tool_name) {
-                      default:
-                        set((state) => {
-                          const newHistory = state.history.map((msg) => {
-                            if (msg.type === 'TOOL_USE_REQUEST') {
-                              const toolMsg = msg as ChatToolUseMessage;
-                              if (toolMsg.content.tool_use_id === tool_use_id) {
-                                return {
-                                  ...toolMsg,
-                                  content: {
-                                    ...toolMsg.content,
-                                    input_params_json: toolMsg.content.input_params_json + delta,
-                                  },
-                                };
-                              }
-                            }
-                            return msg;
-                          });
-                          return { history: newHistory };
-                        });
-                        break;
-                    }
-                    break;
-                  }
-                  case 'TOOL_USE_REQUEST_END': {
-                    const { tool_name, tool_use_id } = event.data as {
-                      tool_name: string;
-                      tool_use_id: string;
-                    };
-                    switch (tool_name) {
-                      default:
-                        set((state) => {
-                          const newHistory = state.history.map((msg) => {
-                            if (msg.type !== 'TOOL_USE_REQUEST') return msg;
-
-                            const toolMsg = msg as ChatToolUseMessage;
-
-                            if (toolMsg.content.tool_use_id === tool_use_id) {
-                              return {
-                                ...toolMsg,
-                                content: {
-                                  ...toolMsg.content,
-                                  status: 'pending' as const,
-                                },
-                              };
-                            }
-
-                            return msg;
-                          });
-
-                          return {
-                            history: newHistory,
-                            lastToolUseResponse:
-                              tool_name === 'ask_user_input'
-                                ? { tool_use_id, tool_name }
-                                : undefined,
-                          };
-                        });
-                        break;
-                    }
-                    break;
-                  }
-
-                  case 'TERMINAL_APPROVAL': {
-                    const terminalApprovalData = event.data as {
-                      tool_name: string;
-                      tool_use_id: string;
-                      terminal_approval_required: boolean;
-                    };
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
-                        if (msg.type === 'TOOL_USE_REQUEST') {
-                          const toolMsg = msg as ChatToolUseMessage;
-                          if (toolMsg.content.tool_use_id === terminalApprovalData.tool_use_id) {
-                            return {
-                              ...toolMsg,
-                              content: {
-                                ...toolMsg.content,
-                                // Correct: update terminal.terminal_approval_required here
-                                terminal: {
-                                  ...toolMsg.content.terminal,
-                                  terminal_approval_required:
-                                    terminalApprovalData.terminal_approval_required,
-                                },
-                              },
-                            };
-                          }
-                        }
-                        return msg;
-                      });
-                      return { history: newHistory };
-                    });
-                    break;
-                  }
-
                   case 'TOOL_CHIP_UPSERT': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
-                    const baseToolProps = event.data as BaseToolProps;
+                    const baseToolProps = event.data as ToolProps;
                     if (baseToolProps) {
                       const newToolMsg: ChatToolUseMessage = {
                         type: 'TOOL_CHIP_UPSERT',
@@ -817,6 +671,57 @@ export const useChatStore = create(
                     break;
                   }
 
+                  // Terminal Events
+                  case 'TERMINAL_NO_SHELL_INTEGRATION': {
+                    useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
+                    set((state) => ({
+                      history: [
+                        ...state.history,
+                        {
+                          type: 'TERMINAL_NO_SHELL_INTEGRATION',
+                          actor: 'ASSISTANT',
+                        } as ChatTerminalNoShell,
+                      ],
+                    }));
+                    useSettingsStore.setState({
+                      disableShellIntegration: true,
+                    });
+                    break;
+                  }
+
+                  case 'TERMINAL_APPROVAL': {
+                    const terminalApprovalData = event.data as {
+                      tool_name: string;
+                      tool_use_id: string;
+                      terminal_approval_required: boolean;
+                    };
+                    set((state) => {
+                      const newHistory = state.history.map((msg) => {
+                        if (msg.type === 'TOOL_CHIP_UPSERT') {
+                          const toolMsg = msg as ChatToolUseMessage;
+                          if (toolMsg.content.tool_use_id === terminalApprovalData.tool_use_id) {
+                            return {
+                              ...toolMsg,
+                              content: {
+                                ...toolMsg.content,
+                                // Correct: update terminal.terminal_approval_required here
+                                terminal: {
+                                  ...toolMsg.content.terminal,
+                                  terminal_approval_required:
+                                    terminalApprovalData.terminal_approval_required,
+                                },
+                              },
+                            };
+                          }
+                        }
+                        return msg;
+                      });
+                      return { history: newHistory };
+                    });
+                    break;
+                  }
+
                   case 'EXECA_TERMINAL_PROCESS_STARTED': {
                     const terminalData = event.data as {
                       tool_use_id: string;
@@ -828,7 +733,7 @@ export const useChatStore = create(
                     );
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === 'TOOL_USE_REQUEST') {
+                        if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
                             return {
@@ -850,6 +755,7 @@ export const useChatStore = create(
                     });
                     break;
                   }
+
                   case 'EXECA_TERMINAL_PROCESS_OUTPUT': {
                     const terminalData = event.data as {
                       tool_use_id: string;
@@ -857,7 +763,7 @@ export const useChatStore = create(
                     };
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === 'TOOL_USE_REQUEST') {
+                        if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
                             return {
@@ -888,7 +794,7 @@ export const useChatStore = create(
                     };
                     set((state) => {
                       const newHistory = state.history.map((msg) => {
-                        if (msg.type === 'TOOL_USE_REQUEST') {
+                        if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
                             return {

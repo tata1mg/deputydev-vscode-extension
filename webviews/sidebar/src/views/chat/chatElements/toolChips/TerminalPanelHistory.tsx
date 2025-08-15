@@ -1,4 +1,3 @@
-import { parse, Allow } from 'partial-json';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { TerminalIcon } from 'lucide-react';
 

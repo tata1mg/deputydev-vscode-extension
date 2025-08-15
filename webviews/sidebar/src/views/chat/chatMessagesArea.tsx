@@ -16,7 +16,6 @@ import { Shimmer } from '../../components/Shimmer';
 import ToolChipSelector from './chatElements/toolChips/ToolChipSelector';
 import { ThinkingChip } from './chatElements/toolChips/ThinkingChip';
 import { FileEditedChip } from './chatElements/toolChips/FileEditedChip';
-import { TerminalPanel } from './chatElements/toolChips/TerminalPanel';
 import ErrorChipSelector from './chatElements/errorChips/ErrorChipSelector';
 import { TerminalNoShellIntegration } from './chatElements/toolChips/TerminalNoShellIntegrationChip';
 
@@ -123,7 +122,7 @@ export function ChatArea() {
           case 'THINKING':
             return (
               <div key={index}>
-                <ThinkingChip status={msg.status} />
+                <ThinkingChip status={msg.status} thinkingText={msg.text} />
               </div>
             );
 
@@ -155,6 +154,7 @@ export function ChatArea() {
                   toolResponse={msg.content.toolResponse}
                   toolUseId={msg.content.tool_use_id}
                   toolRunStatus={msg.content.status}
+                  terminal={msg.content.terminal}
                 />
               </div>
             );
@@ -165,21 +165,6 @@ export function ChatArea() {
             let contentComponent: JSX.Element;
 
             switch (msg.content.tool_name) {
-              case 'execute_command':
-                contentComponent = (
-                  <TerminalPanel
-                    tool_id={msg.content.tool_use_id}
-                    terminal_command={(msg.content.input_params_json as string) || ''}
-                    status={msg.content.status}
-                    show_approval_options={msg.content.terminal?.terminal_approval_required}
-                    is_execa_process={msg.content.terminal?.is_execa_process || false}
-                    process_id={msg.content.terminal?.process_id}
-                    terminal_output={msg.content.terminal?.terminal_output || ''}
-                    exit_code={msg.content.terminal?.exit_code}
-                  />
-                );
-                break;
-
               case 'replace_in_file': {
                 contentComponent = (
                   <div key={index}>

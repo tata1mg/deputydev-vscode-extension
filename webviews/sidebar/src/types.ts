@@ -157,7 +157,7 @@ export interface TerminalPanelProps {
   tool_id: string;
   terminal_command: string;
   terminal_output?: string;
-  status?: 'pending' | 'completed' | 'error' | 'aborted';
+  status?: ToolRunStatus;
   show_approval_options?: boolean;
   is_execa_process?: boolean;
   process_id?: number;
@@ -375,19 +375,13 @@ export interface ToolRequest {
   requiresApproval: boolean;
 }
 
-export interface BaseToolProps {
+export interface ToolProps {
   toolRunStatus: ToolRunStatus;
   toolRequest?: ToolRequest | null;
   toolResponse?: any;
   toolUseId: string;
-  displayText: string;
-}
-
-export interface MCPToolProps {
-  toolRunStatus: ToolRunStatus;
-  toolRequest?: ToolRequest | null;
-  toolResponse?: any;
-  toolUseId: string;
+  displayText?: string;
+  terminal?: TerminalProcess;
 }
 
 export interface ThinkingChipProps {

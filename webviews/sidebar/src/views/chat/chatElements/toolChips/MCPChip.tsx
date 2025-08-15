@@ -1,13 +1,8 @@
-import { MCPToolProps } from '@/types';
-import BaseTool from './BaseTools';
+import { ToolProps } from '@/types';
+import ChipBase from './ChipBase';
 import React from 'react';
 
-const MCPTool: React.FC<MCPToolProps> = ({
-  toolRequest,
-  toolResponse,
-  toolUseId,
-  toolRunStatus,
-}) => {
+const MCPTool: React.FC<ToolProps> = ({ toolRequest, toolResponse, toolUseId, toolRunStatus }) => {
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
@@ -22,7 +17,7 @@ const MCPTool: React.FC<MCPToolProps> = ({
   }
 
   return (
-    <BaseTool
+    <ChipBase
       toolRunStatus={toolRunStatus}
       toolRequest={toolRequest}
       toolUseId={toolUseId}
