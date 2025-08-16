@@ -11,6 +11,7 @@ import { CreateNewWorkspace } from './CreateNewWorkspaceChip';
 import RelatedCodeSearcher from './RelatedCodeSearcherChip';
 import FocusedSnippetSearcher from './FocusedSnippetSearcherChip';
 import { TerminalPanel } from './TerminalPanel';
+import { FileEditedChip } from './FileEditedChip';
 
 const ToolChipSelector: React.FC<ToolProps> = ({
   toolRequest,
@@ -18,6 +19,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   toolUseId,
   toolRunStatus,
   terminal,
+  diff,
 }) => {
   if (toolRequest?.toolName === 'ask_user_input') {
     return <AskUserInput input={toolRequest?.requestData} />;
@@ -96,6 +98,21 @@ const ToolChipSelector: React.FC<ToolProps> = ({
         process_id={terminal?.process_id}
         terminal_output={terminal?.terminal_output || ''}
         exit_code={terminal?.exit_code}
+      />
+    );
+  } else if (
+    toolRequest?.toolName === 'replace_in_file' ||
+    toolRequest?.toolName === 'write_to_file'
+  ) {
+    return (
+      <FileEditedChip
+        isToolUse={true}
+        isWriteToFileTool={toolRequest?.toolName === 'write_to_file'}
+        content={toolRequest?.requestData as string}
+        status={toolRunStatus}
+        addedLines={diff?.addedLines}
+        removedLines={diff?.removedLines}
+        isStreaming={true}
       />
     );
   } else {

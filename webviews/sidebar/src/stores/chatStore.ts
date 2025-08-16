@@ -288,6 +288,8 @@ export const useChatStore = create(
                     logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
                     break;
                   }
+
+                  // Text Block Events
                   case 'TEXT_START': {
                     // Initialize a new current message with the desired structure
                     set((state) => ({
@@ -338,6 +340,7 @@ export const useChatStore = create(
                     break;
                   }
 
+                  // Thinking Events
                   case 'THINKING_BLOCK_START': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
@@ -396,6 +399,7 @@ export const useChatStore = create(
                     break;
                   }
 
+                  // Code Block Events
                   case 'CODE_BLOCK_START': {
                     useChatStore.setState({ showGeneratingEffect: false });
                     const codeData = event.data as {
@@ -470,116 +474,6 @@ export const useChatStore = create(
                     break;
                   }
 
-                  case 'REPLACE_IN_FILE_BLOCK_START': {
-                    const replaceInFileData = event.data as {
-                      filepath?: string;
-                    };
-
-                    const replaceInFileMsg: ChatReplaceBlockMessage = {
-                      type: 'REPLACE_IN_FILE_BLOCK_STREAMING',
-                      content: {
-                        filepath: replaceInFileData.filepath,
-                        diff: '',
-                        is_live_chat: true,
-                      },
-                      completed: false,
-                      actor: 'ASSISTANT',
-                      write_mode: useChatSettingStore.getState().chatType === 'write',
-                      status: 'pending',
-                    };
-
-                    set((state) => ({
-                      history: [...state.history, replaceInFileMsg],
-                    }));
-
-                    break;
-                  }
-
-                  case 'REPLACE_IN_FILE_BLOCK_DELTA': {
-                    useChatStore.setState({ showSkeleton: false });
-                    const replaceInFileData = event.data as { replace_delta?: string };
-                    const replaceDelta = replaceInFileData.replace_delta || '';
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
-                      if (lastMsg?.type === 'REPLACE_IN_FILE_BLOCK_STREAMING') {
-                        lastMsg.content.diff += replaceDelta; // Update the code inside content
-                      }
-
-                      return { history: newHistory };
-                    });
-                    break;
-                  }
-
-                  case 'REPLACE_IN_FILE_BLOCK_END': {
-                    const replaceInFileData = event.data as {
-                      diff: string;
-                      filepath: string | null;
-                    };
-                    logToOutput('info', `code end data ${replaceInFileData.diff}`);
-
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
-                      if (lastMsg?.type === 'REPLACE_IN_FILE_BLOCK_STREAMING') {
-                        // ✅ Update diff info
-                        lastMsg.content.diff = replaceInFileData.diff;
-                        lastMsg.completed = true;
-                      }
-
-                      return { history: newHistory };
-                    });
-
-                    break;
-                  }
-
-                  case 'TASK_COMPLETION': {
-                    const taskCompletionData = event.data as {
-                      query_id: number;
-                      success: boolean;
-                      summary?: string;
-                    };
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-
-                    const { history } = useChatStore.getState();
-                    const latestUserMessage = [...history]
-                      .reverse()
-                      .find((msg) => msg.type === 'TEXT_BLOCK' && msg.actor === 'USER');
-
-                    let elapsedTime: any;
-                    if (
-                      latestUserMessage &&
-                      latestUserMessage.lastMessageSentTime !== null &&
-                      latestUserMessage.lastMessageSentTime !== undefined
-                    ) {
-                      elapsedTime =
-                        new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
-                    }
-
-                    set((state) => ({
-                      history: [
-                        ...state.history,
-                        {
-                          type: 'TASK_COMPLETION',
-                          actor: 'ASSISTANT',
-                          content: {
-                            elapsedTime,
-                            feedbackState: '',
-                            queryId: taskCompletionData.query_id,
-                            success: taskCompletionData.success,
-                            summary: taskCompletionData.summary,
-                          },
-                        } as ChatCompleteMessage,
-                      ],
-                    }));
-
-                    logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
-                    break;
-                  }
-
                   case 'APPLY_DIFF_RESULT': {
                     const diffResultData = event.data as {
                       status: 'completed' | 'error';
@@ -617,6 +511,7 @@ export const useChatStore = create(
                     break;
                   }
 
+                  // Tool Events
                   case 'TOOL_CHIP_UPSERT': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
@@ -668,6 +563,11 @@ export const useChatStore = create(
                         }
                       });
                     }
+                    break;
+                  }
+
+                  case 'MALFORMED_TOOL_USE_REQUEST': {
+                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
@@ -817,11 +717,7 @@ export const useChatStore = create(
                     break;
                   }
 
-                  case 'MALFORMED_TOOL_USE_REQUEST': {
-                    useChatStore.setState({ showGeneratingEffect: true });
-                    break;
-                  }
-
+                  // Error Events
                   case 'error': {
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
@@ -942,6 +838,52 @@ export const useChatStore = create(
                     });
 
                     set({ isLoading: false, currentChatRequest: undefined });
+                    break;
+                  }
+
+                  // Task Events
+                  case 'TASK_COMPLETION': {
+                    const taskCompletionData = event.data as {
+                      query_id: number;
+                      success: boolean;
+                      summary?: string;
+                    };
+                    useChatStore.setState({ showSkeleton: false });
+                    useChatStore.setState({ showGeneratingEffect: false });
+
+                    const { history } = useChatStore.getState();
+                    const latestUserMessage = [...history]
+                      .reverse()
+                      .find((msg) => msg.type === 'TEXT_BLOCK' && msg.actor === 'USER');
+
+                    let elapsedTime: any;
+                    if (
+                      latestUserMessage &&
+                      latestUserMessage.lastMessageSentTime !== null &&
+                      latestUserMessage.lastMessageSentTime !== undefined
+                    ) {
+                      elapsedTime =
+                        new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
+                    }
+
+                    set((state) => ({
+                      history: [
+                        ...state.history,
+                        {
+                          type: 'TASK_COMPLETION',
+                          actor: 'ASSISTANT',
+                          content: {
+                            elapsedTime,
+                            feedbackState: '',
+                            queryId: taskCompletionData.query_id,
+                            success: taskCompletionData.success,
+                            summary: taskCompletionData.summary,
+                          },
+                        } as ChatCompleteMessage,
+                      ],
+                    }));
+
+                    logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
                     break;
                   }
 
