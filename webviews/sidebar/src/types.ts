@@ -382,6 +382,7 @@ export interface ToolProps {
   toolUseId: string;
   displayText?: string;
   terminal?: TerminalProcess;
+  diff?: { addedLines: number | undefined; removedLines: number | undefined };
 }
 
 export interface ThinkingChipProps {

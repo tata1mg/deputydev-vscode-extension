@@ -155,6 +155,10 @@ export function ChatArea() {
                   toolUseId={msg.content.tool_use_id}
                   toolRunStatus={msg.content.status}
                   terminal={msg.content.terminal}
+                  diff={{
+                    addedLines: msg.content.diff?.addedLines,
+                    removedLines: msg.content.diff?.removedLines,
+                  }}
                 />
               </div>
             );
