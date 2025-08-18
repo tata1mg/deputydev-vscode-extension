@@ -17,8 +17,6 @@ const AskUserInput: React.FC<AskUserInputProps> = ({ input }) => {
     // If parsing fails, just show raw input as-it-is
   }
 
-  console.log(promptText);
-
   return (
     <div
       className={`markdown-body text-base ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''}`}

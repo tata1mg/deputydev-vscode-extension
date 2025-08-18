@@ -165,19 +165,14 @@ export interface TerminalPanelProps {
 }
 
 export interface ChatToolUseMessage {
-  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK' | 'TOOL_CHIP_UPSERT';
+  type: 'TOOL_CHIP_UPSERT';
   content: {
     tool_name: string;
     tool_use_id: string;
-    input_params_json: string;
-    tool_input_json?: { prompt: string } | string;
-    result_json: string;
-    status: 'pending' | 'completed' | 'error' | 'aborted';
-    write_mode?: boolean;
-    terminal?: TerminalProcess;
-    diff?: { addedLines: number; removedLines: number };
+    status: ToolRunStatus;
     toolRequest?: any;
     toolResponse?: any;
+    toolStateMetaData?: { terminal: TerminalProcess };
   };
 }
 export interface TerminalProcess {
@@ -382,7 +377,6 @@ export interface ToolProps {
   toolUseId: string;
   displayText?: string;
   terminal?: TerminalProcess;
-  diff?: { addedLines: number | undefined; removedLines: number | undefined };
 }
 
 export interface ThinkingChipProps {

@@ -187,12 +187,15 @@ export const useChatStore = create(
                     content: {
                       ...toolMsg.content,
                       status: 'aborted',
-                      terminal: {
-                        ...toolMsg.content.terminal,
-                        terminal_approval_required:
-                          toolMsg.content.tool_name === 'execute_command'
-                            ? false
-                            : toolMsg.content.terminal?.terminal_approval_required,
+                      toolStateMetaData: {
+                        terminal: {
+                          ...toolMsg.content.toolStateMetaData?.terminal,
+                          terminal_approval_required:
+                            toolMsg.content.tool_name === 'execute_command'
+                              ? false
+                              : toolMsg.content.toolStateMetaData?.terminal
+                                  ?.terminal_approval_required,
+                        },
                       },
                     },
                   };
@@ -497,7 +500,8 @@ export const useChatStore = create(
                           ...toolMsg,
                           content: {
                             ...toolMsg.content,
-                            diff: {
+                            toolResponse: {
+                              ...toolMsg.content.toolResponse,
                               addedLines: diffResultData.addedLines,
                               removedLines: diffResultData.removedLines,
                             },
@@ -522,9 +526,7 @@ export const useChatStore = create(
                         content: {
                           tool_name: baseToolProps.toolRequest?.toolName || '',
                           tool_use_id: baseToolProps.toolUseId,
-                          input_params_json: '',
-                          result_json: '',
-                          status: 'pending',
+                          status: baseToolProps.toolRunStatus || 'pending',
                           toolRequest: baseToolProps.toolRequest,
                         },
                       };
@@ -606,10 +608,13 @@ export const useChatStore = create(
                               content: {
                                 ...toolMsg.content,
                                 // Correct: update terminal.terminal_approval_required here
-                                terminal: {
-                                  ...toolMsg.content.terminal,
-                                  terminal_approval_required:
-                                    terminalApprovalData.terminal_approval_required,
+                                toolStateMetaData: {
+                                  ...toolMsg.content.toolStateMetaData,
+                                  terminal: {
+                                    ...toolMsg.content.toolStateMetaData?.terminal,
+                                    terminal_approval_required:
+                                      terminalApprovalData.terminal_approval_required,
+                                  },
                                 },
                               },
                             };
@@ -640,10 +645,13 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                terminal: {
-                                  ...toolMsg.content.terminal,
-                                  process_id: terminalData.process_id,
-                                  is_execa_process: true,
+                                toolStateMetaData: {
+                                  ...toolMsg.content.toolStateMetaData,
+                                  terminal: {
+                                    ...toolMsg.content.toolStateMetaData?.terminal,
+                                    process_id: terminalData.process_id,
+                                    is_execa_process: true,
+                                  },
                                 },
                               },
                             };
@@ -670,11 +678,14 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                terminal: {
-                                  ...toolMsg.content.terminal,
-                                  terminal_output:
-                                    (toolMsg.content.terminal?.terminal_output || '') +
-                                    terminalData.output_lines,
+                                toolStateMetaData: {
+                                  ...toolMsg.content.toolStateMetaData,
+                                  terminal: {
+                                    ...toolMsg.content.toolStateMetaData?.terminal,
+                                    terminal_output:
+                                      (toolMsg.content.toolStateMetaData?.terminal
+                                        ?.terminal_output || '') + terminalData.output_lines,
+                                  },
                                 },
                               },
                             };
@@ -701,9 +712,12 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                terminal: {
-                                  ...toolMsg.content.terminal,
-                                  exit_code: terminalData.exit_code,
+                                toolStateMetaData: {
+                                  ...toolMsg.content.toolStateMetaData,
+                                  terminal: {
+                                    ...toolMsg.content.toolStateMetaData?.terminal,
+                                    exit_code: terminalData.exit_code,
+                                  },
                                 },
                               },
                             };
@@ -753,20 +767,24 @@ export const useChatStore = create(
                       const newHistory = [...state.history];
                       const lastMsg = newHistory[newHistory.length - 1];
 
-                      // Update TOOL_USE_REQUEST
-                      if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+                      // Update TOOL_CHIP_UPSERT message status to 'error' if it exists
+                      if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
                         const toolMsg = lastMsg as ChatToolUseMessage;
                         newHistory[newHistory.length - 1] = {
                           ...toolMsg,
                           content: {
                             ...toolMsg.content,
                             status: 'error',
-                            terminal: {
-                              ...toolMsg.content.terminal,
-                              terminal_approval_required:
-                                toolMsg.content.tool_name === 'execute_command'
-                                  ? false
-                                  : toolMsg.content.terminal?.terminal_approval_required,
+                            toolStateMetaData: {
+                              ...toolMsg.content.toolStateMetaData,
+                              terminal: {
+                                ...toolMsg.content.toolStateMetaData?.terminal,
+                                terminal_approval_required:
+                                  toolMsg.content.tool_name === 'execute_command'
+                                    ? false
+                                    : toolMsg.content.toolStateMetaData?.terminal
+                                        ?.terminal_approval_required,
+                              },
                             },
                           },
                         };
@@ -924,19 +942,23 @@ export const useChatStore = create(
                   },
                 };
               }
-              if (lastMsg?.type === 'TOOL_USE_REQUEST') {
+              if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
                 const toolMsg = lastMsg as ChatToolUseMessage;
                 newHistory[newHistory.length - 1] = {
                   ...toolMsg,
                   content: {
                     ...toolMsg.content,
                     status: 'aborted',
-                    terminal: {
-                      ...toolMsg.content.terminal,
-                      terminal_approval_required:
-                        toolMsg.content.tool_name === 'execute_command'
-                          ? false
-                          : toolMsg.content.terminal?.terminal_approval_required,
+                    toolStateMetaData: {
+                      ...toolMsg.content.toolStateMetaData,
+                      terminal: {
+                        ...toolMsg.content.toolStateMetaData?.terminal,
+                        terminal_approval_required:
+                          toolMsg.content.tool_name === 'execute_command'
+                            ? false
+                            : toolMsg.content.toolStateMetaData?.terminal
+                                ?.terminal_approval_required,
+                      },
                     },
                   },
                 };

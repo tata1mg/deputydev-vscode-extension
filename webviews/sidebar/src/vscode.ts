@@ -581,7 +581,7 @@ addCommandEventListener('update-workspace-tool-status', ({ data }) => {
   const currentHistory = useChatStore.getState().history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
-    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
+    if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
       return {
         ...msg,
         content: {
@@ -614,11 +614,11 @@ addCommandEventListener('update-workspace-dd', () => {
       .reverse()
       .find(
         (msg) =>
-          msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
+          msg.type === 'TOOL_CHIP_UPSERT' && msg.content?.tool_name === 'create_new_workspace'
       ) as ChatToolUseMessage;
 
     if (!lastToolMessage) {
-      logToOutput('error', 'No TOOL_USE_REQUEST message found for creating a new workspace.');
+      logToOutput('error', 'No TOOL_CHIP_UPSERT message found for creating a new workspace.');
       return;
     }
     const newRepoPath = useWorkspaceStore.getState().activeRepo;
@@ -772,17 +772,17 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
   const history = useChatStore.getState().history;
 
   const updatedHistory = history.map((msg) => {
-    if (
-      (msg.type === 'TOOL_USE_REQUEST' || msg.type === 'TOOL_USE_REQUEST_BLOCK') &&
-      msg.content.tool_use_id === toolUseId
-    ) {
+    if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === toolUseId) {
       return {
         ...msg,
         content: {
           ...msg.content,
-          terminal: {
-            ...msg.content.terminal,
-            exit_code: exitCode,
+          toolStateMetaData: {
+            ...msg.content.toolStateMetaData,
+            terminal: {
+              ...msg.content.toolStateMetaData?.terminal,
+              exit_code: exitCode,
+            },
           },
         },
       };

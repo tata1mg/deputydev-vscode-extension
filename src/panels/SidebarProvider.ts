@@ -847,11 +847,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   }
 
   async getSessionChats(sessionData: { sessionId: number }) {
-    const response: any[] = [];
+    let response: any[] = [];
     try {
-      const sessionResponse = await this.historyService.getPastSessionChats(sessionData.sessionId);
+      response = await this.historyService.getPastSessionChats(sessionData.sessionId);
       setSessionId(sessionData.sessionId);
-      return sessionResponse;
+      return response;
     } catch {
       return response;
     }

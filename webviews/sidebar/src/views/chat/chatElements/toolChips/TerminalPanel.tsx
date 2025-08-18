@@ -25,14 +25,17 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
   const updatedHistory = history.map((msg) => {
     if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
       // Ensure terminal exists before updating
-      if (msg.content.terminal !== undefined) {
+      if (msg.content.toolStateMetaData?.terminal !== undefined) {
         return {
           ...msg,
           content: {
             ...msg.content,
-            terminal: {
-              ...msg.content.terminal,
-              terminal_approval_required: required,
+            toolStateMetaData: {
+              ...msg.content.toolStateMetaData,
+              terminal: {
+                ...msg.content.toolStateMetaData.terminal,
+                terminal_approval_required: required,
+              },
             },
           },
         };

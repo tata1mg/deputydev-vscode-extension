@@ -37,7 +37,7 @@ export class WriteToFileTool {
     this.sidebarProvider = sidebarProvider;
   }
 
-  public async applyDiff(args: ApplyDiffArgs): Promise<string> {
+  public async applyDiff(args: ApplyDiffArgs): Promise<any> {
     const { parsedContent, chunkCallback, toolRequest, messageId } = args;
     const activeRepo = getActiveRepo() || '';
     const sessionId = getSessionId();
@@ -91,7 +91,12 @@ export class WriteToFileTool {
           data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
         },
       });
-      return 'successfully written the file, please continue with the next steps';
+      return {
+        llmNextStep: 'successfully written the file, please continue with the next steps',
+        status: 'completed',
+        addedLines: addedLines,
+        removedLines: removedLines,
+      };
     } catch (error) {
       const enhancedErrorMessage = `Failed to write file.\n${(error as Error).message}`;
       this.logger.error(`Error applying diff: ${enhancedErrorMessage}`);
