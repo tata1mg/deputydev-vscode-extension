@@ -19,7 +19,6 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   toolUseId,
   toolRunStatus,
   terminal,
-  diff,
 }) => {
   if (toolRequest?.toolName === 'ask_user_input') {
     return <AskUserInput input={toolRequest?.requestData} />;
@@ -110,8 +109,8 @@ const ToolChipSelector: React.FC<ToolProps> = ({
         isWriteToFileTool={toolRequest?.toolName === 'write_to_file'}
         content={toolRequest?.requestData as string}
         status={toolRunStatus}
-        addedLines={diff?.addedLines}
-        removedLines={diff?.removedLines}
+        addedLines={toolResponse?.addedLines}
+        removedLines={toolResponse?.removedLines}
         isStreaming={true}
       />
     );

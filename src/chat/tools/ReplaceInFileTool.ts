@@ -38,7 +38,7 @@ export class ReplaceInFile {
     this.sidebarProvider = sidebarProvider;
   }
 
-  public async applyDiff(args: ApplyDiffArgs): Promise<string> {
+  public async applyDiff(args: ApplyDiffArgs): Promise<any> {
     const { parsedContent, chunkCallback, toolRequest, messageId } = args;
     const activeRepo = getActiveRepo() ?? '';
     const sessionId = getSessionId();
@@ -90,7 +90,12 @@ export class ReplaceInFile {
           data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
         },
       });
-      return 'successfully modified the file, please continue with the next steps';
+      return {
+        llmNextStep: 'successfully modified the file, please continue with the next steps',
+        status: 'completed',
+        addedLines: addedLines,
+        removedLines: removedLines,
+      };
     } catch (error) {
       if (sessionId) {
         this.usageTrackingManager.trackUsage({

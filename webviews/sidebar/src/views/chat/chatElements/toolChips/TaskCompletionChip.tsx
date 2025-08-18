@@ -14,21 +14,18 @@ export const TaskCompletionChip: React.FC<TaskCompletionChipProps> = ({ index, m
   const { elapsedTime, feedbackState: feedback, queryId, success } = msg.content;
   let statusText = '';
   let statusColor = '';
-  let showTime = false;
 
   if (success === false) {
     statusText = 'Task Failed';
     statusColor = 'text-red-500';
-    showTime = false;
   } else {
     statusColor = 'text-green-500';
-    showTime = true;
     if (elapsedTime != null) {
       const totalSeconds = Math.floor(elapsedTime / 1000);
       if (totalSeconds >= 60) {
         const min = Math.floor(totalSeconds / 60);
         const sec = totalSeconds % 60;
-        statusText = `Task Completed in ${min} min${sec > 0 ? ` ${sec} sec` : ''}.`;
+        statusText = `Task Completed in ${min} min${sec > 0 ? `${sec} sec` : ''}.`;
       } else {
         statusText = `Task Completed in ${totalSeconds} sec.`;
       }

@@ -154,145 +154,96 @@ export function ChatArea() {
                   toolResponse={msg.content.toolResponse}
                   toolUseId={msg.content.tool_use_id}
                   toolRunStatus={msg.content.status}
-                  terminal={msg.content.terminal}
-                  diff={{
-                    addedLines: msg.content.diff?.addedLines,
-                    removedLines: msg.content.diff?.removedLines,
-                  }}
+                  terminal={msg.content.toolStateMetaData?.terminal}
                 />
               </div>
             );
             return contentComponent;
           }
 
-          case 'TOOL_USE_REQUEST': {
-            let contentComponent: JSX.Element;
+          // case 'TOOL_USE_REQUEST_BLOCK': {
+          //   let contentComponent: JSX.Element | null = null;
 
-            switch (msg.content.tool_name) {
-              case 'replace_in_file': {
-                contentComponent = (
-                  <div key={index}>
-                    <FileEditedChip
-                      isToolUse={true}
-                      isWriteToFileTool={false}
-                      content={msg.content.input_params_json as string}
-                      status={msg.content.status}
-                      addedLines={msg.content.diff?.addedLines}
-                      removedLines={msg.content.diff?.removedLines}
-                      isStreaming={true}
-                    />
-                  </div>
-                );
-                break;
-              }
-              case 'write_to_file': {
-                contentComponent = (
-                  <div key={index}>
-                    <FileEditedChip
-                      isToolUse={true}
-                      isWriteToFileTool={true}
-                      content={msg.content.input_params_json as string}
-                      status={msg.content.status}
-                      addedLines={msg.content.diff?.addedLines}
-                      removedLines={msg.content.diff?.removedLines}
-                      isStreaming={true}
-                    />
-                  </div>
-                );
-                break;
-              }
+          //   switch (msg.content.tool_name) {
+          //     case 'ask_user_input':
+          //       contentComponent = (
+          //         <div
+          //           key={index}
+          //           className={`markdown-body ${
+          //             ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
+          //           }`}
+          //         >
+          //           <Markdown>
+          //             {typeof msg.content.tool_input_json === 'object' &&
+          //             msg.content.tool_input_json?.prompt
+          //               ? String(msg.content.tool_input_json.prompt)
+          //               : typeof msg.content.tool_input_json === 'string'
+          //                 ? msg.content.tool_input_json
+          //                 : 'Awaiting input...'}
+          //           </Markdown>
+          //         </div>
+          //       );
+          //       break;
 
-              default:
-                contentComponent = <></>;
-                break;
-            }
+          //     case 'replace_in_file': {
+          //       const isStreaming = false;
+          //       const inputParams = msg.content.tool_input_json as unknown as {
+          //         path: string;
+          //         diff: any;
+          //       };
+          //       contentComponent = (
+          //         <FileEditedChip
+          //           key={index}
+          //           isToolUse={true}
+          //           isWriteToFileTool={false}
+          //           content={JSON.stringify(inputParams)}
+          //           status={isStreaming ? msg.content.status : 'idle'}
+          //           addedLines={msg.content.diff?.addedLines}
+          //           removedLines={msg.content.diff?.removedLines}
+          //           isStreaming={isStreaming}
+          //         />
+          //       );
+          //       break;
+          //     }
+          //     case 'execute_command': {
+          //       const inputParams = msg.content.tool_input_json as unknown as {
+          //         command: string;
+          //         is_long_running: boolean;
+          //         terminal_approval_required: boolean;
+          //       };
+          //       contentComponent = (
+          //         <TerminalPanelHistory
+          //           tool_id={msg.content.tool_use_id}
+          //           terminal_command={inputParams.command}
+          //           status={msg.content.status || 'history'}
+          //         />
+          //       );
+          //       break;
+          //     }
+          //     case 'write_to_file': {
+          //       const isStreaming = false;
+          //       const inputParams = msg.content.tool_input_json as unknown as {
+          //         path: string;
+          //         diff: any;
+          //       };
+          //       contentComponent = (
+          //         <FileEditedChip
+          //           key={index}
+          //           isToolUse={true}
+          //           isWriteToFileTool={true}
+          //           content={JSON.stringify(inputParams)}
+          //           status={isStreaming ? msg.content.status : 'idle'}
+          //           addedLines={msg.content.diff?.addedLines}
+          //           removedLines={msg.content.diff?.removedLines}
+          //           isStreaming={isStreaming}
+          //         />
+          //       );
+          //       break;
+          //     }
+          //   }
 
-            return <div key={index}>{contentComponent}</div>;
-          }
-
-          case 'TOOL_USE_REQUEST_BLOCK': {
-            let contentComponent: JSX.Element | null = null;
-
-            switch (msg.content.tool_name) {
-              case 'ask_user_input':
-                contentComponent = (
-                  <div
-                    key={index}
-                    className={`markdown-body ${
-                      ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
-                    }`}
-                  >
-                    <Markdown>
-                      {typeof msg.content.tool_input_json === 'object' &&
-                      msg.content.tool_input_json?.prompt
-                        ? String(msg.content.tool_input_json.prompt)
-                        : typeof msg.content.tool_input_json === 'string'
-                          ? msg.content.tool_input_json
-                          : 'Awaiting input...'}
-                    </Markdown>
-                  </div>
-                );
-                break;
-
-              case 'replace_in_file': {
-                const isStreaming = false;
-                const inputParams = msg.content.tool_input_json as unknown as {
-                  path: string;
-                  diff: any;
-                };
-                contentComponent = (
-                  <FileEditedChip
-                    key={index}
-                    isToolUse={true}
-                    isWriteToFileTool={false}
-                    content={JSON.stringify(inputParams)}
-                    status={isStreaming ? msg.content.status : 'idle'}
-                    addedLines={msg.content.diff?.addedLines}
-                    removedLines={msg.content.diff?.removedLines}
-                    isStreaming={isStreaming}
-                  />
-                );
-                break;
-              }
-              case 'execute_command': {
-                const inputParams = msg.content.tool_input_json as unknown as {
-                  command: string;
-                  is_long_running: boolean;
-                  terminal_approval_required: boolean;
-                };
-                contentComponent = (
-                  <TerminalPanelHistory
-                    tool_id={msg.content.tool_use_id}
-                    terminal_command={inputParams.command}
-                    status={msg.content.status || 'history'}
-                  />
-                );
-                break;
-              }
-              case 'write_to_file': {
-                const isStreaming = false;
-                const inputParams = msg.content.tool_input_json as unknown as {
-                  path: string;
-                  diff: any;
-                };
-                contentComponent = (
-                  <FileEditedChip
-                    key={index}
-                    isToolUse={true}
-                    isWriteToFileTool={true}
-                    content={JSON.stringify(inputParams)}
-                    status={isStreaming ? msg.content.status : 'idle'}
-                    addedLines={msg.content.diff?.addedLines}
-                    removedLines={msg.content.diff?.removedLines}
-                    isStreaming={isStreaming}
-                  />
-                );
-                break;
-              }
-            }
-
-            return contentComponent;
-          }
+          //   return contentComponent;
+          // }
 
           case 'TERMINAL_NO_SHELL_INTEGRATION': {
             return (
