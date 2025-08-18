@@ -9,7 +9,7 @@ import { useThemeStore } from '@/stores/useThemeStore';
 import { TerminalPanelProps } from '@/types';
 import { LoaderCircle, Skull, TerminalIcon } from 'lucide-react';
 import { Allow, parse } from 'partial-json';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SnippetReference } from './CodeBlockStyle';
 
 /**
@@ -91,6 +91,17 @@ export function TerminalPanel({
   //     updateTerminalApproval(tool_id, false);
   //   }
   // }, [status, tool_id]);
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow effect
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto'; // Reset height
+      textarea.style.height = `${Math.max(textarea.scrollHeight, 24)}px`;
+    }
+  }, [commandState]); // Re-run when command changes
 
   useEffect(() => {
     if (!(isEditingApiCall || (isStreaming && !commandState))) {
@@ -198,7 +209,8 @@ export function TerminalPanel({
               return (
                 <div className="flex items-center px-2 pb-2 pt-2.5">
                   <textarea
-                    className="no-scrollbar h-6 w-full resize-none overflow-x-auto overflow-y-hidden whitespace-nowrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"
+                    ref={textareaRef}
+                    className="no-scrollbar min-h-[1.5rem] w-full resize-none overflow-hidden whitespace-pre-wrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"
                     value={commandState}
                     disabled={status === 'completed' || status === 'aborted'}
                     onChange={(e) => setCommandState(e.target.value)}
@@ -262,12 +274,14 @@ export function TerminalPanel({
                 <>
                   {process_id && (
                     <>
-                      <span className="size-2 rounded-full bg-green-500" />
-                      <span className="text-[--vscode-descriptionForeground]">
-                        Process ID: {process_id}
+                      <span className="size-2 shrink-0 rounded-full bg-green-500" />
+                      <span className="max-w-[120px] overflow-hidden truncate text-ellipsis whitespace-nowrap text-[--vscode-descriptionForeground]">
+                        <span className="hidden pr-1 sm:inline">Process ID:</span>
+                        {process_id}
                       </span>
                     </>
                   )}
+
                   <button
                     onClick={handleKillProcess}
                     data-tooltip-id="kill-tooltip"

@@ -291,7 +291,7 @@ export function webviewInitialized() {
   return callCommand('webview-initialized', {});
 }
 
-export function submitFeedback(feedback: string, queryId: number) {
+export function submitFeedback(feedback: 'UPVOTE' | 'DOWNVOTE', queryId: number) {
   return callCommand('submit-feedback', { feedback, queryId });
 }
 

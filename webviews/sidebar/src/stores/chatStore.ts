@@ -20,14 +20,13 @@ import {
   ChatToolUseMessage,
   ChatType,
   ChatUserMessage,
-  LLMModels,
   S3Object,
 } from '@/types';
 import pick from 'lodash/pick';
-import { persistGlobalStorage, persistStorage } from './lib';
-import { useSettingsStore } from './settingsStore';
-import { useIndexingStore } from './indexingDataStore';
 import { useActiveFileStore } from './activeFileStore';
+import { persistGlobalStorage, persistStorage } from './lib';
+import { useLLMModelStore } from './llmModelStore';
+import { useSettingsStore } from './settingsStore';
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -94,9 +93,7 @@ export const useChatStore = create(
         selectedOptionIndex: -1,
         enhancingUserQuery: false,
         enhancedUserQuery: '',
-        llmModels: [] as LLMModels[],
         webSearchInToolUse: false,
-        activeModel: '',
         search_web: false,
         imageUploadProgress: 0,
         s3Objects: [] as S3Object[],
@@ -238,7 +235,7 @@ export const useChatStore = create(
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
-                llm_model: useChatSettingStore.getState().activeModel,
+                llm_model: useLLMModelStore.getState().activeModel,
                 query: message,
                 urls: userMessage.referenceList.filter((item) => item.url),
                 is_tool_response: false,
@@ -567,7 +564,12 @@ export const useChatStore = create(
                     break;
                   }
 
-                  case 'QUERY_COMPLETE': {
+                  case 'TASK_COMPLETION': {
+                    const taskCompletionData = event.data as {
+                      query_id: number;
+                      success: boolean;
+                      summary?: string;
+                    };
                     useChatStore.setState({ showSkeleton: false });
                     useChatStore.setState({ showGeneratingEffect: false });
 
@@ -590,11 +592,14 @@ export const useChatStore = create(
                       history: [
                         ...state.history,
                         {
-                          type: 'QUERY_COMPLETE',
+                          type: 'TASK_COMPLETION',
                           actor: 'ASSISTANT',
                           content: {
                             elapsedTime,
                             feedbackState: '',
+                            queryId: taskCompletionData.query_id,
+                            success: taskCompletionData.success,
+                            summary: taskCompletionData.summary,
                           },
                         } as ChatCompleteMessage,
                       ],
@@ -602,7 +607,7 @@ export const useChatStore = create(
 
                     logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
 
-                    chunkCallback({ name: 'QUERY_COMPLETE', data: event.data });
+                    chunkCallback({ name: 'TASK_COMPLETION', data: event.data });
                     break;
                   }
 
@@ -726,32 +731,39 @@ export const useChatStore = create(
                     chunkCallback({ name: event.name, data: event.data });
                     break;
                   }
-
                   case 'TOOL_USE_REQUEST_END': {
                     const { tool_name, tool_use_id } = event.data as {
                       tool_name: string;
                       tool_use_id: string;
                     };
-
                     switch (tool_name) {
                       default:
                         set((state) => {
                           const newHistory = state.history.map((msg) => {
-                            if (msg.type === 'TOOL_USE_REQUEST') {
-                              const toolMsg = msg as ChatToolUseMessage;
-                              if (toolMsg.content.tool_use_id === tool_use_id) {
-                                return {
-                                  ...toolMsg,
-                                  content: {
-                                    ...toolMsg.content,
-                                    status: 'pending' as const,
-                                  },
-                                };
-                              }
+                            if (msg.type !== 'TOOL_USE_REQUEST') return msg;
+
+                            const toolMsg = msg as ChatToolUseMessage;
+
+                            if (toolMsg.content.tool_use_id === tool_use_id) {
+                              return {
+                                ...toolMsg,
+                                content: {
+                                  ...toolMsg.content,
+                                  status: 'pending' as const,
+                                },
+                              };
                             }
+
                             return msg;
                           });
-                          return { history: newHistory };
+
+                          return {
+                            history: newHistory,
+                            lastToolUseResponse:
+                              tool_name === 'ask_user_input'
+                                ? { tool_use_id, tool_name }
+                                : undefined,
+                          };
                         });
                         break;
                     }
@@ -974,6 +986,11 @@ export const useChatStore = create(
                     }
 
                     chunkCallback({ name: event.name, data: event.data });
+                    break;
+                  }
+
+                  case 'MALFORMED_TOOL_USE_REQUEST': {
+                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
@@ -1211,7 +1228,6 @@ export const useChatSettingStore = create(
       {
         chatType: 'ask' as ChatType,
         chatSource: 'chat' as string,
-        activeModel: '',
       },
       (set) => ({
         setChatType(nextChatType: ChatType) {
