@@ -270,11 +270,14 @@ export interface LLMinputTokenLimitException {
 }
 
 export interface ChatCompleteMessage {
-  type: 'QUERY_COMPLETE';
+  type: 'TASK_COMPLETION';
   actor: 'ASSISTANT';
   content: {
     elapsedTime: number;
     feedbackState: string;
+    queryId: number;
+    success: boolean;
+    summary?: string;
   };
 }
 
@@ -361,6 +364,7 @@ export interface LLMModels {
   display_name: string;
   name: string;
   provider: string;
+  multimodal: boolean;
   input_token_limit?: number;
 }
 

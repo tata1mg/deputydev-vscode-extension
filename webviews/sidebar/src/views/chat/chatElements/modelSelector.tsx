@@ -1,15 +1,15 @@
-import * as Tooltip from '@radix-ui/react-tooltip';
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { Box, ChevronDown, Check } from 'lucide-react';
 import { getWorkspaceState } from '@/commandApi';
-import { useChatStore, useChatSettingStore } from '@/stores/chatStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useLLMModelStore } from '@/stores/llmModelStore';
+import { LLMModels } from '@/types';
+import * as Tooltip from '@radix-ui/react-tooltip';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Box, Check, ChevronDown } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const ModelSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { activeModel } = useChatSettingStore();
-  const { llmModels } = useChatStore();
+  const { llmModels, setActiveModel, setLLMModels, activeModel } = useLLMModelStore();
 
   // Group models by provider for rendering
   const modelsByProvider = useMemo(() => {
@@ -23,12 +23,9 @@ const ModelSelector = () => {
   useEffect(() => {
     const fetchConfigFromWorkspaceState = async () => {
       const essentialConfig = await getWorkspaceState({ key: 'essentialConfigData' });
-      const models = essentialConfig['LLM_MODELS'];
-      if (models.length > 0) {
-        useChatStore.setState({ llmModels: models });
-        if (!useChatSettingStore.getState().activeModel) {
-          useChatSettingStore.setState({ activeModel: models[0].name });
-        }
+      const models = essentialConfig['LLM_MODELS'] as LLMModels[];
+      if (models.length) {
+        setLLMModels(models);
       }
     };
     fetchConfigFromWorkspaceState();
@@ -45,7 +42,7 @@ const ModelSelector = () => {
   }, []);
 
   const handleSelect = (modelName: string) => {
-    useChatSettingStore.setState({ activeModel: modelName });
+    setActiveModel(modelName);
     setIsOpen(false);
   };
 
