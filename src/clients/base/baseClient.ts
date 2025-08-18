@@ -82,17 +82,20 @@ export class BaseWebsocketEndpoint {
 export class BaseClient {
   private readonly httpHost?: string;
   private readonly wsHost?: string;
+  private readonly nonGatewayWsHost?: string;
   private readonly defaultHandlerMiddlewares!: Array<BaseHandlerMiddleware>;
   private readonly extraHeadersFetcher?: () => Promise<Record<string, string>>;
 
   constructor(
     httpHost?: string,
     wsHost?: string,
+    nonGatewayWsHost?: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     defaultHandlerMiddlewares: Array<BaseHandlerMiddleware> = [],
   ) {
     this.httpHost = httpHost?.endsWith('/') ? httpHost.slice(0, -1) : httpHost;
     this.wsHost = wsHost?.endsWith('/') ? wsHost.slice(0, -1) : wsHost;
+    this.nonGatewayWsHost = nonGatewayWsHost?.endsWith('/') ? nonGatewayWsHost.slice(0, -1) : nonGatewayWsHost;
     this.defaultHandlerMiddlewares = defaultHandlerMiddlewares;
     this.extraHeadersFetcher = extraHeadersFetcher;
   }
@@ -120,7 +123,11 @@ export class BaseClient {
     endpoint: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
+    forNonGateway: boolean = false,
   ): () => BaseWebsocketEndpoint {
+    if (forNonGateway && !this.nonGatewayWsHost) {
+      throw new Error('Non-Gateway WebSocket host is not defined');
+    }
     if (!this.wsHost) {
       throw new Error('WebSocket host is not defined');
     }
@@ -140,6 +147,11 @@ export class BaseClient {
     });
 
     return () =>
-      new BaseWebsocketEndpoint(this.wsHost as string, endpoint, combinedExtraHeadersFetcher, [...websocketHandlers]);
+      new BaseWebsocketEndpoint(
+        forNonGateway ? (this.nonGatewayWsHost as string) : (this.wsHost as string),
+        endpoint,
+        combinedExtraHeadersFetcher,
+        [...websocketHandlers],
+      );
   }
 }
