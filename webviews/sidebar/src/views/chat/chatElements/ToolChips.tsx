@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { CheckCircle, Loader2, XCircle, RotateCw } from 'lucide-react';
+import { CheckCircle, Loader2, RotateCw, XCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 // import "react-tooltip/dist/react-tooltip.css"; // Import CSS for styling
 import { openFile } from '@/commandApi';
-import { useChatStore, useChatSettingStore } from '@/stores/chatStore';
+import { useChatStore } from '@/stores/chatStore';
 import { SnippetReference } from './CodeBlockStyle';
-import ModelSelector from './modelSelector';
 
 /**
  *
@@ -183,9 +182,7 @@ export function RetryChip({
   payload_to_retry: unknown;
 }) {
   const { history: messages, sendChatMessage } = useChatStore();
-  const { activeModel } = useChatSettingStore();
-  // Get the last message to check if it's a throttling error
-  const lastMsg = messages[messages.length - 1];
+  const { activeModel } = useLLMModelStore();
   // Retry function defined within ChatArea component
   const retryChat = () => {
     if (!messages.length) {
@@ -239,10 +236,10 @@ export function RetryChip({
  * Component for file edited
  * Displays file name and and lines changed
  */
-import { ChevronRight, ChevronDown } from 'lucide-react';
-import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
+import { useLLMModelStore } from '@/stores/llmModelStore';
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
-import { useIndexingStore } from '@/stores/indexingDataStore';
+import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 export function FileEditedChip({
   isToolUse,

@@ -1,7 +1,7 @@
+import { useChatStore } from '@/stores/chatStore';
+import { useLLMModelStore } from '@/stores/llmModelStore';
 import { RotateCw } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
-import { useThemeStore } from '@/stores/useThemeStore';
 
 /**
  * ChatMessage: UI for throttling errors with retry-after, message, retry button, model switcher, and progress bar.
@@ -21,7 +21,8 @@ export function ThrottledChatMessage({
   retry,
   payloadToRetry,
 }: ThrottledChatMessageProps) {
-  const { sendChatMessage, llmModels } = useChatStore();
+  const { sendChatMessage } = useChatStore();
+  const { llmModels, setActiveModel } = useLLMModelStore();
   const [secondsLeft, setSecondsLeft] = useState(retryAfterSeconds);
   const [selectedModel, setSelectedModel] = useState(currentModel);
   // Stable reference for progress
@@ -77,7 +78,7 @@ export function ThrottledChatMessage({
   function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const model = e.target.value;
     setSelectedModel(model);
-    useChatSettingStore.setState({ activeModel: model });
+    setActiveModel(model);
   }
 
   return (
