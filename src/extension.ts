@@ -92,6 +92,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const backendClient = new BackendClient(
     essentialConfigs['HOST_AND_TIMEOUT']['HOST'],
     essentialConfigs['DD_HOST_WS'],
+    essentialConfigs['DD_HOST_WS_NON_GATEWAY'],
     {
       QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
       REVIEW_SOLVER: essentialConfigs['REVIEW_SOLVER_ENDPOINT'],
