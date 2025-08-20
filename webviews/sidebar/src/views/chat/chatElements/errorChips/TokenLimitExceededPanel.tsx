@@ -165,7 +165,9 @@ export function TokenLimitExceededPanel({
         originalReferences,
         originalS3References,
         false, // Not a retry - this is a fresh message
-        undefined // No retry payload needed
+        undefined, // No retry payload needed
+        undefined,
+        'TOKEN_LIMIT_EXCEEDED'
       );
 
       setRetryMessage(`Started fresh query with ${selectedModelDisplay}.`);

@@ -1,12 +1,10 @@
 import { useThemeStore } from '@/stores/useThemeStore';
 import { ChatReferenceItem, S3Object } from '@/types';
-import { CircleUserRound, TriangleAlert } from 'lucide-react';
-import { JSX } from 'react';
+import { CircleUserRound } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { useChatStore } from '../../stores/chatStore';
 import '../../styles/markdown-body.css';
 import { TaskCompletionChip } from './chatElements/toolChips/TaskCompletionChip';
-import { TerminalPanelHistory } from './chatElements/toolChips/TerminalPanelHistory';
 import ActiveFileReferenceInChat from './chatElements/autocomplete/ActiveFileReferenceInChat';
 import QueryReferenceChip from './chatElements/autocomplete/referencechip';
 import GeneratingLoader from './chatElements/chatLoader';
@@ -15,9 +13,9 @@ import { ImageWithDownload } from './chatElements/imageView';
 import { Shimmer } from '../../components/Shimmer';
 import ToolChipSelector from './chatElements/toolChips/ToolChipSelector';
 import { ThinkingChip } from './chatElements/toolChips/ThinkingChip';
-import { FileEditedChip } from './chatElements/toolChips/FileEditedChip';
 import ErrorChipSelector from './chatElements/errorChips/ErrorChipSelector';
 import { TerminalNoShellIntegration } from './chatElements/toolChips/TerminalNoShellIntegrationChip';
+import InfoChip from './chatElements/toolChips/InfoChip';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
@@ -29,12 +27,11 @@ export function ChatArea() {
         switch (msg.type) {
           case 'TEXT_BLOCK':
             if (msg.actor === 'USER') {
-              if (msg.content.focus_items?.length) {
-                msg.referenceList = msg.content.focus_items;
-                for (let i = 0; i < msg.referenceList.length; i++) {
-                  msg.referenceList[i].index = i;
-                  msg.referenceList[i].keyword =
-                    `${msg.referenceList[i].type}:${msg.referenceList[i].value}`;
+              if (msg.focusItems && msg.focusItems.length > 0) {
+                for (let i = 0; i < msg.focusItems.length; i++) {
+                  msg.focusItems[i].index = i;
+                  msg.focusItems[i].keyword =
+                    `${msg.focusItems[i].type}:${msg.focusItems[i].value}`;
                 }
               }
               return (
@@ -47,17 +44,17 @@ export function ChatArea() {
 
                     <div className="max-w-full flex-1 overflow-hidden rounded-lg border border-[var(--vscode-editorWidget-border)] bg-[var(--vscode-editor-background)] p-2">
                       {/* attachments (optional) */}
-                      {msg.s3References?.length > 0 && (
+                      {msg.attachments?.length > 0 && (
                         <div className="mb-2 overflow-x-auto">
                           <div className="flex gap-2 pb-2" style={{ minWidth: 'fit-content' }}>
-                            {msg.s3References.map(
-                              (s3Ref: S3Object, imgIndex: number) =>
-                                s3Ref.get_url && (
+                            {msg.attachments.map(
+                              (attachment: S3Object, imgIndex: number) =>
+                                attachment.get_url && (
                                   <ImageWithDownload
                                     key={imgIndex}
-                                    src={s3Ref.get_url}
+                                    src={attachment.get_url}
                                     alt={`Attached content ${imgIndex + 1}`}
-                                    Key={s3Ref.key}
+                                    Key={attachment.key}
                                     thumbnail
                                   />
                                 )
@@ -74,7 +71,7 @@ export function ChatArea() {
                   </div>
 
                   {/* ── 2️⃣ Second row: reference chips (only rendered if needed) ──────────── */}
-                  {(msg.activeFileReference || (msg.referenceList?.length ?? 0) > 0) && (
+                  {(msg.activeFileReference || (msg.focusItems?.length ?? 0) > 0) && (
                     <div className="flex items-start gap-2">
                       {/* empty spacer keeps left edge aligned with the bubble,                  */}
                       {/* matching avatar width + gap from row 1                                */}
@@ -88,18 +85,16 @@ export function ChatArea() {
                           />
                         )}
 
-                        {msg.referenceList?.map(
-                          (reference: ChatReferenceItem, chipIndex: number) => (
-                            <QueryReferenceChip
-                              key={chipIndex}
-                              value={reference.value}
-                              type={reference.type}
-                              path={reference.path}
-                              chunks={reference.chunks}
-                              url={reference.url}
-                            />
-                          )
-                        )}
+                        {msg.focusItems?.map((item: ChatReferenceItem, chipIndex: number) => (
+                          <QueryReferenceChip
+                            key={chipIndex}
+                            value={item.value}
+                            type={item.type}
+                            path={item.path}
+                            chunks={item.chunks}
+                            url={item.url}
+                          />
+                        ))}
                       </div>
                     </div>
                   )}
@@ -161,90 +156,6 @@ export function ChatArea() {
             return contentComponent;
           }
 
-          // case 'TOOL_USE_REQUEST_BLOCK': {
-          //   let contentComponent: JSX.Element | null = null;
-
-          //   switch (msg.content.tool_name) {
-          //     case 'ask_user_input':
-          //       contentComponent = (
-          //         <div
-          //           key={index}
-          //           className={`markdown-body ${
-          //             ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
-          //           }`}
-          //         >
-          //           <Markdown>
-          //             {typeof msg.content.tool_input_json === 'object' &&
-          //             msg.content.tool_input_json?.prompt
-          //               ? String(msg.content.tool_input_json.prompt)
-          //               : typeof msg.content.tool_input_json === 'string'
-          //                 ? msg.content.tool_input_json
-          //                 : 'Awaiting input...'}
-          //           </Markdown>
-          //         </div>
-          //       );
-          //       break;
-
-          //     case 'replace_in_file': {
-          //       const isStreaming = false;
-          //       const inputParams = msg.content.tool_input_json as unknown as {
-          //         path: string;
-          //         diff: any;
-          //       };
-          //       contentComponent = (
-          //         <FileEditedChip
-          //           key={index}
-          //           isToolUse={true}
-          //           isWriteToFileTool={false}
-          //           content={JSON.stringify(inputParams)}
-          //           status={isStreaming ? msg.content.status : 'idle'}
-          //           addedLines={msg.content.diff?.addedLines}
-          //           removedLines={msg.content.diff?.removedLines}
-          //           isStreaming={isStreaming}
-          //         />
-          //       );
-          //       break;
-          //     }
-          //     case 'execute_command': {
-          //       const inputParams = msg.content.tool_input_json as unknown as {
-          //         command: string;
-          //         is_long_running: boolean;
-          //         terminal_approval_required: boolean;
-          //       };
-          //       contentComponent = (
-          //         <TerminalPanelHistory
-          //           tool_id={msg.content.tool_use_id}
-          //           terminal_command={inputParams.command}
-          //           status={msg.content.status || 'history'}
-          //         />
-          //       );
-          //       break;
-          //     }
-          //     case 'write_to_file': {
-          //       const isStreaming = false;
-          //       const inputParams = msg.content.tool_input_json as unknown as {
-          //         path: string;
-          //         diff: any;
-          //       };
-          //       contentComponent = (
-          //         <FileEditedChip
-          //           key={index}
-          //           isToolUse={true}
-          //           isWriteToFileTool={true}
-          //           content={JSON.stringify(inputParams)}
-          //           status={isStreaming ? msg.content.status : 'idle'}
-          //           addedLines={msg.content.diff?.addedLines}
-          //           removedLines={msg.content.diff?.removedLines}
-          //           isStreaming={isStreaming}
-          //         />
-          //       );
-          //       break;
-          //     }
-          //   }
-
-          //   return contentComponent;
-          // }
-
           case 'TERMINAL_NO_SHELL_INTEGRATION': {
             return (
               <div key={index}>
@@ -257,6 +168,14 @@ export function ChatArea() {
             return (
               <div key={index}>
                 <TaskCompletionChip index={index} msg={msg} />
+              </div>
+            );
+          }
+
+          case 'INFO': {
+            return (
+              <div key={index}>
+                <InfoChip info={msg.content.info} />
               </div>
             );
           }

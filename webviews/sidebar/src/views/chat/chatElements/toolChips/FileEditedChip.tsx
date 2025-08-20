@@ -1,44 +1,22 @@
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
 import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { ToolRunStatus } from '@/types';
+import { ToolProps, ToolRunStatus } from '@/types';
 import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { openFile } from '@/commandApi';
 import { StatusIcon } from './ThinkingChip';
 import { SnippetReference } from '../CodeBlockStyle';
 
-export function FileEditedChip({
-  isToolUse,
-  isWriteToFileTool,
-  content,
-  status,
-  addedLines = 0,
-  removedLines = 0,
-  isStreaming,
-  filepath = '',
-}: {
-  isToolUse: boolean;
-  content: string;
-  status: ToolRunStatus;
-  isStreaming: boolean | true;
-  isWriteToFileTool: boolean;
-  addedLines?: number | null;
-  removedLines?: number | null;
-  filepath?: string;
-}) {
-  let path: string | undefined;
-  let diff: string | undefined;
-  let complete: boolean | undefined;
-
+const FileEditedChip: React.FC<ToolProps> = ({
+  toolRequest,
+  toolResponse,
+  toolUseId,
+  toolRunStatus,
+}) => {
   // parse out path/diff/complete from the partial JSON
-  if (isToolUse) {
-    ({ path, diff, complete } = usePartialFileDiff(content));
-  } else {
-    path = filepath;
-    diff = content;
-    complete = true;
-  }
+  const { path, diff, complete } = usePartialFileDiff(toolRequest?.requestData as string);
+  const isWriteToFileTool = toolRequest?.toolName === 'write_to_file';
   // just the filename for display
   const filename = path?.split('/').pop() ?? '';
   const ext = filename.split('.').pop() ?? '';
@@ -64,7 +42,7 @@ export function FileEditedChip({
     error: 'Error editing',
   };
 
-  const statusKey = status in writeToFileStatusText ? status : 'error';
+  const statusKey = toolRunStatus in writeToFileStatusText ? toolRunStatus : 'error';
 
   if (isWriteToFileTool) {
     statusText = writeToFileStatusText[statusKey];
@@ -72,7 +50,7 @@ export function FileEditedChip({
     statusText = defaultStatusText[statusKey];
   }
 
-  if (status === 'error') {
+  if (toolRunStatus === 'error') {
     statusColor = 'text-red-400';
   }
 
@@ -82,7 +60,7 @@ export function FileEditedChip({
       <div className="flex w-full items-center justify-between gap-2" title="File Edited">
         {/* Left side: expand only as needed */}
         <div className="flex items-center gap-2">
-          {!isStreaming && (
+          {toolRunStatus === 'completed' && (
             <button
               className="text-xs text-gray-300 transition hover:text-white"
               onClick={() => setShowSnippet((prev) => !prev)}
@@ -95,7 +73,7 @@ export function FileEditedChip({
               )}
             </button>
           )}
-          <StatusIcon status={status} />
+          <StatusIcon status={toolRunStatus} />
           <span className={statusColor}>{statusText}</span>
           {path && (
             <div>
@@ -113,24 +91,26 @@ export function FileEditedChip({
         </div>
 
         {/* Right side: lines added/removed */}
-        {status !== 'error' && (
+        {toolRunStatus !== 'error' && toolResponse && (
           <div className="flex items-center gap-2 text-xs">
-            {addedLines != null && addedLines > 0 && (
-              <span className="text-green-400">+{addedLines}</span>
+            {toolResponse.addedLines != null && toolResponse.addedLines > 0 && (
+              <span className="text-green-400">+{toolResponse.addedLines}</span>
             )}
-            {removedLines != null && removedLines > 0 && (
-              <span className="text-red-400">-{removedLines}</span>
+            {toolResponse.removedLines != null && toolResponse.removedLines > 0 && (
+              <span className="text-red-400">-{toolResponse.removedLines}</span>
             )}
           </div>
         )}
       </div>
 
       {/* Collapsible code snippet */}
-      {!isStreaming && showSnippet && diff && (
+      {toolRunStatus === 'completed' && showSnippet && diff && (
         <div className="mt-2 border-t border-gray-700 pt-2">
           <SnippetReference snippet={{ content: diff, language }} />
         </div>
       )}
     </div>
   );
-}
+};
+
+export default FileEditedChip;

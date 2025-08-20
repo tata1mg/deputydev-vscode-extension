@@ -40,6 +40,7 @@ import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffMana
 import { CommentHandler } from '../codeReview/CommentHandler';
 import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
 import { AgentPayload, NewReview } from '../types';
+import { formatSessionChats } from '../utilities/sessionChatsFormatter';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -851,7 +852,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     try {
       response = await this.historyService.getPastSessionChats(sessionData.sessionId);
       setSessionId(sessionData.sessionId);
-      return response;
+      const formattedResponse = formatSessionChats(response);
+      return formattedResponse;
     } catch {
       return response;
     }

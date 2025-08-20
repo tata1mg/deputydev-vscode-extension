@@ -13,7 +13,6 @@ import {
   ChatMessage,
   ChatMetaData,
   ChatReferenceItem,
-  ChatReplaceBlockMessage,
   ChatTerminalNoShell,
   ChatThinkingMessage,
   ChatToolUseMessage,
@@ -87,7 +86,6 @@ export const useChatStore = create(
         currentEditorReference: [] as ChatReferenceItem[],
         ChatAutocompleteOptions: initialAutocompleteOptions,
         chipIndexBeingEdited: -1,
-        lastToolUseResponse: undefined as { tool_use_id: string; tool_name: string } | undefined,
         forceUpgradeData: {} as { url: string; upgradeVersion: string },
         lastMessageSentTime: null as Date | null,
         selectedOptionIndex: -1,
@@ -111,7 +109,6 @@ export const useChatStore = create(
               currentChatRequest: undefined,
               isLoading: false,
               currentEditorReference: [],
-              lastToolUseResponse: undefined,
               s3Objects: [],
               enhancedUserQuery: '',
               enhancingUserQuery: false,
@@ -123,11 +120,12 @@ export const useChatStore = create(
 
           async sendChatMessage(
             message: string,
-            editorReferences: ChatReferenceItem[],
-            s3References: S3Object[] = [],
+            focusItems: ChatReferenceItem[],
+            attachments: S3Object[] = [],
             retryChat?: boolean,
             retry_payload?: any,
-            create_new_workspace_payload?: any
+            create_new_workspace_payload?: any,
+            retryReason?: string
           ) {
             logToOutput('info', `sendChatMessage: ${message}`);
             let stream;
@@ -135,7 +133,7 @@ export const useChatStore = create(
               useChatStore.setState({ showGeneratingEffect: true });
               stream = apiChat(create_new_workspace_payload);
             } else {
-              const { history, lastToolUseResponse } = get();
+              const { history } = get();
               let activeFileChatReferenceItem: ActiveFileChatReferenceItem | undefined = undefined;
 
               const {
@@ -153,12 +151,27 @@ export const useChatStore = create(
                 };
               }
 
+              let lastAskUserInput: { tool_name: string; tool_use_id: string } | undefined;
+              const lastMsg = history[history.length - 1];
+
+              // Check if last message is ask user input
+              if (
+                lastMsg?.type === 'TOOL_CHIP_UPSERT' &&
+                lastMsg.content?.tool_name === 'ask_user_input'
+              ) {
+                // If it is, we can use the lastAskUserInput
+                lastAskUserInput = {
+                  tool_name: lastMsg.content.tool_name,
+                  tool_use_id: lastMsg.content.tool_use_id,
+                };
+              }
+
               // Create the user message
               const userMessage: ChatUserMessage = {
                 type: 'TEXT_BLOCK',
                 content: { text: message },
-                referenceList: editorReferences,
-                s3References: s3References,
+                focusItems: focusItems,
+                attachments: attachments,
                 actor: 'USER',
                 lastMessageSentTime: useChatStore.getState().lastMessageSentTime,
                 activeFileReference: activeFileChatReferenceItem,
@@ -239,28 +252,27 @@ export const useChatStore = create(
                 search_web: useChatStore.getState().search_web,
                 llm_model: useLLMModelStore.getState().activeModel,
                 query: message,
-                urls: userMessage.referenceList.filter((item) => item.url),
+                focusItems: userMessage.focusItems,
                 is_tool_response: false,
                 relevant_chunks: [] as string[],
                 write_mode: useChatSettingStore.getState().chatType === 'write',
-                referenceList: userMessage.referenceList.filter((item) => !item.url),
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
-                attachments: s3References.map((ref) => ({ attachment_id: ref.key })),
+                attachments: attachments.map((ref) => ({ attachment_id: ref.key })),
                 ...(disableActiveFile === false && { active_file_reference: activeFileReference }),
               };
 
               // If a tool response was stored, add it to the payload
-              if (lastToolUseResponse) {
+              if (lastAskUserInput) {
                 payload.is_tool_response = true;
-                payload.tool_use_response = {
-                  tool_name: lastToolUseResponse.tool_name,
-                  tool_use_id: lastToolUseResponse.tool_use_id,
-                  response: {
-                    user_response: message,
+                payload.batch_tool_responses = [
+                  {
+                    tool_name: lastAskUserInput.tool_name,
+                    tool_use_id: lastAskUserInput.tool_use_id,
+                    response: {
+                      user_response: message,
+                    },
                   },
-                };
-                // Clear it so it doesn't affect subsequent messages.
-                set({ lastToolUseResponse: undefined });
+                ];
               }
 
               if (retryChat) {
@@ -268,8 +280,14 @@ export const useChatStore = create(
                   'info',
                   `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`
                 );
+                if (retryReason) {
+                  retry_payload['retry_reason'] = retryReason;
+                }
                 stream = apiChat(retry_payload);
               } else {
+                if (retryReason) {
+                  payload['retry_reason'] = retryReason;
+                }
                 stream = apiChat(payload);
               }
             }
@@ -559,9 +577,7 @@ export const useChatStore = create(
                           return { history: newHistory };
                         } else {
                           // If it doesn't exist, add it
-                          return {
-                            history: [...state.history, newToolMsg],
-                          };
+                          return { history: [...state.history, newToolMsg] };
                         }
                       });
                     }
@@ -815,6 +831,7 @@ export const useChatStore = create(
                           retry: errorData.retry,
                           payload_to_retry: errorData.payload_to_retry,
                           actor: 'ASSISTANT',
+                          isRetryChip: false,
                           errorData: {
                             type: 'THROTTLING_ERROR',
                             model_name: errorData.model,
@@ -828,6 +845,7 @@ export const useChatStore = create(
                           retry: errorData.retry,
                           payload_to_retry: errorData.payload_to_retry,
                           actor: 'ASSISTANT',
+                          isRetryChip: false,
                           errorData: {
                             type: 'TOKEN_LIMIT_ERROR',
                             status: 'INPUT_TOKEN_LIMIT_EXCEEDED',
@@ -847,6 +865,7 @@ export const useChatStore = create(
                           retry: errorData.retry,
                           payload_to_retry: errorData.payload_to_retry,
                           actor: 'ASSISTANT',
+                          isRetryChip: true,
                         } as ChatErrorMessage);
                       }
 

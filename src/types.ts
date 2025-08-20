@@ -40,7 +40,7 @@ type ChatReferenceItem = {
   type: 'file' | 'directory' | 'function' | 'keyword' | 'url' | 'code_snippet' | 'class';
   keyword: string;
   path: string;
-  chunks: Chunk[];
+  chunks?: Chunk[];
   value?: string;
   url?: string;
 };
@@ -68,22 +68,14 @@ export interface ClientTool {
 export interface ChatPayload {
   search_web: boolean;
   llm_model: string;
-  focus_files?: string[];
-  focus_chunks?: string[];
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
   tool_use_failed?: boolean;
   write_mode?: boolean;
-  referenceList?: ChatReferenceItem[];
-  batch_tool_responses?: Array<{
-    tool_name: string;
-    tool_use_id: string;
-    response: any;
-  }>;
+  focusItems?: ChatReferenceItem[];
   previous_query_ids?: number[];
   focus_items?: Array<any>;
-  directory_items?: Array<any>;
   deputy_dev_rules?: string;
   is_inline?: boolean;
   vscode_env?: string;
@@ -91,11 +83,17 @@ export interface ChatPayload {
   shell: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
+  retry_reason?: string;
   active_file_reference?: {
     active_file: string;
     start_line?: number;
     end_line?: number;
   };
+  batch_tool_responses?: Array<{
+    tool_name: string;
+    tool_use_id: string;
+    response: any;
+  }>;
 }
 
 export interface SearchTerm {
