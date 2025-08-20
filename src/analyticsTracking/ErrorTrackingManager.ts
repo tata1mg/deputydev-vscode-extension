@@ -102,6 +102,11 @@ export class ErrorTrackingManager {
     // Standard JS Error case
     else if (error instanceof Error) {
       const err = error as any;
+      // Skip specific error code
+      if (err?.code === 'DDT402') {
+        return;
+      }
+
       errorData = {
         ...baseErrorData,
         errorName: error.name,
@@ -135,7 +140,11 @@ export class ErrorTrackingManager {
       };
     }
 
-    const errorSource = ['write_to_file', 'replace_in_file'].includes(toolRequest.tool_name) ? 'EXTENSION' : 'BINARY';
+    const errorSource = ['write_to_file', 'replace_in_file', 'get_usage_tool', 'resolve_import_tool'].includes(
+      toolRequest.tool_name,
+    )
+      ? 'EXTENSION'
+      : 'BINARY';
 
     await this.trackError({
       errorType: 'TOOL_EXECUTION_ERROR',

@@ -1,17 +1,12 @@
-import {
-  getSessionId,
-  getIsEmbeddingDoneForActiveRepo,
-  setCancelButtonStatus,
-  getContextRepositories,
-} from '../../utilities/contextManager';
-import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
-import { AuthService } from '../auth/AuthService';
-import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
+import { BackendClient } from '../../clients/backendClient';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
-import { BackendClient } from '../../clients/backendClient';
-import { ThrottlingErrorData, InputTokenLimitErrorData } from '../../types';
+import { InputTokenLimitErrorData, ThrottlingErrorData } from '../../types';
+import { getContextRepositories, getSessionId, setCancelButtonStatus } from '../../utilities/contextManager';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { AuthService } from '../auth/AuthService';
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 
 interface StreamEvent {
   type: string;
@@ -68,7 +63,6 @@ export class QuerySolverService {
     const repositories = await getContextRepositories();
 
     const currentSessionId = getSessionId();
-    payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
 
     // adding context of repositories present in workspace except active repository in payload.
     payload['repositories'] = repositories || [];
