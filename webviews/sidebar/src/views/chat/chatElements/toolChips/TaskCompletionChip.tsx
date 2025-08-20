@@ -25,7 +25,7 @@ export const TaskCompletionChip: React.FC<TaskCompletionChipProps> = ({ index, m
       if (totalSeconds >= 60) {
         const min = Math.floor(totalSeconds / 60);
         const sec = totalSeconds % 60;
-        statusText = `Task Completed in ${min} min${sec > 0 ? `${sec} sec` : ''}.`;
+        statusText = `Task Completed in ${min} min ${sec > 0 ? `${sec} sec` : ''}.`;
       } else {
         statusText = `Task Completed in ${totalSeconds} sec.`;
       }
