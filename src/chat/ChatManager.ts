@@ -133,15 +133,17 @@ export class ChatManager {
               directory_path: item.path,
             };
 
+            const structure = await this.directoryStructureService.getDirectoryStructure(directoryPayload);
+
             focusItemsResult.push({
-              type: 'DIRECTORY',
+              type: item.type,
               value: item.value,
               path: item.path,
-              structure: await this.directoryStructureService.getDirectoryStructure(directoryPayload),
+              structure: structure,
             });
           } else if (item.type === 'url') {
             focusItemsResult.push({
-              type: 'URL',
+              type: item.type,
               value: item.value,
               chunks: item.chunks,
               url: item.url,
@@ -162,7 +164,7 @@ export class ChatManager {
             const finalChunkInfos: Array<any> = result.map((chunkInfoWithHash: any) => chunkInfoWithHash.chunk_info);
 
             focusItemsResult.push({
-              type: item.type.toUpperCase(),
+              type: item.type,
               value: item.value,
               chunks: finalChunkInfos || [],
               path: item.path,

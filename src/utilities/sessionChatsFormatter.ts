@@ -9,8 +9,8 @@ export function formatSessionChats(rawSessionChats: any[]) {
             content: {
               text: chat.message_data?.text,
             },
-            focusItems: chat.message_data?.reference_list,
-            attachments: chat.message_data?.s3_references,
+            focusItems: chat.message_data?.focus_items,
+            attachments: chat.message_data?.attachments,
             actor: 'USER',
           });
         }

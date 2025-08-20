@@ -150,6 +150,7 @@ export function ChatArea() {
                   toolUseId={msg.content.tool_use_id}
                   toolRunStatus={msg.content.status}
                   terminal={msg.content.toolStateMetaData?.terminal}
+                  isHistory={msg.content.isHistory}
                 />
               </div>
             );
