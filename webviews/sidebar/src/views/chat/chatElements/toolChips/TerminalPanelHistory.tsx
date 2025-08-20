@@ -24,7 +24,7 @@ const TerminalPanelHistory: React.FC<ToolProps> = ({
         <div className="flex items-center px-2 pb-2 pt-2.5">
           <textarea
             className="no-scrollbar h-6 w-full resize-none overflow-x-auto overflow-y-hidden whitespace-nowrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"
-            value={(toolRequest?.requestData as string) || ''}
+            value={(toolRequest?.requestData?.command as string) || ''}
             disabled
             readOnly
             spellCheck={false}
