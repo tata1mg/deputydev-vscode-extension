@@ -26,7 +26,7 @@ export class BinaryClient extends BaseClient {
   public getRelevantChunks!: () => BaseWebsocketEndpoint;
 
   constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
-    super(httpHost, wsHost, getAuthorizationHeader);
+    super(httpHost, wsHost, undefined, getAuthorizationHeader);
     this.endpointMap = { ...this.endpointMap, ...endpointsMap };
     this.initEndpoints();
   }

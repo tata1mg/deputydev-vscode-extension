@@ -5,7 +5,7 @@ import { UnauthenticatedHandler } from './handlerMiddlewares/unauthenticatedHand
 export class BackendClient extends BaseClient {
   // Default endpoints can be set here if needed
   endpointMap: Record<string, string> = {
-    QUERY_SOLVER: '/query/solve',
+    QUERY_SOLVER: '',
     REVIEW_SOLVER: '',
     POST_PROCESS_SOLVER: '',
   };
@@ -15,17 +15,24 @@ export class BackendClient extends BaseClient {
   public codeReviewSolver!: () => BaseWebsocketEndpoint;
   public postProcessSolver!: () => BaseWebsocketEndpoint;
 
-  constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
-    super(httpHost, wsHost);
+  constructor(
+    httpHost?: string,
+    wsHost?: string,
+    nonGatewayWsHost?: string,
+    endpointsMap: Record<string, string> = {},
+  ) {
+    super(httpHost, wsHost, nonGatewayWsHost);
     this.endpointMap = { ...this.endpointMap, ...endpointsMap };
     this.initEndpoints();
   }
 
   initEndpoints() {
-    this.querySolver = this.createWebsocketEndpoint(this.endpointMap['QUERY_SOLVER'], undefined, [
-      ForceUpgradeHandler,
-      UnauthenticatedHandler,
-    ]);
+    this.querySolver = this.createWebsocketEndpoint(
+      this.endpointMap['QUERY_SOLVER'],
+      undefined,
+      [ForceUpgradeHandler, UnauthenticatedHandler],
+      true,
+    );
     this.codeReviewSolver = this.createWebsocketEndpoint(this.endpointMap['REVIEW_SOLVER'], undefined, [
       ForceUpgradeHandler,
       UnauthenticatedHandler,

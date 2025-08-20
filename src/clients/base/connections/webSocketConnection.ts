@@ -1,5 +1,8 @@
 import { WebSocket, RawData } from 'ws';
 import { CLIENT, CLIENT_VERSION } from '../../../config';
+import { AuthService } from '../../../services/auth/AuthService';
+import { SESSION_TYPE } from '../../../constants';
+import { getSessionId } from '../../../utilities/contextManager';
 
 interface WebSocketConnectionOptions {
   baseUrl: string;
@@ -13,6 +16,12 @@ interface WebSocketConnectionOptions {
   reconnectBackoffMs?: number;
   heartbeatIntervalMs?: number;
 }
+
+const fetchAuthToken = async () => {
+  const authService = new AuthService();
+  const authToken = await authService.loadAuthToken();
+  return authToken;
+};
 
 export class WebSocketConnection {
   private socket!: WebSocket;
@@ -52,12 +61,21 @@ export class WebSocketConnection {
     } catch (error: any) {
       this.options.onError?.(error);
     }
+    const authToken = await fetchAuthToken();
+    const currentSessionId = getSessionId();
+    const headers: any = {
+      'X-Client': CLIENT,
+      'X-Client-Version': CLIENT_VERSION,
+      'X-Session-Type': SESSION_TYPE,
+      Authorization: `Bearer ${authToken}`,
+      ...(latestExtraHeaders || {}),
+    };
+    if (currentSessionId && currentSessionId !== undefined) {
+      headers['X-Session-ID'] = currentSessionId;
+    }
+
     this.socket = new WebSocket(this.url, {
-      headers: {
-        'X-Client': CLIENT,
-        'X-Client-Version': CLIENT_VERSION,
-        ...(latestExtraHeaders || {}),
-      },
+      headers,
     });
 
     this.socket.on('open', () => {

@@ -94,8 +94,9 @@ export async function activate(context: vscode.ExtensionContext) {
   const backendClient = new BackendClient(
     essentialConfigs['HOST_AND_TIMEOUT']['HOST'],
     essentialConfigs['DD_HOST_WS'],
+    essentialConfigs['DD_HOST_WS_NON_GATEWAY'],
     {
-      QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT'],
+      QUERY_SOLVER: essentialConfigs['QUERY_SOLVER_ENDPOINT_NON_GATEWAY'],
       REVIEW_SOLVER: essentialConfigs['REVIEW_SOLVER_ENDPOINT'],
       POST_PROCESS_SOLVER: essentialConfigs['REVIEW_POST_PROCESS_SOLVER_ENDPOINT'],
     },
@@ -361,6 +362,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const commentFixQuery = await reviewService.getCommentFixQuery(commentId);
 
         if (commentFixQuery?.is_success) {
+          deleteSessionId();
           sidebarProvider.sendMessageToSidebar({
             id: uuidv4(),
             command: 'fix-with-dd',
