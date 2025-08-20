@@ -27,17 +27,13 @@ import { throwToolError, ToolError } from '../utils/ToolError';
 export class GetResolveModuleTool {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly languageFeaturesService: LanguageFeaturesService;
-
   /**
    * Keep default constructor for backward compatibility (ChatManager creates via `new GetUsagesTool()`).
    * Allow optional DI for testing or advanced wiring.
    */
-  constructor(
-    languageFeaturesService?: LanguageFeaturesService,
-    logger?: ReturnType<typeof SingletonLogger.getInstance>,
-  ) {
-    this.logger = logger ?? SingletonLogger.getInstance();
-    this.languageFeaturesService = languageFeaturesService ?? new LanguageFeaturesService();
+  constructor(languageFeaturesService: LanguageFeaturesService) {
+    this.logger = SingletonLogger.getInstance();
+    this.languageFeaturesService = languageFeaturesService;
   }
 
   public async resolveModule(args: ResolveModuleArgs): Promise<ResolveModuleResult> {
