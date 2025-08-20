@@ -1153,9 +1153,9 @@ export class ChatManager {
 
     if (detectedClientTool) {
       this._sendToolChipUpdate(chunkCallback, toolRequest, detectedClientTool, parsedContent, result, 'completed');
+    } else {
+      this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
     }
-
-    this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
 
     if (shouldMakeApiCall) {
       const continuationPayload = await this._createContinuationPayload(toolRequest, messageId, result, clientTools);
@@ -1195,9 +1195,9 @@ export class ChatManager {
         { error: error.message },
         'error',
       );
+    } else {
+      this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
     }
-
-    this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
 
     const retryPayload = await this._createRetryPayload(toolRequest, messageId, errorResponse, clientTools);
     await this.apiChat(retryPayload, chunkCallback);
