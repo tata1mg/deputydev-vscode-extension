@@ -19,11 +19,19 @@ import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
-import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
+import {
+  getActiveRepo,
+  getIsEmbeddingDoneForActiveRepo,
+  getSessionId,
+  setSessionId,
+} from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { cancelChat, registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
+import { GetUsagesTool } from './tools/usages/GetUsageTool';
+import { GetResolveModuleTool } from './tools/usages/ResolveModule';
+
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
@@ -31,6 +39,7 @@ import { BackendClient } from '../clients/backendClient';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { resolveDirectoryRelative } from '../utilities/path';
 import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
+import { getIsLspReady } from '../languageServer/lspStatus';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -42,6 +51,9 @@ export class ChatManager {
   private readonly focusChunksService = new FocusChunksService();
   private readonly directoryStructureService = new DirectoryStructureService();
   private readonly authService = new AuthService();
+  private readonly getUsagesTool = new GetUsagesTool();
+  private readonly getResolveModuleTool = new GetResolveModuleTool();
+
   private currentAbortController: AbortController | null = null;
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
@@ -277,7 +289,6 @@ export class ChatManager {
       this.outputChannel.info(`Message ID: ${messageId}`);
 
       // 1. Prepare Context: History and Focus Items
-      const currentSessionId = getSessionId();
       if (payload.referenceList) {
         const { focusChunksResult, directoryResults } = await this.getFocusChunks(payload);
         payload.focus_items = focusChunksResult;
@@ -301,9 +312,10 @@ export class ChatManager {
       payload.vscode_env = await getEnvironmentDetails(true, payload);
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
+      payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo();
+      payload.is_lsp_ready = await getIsLspReady({ force: true });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
-      // console.log(payload)
       this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);
 
       // 2. Call Query Solver Service and Register Task for Cancellation
@@ -314,7 +326,7 @@ export class ChatManager {
       this.outputChannel.info('QuerySolverService called, listening for events...');
 
       let currentToolRequest: ToolRequest | null = null;
-      let currentDiffRequest: any = null;
+      let currentDiffRequest: { filepath: string; raw_diff?: string } | null = null;
       const pendingToolRequests: ToolRequest[] = [];
 
       for await (const event of querySolverIterator) {
@@ -323,15 +335,16 @@ export class ChatManager {
           break; // Exit loop if cancelled
         }
         switch (event.type) {
-          case 'RESPONSE_METADATA':
-            if (event.content?.session_id) {
+          case 'RESPONSE_METADATA': {
+            const sessionId = event.content?.session_id;
+            if (sessionId) {
               // Set session ID if not already set
-              setSessionId(event.content.session_id);
-              this.outputChannel.info(`Session ID set: ${event.content.session_id}`);
+              setSessionId(sessionId);
+              this.outputChannel.info(`Session ID set: ${sessionId}`);
             }
             chunkCallback({ name: event.type, data: event.content });
             break;
-
+          }
           case 'TOOL_USE_REQUEST_START': {
             currentToolRequest = {
               tool_name: event.content.tool_name,
@@ -439,7 +452,7 @@ export class ChatManager {
             break;
           }
           case 'CODE_BLOCK_START':
-            if (event.content?.is_diff && !(payload.write_mode && payload.llm_model === 'GPT_4_POINT_1')) {
+            if (event.content?.is_diff && !payload.write_mode) {
               currentDiffRequest = {
                 filepath: event.content?.filepath,
                 // raw_diff will be populated at CODE_BLOCK_END
@@ -1119,6 +1132,13 @@ export class ChatManager {
           parsedContent.case_insensitive,
           parsedContent.use_regex,
         ),
+      get_usage_tool: () =>
+        this.getUsagesTool.getUsages({ symbolName: parsedContent.symbol_name, filePaths: parsedContent.file_paths }),
+      resolve_import_tool: () =>
+        this.getResolveModuleTool.resolveModule({
+          importName: parsedContent.import_name,
+          filePath: parsedContent.file_path,
+        }),
       public_url_content_reader: () => this._runPublicUrlContentReader(parsedContent),
       execute_command: () =>
         this.terminalExecutor.runCommand({

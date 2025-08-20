@@ -5,7 +5,7 @@ import { binaryApi } from '../services/api/axios';
 import { BINARY_BG_PING_INTERVAL_MS, getBinaryHost, getBinaryWsHost } from '../config';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { ConfigManager } from '../utilities/ConfigManager';
-import { Logger } from '../utilities/Logger';
+import { SingletonLogger } from '../utilities/Singleton-logger';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { IndexingService } from '../services/indexing/indexingService';
 import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
@@ -17,7 +17,7 @@ export class BackgroundPinger implements vscode.Disposable {
   private sideBarProvider: SidebarProvider;
   private serverManager: ServerManager;
   private outputChannel: vscode.LogOutputChannel;
-  private logger: Logger;
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private configManager: ConfigManager;
   private indexingService: IndexingService;
   private relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
@@ -31,17 +31,16 @@ export class BackgroundPinger implements vscode.Disposable {
     sideBarProvider: SidebarProvider,
     serverManager: ServerManager,
     outputChannel: vscode.LogOutputChannel,
-    logger: Logger,
     configManager: ConfigManager,
     authenticationManager: AuthenticationManager,
     indexingService: IndexingService,
     relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
   ) {
+    this.logger = SingletonLogger.getInstance();
     this.context = context;
     this.sideBarProvider = sideBarProvider;
     this.serverManager = serverManager;
     this.outputChannel = outputChannel;
-    this.logger = logger;
     this.configManager = configManager;
     this.authenticationManager = authenticationManager;
     this.indexingService = indexingService;

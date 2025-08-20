@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth/AuthService';
 import { getSessionId } from '../utilities/contextManager';
 import { SESSION_TYPE } from '../constants';
 import { CLIENT, CLIENT_VERSION } from '../config';
-import { Logger } from '../utilities/Logger';
+import { SingletonLogger } from '../utilities/Singleton-logger';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 
@@ -15,7 +15,7 @@ interface CancellableTask {
 
 const activeApiChatTasks = new Set<CancellableTask>();
 const authService = new AuthService();
-const logger = new Logger();
+const logger = SingletonLogger.getInstance();
 
 export function registerApiChatTask(task: CancellableTask) {
   activeApiChatTasks.add(task);

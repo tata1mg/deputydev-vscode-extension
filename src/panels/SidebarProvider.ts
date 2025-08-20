@@ -5,21 +5,26 @@ import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager'
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
-import { IndexingService } from '../services/indexing/indexingService';
+import { CommentHandler } from '../codeReview/CommentHandler';
+import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
 import { CLIENT_VERSION, DD_HOST, MCP_CONFIG_PATH } from '../config';
+import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
 import { DiffManager } from '../diff/diffManager';
 import { ReferenceManager } from '../references/ReferenceManager';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
+import { ReviewService } from '../services/codeReview/CodeReviewService';
 import { FeedbackService } from '../services/feedback/feedbackService';
 import { HistoryService } from '../services/history/HistoryService';
+import { IndexingService } from '../services/indexing/indexingService';
 import { MCPService } from '../services/mcp/mcpService';
 import { ProfileUiService } from '../services/profileUi/profileUiService';
 import { TerminalService } from '../services/terminal/TerminalService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
 import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
+import { AgentPayload, NewReview } from '../types';
 import { ConfigManager } from '../utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
@@ -33,13 +38,8 @@ import {
   setSessionId,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
-import { Logger } from '../utilities/Logger';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
-import { ReviewService } from '../services/codeReview/CodeReviewService';
-import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
-import { CommentHandler } from '../codeReview/CommentHandler';
-import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
-import { AgentPayload, NewReview } from '../types';
+import { SingletonLogger } from '../utilities/Singleton-logger';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -52,13 +52,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
   private readonly mcpService = new MCPService();
   private readonly terminalService = new TerminalService();
   private pollingInterval: NodeJS.Timeout | null = null;
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly _extensionUri: vscode.Uri,
     private readonly diffManager: DiffManager,
     private readonly outputChannel: vscode.LogOutputChannel,
-    private readonly logger: Logger,
     private readonly chatService: ChatManager,
     private readonly historyService: HistoryService,
     private readonly authService: AuthService,
@@ -75,7 +75,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     private readonly codeReviewDiffManager: CodeReviewDiffManager,
     private readonly commentHandler: CommentHandler,
     private readonly codeReviewManager: CodeReviewManager,
-  ) {}
+  ) {
+    this.logger = SingletonLogger.getInstance();
+  }
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -378,6 +380,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           });
           break;
 
+        // terminal
         case 'kill-terminal-process':
           this.outputChannel.info(`Killing terminal process with ID: ${data.tool_use_id}`);
           this.chatService.killProcessById(data.tool_use_id);
@@ -506,6 +509,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.isWebviewInitialized = true;
           this.sendPendingMessages();
           break;
+
+        case 'reload-window':
+          this.reloadWindow();
+          break;
       }
 
       if (promise) {
@@ -532,7 +539,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
   // For authentication
   private async initiateLogin(data: any) {
-    const authenticationManager = new AuthenticationManager(this.context, this.configManager, this.logger);
+    const authenticationManager = new AuthenticationManager(this.context, this.configManager);
     const status = await authenticationManager.initiateAuthentication();
     if (status === 'AUTHENTICATION_FAILED') {
       this.setViewType('error');
@@ -872,6 +879,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
+  async reloadWindow() {
+    vscode.window.showInformationMessage('Reloading window to apply changes...');
+    vscode.commands.executeCommand('workbench.action.reloadWindow');
+  }
+
   async createNewWorkspace(tool_use_id: string) {
     createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
   }
@@ -998,7 +1010,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     const stylesUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.css']);
     // The JS file from the React build output
     const scriptUri = getUri(webview, this._extensionUri, ['webviews', 'sidebar', 'build', 'assets', 'index.js']);
-
     return /*html*/ `
       <!DOCTYPE html>
       <html lang="en">

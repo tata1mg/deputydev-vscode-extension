@@ -81,7 +81,6 @@ export interface ChatPayload {
     tool_use_id: string;
     response: any;
   }>;
-  previous_query_ids?: number[];
   focus_items?: Array<any>;
   directory_items?: Array<any>;
   deputy_dev_rules?: string;
@@ -96,6 +95,8 @@ export interface ChatPayload {
     start_line?: number;
     end_line?: number;
   };
+  is_embedding_done?: boolean;
+  is_lsp_ready?: boolean;
 }
 
 export interface SearchTerm {
