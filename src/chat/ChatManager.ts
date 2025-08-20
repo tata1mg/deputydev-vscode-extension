@@ -113,84 +113,68 @@ export class ChatManager {
     this.outputChannel.info('Stopping deputydev binary service...');
   }
 
-  async getFocusChunks(data: ChatPayload): Promise<{
-    focusChunksResult: Array<any>;
-    directoryResults: Array<any>;
-  }> {
+  async getFocusChunks(data: ChatPayload): Promise<any[]> {
     const active_repo = getActiveRepo();
     if (!active_repo) {
       throw new Error('Active repository is not defined.');
     }
 
-    const focusChunksResult: Array<any> = [];
-    const directoryResults: Array<any> = [];
-
-    this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
+    const focusItemsResult: Array<any> = [];
+    this.outputChannel.info(`Focus items: ${JSON.stringify(data.focusItems)}`);
 
     try {
       await Promise.all(
-        (data.referenceList ?? []).map(async (element) => {
-          const isDirectory = element.type === 'directory';
-
+        (data.focusItems ?? []).map(async (item) => {
           // Always fetch directory structure if it's a directory
-          if (isDirectory) {
+          if (item.type === 'directory') {
             const directoryPayload = {
               auth_token: await this.authService.loadAuthToken?.(),
               repo_path: active_repo,
-              directory_path: element.path,
+              directory_path: item.path,
             };
 
-            const directoryStructure = await this.directoryStructureService.getDirectoryStructure(directoryPayload);
-
-            directoryResults.push({
-              path: element.path,
-              value: element.value,
-              structure: directoryStructure,
+            focusItemsResult.push({
+              type: 'DIRECTORY',
+              value: item.value,
+              path: item.path,
+              structure: await this.directoryStructureService.getDirectoryStructure(directoryPayload),
             });
-          }
-          if (element.type == 'directory') {
-            focusChunksResult.push({
-              type: element.type,
-              value: element.value,
-              chunks: [],
-              path: element.path,
+          } else if (item.type === 'url') {
+            focusItemsResult.push({
+              type: 'URL',
+              value: item.value,
+              chunks: item.chunks,
+              url: item.url,
             });
-          }
-          // Process chunks if present (even for directories)
-          else if (element.chunks && element.chunks.length > 0) {
-            const chunkDetails: Array<Chunk> = element.chunks;
+            // Process chunks if present (even for directories)
+          } else if (item.chunks && item.chunks.length > 0) {
+            const chunkDetails: Array<Chunk> = item.chunks;
 
             const result = await this.focusChunksService.getFocusChunks({
               auth_token: await this.authService.loadAuthToken(),
               repo_path: active_repo,
               chunks: chunkDetails,
-              search_item_name: element.value,
-              search_item_type: element.type,
-              search_item_path: element.path,
+              search_item_name: item.value,
+              search_item_type: item.type,
+              search_item_path: item.path,
             });
 
             const finalChunkInfos: Array<any> = result.map((chunkInfoWithHash: any) => chunkInfoWithHash.chunk_info);
 
-            focusChunksResult.push({
-              type: element.type,
-              value: element.value,
+            focusItemsResult.push({
+              type: item.type.toUpperCase(),
+              value: item.value,
               chunks: finalChunkInfos || [],
-              path: element.path,
+              path: item.path,
             });
           }
         }),
       );
 
-      return {
-        focusChunksResult,
-        directoryResults,
-      };
+      return focusItemsResult;
     } catch (error) {
-      this.outputChannel.error(`Error fetching focus chunks or directory structure: ${error}`);
-      return {
-        focusChunksResult: [],
-        directoryResults: [],
-      };
+      this.outputChannel.error(`Error fetching focus items or directory structure: ${error}`);
+      return [];
     }
   }
 
@@ -277,16 +261,14 @@ export class ChatManager {
       this.outputChannel.info(`Message ID: ${messageId}`);
 
       // 1. Prepare Context: History and Focus Items
-      const currentSessionId = getSessionId();
-      if (payload.referenceList) {
-        const { focusChunksResult, directoryResults } = await this.getFocusChunks(payload);
-        payload.focus_items = focusChunksResult;
-        payload.directory_items = directoryResults;
+      if (payload.focusItems && payload.focusItems.length > 0) {
+        payload.focus_items = await this.getFocusChunks(payload);
       }
 
-      delete payload.referenceList;
+      delete payload.focusItems;
 
       delete payload.message_id; // Backend doesn't need this directly
+
       if (payload.is_tool_response) {
         delete payload.query;
       }

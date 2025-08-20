@@ -80,10 +80,8 @@ export type ChatReferenceItemTypes =
   | 'file'
   | 'directory'
   | 'function'
-  | 'keyword'
   | 'code_snippet'
   | 'url'
-  | 'code_snippet'
   | 'class';
 
 export type ChatReferenceItem = {
@@ -118,31 +116,37 @@ export type ChatMessage =
   | ChatToolUseMessage
   | ChatThinkingMessage
   | ChatCodeBlockMessage
-  | ChatReplaceBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage
-  | ChatTerminalNoShell;
+  | ChatTerminalNoShell
+  | InfoMessage;
 
-export type ChatMetaData = {
+export interface InfoMessage {
+  type: 'INFO';
+  content: {
+    info: string;
+  };
+}
+
+export interface ChatMetaData {
   type: 'RESPONSE_METADATA';
   content: {
     session_id: number;
     query_id: number;
   };
-};
+}
 
-export type ChatUserMessage = {
+export interface ChatUserMessage {
   type: 'TEXT_BLOCK';
   content: {
     text: string;
-    focus_items?: ChatReferenceItem[];
   };
-  referenceList: ChatReferenceItem[];
+  focusItems: ChatReferenceItem[];
   activeFileReference?: ActiveFileChatReferenceItem;
-  s3References: S3Object[];
+  attachments: S3Object[];
   actor: 'USER';
   lastMessageSentTime?: Date | null;
-};
+}
 
 export interface ChatAssistantMessage {
   type: 'TEXT_BLOCK';
@@ -173,6 +177,7 @@ export interface ChatToolUseMessage {
     toolRequest?: any;
     toolResponse?: any;
     toolStateMetaData?: { terminal: TerminalProcess };
+    isHistory?: boolean;
   };
 }
 export interface TerminalProcess {
@@ -209,21 +214,6 @@ export interface ChatCodeBlockMessage {
   status: 'pending' | 'completed' | 'error' | 'aborted';
 }
 
-export interface ChatReplaceBlockMessage {
-  type: 'REPLACE_IN_FILE_BLOCK' | 'REPLACE_IN_FILE_BLOCK_STREAMING';
-  content: {
-    filepath?: string;
-    diff: string;
-    added_lines?: number | null;
-    removed_lines?: number | null;
-    is_live_chat?: boolean;
-  };
-  completed: boolean;
-  actor: 'ASSISTANT';
-  write_mode: boolean;
-  status: 'pending' | 'completed' | 'error' | 'aborted';
-}
-
 export interface ChatErrorMessage {
   type: 'ERROR';
   retry: boolean;
@@ -231,6 +221,7 @@ export interface ChatErrorMessage {
   error_msg: string;
   actor: 'ASSISTANT';
   errorData: LLMThrottlingException | InputTokenLimitErrorData;
+  isRetryChip: boolean;
   content?: any;
 }
 
@@ -371,12 +362,13 @@ export interface ToolRequest {
 }
 
 export interface ToolProps {
+  toolUseId: string;
   toolRunStatus: ToolRunStatus;
   toolRequest?: ToolRequest | null;
   toolResponse?: any;
-  toolUseId: string;
   displayText?: string;
   terminal?: TerminalProcess;
+  isHistory?: boolean;
 }
 
 export interface ThinkingChipProps {
@@ -384,7 +376,7 @@ export interface ThinkingChipProps {
 }
 
 export interface AskUserInputProps {
-  input: string;
+  input: string | { prompt: string };
 }
 
 export interface MCPServer {

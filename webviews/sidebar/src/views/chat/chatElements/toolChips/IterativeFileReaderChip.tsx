@@ -1,25 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { openFile } from '@/commandApi';
 import { joinPath } from '@/utils/joinPath';
-import { ToolRunStatus } from '@/types';
+import { ToolProps } from '@/types';
 import { StatusIcon } from './ThinkingChip';
 
-export function IterativeFileReader({
-  status,
-  tool_name,
-  toolInputJson,
-  fileCount,
-}: {
-  status: ToolRunStatus;
-  tool_name: string;
-  toolInputJson: string;
-  fileCount?: number;
-}) {
+const IterativeFileReader: React.FC<ToolProps> = ({
+  toolRequest,
+  toolResponse,
+  toolUseId,
+  toolRunStatus,
+}) => {
   const [filePath, setFilePath] = useState<string | undefined>();
   const [startLine, setStartLine] = useState<number | undefined>();
   const [endLine, setEndLine] = useState<number | undefined>();
   const [fileName, setFileName] = useState<string | undefined>();
   const [repoPath, setRepoPath] = useState<string | undefined>();
+  const toolInputJson = toolRequest?.requestData;
 
   useEffect(() => {
     try {
@@ -49,7 +45,7 @@ export function IterativeFileReader({
       <div className="flex w-full items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <div className="flex h-4 min-h-4 w-4 min-w-4 items-center justify-center">
-            <StatusIcon status={status} />
+            <StatusIcon status={toolRunStatus} />
           </div>
           <span className="whitespace-nowrap">File analyzed</span>
           {filePath && fileName && (
@@ -67,9 +63,9 @@ export function IterativeFileReader({
             </button>
           )}
         </div>
-
-        <div className="text-gray-300">{fileCount !== undefined ? `${fileCount} results` : ''}</div>
       </div>
     </div>
   );
-}
+};
+
+export default IterativeFileReader;

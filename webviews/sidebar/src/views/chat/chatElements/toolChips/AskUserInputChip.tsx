@@ -5,23 +5,27 @@ import { AskUserInputProps } from '@/types';
 import '../../../../styles/markdown-body.css';
 
 const AskUserInput: React.FC<AskUserInputProps> = ({ input }) => {
-  let promptText = input;
   const { themeKind } = useThemeStore();
+  let promptText = '';
 
-  try {
-    const parsed = parse(input, Allow.STR | Allow.OBJ);
-    if (parsed && typeof parsed === 'object' && parsed.prompt) {
-      promptText = parsed.prompt;
+  if (typeof input === 'object') {
+    promptText = input.prompt ?? JSON.stringify(input, null, 2);
+  } else {
+    try {
+      const parsed = parse(input, Allow.STR);
+      promptText = typeof parsed === 'object' ? parsed.prompt : '';
+    } catch {
+      // Ignoring
     }
-  } catch {
-    // If parsing fails, just show raw input as-it-is
   }
 
   return (
     <div
       className={`markdown-body text-base ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''}`}
     >
-      {promptText !== null && promptText !== '' && <Markdown>{promptText}</Markdown>}
+      {promptText !== undefined && promptText !== null && promptText !== '' && (
+        <Markdown>{promptText}</Markdown>
+      )}
     </div>
   );
 };

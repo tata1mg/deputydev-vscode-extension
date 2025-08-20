@@ -4,14 +4,15 @@ import FilePathSearcherTool from './FilePathSearcherChip';
 import GrepSearchTool from './GrepSearchChip';
 import WebSearchTool from './WebSearchChip';
 import PublicUrlContentReaderTool from './PublicUrlContentReaderChip';
-import { IterativeFileReader } from './IterativeFileReaderChip';
 import MCPTool from './MCPChip';
 import AskUserInput from './AskUserInputChip';
 import { CreateNewWorkspace } from './CreateNewWorkspaceChip';
 import RelatedCodeSearcher from './RelatedCodeSearcherChip';
 import FocusedSnippetSearcher from './FocusedSnippetSearcherChip';
 import { TerminalPanel } from './TerminalPanel';
-import { FileEditedChip } from './FileEditedChip';
+import FileEditedChip from './FileEditedChip';
+import IterativeFileReader from './IterativeFileReaderChip';
+import TerminalPanelHistory from './TerminalPanelHistory';
 
 const ToolChipSelector: React.FC<ToolProps> = ({
   toolRequest,
@@ -19,6 +20,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   toolUseId,
   toolRunStatus,
   terminal,
+  isHistory,
 }) => {
   if (toolRequest?.toolName === 'ask_user_input') {
     return <AskUserInput input={toolRequest?.requestData} />;
@@ -81,12 +83,23 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   } else if (toolRequest?.toolName === 'iterative_file_reader') {
     return (
       <IterativeFileReader
-        status={toolRunStatus}
-        tool_name={toolRequest.toolName}
-        toolInputJson={toolRequest.requestData}
+        toolRequest={toolRequest}
+        toolResponse={toolResponse}
+        toolUseId={toolUseId}
+        toolRunStatus={toolRunStatus}
       />
     );
   } else if (toolRequest?.toolName === 'execute_command') {
+    if (isHistory) {
+      return (
+        <TerminalPanelHistory
+          toolRequest={toolRequest}
+          toolResponse={toolResponse}
+          toolUseId={toolUseId}
+          toolRunStatus={toolRunStatus}
+        />
+      );
+    }
     return (
       <TerminalPanel
         tool_id={toolUseId}
@@ -105,13 +118,10 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   ) {
     return (
       <FileEditedChip
-        isToolUse={true}
-        isWriteToFileTool={toolRequest?.toolName === 'write_to_file'}
-        content={toolRequest?.requestData as string}
-        status={toolRunStatus}
-        addedLines={toolResponse?.addedLines}
-        removedLines={toolResponse?.removedLines}
-        isStreaming={true}
+        toolRequest={toolRequest}
+        toolResponse={toolResponse}
+        toolUseId={toolUseId}
+        toolRunStatus={toolRunStatus}
       />
     );
   } else {
