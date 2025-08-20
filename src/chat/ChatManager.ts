@@ -40,6 +40,7 @@ import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToke
 import { resolveDirectoryRelative } from '../utilities/path';
 import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
 import { getIsLspReady } from '../languageServer/lspStatus';
+import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -51,8 +52,9 @@ export class ChatManager {
   private readonly focusChunksService = new FocusChunksService();
   private readonly directoryStructureService = new DirectoryStructureService();
   private readonly authService = new AuthService();
-  private readonly getUsagesTool = new GetUsagesTool();
-  private readonly getResolveModuleTool = new GetResolveModuleTool();
+  private readonly languageFeaturesService = new LanguageFeaturesService();
+  private readonly getUsagesTool = new GetUsagesTool(this.languageFeaturesService);
+  private readonly getResolveModuleTool = new GetResolveModuleTool(this.languageFeaturesService);
 
   private currentAbortController: AbortController | null = null;
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
