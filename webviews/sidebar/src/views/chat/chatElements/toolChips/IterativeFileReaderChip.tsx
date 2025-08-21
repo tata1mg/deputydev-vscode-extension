@@ -55,11 +55,9 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
           const filename = file_path.split('/').pop();
           setFileName(filename);
         }
-      } else {
-        console.error('Invalid toolInputJson:', toolInputJson);
       }
     } catch (e) {
-      console.error('Failed to parse toolInputJson:', e);
+      // For invalid json
     }
   }, [toolInputJson]);
 
