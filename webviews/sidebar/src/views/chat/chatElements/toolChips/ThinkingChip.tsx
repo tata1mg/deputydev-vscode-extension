@@ -71,9 +71,11 @@ export function ThinkingChip({
             <StatusIcon status={status} />
             <span className="text-xs font-bold">{displayText}</span>
           </div>
-          <button className="cursor-pointer" onClick={() => handleDropDown()}>
+
+          {/* Don't remove commented currently, will be used for future dropdown functionality */}
+          {/* <button className="cursor-pointer" onClick={() => handleDropDown()}>
             {!showDropDown ? <ChevronDown /> : <ChevronUp />}
-          </button>
+          </button> */}
         </div>
 
         {/* Show request and response details */}
