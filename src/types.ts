@@ -84,6 +84,8 @@ export interface ChatPayload {
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
   retry_reason?: string;
+  is_embedding_done?: boolean;
+  is_lsp_ready?: boolean;
   active_file_reference?: {
     active_file: string;
     start_line?: number;

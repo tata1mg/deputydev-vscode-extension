@@ -245,6 +245,10 @@ export function signOut() {
   return callCommand('sign-out', {});
 }
 
+export function reloadWindow() {
+  return callCommand('reload-window', {});
+}
+
 export function getProfileUiData() {
   return callCommand('fetch-profile-ui-data', {});
 }

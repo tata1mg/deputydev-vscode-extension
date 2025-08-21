@@ -128,15 +128,11 @@ export class SingletonLogger {
     const logFilePath = path.join(pidDir, today, 'debug.log');
 
     if (!fs.existsSync(logFilePath)) {
+      vscode.window.showWarningMessage(`No log file found for today in: ${logFilePath}`);
       return;
     }
 
-    const logContent = fs.readFileSync(logFilePath, 'utf-8');
-
-    const doc = await vscode.workspace.openTextDocument({
-      language: 'log',
-      content: logContent,
-    });
+    const doc = await vscode.workspace.openTextDocument(logFilePath);
 
     await vscode.window.showTextDocument(doc, { preview: false });
   }
