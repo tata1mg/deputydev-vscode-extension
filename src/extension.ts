@@ -54,8 +54,6 @@ import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManag
 import { CommentHandler } from './codeReview/CommentHandler';
 import { CodeReviewManager } from './codeReviewManager/CodeReviewManager';
 import { closeDeputyDevDebugTabs } from './utilities/closeOpenedLogs';
-import { getSendMessageToSidebarDetail } from './chat/test';
-import { GetUsagesTool } from './chat/tools/usages/GetUsageTool';
 
 export async function activate(context: vscode.ExtensionContext) {
   const isCompatible = checkIfExtensionIsCompatible();
