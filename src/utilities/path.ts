@@ -2,33 +2,29 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import fs from 'fs/promises';
 import { getActiveRepo, getContextRepositories, getRepoAndRelativeFilePath } from './contextManager';
-// Safe path comparison that works across different platforms
-export function arePathsEqual(path1?: string, path2?: string): boolean {
-  if (!path1 && !path2) {
-    return true;
-  }
-  if (!path1 || !path2) {
-    return false;
-  }
 
-  path1 = normalizePath(path1);
-  path2 = normalizePath(path2);
-
-  if (process.platform === 'win32') {
-    return path1.toLowerCase() === path2.toLowerCase();
+/**
+ * Canonicalize a path for equality/containment checks:
+ * - resolve + normalize
+ * - strip trailing slash (except root)
+ * - case-insensitive on Windows
+ */
+function canonicalizePath(p: string): string {
+  let resolved = path.normalize(path.resolve(p));
+  if (resolved.length > 1 && (resolved.endsWith('/') || resolved.endsWith('\\'))) {
+    resolved = resolved.slice(0, -1);
   }
-  return path1 === path2;
+  return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
-function normalizePath(p: string): string {
-  // normalize resolve ./.. segments, removes duplicate slashes, and standardizes path separators
-  let normalized = path.normalize(p);
-  // however it doesn't remove trailing slashes
-  // remove trailing slash, except for root paths
-  if (normalized.length > 1 && (normalized.endsWith('/') || normalized.endsWith('\\'))) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized;
+// Safe path comparison that works across different platforms
+export function arePathsEqual(path1?: string, path2?: string): boolean {
+  if (!path1 && !path2) return true;
+  if (!path1 || !path2) return false;
+
+  const a = canonicalizePath(path1);
+  const b = canonicalizePath(path2);
+  return a === b;
 }
 
 export async function fileExists(uri: vscode.Uri): Promise<boolean> {
@@ -43,7 +39,7 @@ export async function fileExists(uri: vscode.Uri): Promise<boolean> {
 /**
  * Helper function to check if a path exists.
  *
- * @param path - The path to check.
+ * @param filePath - The path to check.
  * @returns A promise that resolves to true if the path exists, false otherwise.
  */
 export async function fileExistsAtPath(filePath: string): Promise<boolean> {
@@ -132,29 +128,129 @@ export async function resolveDirectoryRelative(directory?: string): Promise<stri
     throw new TypeError('directory must be a non-empty string');
   }
 
-  // If already relative, just normalize and return
+  // If already relative, just normalize and return (forward slashes for consistency)
   if (!path.isAbsolute(directory)) {
-    // Normalize separators to forward-slashes for consistency
     return directory.replace(/\\/g, '/');
   }
 
-  // For absolute path: check which repo it belongs to
-  const contextRepos = await getContextRepositories();
-  if (!contextRepos.length) {
-    throw new Error('No active repositories found.');
+  // For absolute path: reuse repo detection
+  const info = await getRepoInfoForAbsPath(directory);
+  if (!info) {
+    throw new Error(`No matching repository found for path: "${directory}"`);
   }
 
-  // Find the repo whose path is a prefix of the directory
-  for (const repo of contextRepos) {
-    // Make sure both paths are resolved and absolute
-    const repoRoot = path.resolve(repo.repo_path);
-    if (directory.startsWith(repoRoot)) {
-      // Get the relative path
-      const rel = path.relative(repoRoot, path.normalize(directory));
-      return rel === '' ? '.' : rel.replace(/\\/g, '/');
+  // '.' when directory equals repo root
+  const rel = info.repoRelPath;
+  return rel === '' ? '.' : rel.replace(/\\/g, '/');
+}
+
+export interface RepoInfo {
+  repoPath: string; // absolute repo root
+  repoRelPath: string; // path within the repo
+}
+
+/**
+ * Given an absolute file path (or a file:// URI string), return the repo root and repo-relative path.
+ * Returns null if the path doesn't live under any known repo/workspace root.
+ */
+export async function getRepoInfoForAbsPath(absOrUri: string): Promise<RepoInfo | null> {
+  // Normalize input to absolute filesystem path
+  let abs = absOrUri;
+  if (abs.startsWith('file://')) {
+    try {
+      abs = vscode.Uri.parse(abs).fsPath;
+    } catch {
+      return null;
     }
   }
+  abs = path.resolve(abs);
 
-  // No matching repo found
-  throw new Error(`No matching repository found for path: "${directory}"`);
+  // Collect candidate roots: context repos first, then workspace folders
+  const roots: string[] = [];
+
+  try {
+    const contextRepos = (await getContextRepositories?.()) ?? [];
+    for (const r of contextRepos) {
+      if (r?.repo_path) roots.push(path.resolve(r.repo_path));
+    }
+  } catch (e) {
+    // Failed to get context repositories
+  }
+
+  for (const f of vscode.workspace.workspaceFolders ?? []) {
+    if (f.uri.scheme === 'file') roots.push(path.resolve(f.uri.fsPath));
+  }
+
+  if (roots.length === 0) {
+    return null;
+  }
+
+  // Pick the longest matching root (handles nested repos)
+  const best = pickBestRoot(abs, roots);
+  if (!best) {
+    return null;
+  }
+
+  const repoRelPath = path.relative(best, abs);
+  return { repoPath: best, repoRelPath };
+}
+
+/** Return the longest root that contains the path (case-insensitive on Windows). */
+function pickBestRoot(absChild: string, roots: string[]): string | null {
+  let best: string | null = null;
+  for (const root of roots) {
+    if (isUnder(absChild, root)) {
+      if (!best || root.length > best.length) best = root;
+    }
+  }
+  return best;
+}
+
+/** True if childAbs is inside parentAbs (or equal). */
+export function isUnder(childAbs: string, parentAbs: string): boolean {
+  const child = canonicalizePath(childAbs);
+  const parent = canonicalizePath(parentAbs);
+  const rel = path.relative(parent, child);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+}
+
+export function absolutePathForUri(uri: vscode.Uri): string {
+  if (uri.scheme === 'file') {
+    const abs = path.resolve(uri.fsPath);
+    return abs;
+  }
+  // Non-file URIs don’t have a filesystem path; return the URI string.
+  // (This keeps the API total; callers can branch on `uri.startsWith("file://")` if needed.)
+  const asString = uri.toString();
+  return asString;
+}
+
+export function toFilePath(uri: vscode.Uri): string {
+  return absolutePathForUri(uri);
+}
+
+export function fromFilePath(filePath: string): vscode.Uri {
+  if (filePath.startsWith('file://')) {
+    return vscode.Uri.parse(filePath);
+  }
+  if (path.isAbsolute(filePath)) {
+    return vscode.Uri.file(filePath);
+  }
+  const activeRepo = getActiveRepo();
+  if (activeRepo) {
+    return vscode.Uri.file(path.join(activeRepo, filePath));
+  }
+  return vscode.Uri.file(filePath);
+}
+
+export async function tryRepoInfo(absPath: string): Promise<{ repoPath?: string; repoRelPath?: string }> {
+  try {
+    const info = await getRepoInfoForAbsPath(absPath);
+    if (info?.repoPath && info?.repoRelPath !== undefined) {
+      return { repoPath: info.repoPath, repoRelPath: info.repoRelPath };
+    }
+  } catch (e) {
+    // Ignore errors, just return empty object
+  }
+  return {};
 }

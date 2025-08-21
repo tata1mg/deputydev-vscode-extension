@@ -7,7 +7,6 @@ import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import * as fs from 'fs';
 import { SidebarProvider } from '../panels/SidebarProvider';
-import { Logger } from '../utilities/Logger';
 import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { SESSION_TYPE } from '../constants';
 import { binaryApi } from '../services/api/axios';
@@ -70,7 +69,6 @@ export class InlineChatEditManager {
   constructor(
     context: vscode.ExtensionContext,
     outputChannel: vscode.LogOutputChannel,
-    logger: Logger,
     private readonly chatService: ChatManager,
     private readonly sidebarProvider: SidebarProvider,
     private readonly diffManager: DiffManager,

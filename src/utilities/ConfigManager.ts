@@ -6,7 +6,7 @@ import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToke
 import { CLIENT } from '../config';
 import * as os from 'os';
 import { setEssentialConfig, setMainConfig } from '../config/configSetGet';
-import { Logger } from './Logger';
+import { SingletonLogger } from './Singleton-logger';
 import { Settings } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { ApiErrorHandler } from '../services/api/apiErrorHandler';
@@ -18,7 +18,7 @@ export class ConfigManager {
   private readonly CONFIG_KEY = 'configData';
   private configEssentials: any = {};
   private configData: any = {};
-  private logger: Logger;
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private outputChannel: vscode.LogOutputChannel;
 
   private _onDidUpdateConfig = new vscode.EventEmitter<void>();
@@ -26,9 +26,9 @@ export class ConfigManager {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
 
-  constructor(context: vscode.ExtensionContext, logger: Logger, outputChannel: vscode.LogOutputChannel) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel) {
     this.context = context;
-    this.logger = logger;
+    this.logger = SingletonLogger.getInstance();
     this.outputChannel = outputChannel;
   }
 
