@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula, duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tooltip } from 'react-tooltip';
 
-const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
+export const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
   switch (status) {
     case 'pending':
       return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;

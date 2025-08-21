@@ -1,27 +1,13 @@
-import { ToolProps, ToolRunStatus } from '@/types';
+import { ToolProps } from '@/types';
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { dracula, duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tooltip } from 'react-tooltip';
 import { openFile } from '@/commandApi';
 import { joinPath } from '@/utils/joinPath';
-
-const ToolStatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
-  switch (status) {
-    case 'pending':
-      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
-    case 'completed':
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
-    case 'error':
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    case 'aborted':
-      return <XCircle className="h-4 w-4" />;
-    default:
-      return null;
-  }
-};
+import { ToolStatusIcon } from './ChipBase';
 
 const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolResponse, toolUseId }) => {
   const { themeKind } = useThemeStore();
@@ -34,7 +20,6 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
   const [copiedRequest, setCopiedRequest] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
   const toolInputJson = toolRequest?.requestData;
-  console.log(toolInputJson);
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
@@ -45,20 +30,36 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
 
   useEffect(() => {
     try {
-      const parsedContent = JSON.parse(toolInputJson);
-      console.log('Parsed content:', parsedContent);
-      const { file_path, start_line, end_line, repo_path } = parsedContent;
-      setFilePath(file_path);
-      setStartLine(start_line);
-      setEndLine(end_line);
-      setRepoPath(repo_path);
+      let parsedContent: any;
 
-      if (file_path) {
-        const filename = file_path ? file_path.split('/').pop() : '';
-        setFileName(filename);
+      if (typeof toolInputJson === 'string') {
+        parsedContent = JSON.parse(toolInputJson);
+      } else {
+        parsedContent = toolInputJson;
+      }
+
+      if (parsedContent && typeof parsedContent === 'object') {
+        const {
+          file_path = undefined,
+          start_line = undefined,
+          end_line = undefined,
+          repo_path = undefined,
+        } = parsedContent ?? {};
+
+        setFilePath(file_path);
+        setStartLine(start_line);
+        setEndLine(end_line);
+        setRepoPath(repo_path);
+
+        if (file_path) {
+          const filename = file_path.split('/').pop();
+          setFileName(filename);
+        }
+      } else {
+        console.error('Invalid toolInputJson:', toolInputJson);
       }
     } catch (e) {
-      // Intentionally empty: toolInputJson might be invalid JSON
+      console.error('Failed to parse toolInputJson:', e);
     }
   }, [toolInputJson]);
 

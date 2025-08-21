@@ -1,24 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ToolRunStatus } from '@/types';
-import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { useThemeStore } from '@/stores/useThemeStore';
 import { dracula, duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-
-export const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
-  switch (status) {
-    case 'pending':
-      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
-    case 'completed':
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
-    case 'error':
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    case 'aborted':
-      return <XCircle className="h-4 w-4" />;
-    default:
-      return null;
-  }
-};
+import { ToolStatusIcon } from './ChipBase';
 
 export function ThinkingChip({
   status,
@@ -68,7 +53,7 @@ export function ThinkingChip({
       <div className="flex w-full flex-col gap-2">
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2">
-            <StatusIcon status={status} />
+            <ToolStatusIcon status={status} />
             <span className="text-xs font-bold">{displayText}</span>
           </div>
 
