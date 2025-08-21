@@ -5,8 +5,8 @@ import { ToolProps, ToolRunStatus } from '@/types';
 import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
 import { openFile } from '@/commandApi';
-import { StatusIcon } from './ThinkingChip';
 import { SnippetReference } from '../CodeBlockStyle';
+import { ToolStatusIcon } from './ChipBase';
 
 const FileEditedChip: React.FC<ToolProps> = ({
   toolRequest,
@@ -73,7 +73,7 @@ const FileEditedChip: React.FC<ToolProps> = ({
               )}
             </button>
           )}
-          <StatusIcon status={toolRunStatus} />
+          <ToolStatusIcon status={toolRunStatus} />
           <span className={statusColor}>{statusText}</span>
           {path && (
             <div>
