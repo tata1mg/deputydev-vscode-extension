@@ -13,6 +13,8 @@ import { TerminalPanel } from './TerminalPanel';
 import FileEditedChip from './FileEditedChip';
 import IterativeFileReader from './IterativeFileReaderChip';
 import TerminalPanelHistory from './TerminalPanelHistory';
+import GetUsageTool from './GetUsageChip';
+import ResolveImportTool from './ResolveImportChip';
 
 const ToolChipSelector: React.FC<ToolProps> = ({
   toolRequest,
@@ -42,6 +44,26 @@ const ToolChipSelector: React.FC<ToolProps> = ({
     case 'related_code_searcher':
       return (
         <RelatedCodeSearcher
+          toolRequest={toolRequest}
+          toolResponse={toolResponse}
+          toolUseId={toolUseId}
+          toolRunStatus={toolRunStatus}
+        />
+      );
+
+    case 'get_usage_tool':
+      return (
+        <GetUsageTool
+          toolRequest={toolRequest}
+          toolResponse={toolResponse}
+          toolUseId={toolUseId}
+          toolRunStatus={toolRunStatus}
+        />
+      );
+
+    case 'resolve_import_tool':
+      return (
+        <ResolveImportTool
           toolRequest={toolRequest}
           toolResponse={toolResponse}
           toolUseId={toolUseId}
