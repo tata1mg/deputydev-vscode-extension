@@ -1476,6 +1476,7 @@ export class ChatManager {
    */
   async stopChat(): Promise<void> {
     cancelChat();
+    this.querySolverService.dispose();
     if (this.currentAbortController) {
       this.currentAbortController.abort();
       this.outputChannel.warn('Stopping active chat request...');
