@@ -18,10 +18,10 @@ const TextMessageChip: React.FC<{ msg: ChatUserMessage | ChatAssistantMessage }>
         }
       }
       return (
-        <div className="flex flex-col gap-1 rounded-md">
+        <div className="mt-2 flex flex-col gap-1 rounded-md">
           {/* ── 1️⃣ First row: avatar + message bubble ─────────────────────────────── */}
-          <div className="items- flex gap-2">
-            <div className="flex h-7 flex-shrink-0 items-center justify-center">
+          <div className="flex gap-2">
+            <div className="flex h-7 flex-shrink-0 items-center justify-center mt-1">
               <CircleUserRound className="text-neutral-600" size={20} />
             </div>
 
