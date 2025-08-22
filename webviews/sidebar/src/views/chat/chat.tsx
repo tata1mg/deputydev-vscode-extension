@@ -165,7 +165,7 @@ export function ChatUI() {
     resetTextareaHeight();
 
     try {
-      await sendChatMessage(message, editorReferences, () => {}, s3References);
+      await sendChatMessage(message, editorReferences, s3References);
     } catch (error) {
       // Handle error if needed
     }

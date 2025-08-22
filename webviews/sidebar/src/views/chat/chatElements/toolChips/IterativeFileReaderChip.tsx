@@ -1,123 +1,110 @@
-import { BaseToolProps } from '@/types';
-import React, { useEffect } from 'react';
-import { CheckCircle, Loader2, XCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
-import { ToolRunStatus } from '@/types';
-import { useState } from 'react';
+import { ToolProps } from '@/types';
+import React, { useEffect, useState } from 'react';
+import { CheckCircle, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { toolUseApprovalUpdate } from '@/commandApi';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { dracula, duotoneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Tooltip } from 'react-tooltip';
+import { openFile } from '@/commandApi';
+import { joinPath } from '@/utils/joinPath';
+import { ToolStatusIcon } from './ChipBase';
 
-const StatusIcon: React.FC<{ status: ToolRunStatus }> = ({ status }) => {
-  switch (status) {
-    case 'pending':
-      return <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />;
-    case 'completed':
-      return <CheckCircle className="h-4 w-4 text-green-400" />;
-    case 'error':
-      return <XCircle className="h-4 w-4 text-red-400" />;
-    case 'aborted':
-      return <XCircle className="h-4 w-4" />;
-    default:
-      return null;
-  }
-};
-
-const BaseTool: React.FC<BaseToolProps> = ({
-  toolRunStatus,
-  toolRequest,
-  toolResponse,
-  toolUseId,
-  displayText,
-}) => {
+const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolResponse, toolUseId }) => {
   const { themeKind } = useThemeStore();
-  const borderClass =
-    themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
-      ? 'border border-[--deputydev-button-border]'
-      : '';
+  const [filePath, setFilePath] = useState<string | undefined>();
+  const [startLine, setStartLine] = useState<number | undefined>();
+  const [endLine, setEndLine] = useState<number | undefined>();
+  const [fileName, setFileName] = useState<string | undefined>();
+  const [repoPath, setRepoPath] = useState<string | undefined>();
   const [showDropDown, setShowDropDown] = useState(false);
-  const [autoApproval, setAutoApproval] = useState(false);
-  const [showConsent, setShowConsent] = useState(true);
-  const [requestRejected, setRequestRejected] = useState(false);
-
-  // hover background and temporary copy state
   const [copiedRequest, setCopiedRequest] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
-
-  useEffect(() => {
-    if (toolRequest?.requiresApproval) {
-      setShowDropDown(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (toolRunStatus === 'aborted') {
-      setShowConsent(false);
-      setShowDropDown(false);
-    }
-  }, [toolRunStatus]);
+  const toolInputJson = toolRequest?.requestData;
 
   const handleDropDown = () => {
     setShowDropDown(!showDropDown);
   };
 
-  const handleAutoApprovalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.checked;
-    setAutoApproval(newValue);
-  };
-
   const highlighterStyle =
     themeKind === 'light' || themeKind === 'high-contrast-light' ? duotoneLight : dracula;
+
+  useEffect(() => {
+    try {
+      let parsedContent: any;
+
+      if (typeof toolInputJson === 'string') {
+        parsedContent = JSON.parse(toolInputJson);
+      } else {
+        parsedContent = toolInputJson;
+      }
+
+      if (parsedContent && typeof parsedContent === 'object') {
+        const {
+          file_path = undefined,
+          start_line = undefined,
+          end_line = undefined,
+          repo_path = undefined,
+        } = parsedContent ?? {};
+
+        setFilePath(file_path);
+        setStartLine(start_line);
+        setEndLine(end_line);
+        setRepoPath(repo_path);
+
+        if (file_path) {
+          const filename = file_path.split('/').pop();
+          setFileName(filename);
+        }
+      }
+    } catch (e) {
+      // For invalid json
+    }
+  }, [toolInputJson]);
+
+  const lineRange = startLine != null && endLine != null ? `#${startLine}-${endLine}` : '';
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
-  // base tool chip
   return (
     <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
       <div className="flex w-full flex-col gap-2">
         <div className="flex w-full items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex w-full min-w-0 items-center gap-2">
-              <StatusIcon status={toolRunStatus} />
-              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <span className="text-xs font-bold">
-                  {requestRejected ? 'Tool Use Request Rejected' : displayText}
-                </span>
-                <span
-                  className="truncate text-xs text-gray-400"
-                  data-tooltip-id="tool-chip-tool-tip"
-                  data-tooltip-content={`${toolRequest?.toolMeta.serverName}/${toolRequest?.toolMeta.toolName}`}
-                  data-tooltip-place="top-start"
-                >
-                  {toolRequest?.toolMeta.serverName}/{toolRequest?.toolMeta.toolName}
-                </span>
+              {/* Tool status icon */}
+              <ToolStatusIcon status={toolRunStatus} />
+
+              {/* Tool request display text */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold">File analyzed</span>
+                {filePath && fileName && (
+                  <button
+                    className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
+                    onClick={() => {
+                      const hasRepoPath = !!repoPath;
+                      const fullPath = hasRepoPath ? joinPath(repoPath, filePath) : filePath;
+                      openFile(fullPath, startLine, endLine, hasRepoPath ? true : undefined);
+                    }}
+                    title={filePath}
+                  >
+                    {fileName}
+                    {lineRange && <span className="text-gray-400">{lineRange}</span>}
+                  </button>
+                )}
               </div>
             </div>
           </div>
+
           <div className="flex items-center gap-2">
-            {toolRequest?.requiresApproval && (
-              <div>
-                {showConsent && (
-                  <div className="flex items-center gap-2">
-                    <span className="whitespace-nowrap text-xs text-gray-400">Auto approve</span>
-                    <input
-                      type="checkbox"
-                      checked={autoApproval}
-                      onChange={handleAutoApprovalChange}
-                      className="h-4 w-4 rounded border-gray-500/40 bg-gray-500/10 text-blue-500 focus:ring-0"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Dropdown icon to show/hide request/response */}
             <div className="cursor-pointer" onClick={() => handleDropDown()}>
               {!showDropDown ? <ChevronDown /> : <ChevronUp />}
             </div>
           </div>
         </div>
+
+        {/* Show request and response details */}
         {showDropDown && toolRequest && (
           <div className="space-y-4">
             {/* Request JSON with copy */}
@@ -168,6 +155,7 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 </SyntaxHighlighter>
               </div>
             </div>
+
             {/* Response JSON with copy */}
             {toolResponse && (
               <div className="relative overflow-x-hidden rounded bg-gray-500/10 p-2">
@@ -218,40 +206,6 @@ const BaseTool: React.FC<BaseToolProps> = ({
                 </div>
               </div>
             )}
-            {toolRequest.requiresApproval && (
-              <div>
-                {showConsent && (
-                  <div>
-                    <div className="px-2 py-2 text-xs italic text-[--vscode-editorWarning-foreground]">
-                      This tool requires your approval before it can be executed.
-                    </div>
-                    <div className="flex space-x-2 px-2 pb-2">
-                      <button
-                        onClick={() => {
-                          toolUseApprovalUpdate(toolUseId, autoApproval, true);
-                          setShowDropDown(false);
-                          setShowConsent(false);
-                        }}
-                        className={`flex-1 rounded bg-green-600 px-2 py-2 font-semibold text-[--deputydev-button-foreground] hover:opacity-40 ${borderClass} disabled:cursor-progress disabled:opacity-80`}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => {
-                          toolUseApprovalUpdate(toolUseId, false, false);
-                          setShowDropDown(false);
-                          setShowConsent(false);
-                          setRequestRejected(true);
-                        }}
-                        className={`flex-1 rounded bg-[--deputydev-button-secondaryBackground] px-2 py-2 font-semibold text-[--deputydev-button-secondaryForeground] text-red-500 hover:bg-[--deputydev-button-secondaryHoverBackground] ${borderClass} disabled:cursor-progress disabled:opacity-80`}
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
         <Tooltip id="tool-chip-tool-tip" />
@@ -260,4 +214,4 @@ const BaseTool: React.FC<BaseToolProps> = ({
   );
 };
 
-export default BaseTool;
+export default ChipBase;

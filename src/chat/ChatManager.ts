@@ -19,11 +19,19 @@ import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
-import { getActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
+import {
+  getActiveRepo,
+  getIsEmbeddingDoneForActiveRepo,
+  getSessionId,
+  setSessionId,
+} from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { cancelChat, registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
 import { ReplaceInFile } from './tools/ReplaceInFileTool';
+import { GetUsagesTool } from './tools/usages/GetUsageTool';
+import { GetResolveModuleTool } from './tools/usages/ResolveModule';
+
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
 import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
@@ -31,6 +39,8 @@ import { BackendClient } from '../clients/backendClient';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { resolveDirectoryRelative } from '../utilities/path';
 import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
+import { getIsLspReady } from '../languageServer/lspStatus';
+import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -42,6 +52,10 @@ export class ChatManager {
   private readonly focusChunksService = new FocusChunksService();
   private readonly directoryStructureService = new DirectoryStructureService();
   private readonly authService = new AuthService();
+  private readonly languageFeaturesService = new LanguageFeaturesService();
+  private readonly getUsagesTool = new GetUsagesTool(this.languageFeaturesService);
+  private readonly getResolveModuleTool = new GetResolveModuleTool(this.languageFeaturesService);
+
   private currentAbortController: AbortController | null = null;
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
@@ -113,84 +127,70 @@ export class ChatManager {
     this.outputChannel.info('Stopping deputydev binary service...');
   }
 
-  async getFocusChunks(data: ChatPayload): Promise<{
-    focusChunksResult: Array<any>;
-    directoryResults: Array<any>;
-  }> {
+  async getFocusChunks(data: ChatPayload): Promise<any[]> {
     const active_repo = getActiveRepo();
     if (!active_repo) {
       throw new Error('Active repository is not defined.');
     }
 
-    const focusChunksResult: Array<any> = [];
-    const directoryResults: Array<any> = [];
-
-    this.outputChannel.info(`Reference list: ${JSON.stringify(data.referenceList)}`);
+    const focusItemsResult: Array<any> = [];
+    this.outputChannel.info(`Focus items: ${JSON.stringify(data.focusItems)}`);
 
     try {
       await Promise.all(
-        (data.referenceList ?? []).map(async (element) => {
-          const isDirectory = element.type === 'directory';
-
+        (data.focusItems ?? []).map(async (item) => {
           // Always fetch directory structure if it's a directory
-          if (isDirectory) {
+          if (item.type === 'directory') {
             const directoryPayload = {
               auth_token: await this.authService.loadAuthToken?.(),
               repo_path: active_repo,
-              directory_path: element.path,
+              directory_path: item.path,
             };
 
-            const directoryStructure = await this.directoryStructureService.getDirectoryStructure(directoryPayload);
+            const structure = await this.directoryStructureService.getDirectoryStructure(directoryPayload);
 
-            directoryResults.push({
-              path: element.path,
-              value: element.value,
-              structure: directoryStructure,
+            focusItemsResult.push({
+              type: item.type,
+              value: item.value,
+              path: item.path,
+              structure: structure,
             });
-          }
-          if (element.type == 'directory') {
-            focusChunksResult.push({
-              type: element.type,
-              value: element.value,
-              chunks: [],
-              path: element.path,
+          } else if (item.type === 'url') {
+            focusItemsResult.push({
+              type: item.type,
+              value: item.value,
+              chunks: item.chunks,
+              url: item.url,
             });
-          }
-          // Process chunks if present (even for directories)
-          else if (element.chunks && element.chunks.length > 0) {
-            const chunkDetails: Array<Chunk> = element.chunks;
+            // Process chunks if present (even for directories)
+          } else if (item.chunks && item.chunks.length > 0) {
+            const chunkDetails: Array<Chunk> = item.chunks;
 
             const result = await this.focusChunksService.getFocusChunks({
               auth_token: await this.authService.loadAuthToken(),
               repo_path: active_repo,
               chunks: chunkDetails,
-              search_item_name: element.value,
-              search_item_type: element.type,
-              search_item_path: element.path,
+              search_item_name: item.value,
+              search_item_type: item.type,
+              search_item_path: item.path,
             });
 
             const finalChunkInfos: Array<any> = result.map((chunkInfoWithHash: any) => chunkInfoWithHash.chunk_info);
 
-            focusChunksResult.push({
-              type: element.type,
-              value: element.value,
+            focusItemsResult.push({
+              type: item.type,
+              value: item.value,
               chunks: finalChunkInfos || [],
-              path: element.path,
+              path: item.path,
             });
           }
         }),
       );
 
-      return {
-        focusChunksResult,
-        directoryResults,
-      };
+      return focusItemsResult;
     } catch (error) {
-      this.outputChannel.error(`Error fetching focus chunks or directory structure: ${error}`);
-      return {
-        focusChunksResult: [],
-        directoryResults: [],
-      };
+      this.outputChannel.error(`Error fetching focus items or directory structure: ${error}`);
+      return [];
     }
   }
 
@@ -277,16 +277,14 @@ export class ChatManager {
       this.outputChannel.info(`Message ID: ${messageId}`);
 
       // 1. Prepare Context: History and Focus Items
-      const currentSessionId = getSessionId();
-      if (payload.referenceList) {
-        const { focusChunksResult, directoryResults } = await this.getFocusChunks(payload);
-        payload.focus_items = focusChunksResult;
-        payload.directory_items = directoryResults;
+      if (payload.focusItems && payload.focusItems.length > 0) {
+        payload.focus_items = await this.getFocusChunks(payload);
       }
 
-      delete payload.referenceList;
+      delete payload.focusItems;
 
       delete payload.message_id; // Backend doesn't need this directly
+
       if (payload.is_tool_response) {
         delete payload.query;
       }
@@ -301,9 +299,10 @@ export class ChatManager {
       payload.vscode_env = await getEnvironmentDetails(true, payload);
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
+      payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo();
+      payload.is_lsp_ready = await getIsLspReady({ force: true });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
-      // console.log(payload)
       this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);
 
       // 2. Call Query Solver Service and Register Task for Cancellation
@@ -314,7 +313,7 @@ export class ChatManager {
       this.outputChannel.info('QuerySolverService called, listening for events...');
 
       let currentToolRequest: ToolRequest | null = null;
-      let currentDiffRequest: any = null;
+      let currentDiffRequest: { filepath: string; raw_diff?: string } | null = null;
       const pendingToolRequests: ToolRequest[] = [];
 
       for await (const event of querySolverIterator) {
@@ -323,15 +322,16 @@ export class ChatManager {
           break; // Exit loop if cancelled
         }
         switch (event.type) {
-          case 'RESPONSE_METADATA':
-            if (event.content?.session_id) {
+          case 'RESPONSE_METADATA': {
+            const sessionId = event.content?.session_id;
+            if (sessionId) {
               // Set session ID if not already set
-              setSessionId(event.content.session_id);
-              this.outputChannel.info(`Session ID set: ${event.content.session_id}`);
+              setSessionId(sessionId);
+              this.outputChannel.info(`Session ID set: ${sessionId}`);
             }
             chunkCallback({ name: event.type, data: event.content });
             break;
-
+          }
           case 'TOOL_USE_REQUEST_START': {
             currentToolRequest = {
               tool_name: event.content.tool_name,
@@ -363,7 +363,16 @@ export class ChatManager {
                 },
               });
             } else {
-              chunkCallback({ name: event.type, data: event.content });
+              chunkCallback({
+                name: 'TOOL_CHIP_UPSERT',
+                data: {
+                  toolRequest: {
+                    toolName: event.content.tool_name,
+                  },
+                  toolRunStatus: 'pending',
+                  toolUseId: event.content.tool_use_id,
+                },
+              });
             }
             break;
           }
@@ -392,11 +401,14 @@ export class ChatManager {
                 });
               } else {
                 chunkCallback({
-                  name: event.type,
+                  name: 'TOOL_CHIP_UPSERT',
                   data: {
-                    tool_name: currentToolRequest.tool_name,
-                    tool_use_id: currentToolRequest.tool_use_id,
-                    delta: event.content?.input_params_json_delta || '',
+                    toolRequest: {
+                      requestData: currentToolRequest.accumulatedContent,
+                      toolName: currentToolRequest.tool_name,
+                    },
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
                 });
               }
@@ -427,10 +439,15 @@ export class ChatManager {
                 });
               } else {
                 chunkCallback({
-                  name: event.type,
+                  name: 'TOOL_CHIP_UPSERT',
                   data: {
-                    tool_name: currentToolRequest.tool_name,
-                    tool_use_id: currentToolRequest.tool_use_id,
+                    toolRequest: {
+                      requestData: currentToolRequest.accumulatedContent,
+                      toolName: currentToolRequest.tool_name,
+                    },
+                    toolResponse: null,
+                    toolRunStatus: 'pending',
+                    toolUseId: currentToolRequest.tool_use_id,
                   },
                 });
               }
@@ -439,7 +456,7 @@ export class ChatManager {
             break;
           }
           case 'CODE_BLOCK_START':
-            if (event.content?.is_diff && !(payload.write_mode && payload.llm_model === 'GPT_4_POINT_1')) {
+            if (event.content?.is_diff && !payload.write_mode) {
               currentDiffRequest = {
                 filepath: event.content?.filepath,
                 // raw_diff will be populated at CODE_BLOCK_END
@@ -1119,6 +1136,13 @@ export class ChatManager {
           parsedContent.case_insensitive,
           parsedContent.use_regex,
         ),
+      get_usage_tool: () =>
+        this.getUsagesTool.getUsages({ symbolName: parsedContent.symbol_name, filePaths: parsedContent.file_paths }),
+      resolve_import_tool: () =>
+        this.getResolveModuleTool.resolveModule({
+          importName: parsedContent.import_name,
+          filePath: parsedContent.file_path,
+        }),
       public_url_content_reader: () => this._runPublicUrlContentReader(parsedContent),
       execute_command: () =>
         this.terminalExecutor.runCommand({
@@ -1154,9 +1178,9 @@ export class ChatManager {
 
     if (detectedClientTool) {
       this._sendToolChipUpdate(chunkCallback, toolRequest, detectedClientTool, parsedContent, result, 'completed');
+    } else {
+      this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
     }
-
-    this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
 
     if (shouldMakeApiCall) {
       const continuationPayload = await this._createContinuationPayload(toolRequest, messageId, result, clientTools);
@@ -1196,9 +1220,9 @@ export class ChatManager {
         { error: error.message },
         'error',
       );
+    } else {
+      this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
     }
-
-    this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
 
     const retryPayload = await this._createRetryPayload(toolRequest, messageId, errorResponse, clientTools);
     await this.apiChat(retryPayload, chunkCallback);
@@ -1255,17 +1279,20 @@ export class ChatManager {
 
   private _sendToolResult(
     chunkCallback: ChunkCallback,
-    toolRequest: ToolRequest,
+    currentToolRequest: ToolRequest,
     result: any,
     status: 'completed' | 'error',
   ): void {
     chunkCallback({
-      name: 'TOOL_USE_RESULT',
+      name: 'TOOL_CHIP_UPSERT',
       data: {
-        tool_name: toolRequest.tool_name,
-        tool_use_id: toolRequest.tool_use_id,
-        result_json: result,
-        status,
+        toolRequest: {
+          requestData: currentToolRequest.accumulatedContent,
+          toolName: currentToolRequest.tool_name,
+        },
+        toolResponse: result,
+        toolRunStatus: status,
+        toolUseId: currentToolRequest.tool_use_id,
       },
     });
   }
@@ -1449,6 +1476,7 @@ export class ChatManager {
    */
   async stopChat(): Promise<void> {
     cancelChat();
+    this.querySolverService.dispose();
     if (this.currentAbortController) {
       this.currentAbortController.abort();
       this.outputChannel.warn('Stopping active chat request...');

@@ -1,8 +1,8 @@
-import { MCPToolProps } from '@/types';
-import BaseTool from './baseTools';
+import { ToolProps } from '@/types';
+import ChipBase from './ChipBase';
 import React from 'react';
 
-const MCPTool: React.FC<MCPToolProps> = ({
+const GetUsageTool: React.FC<ToolProps> = ({
   toolRequest,
   toolResponse,
   toolUseId,
@@ -11,18 +11,24 @@ const MCPTool: React.FC<MCPToolProps> = ({
   let displayText: string;
   switch (toolRunStatus) {
     case 'pending':
-      displayText = 'Calling MCP Server';
+      displayText = 'Searching Symbol...';
       break;
     case 'error':
-      displayText = 'MCP Server Failed';
+      displayText = 'Error Searching Symbol';
+      break;
+    case 'completed':
+      displayText = 'Scanned Codebase';
+      break;
+    case 'aborted':
+      displayText = 'Searching Symbol Aborted';
       break;
     default:
-      displayText = 'Called MCP Server';
+      displayText = '';
       break;
   }
 
   return (
-    <BaseTool
+    <ChipBase
       toolRunStatus={toolRunStatus}
       toolRequest={toolRequest}
       toolUseId={toolUseId}
@@ -32,4 +38,4 @@ const MCPTool: React.FC<MCPToolProps> = ({
   );
 };
 
-export default MCPTool;
+export default GetUsageTool;

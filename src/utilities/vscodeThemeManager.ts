@@ -1,16 +1,16 @@
 import * as vscode from 'vscode';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { v4 as uuidv4 } from 'uuid';
-import { Logger } from './Logger';
+import { SingletonLogger } from './Singleton-logger';
 
 export class ThemeManager {
   private sideBarProvider: SidebarProvider;
-  private logger: Logger;
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly disposables: vscode.Disposable[] = [];
 
-  constructor(sideBarProvider: SidebarProvider, logger: Logger) {
+  constructor(sideBarProvider: SidebarProvider) {
     this.sideBarProvider = sideBarProvider;
-    this.logger = logger;
+    this.logger = SingletonLogger.getInstance();
 
     // Send initial theme
     this.sendThemeKind(vscode.window.activeColorTheme.kind);
