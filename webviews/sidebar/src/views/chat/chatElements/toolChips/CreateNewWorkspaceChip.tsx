@@ -1,17 +1,15 @@
 import { createNewWorkspace } from '@/commandApi';
 import { useThemeStore } from '@/stores/useThemeStore';
-import { StatusIcon } from './ToolChips';
 import { useChatStore } from '@/stores/chatStore';
+import { ToolStatusIcon } from './ChipBase';
 
 export function CreateNewWorkspace({ tool_id, status }: { tool_id: string; status: string }) {
   const handleContinue = () => {
     createNewWorkspace(tool_id);
   };
 
-  const { cancelChat } = useChatStore();
-
   const handleCancel = () => {
-    cancelChat();
+    useChatStore.getState().cancelChat();
   };
 
   const { themeKind } = useThemeStore();
@@ -30,7 +28,7 @@ export function CreateNewWorkspace({ tool_id, status }: { tool_id: string; statu
         title={completed ? 'Directory created successfully' : 'Directory creation cancelled'}
       >
         <div className="flex min-w-[16px] items-center justify-center">
-          <StatusIcon status={status} />
+          <ToolStatusIcon status={status} />
         </div>
         <span className="text-sm">
           {completed ? 'Directory created successfully' : 'Directory creation cancelled'}

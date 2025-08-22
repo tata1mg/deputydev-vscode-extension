@@ -80,10 +80,8 @@ export type ChatReferenceItemTypes =
   | 'file'
   | 'directory'
   | 'function'
-  | 'keyword'
   | 'code_snippet'
   | 'url'
-  | 'code_snippet'
   | 'class';
 
 export type ChatReferenceItem = {
@@ -118,31 +116,37 @@ export type ChatMessage =
   | ChatToolUseMessage
   | ChatThinkingMessage
   | ChatCodeBlockMessage
-  | ChatReplaceBlockMessage
   | ChatErrorMessage
   | ChatCompleteMessage
-  | ChatTerminalNoShell;
+  | ChatTerminalNoShell
+  | InfoMessage;
 
-export type ChatMetaData = {
+export interface InfoMessage {
+  type: 'INFO';
+  content: {
+    info: string;
+  };
+}
+
+export interface ChatMetaData {
   type: 'RESPONSE_METADATA';
   content: {
     session_id: number;
     query_id: number;
   };
-};
+}
 
-export type ChatUserMessage = {
+export interface ChatUserMessage {
   type: 'TEXT_BLOCK';
   content: {
     text: string;
-    focus_items?: ChatReferenceItem[];
   };
-  referenceList: ChatReferenceItem[];
+  focusItems: ChatReferenceItem[];
   activeFileReference?: ActiveFileChatReferenceItem;
-  s3References: S3Object[];
+  attachments: S3Object[];
   actor: 'USER';
   lastMessageSentTime?: Date | null;
-};
+}
 
 export interface ChatAssistantMessage {
   type: 'TEXT_BLOCK';
@@ -157,7 +161,7 @@ export interface TerminalPanelProps {
   tool_id: string;
   terminal_command: string;
   terminal_output?: string;
-  status?: 'pending' | 'completed' | 'error' | 'aborted';
+  status?: ToolRunStatus;
   show_approval_options?: boolean;
   is_execa_process?: boolean;
   process_id?: number;
@@ -165,19 +169,15 @@ export interface TerminalPanelProps {
 }
 
 export interface ChatToolUseMessage {
-  type: 'TOOL_USE_REQUEST' | 'TOOL_USE_REQUEST_BLOCK' | 'TOOL_CHIP_UPSERT';
+  type: 'TOOL_CHIP_UPSERT';
   content: {
     tool_name: string;
     tool_use_id: string;
-    input_params_json: string;
-    tool_input_json?: { prompt: string } | string;
-    result_json: string;
-    status: 'pending' | 'completed' | 'error' | 'aborted';
-    write_mode?: boolean;
-    terminal?: TerminalProcess;
-    diff?: { addedLines: number; removedLines: number };
+    status: ToolRunStatus;
     toolRequest?: any;
     toolResponse?: any;
+    toolStateMetaData?: { terminal: TerminalProcess };
+    isHistory?: boolean;
   };
 }
 export interface TerminalProcess {
@@ -214,28 +214,14 @@ export interface ChatCodeBlockMessage {
   status: 'pending' | 'completed' | 'error' | 'aborted';
 }
 
-export interface ChatReplaceBlockMessage {
-  type: 'REPLACE_IN_FILE_BLOCK' | 'REPLACE_IN_FILE_BLOCK_STREAMING';
-  content: {
-    filepath?: string;
-    diff: string;
-    added_lines?: number | null;
-    removed_lines?: number | null;
-    is_live_chat?: boolean;
-  };
-  completed: boolean;
-  actor: 'ASSISTANT';
-  write_mode: boolean;
-  status: 'pending' | 'completed' | 'error' | 'aborted';
-}
-
 export interface ChatErrorMessage {
   type: 'ERROR';
   retry: boolean;
   payload_to_retry: unknown;
   error_msg: string;
   actor: 'ASSISTANT';
-  errorData: LLMThrottlingException | LLMinputTokenLimitException | InputTokenLimitErrorData;
+  errorData: LLMThrottlingException | InputTokenLimitErrorData;
+  isRetryChip: boolean;
   content?: any;
 }
 
@@ -260,13 +246,6 @@ export interface InputTokenLimitErrorData {
     name: string;
     input_token_limit: number;
   }>;
-}
-
-export interface LLMinputTokenLimitException {
-  type: 'INPUT_TOKEN_LIMIT_ERROR';
-  model_name?: string;
-  actor: 'ASSISTANT';
-  retry_after?: number;
 }
 
 export interface ChatCompleteMessage {
@@ -382,19 +361,22 @@ export interface ToolRequest {
   requiresApproval: boolean;
 }
 
-export interface BaseToolProps {
+export interface ToolProps {
+  toolUseId: string;
   toolRunStatus: ToolRunStatus;
   toolRequest?: ToolRequest | null;
   toolResponse?: any;
-  toolUseId: string;
-  displayText: string;
+  displayText?: string;
+  terminal?: TerminalProcess;
+  isHistory?: boolean;
 }
 
-export interface MCPToolProps {
-  toolRunStatus: ToolRunStatus;
-  toolRequest?: ToolRequest | null;
-  toolResponse?: any;
-  toolUseId: string;
+export interface ThinkingChipProps {
+  status: ToolRunStatus;
+}
+
+export interface AskUserInputProps {
+  input: string | { prompt: string };
 }
 
 export interface MCPServer {

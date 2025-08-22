@@ -12,29 +12,24 @@ import { getBinaryPort, MAX_PORT_ATTEMPTS, setBinaryPort } from '../config';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { loaderMessage } from '../utilities/contextManager';
-import { Logger } from '../utilities/Logger';
+import { SingletonLogger } from '../utilities/Singleton-logger';
 import { pipeline as streamPipeline } from 'stream/promises';
 import { withLock } from './withLock';
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
   private readonly outputChannel: vscode.LogOutputChannel;
-  private readonly logger: Logger;
+  private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   private readonly configManager: ConfigManager;
   private readonly essential_config: any;
   private readonly binaryPath_root: string;
   private readonly binaryPath: string;
   private currentPort: number | null = null;
 
-  constructor(
-    context: vscode.ExtensionContext,
-    outputChannel: vscode.LogOutputChannel,
-    logger: Logger,
-    configManager: ConfigManager,
-  ) {
+  constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, configManager: ConfigManager) {
     this.context = context;
     this.outputChannel = outputChannel;
-    this.logger = logger;
+    this.logger = SingletonLogger.getInstance();
     this.configManager = configManager;
     this.essential_config = this.configManager.getAllConfigEssentials();
     this.binaryPath_root = path.join(this.context.globalStorageUri.fsPath, 'binary'); // root Path to extracted dir

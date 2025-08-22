@@ -10,7 +10,7 @@ import { TerminalPanelProps } from '@/types';
 import { LoaderCircle, Skull, TerminalIcon } from 'lucide-react';
 import { Allow, parse } from 'partial-json';
 import { useEffect, useRef, useState } from 'react';
-import { SnippetReference } from './CodeBlockStyle';
+import { SnippetReference } from '../CodeBlockStyle';
 
 /**
  * Updates the terminal approval status for a specific tool use request in the chat history.
@@ -23,16 +23,19 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
   const history = useChatStore.getState().history;
 
   const updatedHistory = history.map((msg) => {
-    if (msg.type === 'TOOL_USE_REQUEST' && msg.content.tool_use_id === tool_use_id) {
+    if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
       // Ensure terminal exists before updating
-      if (msg.content.terminal !== undefined) {
+      if (msg.content.toolStateMetaData?.terminal !== undefined) {
         return {
           ...msg,
           content: {
             ...msg.content,
-            terminal: {
-              ...msg.content.terminal,
-              terminal_approval_required: required,
+            toolStateMetaData: {
+              ...msg.content.toolStateMetaData,
+              terminal: {
+                ...msg.content.toolStateMetaData.terminal,
+                terminal_approval_required: required,
+              },
             },
           },
         };
@@ -207,7 +210,7 @@ export function TerminalPanel({
 
             default:
               return (
-                <div className="flex items-center px-2 pb-2 pt-2.5">
+                <div className="flex items-center px-2 py-1">
                   <textarea
                     ref={textareaRef}
                     className="no-scrollbar min-h-[1.5rem] w-full resize-none overflow-hidden whitespace-pre-wrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"

@@ -25,7 +25,7 @@ import {
   setExtensionContext,
   setSidebarProvider,
 } from './utilities/contextManager';
-import { Logger } from './utilities/Logger';
+import { SingletonLogger } from './utilities/Singleton-logger';
 import { createOutputChannel } from './utilities/outputChannelFlag';
 import { ThemeManager } from './utilities/vscodeThemeManager';
 
@@ -69,10 +69,10 @@ export async function activate(context: vscode.ExtensionContext) {
   await updateTerminalSettings(context);
 
   const outputChannel = createOutputChannel('DeputyDev', ENABLE_OUTPUT_CHANNEL);
-  const logger = new Logger();
+  const logger = SingletonLogger.getInstance();
 
   // 2. Configuration Management
-  const configManager = new ConfigManager(context, logger, outputChannel);
+  const configManager = new ConfigManager(context, outputChannel);
   await configManager.fetchAndStoreConfigEssentials();
   if (!(await configManager.getAllConfigEssentials())) {
     logger.error('Failed to fetch essential configuration. Aborting activation.');
@@ -85,7 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
   outputChannel.info('Extension "DeputyDev" is now active!');
 
   // 3. Core Services Initialization
-  const serverManager = new ServerManager(context, outputChannel, logger, configManager);
+  const serverManager = new ServerManager(context, outputChannel, configManager);
 
   // initialize backend client with essential config
   const essentialConfigs = configManager.getAllConfigEssentials();
@@ -100,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  const authenticationManager = new AuthenticationManager(context, configManager, logger);
+  const authenticationManager = new AuthenticationManager(context, configManager);
   const authService = new AuthService();
   const historyService = new HistoryService();
   const profileService = new ProfileUiService();
@@ -148,7 +148,6 @@ export async function activate(context: vscode.ExtensionContext) {
     context.extensionUri,
     diffManager,
     outputChannel,
-    logger,
     chatService,
     historyService,
     authService,
@@ -184,7 +183,7 @@ export async function activate(context: vscode.ExtensionContext) {
     indexingService,
   );
   // sidebarProvider.setViewType("loader");
-  new ThemeManager(sidebarProvider, logger);
+  new ThemeManager(sidebarProvider);
   new ActiveFileListener(sidebarProvider, workspaceManager);
 
   const pinger = new BackgroundPinger(
@@ -192,7 +191,6 @@ export async function activate(context: vscode.ExtensionContext) {
     sidebarProvider,
     serverManager,
     outputChannel,
-    logger,
     configManager,
     authenticationManager,
     indexingService,
@@ -253,7 +251,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const inlineChatEditManager = new InlineChatEditManager(
     context,
     outputChannel,
-    logger,
     chatService,
     sidebarProvider,
     diffManager,

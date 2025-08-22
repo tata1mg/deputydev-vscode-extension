@@ -1,16 +1,13 @@
-import { parse, Allow } from 'partial-json';
 import { useThemeStore } from '@/stores/useThemeStore';
+import { ToolProps } from '@/types';
 import { TerminalIcon } from 'lucide-react';
 
-export function TerminalPanelHistory({
-  tool_id,
-  terminal_command,
-  status,
-}: {
-  tool_id: string;
-  terminal_command: string;
-  status?: 'pending' | 'completed' | 'error' | 'aborted' | 'history';
-}) {
+const TerminalPanelHistory: React.FC<ToolProps> = ({
+  toolRequest,
+  toolResponse,
+  toolUseId,
+  toolRunStatus,
+}) => {
   const { themeKind } = useThemeStore();
   const borderClass =
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
@@ -27,7 +24,7 @@ export function TerminalPanelHistory({
         <div className="flex items-center px-2 pb-2 pt-2.5">
           <textarea
             className="no-scrollbar h-6 w-full resize-none overflow-x-auto overflow-y-hidden whitespace-nowrap bg-transparent font-mono text-sm text-[--vscode-terminal-foreground] focus:outline-none focus:ring-0"
-            value={terminal_command}
+            value={(toolRequest?.requestData?.command as string) || ''}
             disabled
             readOnly
             spellCheck={false}
@@ -36,7 +33,7 @@ export function TerminalPanelHistory({
       </div>
       <div className="flex items-center gap-2 px-2 py-2 text-xs">
         <strong>Status:</strong>
-        {status === 'pending' ? (
+        {toolRunStatus === 'pending' ? (
           <div className="flex items-center gap-2">
             <span>In progress</span>
             <span className="relative flex h-2 w-2">
@@ -45,9 +42,11 @@ export function TerminalPanelHistory({
             </span>
           </div>
         ) : (
-          <span className="capitalize">{status}</span>
+          <span className="capitalize">{toolRunStatus}</span>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default TerminalPanelHistory;

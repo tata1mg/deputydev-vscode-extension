@@ -1,17 +1,12 @@
-import {
-  getSessionId,
-  getIsEmbeddingDoneForActiveRepo,
-  setCancelButtonStatus,
-  getContextRepositories,
-} from '../../utilities/contextManager';
-import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
-import { AuthService } from '../auth/AuthService';
-import { SingletonLogger } from '../../utilities/Singleton-logger';
 import * as vscode from 'vscode';
+import { BackendClient } from '../../clients/backendClient';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
-import { BackendClient } from '../../clients/backendClient';
-import { ThrottlingErrorData, InputTokenLimitErrorData } from '../../types';
+import { InputTokenLimitErrorData, ThrottlingErrorData } from '../../types';
+import { getContextRepositories, getSessionId, setCancelButtonStatus } from '../../utilities/contextManager';
+import { SingletonLogger } from '../../utilities/Singleton-logger';
+import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
+import { BaseWebsocketEndpoint } from '../../clients/base/baseClient';
 
 interface StreamEvent {
   type: string;
@@ -24,7 +19,7 @@ export class QuerySolverService {
   private readonly referenceManager: ReferenceManager;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly backendClient: BackendClient;
-  private socketConn: any | null = null;
+  private socketConn: BaseWebsocketEndpoint | null = null;
 
   constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
@@ -67,7 +62,6 @@ export class QuerySolverService {
     const repositories = await getContextRepositories();
 
     const currentSessionId = getSessionId();
-    payload['is_embedding_done'] = getIsEmbeddingDoneForActiveRepo();
 
     // adding context of repositories present in workspace except active repository in payload.
     payload['repositories'] = repositories || [];
@@ -93,11 +87,9 @@ export class QuerySolverService {
             });
           }
           setCancelButtonStatus(true);
-        } else if (messageData.type === 'REQUEST_COMPLETED') {
-          if (this.socketConn) {
-            this.socketConn.close();
-            this.socketConn = null;
-          }
+        } else if (messageData.type === 'STREAM_END_CLOSE_CONNECTION') {
+          this.dispose();
+          streamDone = true;
           return;
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
@@ -105,39 +97,31 @@ export class QuerySolverService {
         } else if (messageData.type === 'STREAM_ERROR') {
           if (messageData.status === 'LLM_THROTTLED') {
             streamError = new ThrottlingException(messageData);
-            this.socketConn.close();
-            this.socketConn = null;
             return;
           } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
             streamError = new TokenLimitException(messageData);
-            this.socketConn.close();
-            this.socketConn = null;
             return;
           } else if (messageData.status) {
             streamError = new Error(messageData.status);
-            this.socketConn.close();
-            this.socketConn = null;
             return;
           }
 
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
-          this.socketConn.close();
-          this.socketConn = null;
           return;
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
-        this.socketConn.close();
-        this.socketConn = null;
       }
     };
 
     // call the querySolver websocket endpoint
     try {
-      this.socketConn.onMessage.on('message', handleMessage);
-      await this.socketConn.sendMessageWithRetry(finalPayload);
+      if (this.socketConn) {
+        this.socketConn.onMessage.on('message', handleMessage);
+        await this.socketConn.sendMessageWithRetry(finalPayload);
+      }
     } catch (error: any) {
       this.logger.error('Error calling querySolver endpoint:', error);
       streamError = error;
@@ -145,16 +129,13 @@ export class QuerySolverService {
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        this.socketConn.close();
-        this.socketConn = null;
         console.log('Error in querysolver WebSocket stream:', streamError);
         if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
@@ -171,6 +152,10 @@ export class QuerySolverService {
           }
           streamDone = false;
           streamError = null;
+          if (!this.socketConn) {
+            this.socketConn = this.backendClient.querySolver();
+          }
+          this.socketConn.onMessage.on('message', handleMessage);
           await this.socketConn.sendMessageWithRetry({
             ...finalPayload,
           });
@@ -180,8 +165,7 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
         return;
       }
 
@@ -193,8 +177,20 @@ export class QuerySolverService {
     }
 
     // Clean up the WebSocket connection
-    // this.socketConn.close();
-    // this.socketConn = null;
+    // this.dispose();
+  }
+
+  public dispose(): void {
+    if (this.socketConn) {
+      try {
+        console.log('Closing socket connection');
+        this.socketConn.close();
+      } catch (error) {
+        this.logger.error('Error while closing socket connection:', error);
+      } finally {
+        this.socketConn = null;
+      }
+    }
   }
 
   /**

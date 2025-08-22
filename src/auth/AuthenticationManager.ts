@@ -1,18 +1,21 @@
 import { BrowserClient } from '../clients/BrowserClient';
 import { AuthService } from '../services/auth/AuthService';
 import { ConfigManager } from '../utilities/ConfigManager';
-import { Logger } from '../utilities/Logger';
+import { SingletonLogger } from '../utilities/Singleton-logger';
 import { v4 as uuidv4 } from 'uuid';
 import * as vscode from 'vscode';
 import { AuthStatus } from '../types';
 export class AuthenticationManager {
   authService = new AuthService();
   browserClient = new BrowserClient();
+  private logger: ReturnType<typeof SingletonLogger.getInstance>;
+
   constructor(
     private context: vscode.ExtensionContext,
     private configManager: ConfigManager,
-    private logger: Logger,
-  ) {}
+  ) {
+    this.logger = SingletonLogger.getInstance();
+  }
 
   public async pollSession(supabaseSessionId: string) {
     const configData: any = this.context.workspaceState.get('essentialConfigData');
