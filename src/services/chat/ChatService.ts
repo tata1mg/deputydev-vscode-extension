@@ -183,7 +183,7 @@ export class QuerySolverService {
   public dispose(): void {
     if (this.socketConn) {
       try {
-        console.log("Closing socket connection");
+        console.log('Closing socket connection');
         this.socketConn.close();
       } catch (error) {
         this.logger.error('Error while closing socket connection:', error);
