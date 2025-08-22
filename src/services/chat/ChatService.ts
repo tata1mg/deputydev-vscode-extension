@@ -5,7 +5,6 @@ import { ReferenceManager } from '../../references/ReferenceManager';
 import { InputTokenLimitErrorData, ThrottlingErrorData } from '../../types';
 import { getContextRepositories, getSessionId, setCancelButtonStatus } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
-import { AuthService } from '../auth/AuthService';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 
 interface StreamEvent {
@@ -88,10 +87,7 @@ export class QuerySolverService {
           }
           setCancelButtonStatus(true);
         } else if (messageData.type === 'REQUEST_COMPLETED') {
-          if (this.socketConn) {
-            this.socketConn.close();
-            this.socketConn = null;
-          }
+          this.dispose();
           return;
         } else if (messageData.type === 'STREAM_END') {
           streamDone = true;
@@ -99,32 +95,27 @@ export class QuerySolverService {
         } else if (messageData.type === 'STREAM_ERROR') {
           if (messageData.status === 'LLM_THROTTLED') {
             streamError = new ThrottlingException(messageData);
-            this.socketConn.close();
-            this.socketConn = null;
+            this.dispose();
             return;
           } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
             streamError = new TokenLimitException(messageData);
-            this.socketConn.close();
-            this.socketConn = null;
+            this.dispose();
             return;
           } else if (messageData.status) {
             streamError = new Error(messageData.status);
-            this.socketConn.close();
-            this.socketConn = null;
+            this.dispose();
             return;
           }
 
           this.logger.error('Error in querysolver WebSocket stream: ', messageData);
           streamError = new Error(messageData.message);
-          this.socketConn.close();
-          this.socketConn = null;
+          this.dispose();
           return;
         }
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
       }
     };
 
@@ -139,16 +130,14 @@ export class QuerySolverService {
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
         console.log('Error in querysolver WebSocket stream:', streamError);
         if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
           let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
@@ -174,8 +163,7 @@ export class QuerySolverService {
         throw streamError;
       }
       if (signal?.aborted) {
-        this.socketConn.close();
-        this.socketConn = null;
+        this.dispose();
         return;
       }
 
@@ -187,8 +175,19 @@ export class QuerySolverService {
     }
 
     // Clean up the WebSocket connection
-    // this.socketConn.close();
-    // this.socketConn = null;
+    // this.dispose();
+  }
+
+  private dispose(): void {
+    if (this.socketConn) {
+      try {
+        this.socketConn.close();
+      } catch (error) {
+        this.logger.error('Error while closing socket connection:', error);
+      } finally {
+        this.socketConn = null;
+      }
+    }
   }
 
   /**
