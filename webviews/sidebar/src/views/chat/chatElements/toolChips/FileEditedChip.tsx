@@ -14,8 +14,23 @@ const FileEditedChip: React.FC<ToolProps> = ({
   toolUseId,
   toolRunStatus,
 }) => {
-  // parse out path/diff/complete from the partial JSON
-  const { path, diff, complete } = usePartialFileDiff(toolRequest?.requestData as string);
+  let response: any;
+  let path: string | undefined;
+  let diff: string | undefined;
+  let complete: boolean | undefined;
+
+  if (toolResponse?.result) {
+    response = toolResponse.result;
+  } else if (toolResponse) {
+    response = toolResponse;
+  }
+
+  if (toolRequest?.requestData && typeof toolRequest.requestData === 'object') {
+    ({ path, diff, complete } = toolRequest.requestData);
+  } else {
+    // parse out path/diff/complete from the partial JSON
+    ({ path, diff, complete } = usePartialFileDiff(toolRequest?.requestData as string));
+  }
   const isWriteToFileTool = toolRequest?.toolName === 'write_to_file';
   // just the filename for display
   const filename = path?.split('/').pop() ?? '';
@@ -77,13 +92,13 @@ const FileEditedChip: React.FC<ToolProps> = ({
           </div>
 
           <div className="ml-2 flex flex-shrink-0 items-center gap-2">
-            {toolRunStatus !== 'error' && toolResponse && (
+            {toolRunStatus !== 'error' && response && (
               <div className="flex items-center gap-2 whitespace-nowrap text-xs">
-                {toolResponse.addedLines != null && toolResponse.addedLines > 0 && (
-                  <span className="text-green-400">+{toolResponse.addedLines}</span>
+                {response.addedLines != null && response.addedLines > 0 && (
+                  <span className="text-green-400">+{response.addedLines}</span>
                 )}
-                {toolResponse.removedLines != null && toolResponse.removedLines > 0 && (
-                  <span className="text-red-400">-{toolResponse.removedLines}</span>
+                {response.removedLines != null && response.removedLines > 0 && (
+                  <span className="text-red-400">-{response.removedLines}</span>
                 )}
               </div>
             )}
