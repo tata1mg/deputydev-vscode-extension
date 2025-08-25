@@ -11,10 +11,10 @@ import RelatedCodeSearcher from './RelatedCodeSearcherChip';
 import FocusedSnippetSearcher from './FocusedSnippetSearcherChip';
 import { TerminalPanel } from './TerminalPanel';
 import FileEditedChip from './FileEditedChip';
-import IterativeFileReader from './IterativeFileReaderChip';
 import TerminalPanelHistory from './TerminalPanelHistory';
 import GetUsageTool from './GetUsageChip';
 import ResolveImportTool from './ResolveImportChip';
+import IterativeFileReaderChip from './IterativeFileReaderChip';
 
 const ToolChipSelector: React.FC<ToolProps> = ({
   toolRequest,
@@ -113,7 +113,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
 
     case 'iterative_file_reader':
       return (
-        <IterativeFileReader
+        <IterativeFileReaderChip
           toolRequest={toolRequest}
           toolResponse={toolResponse}
           toolUseId={toolUseId}

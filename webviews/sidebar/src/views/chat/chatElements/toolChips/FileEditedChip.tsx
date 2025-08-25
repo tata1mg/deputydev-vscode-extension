@@ -76,7 +76,7 @@ const FileEditedChip: React.FC<ToolProps> = ({
               {statusText}
             </span>
             {path && (
-              <div className="min-w-0 flex-1 overflow-hidden">
+              <div className="min-w-0 flex-shrink">
                 <button
                   className="w-full truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1.5 py-0.5 text-left text-xs transition hover:bg-neutral-600/20"
                   onClick={() => openFile(path)}
@@ -108,9 +108,9 @@ const FileEditedChip: React.FC<ToolProps> = ({
                 title={showSnippet ? 'Hide code' : 'Show code'}
               >
                 {showSnippet ? (
-                  <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                  <ChevronUp className="flex-shrink-0" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                  <ChevronDown className="flex-shrink-0" />
                 )}
               </button>
             )}
