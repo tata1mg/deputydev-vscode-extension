@@ -1,6 +1,6 @@
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
 import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, CheckCircle } from 'lucide-react';
 import { ToolProps, ToolRunStatus } from '@/types';
 import { useState } from 'react';
 import { Tooltip } from 'react-tooltip';
@@ -22,93 +22,104 @@ const FileEditedChip: React.FC<ToolProps> = ({
   const ext = filename.split('.').pop() ?? '';
   const { p: language } = getLanguageInfoByExtension(ext);
   const [showSnippet, setShowSnippet] = useState(false);
-  let statusText;
-  let statusColor = '';
+  const [copied, setCopied] = useState(false);
 
-  // Define alternate status text if isWriteToFileTool is true
-  const writeToFileStatusText: Record<string, string> = {
-    pending: 'Writing',
-    completed: 'Saved',
-    idle: 'Saved',
-    aborted: 'Write aborted',
-    error: 'Error writing',
+  const statusText = isWriteToFileTool
+    ? {
+        pending: 'Writing',
+        completed: 'Saved',
+        idle: 'Saved',
+        aborted: 'Write aborted',
+        error: 'Error writing',
+      }[toolRunStatus] || 'Saved'
+    : {
+        pending: 'Editing',
+        completed: 'Edited',
+        idle: 'Edited',
+        aborted: 'Edit aborted',
+        error: 'Error editing',
+      }[toolRunStatus] || 'Edited';
+
+  const copyToClipboard = () => {
+    if (diff) {
+      navigator.clipboard.writeText(diff);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
-
-  const defaultStatusText: Record<string, string> = {
-    pending: 'Editing',
-    completed: 'Edited',
-    idle: 'Edited',
-    aborted: 'Edit aborted',
-    error: 'Error editing',
-  };
-
-  const statusKey = toolRunStatus in writeToFileStatusText ? toolRunStatus : 'error';
-
-  if (isWriteToFileTool) {
-    statusText = writeToFileStatusText[statusKey];
-  } else {
-    statusText = defaultStatusText[statusKey];
-  }
-
-  if (toolRunStatus === 'error') {
-    statusColor = 'text-red-400';
-  }
 
   return (
-    <div className="mt-2 w-full rounded border border-gray-500/40 px-2 py-2 text-sm">
-      {/* Top row: filename area on the left, lines added/removed on the right */}
-      <div className="flex w-full items-center justify-between gap-2" title="File Edited">
-        {/* Left side: expand only as needed */}
-        <div className="flex items-center gap-2">
-          {toolRunStatus === 'completed' && (
-            <button
-              className="text-xs text-gray-300 transition hover:text-white"
-              onClick={() => setShowSnippet((prev) => !prev)}
-              title={showSnippet ? 'Hide code' : 'Show code'}
-            >
-              {showSnippet ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-          )}
-          <ToolStatusIcon status={toolRunStatus} />
-          <span className={statusColor}>{statusText}</span>
-          {path && (
-            <div>
-              <button
-                className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
-                onClick={() => openFile(path)}
-                data-tooltip-id="filepath-tooltip"
-                data-tooltip-content={path}
-              >
-                {filename}
-              </button>
-              <Tooltip id="filepath-tooltip" />
+    <div className="mt-2 w-full min-w-0 rounded border border-gray-500/40 px-2 py-2 text-sm">
+      <div className="flex w-full min-w-0 flex-col gap-2">
+        <div className="flex w-full min-w-0 items-center justify-between">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+            <div className="flex-shrink-0">
+              <ToolStatusIcon status={toolRunStatus} />
             </div>
-          )}
+            <span
+              className={`whitespace-nowrap ${toolRunStatus === 'error' ? 'text-red-400' : ''}`}
+            >
+              {statusText}
+            </span>
+            {path && (
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <button
+                  className="w-full truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1.5 py-0.5 text-left text-xs transition hover:bg-neutral-600/20"
+                  onClick={() => openFile(path)}
+                  data-tooltip-id="filepath-tooltip"
+                  data-tooltip-content={path}
+                >
+                  {filename}
+                </button>
+                <Tooltip id="filepath-tooltip" />
+              </div>
+            )}
+          </div>
+
+          <div className="ml-2 flex flex-shrink-0 items-center gap-2">
+            {toolRunStatus !== 'error' && toolResponse && (
+              <div className="flex items-center gap-2 whitespace-nowrap text-xs">
+                {toolResponse.addedLines != null && toolResponse.addedLines > 0 && (
+                  <span className="text-green-400">+{toolResponse.addedLines}</span>
+                )}
+                {toolResponse.removedLines != null && toolResponse.removedLines > 0 && (
+                  <span className="text-red-400">-{toolResponse.removedLines}</span>
+                )}
+              </div>
+            )}
+            {toolRunStatus === 'completed' && (
+              <button
+                className="flex-shrink-0 text-gray-300 transition hover:text-white"
+                onClick={() => setShowSnippet((prev) => !prev)}
+                title={showSnippet ? 'Hide code' : 'Show code'}
+              >
+                {showSnippet ? (
+                  <ChevronUp className="h-4 w-4 flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 flex-shrink-0" />
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Right side: lines added/removed */}
-        {toolRunStatus !== 'error' && toolResponse && (
-          <div className="flex items-center gap-2 text-xs">
-            {toolResponse.addedLines != null && toolResponse.addedLines > 0 && (
-              <span className="text-green-400">+{toolResponse.addedLines}</span>
-            )}
-            {toolResponse.removedLines != null && toolResponse.removedLines > 0 && (
-              <span className="text-red-400">-{toolResponse.removedLines}</span>
-            )}
+        {toolRunStatus === 'completed' && showSnippet && diff && (
+          <div className="relative mt-2 border-t border-gray-700 pt-2">
+            <button
+              onClick={copyToClipboard}
+              className="absolute right-2 top-3 rounded p-1 hover:bg-gray-200"
+              title="Copy to clipboard"
+            >
+              {copied ? (
+                <CheckCircle className="h-4 w-4 text-green-400" />
+              ) : (
+                <Copy className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+              )}
+            </button>
+            <SnippetReference snippet={{ content: diff, language }} />
           </div>
         )}
       </div>
-
-      {/* Collapsible code snippet */}
-      {toolRunStatus === 'completed' && showSnippet && diff && (
-        <div className="mt-2 border-t border-gray-700 pt-2">
-          <SnippetReference snippet={{ content: diff, language }} />
-        </div>
-      )}
     </div>
   );
 };
