@@ -17,7 +17,6 @@ const FileEditedChip: React.FC<ToolProps> = ({
   let response: any;
   let path: string | undefined;
   let diff: string | undefined;
-  let complete: boolean | undefined;
 
   if (toolResponse?.result) {
     response = toolResponse.result;
@@ -26,10 +25,10 @@ const FileEditedChip: React.FC<ToolProps> = ({
   }
 
   if (toolRequest?.requestData && typeof toolRequest.requestData === 'object') {
-    ({ path, diff, complete } = toolRequest.requestData);
+    ({ path, diff } = toolRequest.requestData);
   } else {
     // parse out path/diff/complete from the partial JSON
-    ({ path, diff, complete } = usePartialFileDiff(toolRequest?.requestData as string));
+    ({ path, diff } = usePartialFileDiff(toolRequest?.requestData as string));
   }
   const isWriteToFileTool = toolRequest?.toolName === 'write_to_file';
   // just the filename for display
