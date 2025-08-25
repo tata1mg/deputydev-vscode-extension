@@ -29,6 +29,7 @@ const ChipBase: React.FC<ToolProps> = ({
   toolUseId,
   displayText,
 }) => {
+  let toolRequestForDisplay: any;
   const { themeKind } = useThemeStore();
   const borderClass =
     themeKind === 'high-contrast' || themeKind === 'high-contrast-light'
@@ -42,6 +43,16 @@ const ChipBase: React.FC<ToolProps> = ({
   // hover background and temporary copy state
   const [copiedRequest, setCopiedRequest] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
+
+  if (toolRequest?.requestData && typeof toolRequest.requestData === 'object') {
+    toolRequestForDisplay = toolRequest.requestData;
+  } else if (toolRequest?.requestData && typeof toolRequest?.requestData === 'string') {
+    try {
+      toolRequestForDisplay = JSON.parse(toolRequest.requestData);
+    } catch (error) {
+      // Ignore
+    }
+  }
 
   useEffect(() => {
     if (toolRequest?.requiresApproval) {
@@ -174,7 +185,7 @@ const ChipBase: React.FC<ToolProps> = ({
                   wrapLongLines={true}
                   lineProps={{ style: { wordBreak: 'break-word', whiteSpace: 'pre-wrap' } }}
                 >
-                  {JSON.stringify(toolRequest.requestData, null, 2)}
+                  {JSON.stringify(toolRequestForDisplay, null, 2)}
                 </SyntaxHighlighter>
               </div>
             </div>
