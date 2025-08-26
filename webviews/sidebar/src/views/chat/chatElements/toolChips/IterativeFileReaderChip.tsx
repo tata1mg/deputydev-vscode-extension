@@ -9,7 +9,12 @@ import { openFile } from '@/commandApi';
 import { joinPath } from '@/utils/joinPath';
 import { ToolStatusIcon } from './ChipBase';
 
-const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolResponse, toolUseId }) => {
+const IterativeFileReaderChip: React.FC<ToolProps> = ({
+  toolRunStatus,
+  toolRequest,
+  toolResponse,
+  toolUseId,
+}) => {
   const { themeKind } = useThemeStore();
   const [filePath, setFilePath] = useState<string | undefined>();
   const [startLine, setStartLine] = useState<number | undefined>();
@@ -19,6 +24,7 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
   const [showDropDown, setShowDropDown] = useState(false);
   const [copiedRequest, setCopiedRequest] = useState(false);
   const [copiedResponse, setCopiedResponse] = useState(false);
+  const [toolRequestForDisplay, setToolRequestForDisplay] = useState<any>();
   const toolInputJson = toolRequest?.requestData;
 
   const handleDropDown = () => {
@@ -56,6 +62,8 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
           setFileName(filename);
         }
       }
+
+      setToolRequestForDisplay(parsedContent);
     } catch (e) {
       // For invalid json
     }
@@ -72,25 +80,32 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
         <div className="flex w-full items-center gap-2">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="flex w-full min-w-0 items-center gap-2">
-              {/* Tool status icon */}
-              <ToolStatusIcon status={toolRunStatus} />
-
-              {/* Tool request display text */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold">File analyzed</span>
+              <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                <div className="flex-shrink-0">
+                  <ToolStatusIcon status={toolRunStatus} />
+                </div>
+                <span
+                  className={`whitespace-nowrap ${toolRunStatus === 'error' ? 'text-red-400' : ''}`}
+                >
+                  File analyzed
+                </span>
                 {filePath && fileName && (
-                  <button
-                    className="max-w-xs truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1 py-0.5 text-left text-xs transition hover:bg-neutral-600"
-                    onClick={() => {
-                      const hasRepoPath = !!repoPath;
-                      const fullPath = hasRepoPath ? joinPath(repoPath, filePath) : filePath;
-                      openFile(fullPath, startLine, endLine, hasRepoPath ? true : undefined);
-                    }}
-                    title={filePath}
-                  >
-                    {fileName}
-                    {lineRange && <span className="text-gray-400">{lineRange}</span>}
-                  </button>
+                  <div className="min-w-0 flex-shrink">
+                    <button
+                      className="w-full truncate rounded border border-gray-500/40 bg-neutral-600/5 px-1.5 py-0.5 text-left text-xs transition hover:bg-neutral-600/20"
+                      onClick={() => {
+                        const hasRepoPath = !!repoPath;
+                        const fullPath = hasRepoPath ? joinPath(repoPath, filePath) : filePath;
+                        openFile(fullPath, startLine, endLine, hasRepoPath ? true : undefined);
+                      }}
+                      title={filePath}
+                      data-tooltip-id="tool-chip-tool-tip"
+                      data-tooltip-content={fileName}
+                    >
+                      {fileName}
+                      {lineRange && <span className="text-gray-400">{lineRange}</span>}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -151,7 +166,7 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
                   wrapLongLines={true}
                   lineProps={{ style: { wordBreak: 'break-word', whiteSpace: 'pre-wrap' } }}
                 >
-                  {JSON.stringify(toolRequest.requestData, null, 2)}
+                  {JSON.stringify(toolRequestForDisplay, null, 2)}
                 </SyntaxHighlighter>
               </div>
             </div>
@@ -214,4 +229,4 @@ const ChipBase: React.FC<ToolProps> = ({ toolRunStatus, toolRequest, toolRespons
   );
 };
 
-export default ChipBase;
+export default IterativeFileReaderChip;
