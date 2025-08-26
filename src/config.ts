@@ -1,9 +1,8 @@
 // required for essential config fetching
 export const CLIENT = 'VSCODE_EXT';
-export const CLIENT_VERSION = '11.0.0';
-export const DD_HOST = 'https://api.deputydev.ai';
-// export const DD_HOST = 'http://localhost:8084';
-export const ENABLE_OUTPUT_CHANNEL = false;
+export const CLIENT_VERSION = '11.0.1';
+export const DD_HOST = process.env.DD_HOST;
+export const ENABLE_OUTPUT_CHANNEL = process.env.ENABLE_OUTPUT_CHANNEL === 'true';
 
 export const MAX_PORT_ATTEMPTS = 20;
 
@@ -16,7 +15,9 @@ export function setBinaryPort(port: number) {
 }
 
 export function getBinaryPort(): number | null {
-  // return 8001;
+  if (process.env.USE_LOCAL_BINARY === 'true') {
+    return parseInt(process.env.LOCAL_BINARY_PORT || '8001', 10);
+  }
   return BINARY_PORT;
 }
 

@@ -532,8 +532,9 @@ addCommandEventListener('last-chat-data', ({ data }) => {
   const lastMessage = [...lastChatDataParsed.history]
     .reverse()
     .find(
-      (msg) => msg.type === 'TOOL_USE_REQUEST' && msg.content?.tool_name === 'create_new_workspace'
+      (msg) => msg.type === 'TOOL_CHIP_UPSERT' && msg.content?.tool_name === 'create_new_workspace'
     );
+
   const newRepoPath = useWorkspaceStore.getState().activeRepo;
   // Create the base message
   let baseMessage = `
@@ -558,16 +559,19 @@ addCommandEventListener('last-chat-data', ({ data }) => {
     - Do not use execute_command tool to create files, instead send code blocks with udiff MapPinPlusInside.
     `;
   }
+
   const continuationPayload = {
     write_mode: useChatSettingStore.getState().chatType === 'write',
-    is_tool_response: true,
-    tool_use_response: {
-      tool_name: lastMessage.content.tool_name,
-      tool_use_id: lastMessage.content.tool_use_id,
-      response: {
-        message: baseMessage,
+    batch_tool_responses: [
+      {
+        tool_name: lastMessage.content.tool_name,
+        tool_use_id: lastMessage.content.tool_use_id,
+        response: {
+          message: baseMessage,
+        },
+        status: 'COMPLETED', // ✅ required, since ToolUseResponseInput expects status
       },
-    },
+    ],
   };
   const { sendChatMessage } = useChatStore.getState();
   sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
@@ -647,15 +651,18 @@ addCommandEventListener('update-workspace-dd', () => {
     }
     const continuationPayload = {
       write_mode: useChatSettingStore.getState().chatType === 'write',
-      is_tool_response: true,
-      tool_use_response: {
-        tool_name: lastToolMessage.content.tool_name,
-        tool_use_id: lastToolMessage.content.tool_use_id,
-        response: {
-          message: baseMessage,
+      batch_tool_responses: [
+        {
+          tool_name: lastToolMessage.content.tool_name,
+          tool_use_id: lastToolMessage.content.tool_use_id,
+          response: {
+            message: baseMessage,
+          },
+          status: 'COMPLETED', // ✅ required, since ToolUseResponseInput expects status
         },
-      },
+      ],
     };
+
     const { sendChatMessage } = useChatStore.getState();
     sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
   } else {
