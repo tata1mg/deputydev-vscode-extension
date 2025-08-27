@@ -991,16 +991,22 @@ export class ChatManager {
 
     try {
       // Execute all tools in parallel and collect their responses
-      const toolResults = await Promise.all(
+      const toolResults: Array<{
+        toolRequest: ToolRequest;
+        result: any;
+        status: 'COMPLETED' | 'FAILED';
+      }> = [];
+      await Promise.all(
         toolRequests.map(async (toolRequest) => {
-          const { result, status } = await this._executeTool(toolRequest, messageId, chunkCallback, clientTools);
-          return { toolRequest, result, status: status };
+          const executionResult = await this._executeTool(toolRequest, messageId, chunkCallback, clientTools);
+          if (executionResult) {
+            toolResults.push({ toolRequest, result: executionResult.result, status: executionResult.status });
+          }
         }),
       );
 
       // Send all successful tool responses to backend in a single call
       if (toolResults.length > 0) {
-        console.log('Successful tool responses:', toolResults);
         await this._sendBatchedToolResponses(toolResults, messageId, chunkCallback, clientTools);
       }
       this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
@@ -1068,6 +1074,10 @@ export class ChatManager {
     result: any,
     status: 'completed' | 'error',
   ): void {
+    // Temporary workaround for write_to_file tool
+    if (currentToolRequest?.tool_name === 'write_to_file') {
+      return;
+    }
     chunkCallback({
       name: 'TOOL_CHIP_UPSERT',
       data: {
@@ -1324,16 +1334,19 @@ export class ChatManager {
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
-  ): Promise<{
-    result?: any;
-    status: 'COMPLETED' | 'FAILED';
-  }> {
+  ): Promise<
+    | {
+        result: any;
+        status: 'COMPLETED' | 'FAILED';
+      }
+    | undefined
+  > {
     // Skip create new workspace tool that should not be executed directly
-    if (toolRequest.tool_name === 'create_new_workspace') return;
+    if (toolRequest.tool_name === 'create_new_workspace') return undefined;
 
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
 
-    if (this._isAborted()) return;
+    if (this._isAborted()) return undefined;
 
     try {
       const { activeRepo, parsedContent } = await this._prepareToolExecution(toolRequest);
@@ -1350,7 +1363,7 @@ export class ChatManager {
             messageId,
           );
 
-      if (this._isAborted()) return;
+      if (this._isAborted()) return undefined;
 
       await this._handleToolSuccess(toolResponse, toolRequest, chunkCallback, parsedContent, detectedClientTool);
       return { result: toolResponse, status: 'COMPLETED' };
