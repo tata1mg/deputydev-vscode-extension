@@ -514,10 +514,12 @@ export const useChatStore = create(
                         return { history: newHistory };
                       } else if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
                         const toolMsg = lastMsg as ChatToolUseMessage;
+                        const status = diffResultData.status;
                         newHistory[newHistory.length - 1] = {
                           ...toolMsg,
                           content: {
                             ...toolMsg.content,
+                            status,
                             toolResponse: {
                               ...toolMsg.content.toolResponse,
                               addedLines: diffResultData.addedLines,

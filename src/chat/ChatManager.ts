@@ -945,7 +945,7 @@ export class ChatManager {
     toolResults: Array<{
       toolRequest: ToolRequest;
       result: any;
-      status: 'success';
+      status: 'COMPLETED' | 'FAILED';
     }>,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
@@ -956,6 +956,7 @@ export class ChatManager {
       return;
     }
     this.outputChannel.info(`Sending batch of ${toolResults.length} tool responses to backend`);
+    this.outputChannel.info(`Batch payload: ${JSON.stringify(toolResults)}`);
 
     const environmentDetails = await getEnvironmentDetails(true);
     const batchPayload: ChatPayload = {
@@ -1323,7 +1324,10 @@ export class ChatManager {
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
-  ): Promise<any> {
+  ): Promise<{
+    result?: any;
+    status: 'COMPLETED' | 'FAILED';
+  }> {
     // Skip create new workspace tool that should not be executed directly
     if (toolRequest.tool_name === 'create_new_workspace') return;
 
@@ -1349,11 +1353,11 @@ export class ChatManager {
       if (this._isAborted()) return;
 
       await this._handleToolSuccess(toolResponse, toolRequest, chunkCallback, parsedContent, detectedClientTool);
-      return { toolResponse, status: 'COMPLETED' };
+      return { result: toolResponse, status: 'COMPLETED' };
     } catch (error: any) {
       const toolErrorResponse = this._formatErrorResponse(error);
       await this._handleToolError(error, toolRequest, chunkCallback, clientTools);
-      return { toolErrorResponse, status: 'FAILED' };
+      return { result: toolErrorResponse, status: 'FAILED' };
     }
   }
 
