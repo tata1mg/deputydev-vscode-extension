@@ -198,8 +198,8 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(pinger);
   (async () => {
-    // await serverManager.ensureBinaryExists();
-    // await serverManager.startServer();
+    await serverManager.ensureBinaryExists();
+    await serverManager.startServer();
     outputChannel.info('this binary host now is ' + getBinaryHost());
 
     const binaryClient = new BinaryClient(
@@ -209,7 +209,7 @@ export async function activate(context: vscode.ExtensionContext) {
     indexingService.init(binaryClient);
     relevantCodeSearcherToolService.init(binaryClient);
 
-    // pinger.start();
+    pinger.start();
 
     authenticationManager
       .validateCurrentSession()
@@ -439,7 +439,7 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export async function deactivate() {
-  // await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
+  await binaryApi().get(API_ENDPOINTS.SHUTDOWN);
   TerminalRegistry.cleanup();
   deleteSessionId();
 }

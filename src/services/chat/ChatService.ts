@@ -80,7 +80,6 @@ export class QuerySolverService {
     }
 
     const handleMessage = (messageData: any): void => {
-      console.log('Received message from querySolver WebSocket:', messageData);
       try {
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {

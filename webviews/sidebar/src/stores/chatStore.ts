@@ -566,7 +566,9 @@ export const useChatStore = create(
                             ...newHistory[existingToolMsgIndex],
                             content: {
                               ...newHistory[existingToolMsgIndex].content,
-                              toolRequest: baseToolProps.toolRequest,
+                              ...(baseToolProps.toolRequest && {
+                                toolRequest: baseToolProps.toolRequest,
+                              }),
                               ...(baseToolProps.toolResponse && {
                                 toolResponse: baseToolProps.toolResponse,
                               }),
