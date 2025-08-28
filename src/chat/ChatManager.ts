@@ -400,17 +400,18 @@ export class ChatManager {
                   },
                 });
               } else {
-                chunkCallback({
-                  name: 'TOOL_CHIP_UPSERT',
-                  data: {
-                    toolRequest: {
-                      requestData: currentToolRequest.accumulatedContent,
-                      toolName: currentToolRequest.tool_name,
-                    },
-                    toolRunStatus: 'pending',
-                    toolUseId: currentToolRequest.tool_use_id,
-                  },
-                });
+                // Temporary fix to handle high frequency tool delta blocks
+                // chunkCallback({
+                //   name: 'TOOL_CHIP_UPSERT',
+                //   data: {
+                //     toolRequest: {
+                //       requestData: currentToolRequest.accumulatedContent,
+                //       toolName: currentToolRequest.tool_name,
+                //     },
+                //     toolRunStatus: 'pending',
+                //     toolUseId: currentToolRequest.tool_use_id,
+                //   },
+                // });
               }
             }
             break;
@@ -1074,10 +1075,6 @@ export class ChatManager {
     result: any,
     status: 'completed' | 'error',
   ): void {
-    // Temporary workaround for write_to_file tool
-    if (currentToolRequest?.tool_name === 'write_to_file') {
-      return;
-    }
     chunkCallback({
       name: 'TOOL_CHIP_UPSERT',
       data: {
