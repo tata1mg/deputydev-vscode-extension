@@ -1340,6 +1340,7 @@ export class ChatManager {
   > {
     // Skip create new workspace tool that should not be executed directly
     if (toolRequest.tool_name === 'create_new_workspace') return undefined;
+    if (toolRequest.tool_name === 'ask_user_input') return undefined;
 
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
 
