@@ -56,7 +56,7 @@ export function ChatArea() {
           }
 
           case 'TOOL_CHIP_UPSERT': {
-            const contentComponent = (
+            return (
               <div key={index}>
                 <ToolChipSelector
                   toolRequest={msg.content.toolRequest}
@@ -68,7 +68,6 @@ export function ChatArea() {
                 />
               </div>
             );
-            return contentComponent;
           }
 
           case 'TERMINAL_NO_SHELL_INTEGRATION': {

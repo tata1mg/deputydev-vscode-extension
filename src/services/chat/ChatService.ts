@@ -39,6 +39,7 @@ export class QuerySolverService {
     try {
       for await (const event of this._runQuerySolverAttempt(payload, signal)) {
         firstAttemptYielded = true;
+
         yield event;
       }
     } catch (err) {
