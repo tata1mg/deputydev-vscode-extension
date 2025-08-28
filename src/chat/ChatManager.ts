@@ -400,17 +400,18 @@ export class ChatManager {
                   },
                 });
               } else {
-                chunkCallback({
-                  name: 'TOOL_CHIP_UPSERT',
-                  data: {
-                    toolRequest: {
-                      requestData: currentToolRequest.accumulatedContent,
-                      toolName: currentToolRequest.tool_name,
-                    },
-                    toolRunStatus: 'pending',
-                    toolUseId: currentToolRequest.tool_use_id,
-                  },
-                });
+                // Temporary fix to handle high frequency tool delta blocks
+                // chunkCallback({
+                //   name: 'TOOL_CHIP_UPSERT',
+                //   data: {
+                //     toolRequest: {
+                //       requestData: currentToolRequest.accumulatedContent,
+                //       toolName: currentToolRequest.tool_name,
+                //     },
+                //     toolRunStatus: 'pending',
+                //     toolUseId: currentToolRequest.tool_use_id,
+                //   },
+                // });
               }
             }
             break;
@@ -597,7 +598,7 @@ export class ChatManager {
 
       // 3. Handle any remaining Tool Requests (parallel or single)
       if (pendingToolRequests.length > 0) {
-        await this._runTool(pendingToolRequests, messageId, chunkCallback, clientTools);
+        await this._runToolsInParallel(pendingToolRequests, messageId, chunkCallback, clientTools);
       }
 
       // Signal end of stream.
@@ -685,9 +686,44 @@ export class ChatManager {
     }
   }
 
-  /**
-   * Calls the backend API for batch chunk search (focused_snippets_searcher).
-   */
+  // Related Code Searcher Tool Implementation
+  private async _runRelatedCodeSearcher(
+    repo_path: string,
+    params: {
+      search_query?: string;
+      paths?: string[];
+    },
+  ): Promise<any> {
+    const query = params.search_query || '';
+    // const focusFiles = params.paths || []; // Currently unused based on original code?
+    const currentSessionId = getSessionId();
+
+    if (!currentSessionId) {
+      throw new Error('Session ID is required for related_code_searcher');
+    }
+    this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
+
+    try {
+      const result = await this.relevantCodeSearcherToolService.runTool({
+        repo_path: repo_path,
+        query: query,
+        focus_files: [], // Explicitly empty based on original logic
+        focus_directories: [],
+        focus_chunks: [],
+        // Uncomment and use focusFiles if needed:
+        // focus_files: focusFiles,
+        session_id: currentSessionId,
+        session_type: SESSION_TYPE,
+      });
+
+      return result.relevant_chunks || []; // Return chunks or empty array
+    } catch (error: any) {
+      this.logger.error('Failed to run related code searcher: ', error);
+      throw error;
+    }
+  }
+
+  // Focused Snippets Searcher Tool Implementation
   private async _fetchBatchChunksSearch(repoPath: string, searchTerms: SearchTerm[]): Promise<any> {
     this.outputChannel.info(`Calling batch chunks search API.`);
     const authToken = await this.authService.loadAuthToken();
@@ -710,10 +746,17 @@ export class ChatManager {
       this.apiErrorHandler.handleApiError(error);
     }
   }
+  private async _runFocusedSnippetsSearcher(repo_path: string, params: { search_terms?: SearchTerm[] }): Promise<any> {
+    const searchTerms = params.search_terms;
+    if (!searchTerms || !searchTerms.length) {
+      throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
+    }
+    this.outputChannel.info(`Executing focused_snippets_searcher with ${searchTerms.length} terms.`);
+    // return this._fetchBatchChunksSearch(repoPath, searchTerms);
+    return this._fetchBatchChunksSearch(repo_path, searchTerms);
+  }
 
-  /**
-   * Calls the backend API for file path search.
-   */
+  // File Path searcher
   private async _fetchFilePathSearch(repoPath: string, directory: string, searchTerms?: string[]): Promise<any> {
     this.outputChannel.info(`Calling file path search API.`);
     const authToken = await this.authService.loadAuthToken();
@@ -737,7 +780,22 @@ export class ChatManager {
       this.apiErrorHandler.handleApiError(error);
     }
   }
+  private async _runFilePathSearcher(
+    repo_path: string,
+    params: {
+      directory?: string;
+      search_terms?: string[];
+    },
+  ): Promise<any> {
+    const directory = await resolveDirectoryRelative(params.directory);
+    const searchTerms = params.search_terms; // Optional
+    this.outputChannel.info(
+      `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
+    );
+    return this._fetchFilePathSearch(repo_path, directory || '', searchTerms);
+  }
 
+  // Iterative File Reader Tool Implementation
   async _runIterativeFileReader(repoPath: string, filePath: string, startLine: number, endLine: number): Promise<any> {
     this.outputChannel.info(`Running iterative file reader for ${filePath}`);
     try {
@@ -755,6 +813,7 @@ export class ChatManager {
     }
   }
 
+  // Grep Searcher Tool Implementation
   async _runGrepSearch(
     search_path: string,
     repoPath: string,
@@ -806,6 +865,7 @@ export class ChatManager {
     }
   }
 
+  // Public URL Content Reader Tool Implementation
   async _runPublicUrlContentReader(payload: { urls: string[] }) {
     const authToken = await this.authService.loadAuthToken();
     const headers = {
@@ -829,6 +889,7 @@ export class ChatManager {
     }
   }
 
+  // Web Searcher Tool Implementation
   async _runWebSearch(payload: { descriptive_query: string[] }) {
     const authToken = await this.authService.loadAuthToken();
     const headers = {
@@ -859,139 +920,33 @@ export class ChatManager {
     }
   }
 
-  private async _getToolUseApprovalStatus(toolUseId: string): Promise<ToolUseApprovalStatus> {
-    return new Promise((resolve) => {
-      const disposableApprove = this.onToolUseApprovalEvent((event) => {
-        if (event.toolUseId === toolUseId) {
-          disposableApprove.dispose();
-          resolve({ approved: event.approved, autoAcceptNextTime: event.autoAcceptNextTime });
-        }
-      });
-    });
-  }
-
-  /**
-   * Routes a tool request to the appropriate handler based on the tool name.
-   * Executes the tool, sends the TOOL_USE_RESULT to the UI, and then, if successful,
-   * continues the chat flow by calling apiChat recursively with the tool's results.
-   * This ensures the UI sees the tool completion before the next chat phase begins.
-   *
-   * @param toolRequest The details of the tool request.
-   * @param messageId The original message ID for context.
-   * @param chunkCallback Callback to send results back to the UI.
-   */
-
-  private async _runTool(
-    toolRequests: ToolRequest[],
-    messageId: string | undefined,
-    chunkCallback: ChunkCallback,
-    clientTools: Array<ClientTool>,
-  ): Promise<void> {
-    const isParallel = toolRequests.length > 1;
-
-    this.outputChannel.info(
-      `${isParallel ? 'Starting parallel execution of' : 'Running'} ${toolRequests.length} tool${toolRequests.length > 1 ? 's' : ''}`,
-    );
-
-    try {
-      if (isParallel) {
-        // Execute all tools in parallel and collect their responses
-        const toolResults = await Promise.allSettled(
-          toolRequests.map(async (toolRequest) => {
-            const result = await this._runToolInternal(toolRequest, messageId, chunkCallback, clientTools, false);
-            return { toolRequest, result, status: 'success' as const };
-          }),
-        );
-
-        // Process results and collect successful responses
-        const successfulResults: Array<{ toolRequest: ToolRequest; result: any; status: 'success' }> = [];
-
-        toolResults.forEach((outcome, index) => {
-          if (outcome.status === 'fulfilled') {
-            successfulResults.push(outcome.value);
-          } else {
-            this.outputChannel.error(`Tool ${toolRequests[index].tool_name} failed: ${outcome.reason?.message}`);
-          }
-        });
-
-        // Send all successful tool responses to backend in a single call
-        if (successfulResults.length > 0) {
-          await this._sendBatchedToolResponses(successfulResults, messageId, chunkCallback, clientTools);
-        }
-        this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
-      } else {
-        // Single tool execution with immediate API call
-        const result = await this._runToolInternal(toolRequests[0], messageId, chunkCallback, clientTools, true);
-        await this._sendBatchedToolResponses([result], messageId, chunkCallback, clientTools);
-      }
-    } catch (error: any) {
-      this.outputChannel.error(`Error during tool execution: ${error.message}`, error);
-      if (!isParallel) {
-        // For single tool execution, error is already handled in _runToolInternal
-        return;
-      }
-      throw error;
+  // Structures the raw tool result into the format expected by the backend's tool_use_response.
+  private _structureToolResponse(toolName: string, rawResult: any): any {
+    switch (toolName) {
+      case 'related_code_searcher':
+        return { RELEVANT_CHUNKS: rawResult };
+      case 'focused_snippets_searcher':
+        return { batch_chunks_search: rawResult };
+      case 'file_path_searcher':
+        return { file_path_search: rawResult };
+      case 'execute_command':
+        return { execute_command_result: rawResult };
+      case 'iterative_file_reader':
+        return rawResult; // Already structured
+      case 'grep_search':
+        return rawResult;
+      default:
+        // For unknown or simple tools, return the result directly (though handled earlier now)
+        return { result: rawResult };
     }
   }
 
-  private async _runToolInternal(
-    toolRequest: ToolRequest,
-    messageId: string | undefined,
-    chunkCallback: ChunkCallback,
-    clientTools: Array<ClientTool>,
-    shouldMakeApiCall: boolean,
-  ): Promise<any> {
-    if (toolRequest.tool_name === 'create_new_workspace') return;
-
-    this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
-
-    if (this._isAborted()) return;
-
-    try {
-      const { activeRepo, parsedContent } = await this._prepareToolExecution(toolRequest);
-      const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
-
-      const result = detectedClientTool
-        ? await this._executeClientTool(detectedClientTool, parsedContent, toolRequest, chunkCallback)
-        : await this._executeBuiltinTool(
-            toolRequest.tool_name,
-            activeRepo,
-            parsedContent,
-            chunkCallback,
-            toolRequest,
-            messageId,
-          );
-
-      if (this._isAborted()) return;
-
-      await this._handleToolSuccess(
-        result,
-        toolRequest,
-        messageId,
-        chunkCallback,
-        clientTools,
-        parsedContent,
-        detectedClientTool,
-        shouldMakeApiCall,
-      );
-      return result;
-    } catch (error: any) {
-      await this._handleToolError(error, toolRequest, messageId, chunkCallback, clientTools);
-      if (!shouldMakeApiCall) {
-        // For parallel execution, propagate error to be handled at a higher level
-        throw error;
-      }
-    }
-  }
-
-  /**
-   * Send all collected tool responses to the backend in a single batch call
-   */
+  // Send all collected tool responses to the backend in a single batch call
   private async _sendBatchedToolResponses(
     toolResults: Array<{
       toolRequest: ToolRequest;
       result: any;
-      status: 'success';
+      status: 'COMPLETED' | 'FAILED';
     }>,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
@@ -1002,6 +957,7 @@ export class ChatManager {
       return;
     }
     this.outputChannel.info(`Sending batch of ${toolResults.length} tool responses to backend`);
+    this.outputChannel.info(`Batch payload: ${JSON.stringify(toolResults)}`);
 
     const environmentDetails = await getEnvironmentDetails(true);
     const batchPayload: ChatPayload = {
@@ -1010,7 +966,8 @@ export class ChatManager {
       message_id: messageId,
       write_mode: toolResults[0].toolRequest.write_mode || false,
       is_tool_response: true,
-      batch_tool_responses: toolResults.map(({ toolRequest, result }) => ({
+      batch_tool_responses: toolResults.map(({ toolRequest, result, status }) => ({
+        status: status,
         tool_name: toolRequest.tool_name,
         tool_use_id: toolRequest.tool_use_id,
         response: this._structureToolResponse(toolRequest.tool_name, result),
@@ -1024,20 +981,174 @@ export class ChatManager {
     await this.apiChat(batchPayload, chunkCallback);
   }
 
-  private _isAborted(): boolean {
-    const aborted = this.currentAbortController?.signal.aborted;
-    if (aborted) this.outputChannel.warn(`Tool execution aborted`);
-    return !!aborted;
+  // Parallelize Tool Execution
+  private async _runToolsInParallel(
+    toolRequests: ToolRequest[],
+    messageId: string | undefined,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+  ): Promise<void> {
+    this.outputChannel.info(`Running ${toolRequests.length} tool${toolRequests.length > 1 ? 's' : ''}`);
+
+    try {
+      // Execute all tools in parallel and collect their responses
+      const toolResults: Array<{
+        toolRequest: ToolRequest;
+        result: any;
+        status: 'COMPLETED' | 'FAILED';
+      }> = [];
+      await Promise.all(
+        toolRequests.map(async (toolRequest) => {
+          const executionResult = await this._executeTool(toolRequest, messageId, chunkCallback, clientTools);
+          if (executionResult) {
+            toolResults.push({ toolRequest, result: executionResult.result, status: executionResult.status });
+          }
+        }),
+      );
+
+      // Send all successful tool responses to backend in a single call
+      if (toolResults.length > 0) {
+        await this._sendBatchedToolResponses(toolResults, messageId, chunkCallback, clientTools);
+      }
+      this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
+    } catch (error: any) {
+      this.outputChannel.error(`Error during tool execution: ${error.message}`, error);
+      throw error;
+    }
   }
 
-  private async _prepareToolExecution(toolRequest: ToolRequest) {
-    const activeRepo = getActiveRepo();
-    if (!activeRepo) throw new Error('Active repository is not defined for running tool.');
+  // Helper Function For Tracking Usage
+  private async _trackUsage(eventType: string, clientTool: ClientTool, toolUseId: string, error?: any): Promise<void> {
+    const sessionId = getSessionId();
+    if (!sessionId) return;
 
-    const parsedContent = this._parseToolContent(toolRequest.accumulatedContent);
-    return { activeRepo, parsedContent };
+    this.usageTrackingManager.trackUsage({
+      eventType,
+      eventData: {
+        toolRequest: {
+          toolName: clientTool.name || clientTool.tool_metadata.tool_name,
+          toolMeta: {
+            toolName: clientTool.tool_metadata.tool_name,
+            serverName: clientTool.tool_metadata.server_id,
+          },
+          requiresApproval: !clientTool.auto_approve,
+        },
+        toolUseId,
+        ...(error && { error }),
+      },
+      sessionId,
+    });
   }
 
+  // Send the result of a client tool execution to UI
+  private _sendClientToolChipResult(
+    chunkCallback: ChunkCallback,
+    toolRequest: ToolRequest,
+    clientTool: ClientTool,
+    requestData: any,
+    response: any,
+    status: 'completed' | 'error',
+  ): void {
+    chunkCallback({
+      name: 'TOOL_CHIP_UPSERT',
+      data: {
+        toolRequest: {
+          requestData,
+          toolName: toolRequest.tool_name,
+          toolMeta: {
+            toolName: clientTool.tool_metadata.tool_name,
+            serverName: clientTool.tool_metadata.server_id,
+          },
+          requiresApproval: !clientTool.auto_approve,
+        },
+        toolResponse: response,
+        toolRunStatus: status,
+        toolUseId: toolRequest.tool_use_id,
+      },
+    });
+  }
+
+  // Send the result of a built-in tool execution to UI
+  private _sendBuiltInToolChipResult(
+    chunkCallback: ChunkCallback,
+    currentToolRequest: ToolRequest,
+    result: any,
+    status: 'completed' | 'error',
+  ): void {
+    chunkCallback({
+      name: 'TOOL_CHIP_UPSERT',
+      data: {
+        toolRequest: {
+          requestData: currentToolRequest.accumulatedContent,
+          toolName: currentToolRequest.tool_name,
+        },
+        toolResponse: result,
+        toolRunStatus: status,
+        toolUseId: currentToolRequest.tool_use_id,
+      },
+    });
+  }
+
+  // Function to handle successful tool execution for UI
+  private async _handleToolSuccess(
+    result: any,
+    toolRequest: ToolRequest,
+    chunkCallback: ChunkCallback,
+    parsedContent: any,
+    detectedClientTool?: ClientTool,
+  ): Promise<void> {
+    this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
+
+    if (detectedClientTool) {
+      this._sendClientToolChipResult(
+        chunkCallback,
+        toolRequest,
+        detectedClientTool,
+        parsedContent,
+        result,
+        'completed',
+      );
+    } else {
+      this._sendBuiltInToolChipResult(chunkCallback, toolRequest, result, 'completed');
+    }
+  }
+
+  // Function to handle tool errors for UI and error tracking
+  private async _handleToolError(
+    error: any,
+    toolRequest: ToolRequest,
+    chunkCallback: ChunkCallback,
+    clientTools: Array<ClientTool>,
+  ): Promise<void> {
+    // if the tool request is of type ask_user_input and the error message is Unknown tool requested, we handle it differently
+    if (toolRequest.tool_name === 'ask_user_input' && error.message.includes('Unknown tool requested')) {
+      return;
+    }
+
+    if (this._isAborted()) return;
+
+    this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
+    this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
+    this.onError(error);
+    this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
+    const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
+
+    if (detectedClientTool) {
+      await this._trackUsage('TOOL_USE_REQUEST_FAILED', detectedClientTool, toolRequest.tool_use_id, error);
+      this._sendClientToolChipResult(
+        chunkCallback,
+        toolRequest,
+        detectedClientTool,
+        toolRequest.accumulatedContent,
+        { error: error.message },
+        'error',
+      );
+    } else {
+      this._sendBuiltInToolChipResult(chunkCallback, toolRequest, { error: error.message }, 'error');
+    }
+  }
+
+  // Utility Function For Parsing Tool Content
   private _parseToolContent(content: string): any {
     try {
       const parsed = JSON.parse(content);
@@ -1050,34 +1161,40 @@ export class ChatManager {
     }
   }
 
+  // Utility Function For Preparing Tool Execution
+  private async _prepareToolExecution(toolRequest: ToolRequest) {
+    const activeRepo = getActiveRepo();
+    if (!activeRepo) throw new Error('Active repository is not defined for running tool.');
+
+    const parsedContent = this._parseToolContent(toolRequest.accumulatedContent);
+    return { activeRepo, parsedContent };
+  }
+
+  // Utility Function For Finding Client Tool
   private _findClientTool(toolName: string, clientTools: Array<ClientTool>): ClientTool | undefined {
     return clientTools.find((tool) => tool.name === toolName);
   }
 
-  private async _executeClientTool(
-    clientTool: ClientTool,
-    parsedContent: any,
-    toolRequest: ToolRequest,
-    chunkCallback: ChunkCallback,
-  ): Promise<any> {
-    this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
-
-    await this._trackUsage('TOOL_USE_REQUEST_INITIATED', clientTool, toolRequest.tool_use_id);
-
-    const approved = await this._handleApproval(clientTool, toolRequest, parsedContent, chunkCallback);
-    if (!approved) return null;
-
-    const result = await this.mcpManager.runMCPTool(
-      clientTool.tool_metadata.server_id,
-      clientTool.tool_metadata.tool_name,
-      parsedContent,
-    );
-
-    await this._trackUsage('TOOL_USE_REQUEST_COMPLETED', clientTool, toolRequest.tool_use_id);
-    this.outputChannel.debug(`Client tool result: ${JSON.stringify(result)}`);
-    return result;
+  // Check Aborted Status
+  private _isAborted(): boolean {
+    const aborted = this.currentAbortController?.signal.aborted;
+    if (aborted) this.outputChannel.warn(`Tool execution aborted`);
+    return !!aborted;
   }
 
+  // Helper Function For Getting Tool Use Approval Status
+  private async _getToolUseApprovalStatus(toolUseId: string): Promise<ToolUseApprovalStatus> {
+    return new Promise((resolve) => {
+      const disposableApprove = this.onToolUseApprovalEvent((event) => {
+        if (event.toolUseId === toolUseId) {
+          disposableApprove.dispose();
+          resolve({ approved: event.approved, autoAcceptNextTime: event.autoAcceptNextTime });
+        }
+      });
+    });
+  }
+
+  // Helper Function For Handling Tool Approval
   private async _handleApproval(
     clientTool: ClientTool,
     toolRequest: ToolRequest,
@@ -1101,13 +1218,57 @@ export class ChatManager {
     await this._trackUsage(eventType, clientTool, toolRequest.tool_use_id);
 
     if (!approval.approved) {
-      await this._handleRejectedTool(toolRequest, clientTool, parsedContent, chunkCallback);
+      this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
       return false;
     }
 
     return true;
   }
 
+  // Helper Function For Formatting Error Responses
+  private _formatErrorResponse(error: any): any {
+    let errorResponse = error.response?.data;
+    if (!errorResponse) {
+      errorResponse = {
+        error_code: 500,
+        error_type: 'SERVER_ERROR',
+        error_message: error.message,
+      };
+    }
+    if (errorResponse?.traceback) delete errorResponse.traceback;
+    return errorResponse;
+  }
+
+  // Client Tool Execution
+  private async _executeClientTool(
+    clientTool: ClientTool,
+    parsedContent: any,
+    toolRequest: ToolRequest,
+    chunkCallback: ChunkCallback,
+  ): Promise<any> {
+    this.outputChannel.debug(`Running client tool: ${toolRequest.tool_name}`);
+
+    await this._trackUsage('TOOL_USE_REQUEST_INITIATED', clientTool, toolRequest.tool_use_id);
+
+    const approved = await this._handleApproval(clientTool, toolRequest, parsedContent, chunkCallback);
+    if (!approved) {
+      throw new Error(
+        'This tool required user approval but the user did not approve it. Please clarify this with the user.',
+      );
+    }
+
+    const result = await this.mcpManager.runMCPTool(
+      clientTool.tool_metadata.server_id,
+      clientTool.tool_metadata.tool_name,
+      parsedContent,
+    );
+
+    await this._trackUsage('TOOL_USE_REQUEST_COMPLETED', clientTool, toolRequest.tool_use_id);
+    this.outputChannel.debug(`Client tool result: ${JSON.stringify(result)}`);
+    return result;
+  }
+
+  // Built-in Tool Execution
   private async _executeBuiltinTool(
     toolName: string,
     activeRepo: string,
@@ -1164,317 +1325,54 @@ export class ChatManager {
     return await toolFunction();
   }
 
-  private async _handleToolSuccess(
-    result: any,
+  // Individual Tool Execution
+  private async _executeTool(
     toolRequest: ToolRequest,
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
-    parsedContent: any,
-    detectedClientTool?: ClientTool,
-    shouldMakeApiCall: boolean = true,
-  ): Promise<void> {
-    this.outputChannel.info(`Tool ${toolRequest.tool_name} completed successfully.`);
+  ): Promise<
+    | {
+        result: any;
+        status: 'COMPLETED' | 'FAILED';
+      }
+    | undefined
+  > {
+    // Skip create new workspace tool that should not be executed directly
+    if (toolRequest.tool_name === 'create_new_workspace') return undefined;
 
-    if (detectedClientTool) {
-      this._sendToolChipUpdate(chunkCallback, toolRequest, detectedClientTool, parsedContent, result, 'completed');
-    } else {
-      this._sendToolResult(chunkCallback, toolRequest, result, 'completed');
-    }
+    this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
 
-    if (shouldMakeApiCall) {
-      const continuationPayload = await this._createContinuationPayload(toolRequest, messageId, result, clientTools);
-      await this.apiChat(continuationPayload, chunkCallback);
-    }
-  }
-
-  private async _handleToolError(
-    error: any,
-    toolRequest: ToolRequest,
-    messageId: string | undefined,
-    chunkCallback: ChunkCallback,
-    clientTools: Array<ClientTool>,
-  ): Promise<void> {
-    // if the tool request is of type ask_user_input and the error message is Unknown tool requested, we handle it differently
-    if (toolRequest.tool_name === 'ask_user_input' && error.message.includes('Unknown tool requested')) {
-      return;
-    }
-
-    if (this._isAborted()) return;
-
-    this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
-    this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
-    this.onError(error);
-    this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
-
-    const errorResponse = this._formatErrorResponse(error);
-    const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
-
-    if (detectedClientTool) {
-      await this._trackUsage('TOOL_USE_REQUEST_FAILED', detectedClientTool, toolRequest.tool_use_id, error);
-      this._sendToolChipUpdate(
-        chunkCallback,
-        toolRequest,
-        detectedClientTool,
-        toolRequest.accumulatedContent,
-        { error: error.message },
-        'error',
-      );
-    } else {
-      this._sendToolResult(chunkCallback, toolRequest, { error: error.message }, 'error');
-    }
-
-    const retryPayload = await this._createRetryPayload(toolRequest, messageId, errorResponse, clientTools);
-    await this.apiChat(retryPayload, chunkCallback);
-  }
-
-  private async _trackUsage(eventType: string, clientTool: ClientTool, toolUseId: string, error?: any): Promise<void> {
-    const sessionId = getSessionId();
-    if (!sessionId) return;
-
-    this.usageTrackingManager.trackUsage({
-      eventType,
-      eventData: {
-        toolRequest: {
-          toolName: clientTool.name || clientTool.tool_metadata.tool_name,
-          toolMeta: {
-            toolName: clientTool.tool_metadata.tool_name,
-            serverName: clientTool.tool_metadata.server_id,
-          },
-          requiresApproval: !clientTool.auto_approve,
-        },
-        toolUseId,
-        ...(error && { error }),
-      },
-      sessionId,
-    });
-  }
-
-  private _sendToolChipUpdate(
-    chunkCallback: ChunkCallback,
-    toolRequest: ToolRequest,
-    clientTool: ClientTool,
-    requestData: any,
-    response: any,
-    status: 'completed' | 'error',
-  ): void {
-    chunkCallback({
-      name: 'TOOL_CHIP_UPSERT',
-      data: {
-        toolRequest: {
-          requestData,
-          toolName: toolRequest.tool_name,
-          toolMeta: {
-            toolName: clientTool.tool_metadata.tool_name,
-            serverName: clientTool.tool_metadata.server_id,
-          },
-          requiresApproval: !clientTool.auto_approve,
-        },
-        toolResponse: response,
-        toolRunStatus: status,
-        toolUseId: toolRequest.tool_use_id,
-      },
-    });
-  }
-
-  private _sendToolResult(
-    chunkCallback: ChunkCallback,
-    currentToolRequest: ToolRequest,
-    result: any,
-    status: 'completed' | 'error',
-  ): void {
-    chunkCallback({
-      name: 'TOOL_CHIP_UPSERT',
-      data: {
-        toolRequest: {
-          requestData: currentToolRequest.accumulatedContent,
-          toolName: currentToolRequest.tool_name,
-        },
-        toolResponse: result,
-        toolRunStatus: status,
-        toolUseId: currentToolRequest.tool_use_id,
-      },
-    });
-  }
-
-  private async _createContinuationPayload(
-    toolRequest: ToolRequest,
-    messageId: string | undefined,
-    result: any,
-    clientTools: Array<ClientTool>,
-  ): Promise<ChatPayload> {
-    const environmentDetails = await getEnvironmentDetails(true);
-    return {
-      search_web: toolRequest.search_web,
-      llm_model: toolRequest.llm_model,
-      message_id: messageId,
-      write_mode: toolRequest.write_mode,
-      is_tool_response: true,
-      batch_tool_responses: [
-        {
-          tool_name: toolRequest.tool_name,
-          tool_use_id: toolRequest.tool_use_id,
-          response: this._structureToolResponse(toolRequest.tool_name, result),
-        },
-      ],
-      os_name: await getOSName(),
-      shell: getShell(),
-      vscode_env: environmentDetails,
-      client_tools: clientTools,
-    };
-  }
-
-  private async _createRetryPayload(
-    toolRequest: ToolRequest,
-    messageId: string | undefined,
-    errorResponse: any,
-    clientTools: Array<ClientTool>,
-  ): Promise<ChatPayload> {
-    const environmentDetails = await getEnvironmentDetails(true);
-    return {
-      search_web: toolRequest.search_web,
-      llm_model: toolRequest.llm_model,
-      message_id: messageId,
-      write_mode: toolRequest.write_mode,
-      is_tool_response: true,
-      tool_use_failed: true,
-      batch_tool_responses: [
-        {
-          tool_name: toolRequest.tool_name,
-          tool_use_id: toolRequest.tool_use_id,
-          response: errorResponse,
-        },
-      ],
-      os_name: await getOSName(),
-      shell: getShell(),
-      vscode_env: environmentDetails,
-      client_tools: clientTools,
-    };
-  }
-
-  private _formatErrorResponse(error: any): any {
-    let errorResponse = error.response?.data;
-    if (!errorResponse) {
-      errorResponse = {
-        error_code: 500,
-        error_type: 'SERVER_ERROR',
-        error_message: error.message,
-      };
-    }
-    if (errorResponse?.traceback) delete errorResponse.traceback;
-    return errorResponse;
-  }
-
-  private async _handleRejectedTool(
-    toolRequest: ToolRequest,
-    clientTool: ClientTool,
-    parsedContent: any,
-    chunkCallback: ChunkCallback,
-  ): Promise<void> {
-    const errorMessage =
-      'This tool required user approval but the user did not approve it. Please clarify this with the user.';
-
-    this.outputChannel.info(`Tool ${toolRequest.tool_name} was rejected by user.`);
-    this._sendToolChipUpdate(chunkCallback, toolRequest, clientTool, parsedContent, null, 'error');
-    this._sendToolResult(chunkCallback, toolRequest, { error_message: errorMessage }, 'error');
-
-    const rejectedPayload = await this._createRetryPayload(toolRequest, undefined, { error_message: errorMessage }, []);
-    await this.apiChat(rejectedPayload, chunkCallback);
-  }
-
-  /**
-   * Structures the raw tool result into the format expected by the backend's tool_use_response.
-   */
-  private _structureToolResponse(toolName: string, rawResult: any): any {
-    switch (toolName) {
-      case 'related_code_searcher':
-        return { RELEVANT_CHUNKS: rawResult };
-      case 'focused_snippets_searcher':
-        return { batch_chunks_search: rawResult };
-      case 'file_path_searcher':
-        return { file_path_search: rawResult };
-      case 'execute_command':
-        return { execute_command_result: rawResult };
-      case 'iterative_file_reader':
-        return rawResult; // Already structured
-      case 'grep_search':
-        return rawResult;
-      default:
-        // For unknown or simple tools, return the result directly (though handled earlier now)
-        return { result: rawResult };
-    }
-  }
-
-  // --- Specific Tool Implementations ---
-
-  private async _runRelatedCodeSearcher(
-    repo_path: string,
-    params: {
-      search_query?: string;
-      paths?: string[];
-    },
-  ): Promise<any> {
-    const query = params.search_query || '';
-    // const focusFiles = params.paths || []; // Currently unused based on original code?
-    const currentSessionId = getSessionId();
-
-    if (!currentSessionId) {
-      throw new Error('Session ID is required for related_code_searcher');
-    }
-    this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
+    if (this._isAborted()) return undefined;
 
     try {
-      const result = await this.relevantCodeSearcherToolService.runTool({
-        repo_path: repo_path,
-        query: query,
-        focus_files: [], // Explicitly empty based on original logic
-        focus_directories: [],
-        focus_chunks: [],
-        // Uncomment and use focusFiles if needed:
-        // focus_files: focusFiles,
-        session_id: currentSessionId,
-        session_type: SESSION_TYPE,
-      });
+      const { activeRepo, parsedContent } = await this._prepareToolExecution(toolRequest);
+      const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
 
-      return result.relevant_chunks || []; // Return chunks or empty array
+      const toolResponse = detectedClientTool
+        ? await this._executeClientTool(detectedClientTool, parsedContent, toolRequest, chunkCallback)
+        : await this._executeBuiltinTool(
+            toolRequest.tool_name,
+            activeRepo,
+            parsedContent,
+            chunkCallback,
+            toolRequest,
+            messageId,
+          );
+
+      if (this._isAborted()) return undefined;
+
+      await this._handleToolSuccess(toolResponse, toolRequest, chunkCallback, parsedContent, detectedClientTool);
+      return { result: toolResponse, status: 'COMPLETED' };
     } catch (error: any) {
-      this.logger.error('Failed to run related code searcher: ', error);
-      throw error;
+      const toolErrorResponse = this._formatErrorResponse(error);
+      await this._handleToolError(error, toolRequest, chunkCallback, clientTools);
+      return { result: toolErrorResponse, status: 'FAILED' };
     }
   }
 
-  private async _runFocusedSnippetsSearcher(repo_path: string, params: { search_terms?: SearchTerm[] }): Promise<any> {
-    const searchTerms = params.search_terms;
-    if (!searchTerms || !searchTerms.length) {
-      throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
-    }
-    this.outputChannel.info(`Executing focused_snippets_searcher with ${searchTerms.length} terms.`);
-    // return this._fetchBatchChunksSearch(repoPath, searchTerms);
-    return this._fetchBatchChunksSearch(repo_path, searchTerms);
-  }
-
-  private async _runFilePathSearcher(
-    repo_path: string,
-    params: {
-      directory?: string;
-      search_terms?: string[];
-    },
-  ): Promise<any> {
-    const directory = await resolveDirectoryRelative(params.directory);
-    const searchTerms = params.search_terms; // Optional
-    this.outputChannel.info(
-      `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
-    );
-    return this._fetchFilePathSearch(repo_path, directory || '', searchTerms);
-  }
-
-  async apiClearChat() {
-    // Implementation for clearing chat on the backend.
-  }
-  /**
-   * Stops the currently active chat stream, if any.
-   */
-  async stopChat(): Promise<void> {
+  /** Note below methods are for stopping and killing processes using somewhere else */
+  public async stopChat(): Promise<void> {
     cancelChat();
     this.querySolverService.dispose();
     if (this.currentAbortController) {
@@ -1485,36 +1383,10 @@ export class ChatManager {
       this.outputChannel.info('No active chat request to stop.');
     }
   }
-
-  async apiSaveSession() {
-    // Implementation for saving the chat session.
-  }
-
-  async apiChatSetting() {
-    // Implementation for updating chat settings.
-  }
   public async killAllProcesses() {
     await this.terminalExecutor.abortAllCommands();
   }
   public async killProcessById(tool_use_id: string) {
     await this.terminalExecutor.abortCommand(tool_use_id);
-  }
-
-  /**
-   * Determines the provider from the model name
-   */
-  private getProviderFromModel(model?: string): string {
-    if (!model) return 'unknown';
-
-    const lowerModel = model.toLowerCase();
-    if (lowerModel.includes('claude') || lowerModel.includes('anthropic')) {
-      return 'anthropic';
-    } else if (lowerModel.includes('gpt') || lowerModel.includes('openai')) {
-      return 'openai';
-    } else if (lowerModel.includes('gemini') || lowerModel.includes('google')) {
-      return 'google';
-    }
-
-    return 'unknown';
   }
 }
