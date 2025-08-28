@@ -254,7 +254,6 @@ export const useChatStore = create(
                 query: message,
                 focusItems: userMessage.focusItems,
                 is_tool_response: false,
-                relevant_chunks: [] as string[],
                 write_mode: useChatSettingStore.getState().chatType === 'write',
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
                 attachments: attachments.map((ref) => ({ attachment_id: ref.key })),
