@@ -11,10 +11,10 @@ export class AuthService {
   }
   private apiErrorHandler = new ApiErrorHandler();
 
-  public async getSession(supabaseSessionId: string): Promise<any> {
+  public async getSession(uniqueSessionId: string): Promise<any> {
     const headers = {
       'Content-Type': 'application/json',
-      'X-Supabase-Session-Id': supabaseSessionId,
+      'X-Unique-Session-Id': uniqueSessionId,
     };
     try {
       const response = await api.get(API_ENDPOINTS.GET_SESSION, { headers });

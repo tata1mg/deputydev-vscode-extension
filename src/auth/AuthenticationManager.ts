@@ -17,7 +17,7 @@ export class AuthenticationManager {
     this.logger = SingletonLogger.getInstance();
   }
 
-  public async pollSession(supabaseSessionId: string) {
+  public async pollSession(uniqueSessionId: string) {
     const configData: any = this.context.workspaceState.get('essentialConfigData');
     const maxAttempts = configData?.POLLING_MAX_ATTEMPTS;
     if (!maxAttempts) {
@@ -27,7 +27,7 @@ export class AuthenticationManager {
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       try {
-        const response = await this.authService.getSession(supabaseSessionId);
+        const response = await this.authService.getSession(uniqueSessionId);
 
         if (response.data.status === AuthStatus.AUTHENTICATED) {
           if (response.data.encrypted_session_data) {
@@ -109,11 +109,11 @@ export class AuthenticationManager {
 
   public async initiateAuthentication() {
     // If current session is not valid
-    const supabaseSessionId: string = uuidv4();
-    this.browserClient.initiateExtensionLogin(supabaseSessionId);
+    const uniqueSessionId: string = uuidv4();
+    this.browserClient.initiateExtensionLogin(uniqueSessionId);
 
     // Poll Session
-    return await this.pollSession(supabaseSessionId);
+    return await this.pollSession(uniqueSessionId);
   }
 
   private setAuthState(isAuth: boolean, userData?: { email: string; userName: string }) {
