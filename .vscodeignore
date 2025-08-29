@@ -21,6 +21,10 @@ webviews/**/src/**
 webviews/**/public/**
 !webviews/**/build/**
 
+# Ignore yarn.lock inside webviews
+webviews/**/yarn.lock
+
+
 # Ignore webview local node_modules
 webviews/**/node_modules/**
 
