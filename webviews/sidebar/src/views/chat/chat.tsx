@@ -665,6 +665,11 @@ export function ChatUI() {
                         'data-tooltip-id': 'repo-tooltip',
                         'data-tooltip-content': 'Please wait, DeputyDev is initializing.',
                       })}
+                    {...(!activeRepo &&
+                      !repoSelectorEmbedding && {
+                        'data-tooltip-id': 'repo-tooltip',
+                        'data-tooltip-content': 'Please select a repo first.',
+                      })}
                     autoFocus
                   />
                 </div>
