@@ -12,6 +12,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    minify: 'esbuild',
+    target: 'es2018',
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name].js`,

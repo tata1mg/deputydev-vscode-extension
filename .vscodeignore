@@ -1,16 +1,29 @@
-# .vscodeignore
 node_modules/**
 !.vscode/**
+
+# Ignore TypeScript & maps (only ship compiled .js)
 **/*.ts
 **/*.tsx
 **/*.map
+
+# Ignore editor & docs
 .vscode/
 tests/
 __tests__/
 docs/
+
+# Ignore lockfiles
 yarn.lock
 package-lock.json
-webviews/changeProposer/node_modules/**
-webviews/sidebar/node_modules/**
+
+# Ignore webview source code, keep only build output
+webviews/**/src/**
+webviews/**/public/**
+!webviews/**/build/**
+
+# Ignore webview local node_modules
+webviews/**/node_modules/**
+
+# Ignore env files
 .env
 .env.*
