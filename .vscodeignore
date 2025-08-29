@@ -16,10 +16,10 @@ docs/
 yarn.lock
 package-lock.json
 
-# Ignore webview source code, keep only build output
-webviews/**/src/**
-webviews/**/public/**
+# Ignore all webview source, keep only build
+webviews/**
 !webviews/**/build/**
+
 
 # Ignore yarn.lock inside webviews
 webviews/**/yarn.lock
@@ -31,3 +31,8 @@ webviews/**/node_modules/**
 # Ignore env files
 .env
 .env.*
+
+
+# Exclude everything in src except extension.js
+src/**
+!src/extension.js
