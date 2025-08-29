@@ -12,6 +12,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    minify: 'esbuild', // ⚡ faster, lighter minifier
+    target: 'es2018', // smaller JS output
     rollupOptions: {
       output: {
         entryFileNames: `assets/[name].js`,
