@@ -46,7 +46,7 @@ export function SnippetReference({ snippet }: { snippet: ChatReferenceSnippetIte
 
   return (
     <SyntaxHighlighter
-      language={snippet.language || 'code'}
+      language={snippet.language?.toLowerCase() || 'code'}
       style={snippetStyle}
       customStyle={customStyle}
     >

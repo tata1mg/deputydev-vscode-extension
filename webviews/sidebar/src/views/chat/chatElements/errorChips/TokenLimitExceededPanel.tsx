@@ -131,7 +131,7 @@ export function TokenLimitExceededPanel({
   const currentModelDisplay =
     llmModels.find((m) => m.name === currentModel)?.display_name || currentModel;
 
-  // Function to handle both manual and auto retry
+  // Function to handle both manual and auto retry (function declaration = hoisted)
   async function performRetry(modelToUse: string) {
     if (!retry || !payloadToRetry || isRetrying) return;
 
@@ -151,24 +151,15 @@ export function TokenLimitExceededPanel({
       // Small delay to ensure state is updated
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Extract information from the original payload to create a fresh query
-      const originalQuery = query;
-      const originalReferences = (payload.referenceList as any[]) || [];
-      const originalS3References = Array.isArray(payload.attachments)
-        ? payload.attachments.map((att: any) => ({ key: att.attachment_id }))
-        : [];
-
       // Get fresh instance of sendChatMessage and send as a new message (not retry)
       const { sendChatMessage } = useChatStore.getState();
-      await sendChatMessage(
-        originalQuery,
-        originalReferences,
-        originalS3References,
-        false, // Not a retry - this is a fresh message
-        undefined, // No retry payload needed
-        undefined,
-        'TOKEN_LIMIT_EXCEEDED'
-      );
+
+      const newPayload = {
+        ...(payloadToRetry as Record<string, unknown>),
+        llm_model: selectedModel,
+      };
+
+      sendChatMessage('retry', [], undefined, true, newPayload, undefined, 'TOKEN_LIMIT_EXCEEDED');
 
       setRetryMessage(`Started fresh query with ${selectedModelDisplay}.`);
     } catch (error) {
@@ -257,7 +248,7 @@ export function TokenLimitExceededPanel({
               (m) => m.name === 'GEMINI_2_POINT_5_PRO' && m.hasHigherCapacity
             );
 
-            // If Gemini 2.5 Pro is not available or doesn't have higher capacity, find the model with highest token limit
+            // If Gemini 2.5 Pro is not available or doesn't have higher capacity, find any higher-cap model
             if (!highestCapacityModel) {
               highestCapacityModel = modelsWithLimits.find((m) => m.hasHigherCapacity);
             }
