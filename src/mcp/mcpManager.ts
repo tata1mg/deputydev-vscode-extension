@@ -39,7 +39,6 @@ export class MCPManager {
 
   public async getCurrentMCPTools(): Promise<ServerWiseMCPTool[]> {
     const allMcpServers = await this.mcpService.getActiveServerTools();
-    this.outputChannel.info('Fetched MCP Servers: ', allMcpServers);
     if (!allMcpServers.data || allMcpServers.data.length === 0) {
       this.outputChannel.error('No MCP servers found');
       return [];
