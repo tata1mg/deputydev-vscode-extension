@@ -20,6 +20,10 @@ package-lock.json
 webviews/**
 !webviews/**/build/**
 
+out/**
+!out/extension.js
+
+.husky/**
 
 # Ignore yarn.lock inside webviews
 webviews/**/yarn.lock

@@ -125,7 +125,7 @@ export async function checkFileExists(file_path: string): Promise<boolean> {
  */
 export async function resolveDirectoryRelative(directory?: string): Promise<string> {
   if (typeof directory !== 'string' || !directory.trim()) {
-    throw new TypeError('directory must be a non-empty string');
+    return '.';
   }
 
   // If already relative, just normalize and return (forward slashes for consistency)
@@ -134,9 +134,14 @@ export async function resolveDirectoryRelative(directory?: string): Promise<stri
   }
 
   // For absolute path: reuse repo detection
-  const info = await getRepoInfoForAbsPath(directory);
+  let info: RepoInfo | null = null;
+  try {
+    info = await getRepoInfoForAbsPath(directory);
+  } catch {
+    // swallow parse errors, info remains null
+  }
   if (!info) {
-    throw new Error(`No matching repository found for path: "${directory}"`);
+    return directory;
   }
 
   // '.' when directory equals repo root
@@ -171,7 +176,7 @@ export async function getRepoInfoForAbsPath(absOrUri: string): Promise<RepoInfo 
   try {
     const contextRepos = (await getContextRepositories?.()) ?? [];
     for (const r of contextRepos) {
-      if (r?.repo_path) roots.push(path.resolve(r.repo_path));
+      if (r.repo_path) roots.push(path.resolve(r.repo_path));
     }
   } catch (e) {
     // Failed to get context repositories
