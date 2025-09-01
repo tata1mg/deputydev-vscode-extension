@@ -27,9 +27,13 @@ export class MCPService {
       const response = await binaryApi().get(API_ENDPOINTS.GET_ACTIVE_SERVER_TOOLS);
       return response.data;
     } catch (error) {
-      this.logger.error('Error while syncing servers');
-      this.apiErrorHandler.handleApiError(error);
-      return { data: [] }; // Return an empty array if there's an error
+      try {
+        this.logger.error('Error while syncing servers');
+        this.apiErrorHandler.handleApiError(error); // TODO: this throws error internally. This shall be refctored
+        return { data: [] }; // Return an empty array if there's an error
+      } catch (innerError) {
+        return { data: [] }; // Return an empty array if there's an error
+      }
     }
   }
 
