@@ -16,7 +16,6 @@ export function getCachedLspReady(): boolean | undefined {
 }
 
 export async function getIsLspReady(opts?: { force?: boolean }): Promise<boolean> {
-
   if (!opts?.force && typeof _lspReady === 'boolean') return _lspReady;
   if (_inFlight && !opts?.force) return _inFlight;
 
@@ -52,9 +51,7 @@ export async function getIsLspReady(opts?: { force?: boolean }): Promise<boolean
       });
 
       // Global timeout safeguard (max 10s)
-      const timeout = new Promise<boolean>((resolve) =>
-        setTimeout(() => resolve(false), 30000)
-      );
+      const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 30000));
 
       const found = Promise.any(tasks).catch(() => false);
 
