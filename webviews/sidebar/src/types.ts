@@ -337,7 +337,7 @@ export interface URLListItem {
   url: string;
   last_indexed: string;
 }
-
+export type ReasoningLevel = 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
 export interface LLMModels {
   id: number;
   display_name: string;
@@ -345,6 +345,10 @@ export interface LLMModels {
   provider: string;
   multimodal: boolean;
   input_token_limit?: number;
+  reasoning?: {
+    supported: Array<ReasoningLevel>;
+    default: ReasoningLevel;
+  };
 }
 
 export type ToolRunStatus = 'idle' | 'pending' | 'completed' | 'error' | 'aborted';

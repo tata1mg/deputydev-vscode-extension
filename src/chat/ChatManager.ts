@@ -340,6 +340,7 @@ export class ChatManager {
               write_mode: payload.write_mode || false,
               is_inline: payload.is_inline || false,
               llm_model: payload.llm_model,
+              reasoning: payload.reasoning,
               search_web: payload.search_web,
             };
             // Immediately forward the start event.
@@ -759,18 +760,12 @@ export class ChatManager {
   // File Path searcher
   private async _fetchFilePathSearch(repoPath: string, directory: string, searchTerms?: string[]): Promise<any> {
     this.outputChannel.info(`Calling file path search API.`);
-    const authToken = await this.authService.loadAuthToken();
-    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.FILE_PATH_SEARCH,
-        {
-          repo_path: repoPath,
-          directory: directory,
-          search_terms: searchTerms, // Send null/undefined if not provided
-        },
-        { headers },
-      );
+      const response = await binaryApi().post(API_ENDPOINTS.FILE_PATH_SEARCH, {
+        repo_path: repoPath,
+        directory: directory,
+        search_terms: searchTerms, // Send null/undefined if not provided
+      });
 
       this.outputChannel.info('File path search API call successful.');
       return response.data;
@@ -963,6 +958,7 @@ export class ChatManager {
     const batchPayload: ChatPayload = {
       search_web: toolResults[0].toolRequest.search_web,
       llm_model: toolResults[0].toolRequest.llm_model,
+      reasoning: toolResults[0].toolRequest.reasoning,
       message_id: messageId,
       write_mode: toolResults[0].toolRequest.write_mode || false,
       is_tool_response: true,
