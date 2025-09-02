@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { sendLastChatData } from '../../utilities/contextManager';
+import { getIsLspReady } from '../../languageServer/lspStatus';
 
 export class ContinueNewWorkspace {
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -30,6 +31,7 @@ export class ContinueNewWorkspace {
       const lastFolder = folders?.[folders.length - 1];
       if (lastFolder) {
         await this.context.workspaceState.update('activeRepo', lastFolder.uri.fsPath);
+        getIsLspReady({ force: true });
       }
 
       // user did click “Continue Setup”:
