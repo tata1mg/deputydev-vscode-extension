@@ -1,6 +1,6 @@
 // required for essential config fetching
 export const CLIENT = 'VSCODE_EXT';
-export const CLIENT_VERSION = '11.2.3';
+export const CLIENT_VERSION = '12.0.0';
 export const DD_HOST = process.env.DD_HOST;
 export const ENABLE_OUTPUT_CHANNEL = process.env.ENABLE_OUTPUT_CHANNEL === 'true';
 

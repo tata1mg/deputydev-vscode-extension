@@ -33,7 +33,7 @@ export function RetryChip({
 
       const newPayload = {
         ...(errorData.payload_to_retry as Record<string, unknown>),
-        llm_model: activeModel,
+        llm_model: activeModel?.name,
       };
       sendChatMessage('retry', [], undefined, true, newPayload);
     } else {

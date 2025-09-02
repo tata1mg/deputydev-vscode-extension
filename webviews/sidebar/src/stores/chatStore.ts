@@ -250,7 +250,8 @@ export const useChatStore = create(
               // Build the payload
               const payload: any = {
                 search_web: useChatStore.getState().search_web,
-                llm_model: useLLMModelStore.getState().activeModel,
+                llm_model: useLLMModelStore.getState().activeModel?.name,
+                reasoning: useLLMModelStore.getState().getActiveReasoning(),
                 query: message,
                 focusItems: userMessage.focusItems,
                 is_tool_response: false,
@@ -279,16 +280,13 @@ export const useChatStore = create(
                   'info',
                   `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`
                 );
+                retry_payload['reasoning'] = useLLMModelStore.getState().getActiveReasoning();
                 if (retryReason) {
                   retry_payload['retry_reason'] = retryReason;
                 }
                 stream = apiChat(retry_payload);
-              } else {
-                if (retryReason) {
-                  payload['retry_reason'] = retryReason;
-                }
-                stream = apiChat(payload);
               }
+              stream = apiChat(payload);
             }
 
             try {

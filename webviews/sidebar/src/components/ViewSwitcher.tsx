@@ -59,19 +59,10 @@ function ViewSwitcher() {
         aria-pressed={isChat}
         whileTap={{ scale: 0.98 }}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isChat ? 'code-gen-active' : 'code-gen-inactive'}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center justify-center gap-1"
-          >
-            <Sparkles className="h-4 w-4" strokeWidth={2.5} />
-            <span className="text-[0.9375rem]">Code Gen</span>
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex items-center justify-center gap-1">
+          <Sparkles className="h-4 w-4" strokeWidth={2.5} />
+          <span className="text-[0.9375rem]">Code Gen</span>
+        </div>
       </motion.button>
 
       {/* Code Review Tab */}
@@ -87,19 +78,10 @@ function ViewSwitcher() {
         aria-pressed={!isChat}
         whileTap={{ scale: 0.98 }}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={!isChat ? 'code-review-active' : 'code-review-inactive'}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center justify-center gap-1"
-          >
-            <GitPullRequest className="h-4 w-4" strokeWidth={2.5} />
-            <span className="text-[0.9375rem]">Code Review</span>
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex items-center justify-center gap-1">
+          <GitPullRequest className="h-4 w-4" strokeWidth={2.5} />
+          <span className="text-[0.9375rem]">Code Review</span>
+        </div>
       </motion.button>
     </div>
   );
