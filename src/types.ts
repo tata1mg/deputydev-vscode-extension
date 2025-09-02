@@ -68,6 +68,7 @@ export interface ClientTool {
 export interface ChatPayload {
   search_web: boolean;
   llm_model: string;
+  reasoning?: string;
   message_id?: string;
   query?: string;
   is_tool_response?: boolean;
@@ -111,6 +112,7 @@ export interface ToolRequest {
   is_inline: boolean;
   llm_model: string;
   search_web: boolean;
+  reasoning?: string;
 }
 
 export interface CurrentDiffRequest {

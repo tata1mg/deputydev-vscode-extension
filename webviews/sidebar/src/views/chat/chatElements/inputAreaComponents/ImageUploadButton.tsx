@@ -18,9 +18,8 @@ const ImageUploadButton: React.FC<ImageUploadButtonProps> = ({
   maxSize,
   fileInputRef,
 }) => {
-  const { llmModels, activeModel } = useLLMModelStore();
-  const selectedModel = llmModels.find((m) => m.name === activeModel);
-  const isMultimodal = selectedModel?.multimodal;
+  const { activeModel } = useLLMModelStore();
+  const isMultimodal = activeModel?.multimodal;
   const isDisabled = !isMultimodal || imagePreviews.length >= maxFiles;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
