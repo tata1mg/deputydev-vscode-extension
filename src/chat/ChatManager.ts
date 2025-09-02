@@ -300,7 +300,7 @@ export class ChatManager {
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
       payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo();
-      payload.is_lsp_ready = await getIsLspReady({ force: true });
+      payload.is_lsp_ready = await getIsLspReady({ force: false });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
       this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);

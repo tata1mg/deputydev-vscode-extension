@@ -7,6 +7,7 @@ import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { UpdateVectorStoreParams, IndexingService } from '../services/indexing/indexingService';
 import { IndexingProgressData } from '../types';
+import { getIsLspReady } from '../languageServer/lspStatus';
 
 export class WorkspaceManager {
   private readonly workspaceRepos: Map<string, string> = new Map();
@@ -41,6 +42,7 @@ export class WorkspaceManager {
     this.sidebarProvider.onDidChangeRepo((newRepoPath) => {
       this.outputChannel.info(`Received active repo change event: ${newRepoPath}`);
       this.setActiveRepo(newRepoPath);
+      getIsLspReady({ force: true });
     });
 
     this.updateWorkspaceRepos();
@@ -107,6 +109,7 @@ export class WorkspaceManager {
     if (newActiveRepo !== this.activeRepo) {
       this.activeRepo = newActiveRepo;
       this.initializeFileWatcher();
+      getIsLspReady({ force: true });
     }
 
     // this.outputChannel.info('Done with WebSockets.');
