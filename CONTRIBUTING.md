@@ -113,21 +113,33 @@ Local binary vs managed binary
 
 ## Submitting changes
 
-1) Fork the repo, create a feature branch
+1) Fork-based workflow (default; non-maintainers)
+- Non-maintainers cannot create branches on the upstream repository.
+- Fork this repository to your GitHub account.
+- In your fork, create a branch using the same conventions: feat/…, fix/…, chore/…, docs/…
+- Push to your fork and open a Pull Request against the upstream default branch (usually main). If unsure, target main.
+- Enable "Allow edits by maintainers" on the PR.
+
+2) Maintainers-only workflow (optional)
+- Maintainers may create branches directly in the upstream repository.
 - Branch naming: feat/…, fix/…, chore/…, docs/…
 
-2) Ensure quality gates pass
-- Build succeeds (yarn build:all) or dev watch compiles cleanly
-- Lint/format pass (see commands above)
-- No TypeScript errors
-- Update docs and .env.example if needed
-- UI changes: add screenshots/GIFs to the PR description
+3) Ensure quality gates pass
+- Build succeeds (yarn build:all) or dev watch compiles cleanly.
+- Lint/format pass (yarn lint, yarn lint:fix, yarn format).
+- No TypeScript errors.
+- Pre-commit hooks pass (Husky).
+- Update README.md and .env.example if you introduce user-visible changes or configuration.
+- Add tests or usage notes for behavioral changes.
+- UI changes: add screenshots/GIFs to the PR description.
 
-3) Commit messages
-- Prefer clear, conventional-style messages (e.g., feat:, fix:, chore:, docs:)
+4) Commit messages
+- Prefer clear, conventional-style messages (feat:, fix:, chore:, docs:, refactor:).
 
-4) Open a Pull Request
-- Link related issues, describe the change, its impact, and testing steps
+5) Open a Pull Request
+- Describe the motivation, what changed, and how you validated it.
+- Link related issues.
+- Avoid bumping the version; maintainers handle releases
 
 
 ## Versioning and release notes
