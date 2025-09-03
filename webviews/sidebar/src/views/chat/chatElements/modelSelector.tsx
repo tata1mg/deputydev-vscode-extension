@@ -82,7 +82,6 @@ const ModelSelector: React.FC = () => {
     const toSubmenu = !!submenuRef.current?.contains(el);
     const toOwner = !!owner?.contains(el);
 
-    // Keep open only when moving to the submenu or back to the owner row
     return toSubmenu || toOwner;
   };
 
@@ -101,7 +100,6 @@ const ModelSelector: React.FC = () => {
       setSubmenuRect(anchorEl.getBoundingClientRect());
     }
 
-    // If switching owners, collapse immediately so the previous row highlight/submenu doesn't linger
     if (submenuForModelId !== null && submenuForModelId !== modelId) {
       setSubmenuForModelId(null);
     }
