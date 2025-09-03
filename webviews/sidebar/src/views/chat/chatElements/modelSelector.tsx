@@ -21,7 +21,7 @@ type RowId = string | number;
 
 const SUBMENU_WIDTH = 90; // px
 const SUBMENU_OPEN_DELAY = 100;
-const SUBMENU_CLOSE_DELAY = 100;
+const SUBMENU_CLOSE_DELAY = 200;
 
 const ModelSelector: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,10 +75,14 @@ const ModelSelector: React.FC = () => {
   const modelHasReasoning = (m: LLMModels) =>
     Boolean(m?.reasoning && m.reasoning.supported?.length);
 
-  const shouldKeepOpen = (nextTarget: EventTarget | null) => {
+  const shouldKeepOpen = (nextTarget: EventTarget | null, owner?: HTMLElement | null) => {
     const el = nextTarget as Node | null;
     if (!el) return false;
-    return Boolean(menuRef.current?.contains(el) || submenuRef.current?.contains(el));
+
+    const toSubmenu = !!submenuRef.current?.contains(el);
+    const toOwner = !!owner?.contains(el);
+
+    return toSubmenu || toOwner;
   };
 
   const clearHoverTimer = () => {
@@ -90,10 +94,16 @@ const ModelSelector: React.FC = () => {
 
   const openSubmenu = (modelId: RowId, anchorEl?: HTMLElement) => {
     clearHoverTimer();
+
     if (anchorEl) {
       setSubmenuOwnerEl(anchorEl);
       setSubmenuRect(anchorEl.getBoundingClientRect());
     }
+
+    if (submenuForModelId !== null && submenuForModelId !== modelId) {
+      setSubmenuForModelId(null);
+    }
+
     const id = window.setTimeout(() => setSubmenuForModelId(modelId), SUBMENU_OPEN_DELAY);
     setHoverTimer(id);
   };
@@ -112,17 +122,18 @@ const ModelSelector: React.FC = () => {
   useEffect(() => {
     const onDown = (event: MouseEvent) => {
       const target = event.target as Node | null;
+
       const inDropdown = dropdownRef.current?.contains(target ?? null);
-      const inMenu = menuRef.current?.contains(target ?? null);
       const inSubmenu = submenuRef.current?.contains(target ?? null);
-      if (!inDropdown && !inMenu && !inSubmenu) {
+
+      if (!inDropdown && !inSubmenu) {
         setIsOpen(false);
         closeSubmenu();
       }
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  });
+  }, []);
 
   const handleSelectModelOnly = (model: LLMModels) => {
     // For non-reasoning models only
@@ -217,7 +228,7 @@ const ModelSelector: React.FC = () => {
           }}
           onMouseLeave={(e) => {
             if (!hasReason) return;
-            if (shouldKeepOpen(e.relatedTarget)) return;
+            if (shouldKeepOpen(e.relatedTarget, e.currentTarget as HTMLElement)) return;
             closeSubmenu();
           }}
           onClick={(e) => {
@@ -248,8 +259,12 @@ const ModelSelector: React.FC = () => {
               transition={{ duration: 0.05 }}
               className="z-[60] rounded-md border border-[--vscode-commandCenter-inactiveBorder] bg-[--vscode-dropdown-background] shadow-lg"
               style={getSubmenuStyle()}
+              onMouseEnter={() => {
+                // Cancel any pending close from the owner row as soon as we enter
+                clearHoverTimer();
+              }}
               onMouseLeave={(e) => {
-                if (shouldKeepOpen(e.relatedTarget)) return;
+                if (shouldKeepOpen(e.relatedTarget, submenuOwnerEl)) return;
                 closeSubmenu();
               }}
             >
@@ -304,28 +319,41 @@ const ModelSelector: React.FC = () => {
           <ChevronDown className="h-3 w-3 opacity-70" />
         </button>
 
-        {isOpen && (
-          <div
-            ref={menuRef}
-            className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[160px] origin-bottom rounded-md border border-[--vscode-commandCenter-inactiveBorder] bg-[--vscode-dropdown-background] shadow-lg"
-            role="menu"
-          >
-            <div className="max-h-72 overflow-y-auto py-1 pr-1" data-menu-scroller>
-              {llmModels.length > 0 ? (
-                Object.entries(modelsByProvider).map(([provider, models]) => (
-                  <div key={provider} className="pb-2">
-                    <div className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold uppercase text-gray-500">
-                      {provider}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={menuRef}
+              key="main-menu"
+              initial={{ opacity: 0, y: 4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{
+                type: 'spring',
+                damping: 20,
+                stiffness: 200,
+                mass: 0.4,
+                duration: 0.15,
+              }}
+              className="absolute bottom-full left-0 right-0 z-50 mx-auto mb-1 w-[160px] origin-bottom rounded-md border border-[--vscode-commandCenter-inactiveBorder] bg-[--vscode-dropdown-background] shadow-lg"
+              role="menu"
+            >
+              <div className="max-h-72 overflow-y-auto py-1 pr-1" data-menu-scroller>
+                {llmModels.length > 0 ? (
+                  Object.entries(modelsByProvider).map(([provider, models]) => (
+                    <div key={provider} className="pb-2">
+                      <div className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold uppercase text-gray-500">
+                        {provider}
+                      </div>
+                      {models.map((model) => renderModelRow(model))}
                     </div>
-                    {models.map((model) => renderModelRow(model))}
-                  </div>
-                ))
-              ) : (
-                <div className="px-2 py-2 text-xs text-gray-400">No models available</div>
-              )}
-            </div>
-          </div>
-        )}
+                  ))
+                ) : (
+                  <div className="px-2 py-2 text-xs text-gray-400">No models available</div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
