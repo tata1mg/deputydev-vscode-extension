@@ -90,7 +90,7 @@ export function ChatUI() {
   const [chipEditMode, setChipEditMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+  const isAutoScrollEnabledRef = useRef(true);
   const backspaceCountRef = useRef(0);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [expandedImageIndex, setExpandedImageIndex] = useState<number>(-1);
@@ -418,7 +418,7 @@ export function ChatUI() {
         // User is near the bottom: debounce re-enabling auto-scroll
         if (reenableTimer) clearTimeout(reenableTimer);
         reenableTimer = setTimeout(() => {
-          setIsAutoScrollEnabled(true);
+          isAutoScrollEnabledRef.current = true;
         }, 300);
       } else {
         // User scrolled up: cancel any pending re-enable and disable auto-scroll
@@ -426,7 +426,7 @@ export function ChatUI() {
           clearTimeout(reenableTimer);
           reenableTimer = null;
         }
-        setIsAutoScrollEnabled(false);
+        isAutoScrollEnabledRef.current = false;
       }
     };
 
@@ -440,13 +440,13 @@ export function ChatUI() {
   // Scroll to bottom when new messages arrive (if auto-scroll is enabled)
   useEffect(() => {
     // console.log("messages updated:", messages);
-    if (isAutoScrollEnabled) {
+    if (isAutoScrollEnabledRef.current) {
       // Use setTimeout to ensure all content is rendered
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 150);
     }
-  }, [messages, current?.content?.text, isAutoScrollEnabled]);
+  }, [messages, current?.content?.text, isAutoScrollEnabledRef]);
 
   useEffect(() => {
     const fetchImageUploadConfig = async () => {

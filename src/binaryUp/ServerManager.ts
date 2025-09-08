@@ -227,7 +227,7 @@ export class ServerManager {
     await streamPipeline(tarStream, tar.x({ cwd: extractTo }));
 
     // Set executable permissions on the main binary
-    const binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['service_path']);
+    const binaryPath = this.getServiceExecutablePath();
     await fsp.chmod(binaryPath, 0o755);
 
     // Cleanup downloaded tarball
@@ -323,8 +323,8 @@ export class ServerManager {
         detached: false, // Important: this keeps child tied to parent
         shell: false, // Don't launch via shell
       };
-
-      const serverProcess = spawn(serviceExecutable, [port.toString()], spawnOptions);
+      const args = this.getSpawnArguments(port);
+      const serverProcess = spawn(serviceExecutable, args, spawnOptions);
 
       serverProcess.stdout?.on('data', (data) => this.outputChannel.appendLine(`Server: ${data}`));
       serverProcess.stderr?.on('data', (data) => this.outputChannel.appendLine(`Server Error: ${data}`));
@@ -360,6 +360,15 @@ export class ServerManager {
   private getServiceExecutablePath(): string {
     const service_path = this.essential_config['BINARY']['service_path'];
     return path.join(this.binaryPath_root, service_path);
+  }
+
+  // TODO : if we ever switch to Python module only, then remove this.
+  /** Build path to service executable */
+  private getSpawnArguments(port: number): string[] {
+    const usePythonModule = this.essential_config['BINARY']?.['use_python_module'] ?? false;
+    return usePythonModule
+      ? ['-m', 'app.service', port.toString()] // Python module mode
+      : [port.toString()]; // Binary mode
   }
 
   private getBinaryFilePath(): string {
