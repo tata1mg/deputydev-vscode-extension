@@ -68,7 +68,7 @@ export function ThinkingChip({
           <div className="relative overflow-x-hidden rounded bg-gray-500/10 p-2">
             <div className="word-break: max-h-[200px] w-full overflow-y-auto">
               <SyntaxHighlighter
-                language="json"
+                language="markdown"
                 style={highlighterStyle}
                 customStyle={{
                   fontSize: 'var(--vscode-font-size)',
