@@ -363,6 +363,10 @@ export function newReview(data: { targetBranch: string; reviewType: string }) {
   return callCommand('new-review', data);
 }
 
+export function resetReview(data: { reviewType: string; targetBranch: string }) {
+  return callCommand('reset-review', data);
+}
+
 export function hitSnapshot(reviewType: string, targetBranch: string) {
   if (reviewType !== 'COMMITTED_ONLY') {
     return callCommand('hit-snapshot', { reviewType, targetBranch });
