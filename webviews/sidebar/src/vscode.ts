@@ -1131,6 +1131,15 @@ addCommandEventListener('hit-new-review-after-file-event', () => {
   }
 });
 
+addCommandEventListener('review-reset-done', () => {
+  if (useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
+});
+
 addCommandEventListener('comment-is-resolved', ({ data }) => {
   const commentId = data as number;
   useCodeReviewStore.setState((state) => ({

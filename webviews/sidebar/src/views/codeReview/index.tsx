@@ -21,6 +21,7 @@ import {
   performCrudOnUserAgent,
   searchBranches,
   cancelReview,
+  resetReview,
 } from '@/commandApi';
 import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
@@ -387,12 +388,13 @@ export default function CodeReview() {
                   }}
                 >
                   <motion.div
-                    className={`flex cursor-pointer items-center justify-between p-3 ${showFilesToReview && 'border-b border-[var(--vscode-editorWidget-border)]'}`}
-                    onClick={() => setShowFilesToReview(!showFilesToReview)}
-                    whileHover={{ backgroundColor: 'var(--vscode-list-hoverBackground)' }}
+                    className={`flex cursor-pointer items-center justify-between p-2 ${showFilesToReview && 'border-b border-[var(--vscode-editorWidget-border)]'}`}
                     initial={false}
                   >
-                    <div className="flex items-center gap-2">
+                    <button
+                      className="flex items-center gap-2 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]"
+                      onClick={() => setShowFilesToReview(!showFilesToReview)}
+                    >
                       <motion.div
                         animate={{ rotate: showFilesToReview ? 90 : 0 }}
                         transition={{ duration: 0.2 }}
@@ -402,7 +404,19 @@ export default function CodeReview() {
                       <h2 className="font-medium">
                         Files changed ({new_review?.file_wise_changes?.length})
                       </h2>
-                    </div>
+                    </button>
+                    <button
+                      className="cursor-pointer rounded border border-[var(--vscode-editorWidget-border)] p-1 text-xs text-red-600 hover:bg-red-700 hover:text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        resetReview({
+                          targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+                          reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+                        });
+                      }}
+                    >
+                      Reset Reviews
+                    </button>
                   </motion.div>
 
                   <AnimatePresence>
