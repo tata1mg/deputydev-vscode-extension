@@ -98,25 +98,52 @@ export class ServerManager {
 
         this.outputChannel.appendLine(`[checksum] Verifying ${Object.keys(expectedChecksums).length} files...`);
 
-        for (const [relPath, expectedHash] of Object.entries(expectedChecksums)) {
-          const absPath = path.join(binaryFilePath, relPath);
+        // 🔹 helper to stream hash a file with SHA-256
+        const hashFileSha256 = (filePath: string): Promise<string> => {
+          return new Promise((resolve, reject) => {
+            const hash = crypto.createHash('sha256');
+            const stream = fs.createReadStream(filePath);
 
-          if (!(await this.pathExists(absPath))) {
-            this.outputChannel.appendLine(`[checksum] ❌ Missing file: ${relPath}`);
-            return false;
-          }
+            stream.on('data', (chunk) => hash.update(chunk));
+            stream.on('end', () => resolve(hash.digest('hex')));
+            stream.on('error', (err) => reject(err));
+          });
+        };
 
-          const actualHash = await this.getChecksumForBinaryFile(absPath);
-          if (actualHash !== expectedHash) {
-            this.outputChannel.appendLine(
-              `[checksum] ❌ Mismatch in ${relPath}\n   expected: ${expectedHash}\n   got:      ${actualHash}`,
-            );
-            return false;
-          }
+        const CONCURRENCY = 16;
+        const files = Object.entries(expectedChecksums);
+        let ok = true;
+
+        for (let i = 0; i < files.length; i += CONCURRENCY) {
+          const batch = files.slice(i, i + CONCURRENCY);
+
+          const results = await Promise.all(
+            batch.map(async ([relPath, expectedHash]) => {
+              const absPath = path.join(binaryFilePath, relPath);
+
+              if (!(await this.pathExists(absPath))) {
+                this.outputChannel.appendLine(`[checksum] ❌ Missing file: ${relPath}`);
+                return false;
+              }
+
+              const actualHash = await hashFileSha256(absPath);
+              if (actualHash !== expectedHash) {
+                this.outputChannel.appendLine(
+                  `[checksum] ❌ Mismatch in ${relPath}\n   expected: ${expectedHash}\n   got:      ${actualHash}`,
+                );
+                return false;
+              }
+              return true;
+            }),
+          );
+
+          if (results.includes(false)) ok = false;
         }
 
-        this.outputChannel.appendLine(`[checksum] ✅ All files verified successfully.`);
-        return true;
+        if (ok) {
+          this.outputChannel.appendLine(`[checksum] ✅ All files verified successfully.`);
+        }
+        return ok;
       } else {
         const expectedChecksum = this.getBinaryFileChecksum();
         const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath);
