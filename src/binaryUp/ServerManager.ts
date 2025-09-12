@@ -15,6 +15,7 @@ import { loaderMessage } from '../utilities/contextManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { pipeline as streamPipeline } from 'stream/promises';
 import { withLock } from './withLock';
+import CRC32 from 'crc-32'; // npm install crc-32
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
@@ -98,18 +99,6 @@ export class ServerManager {
 
         this.outputChannel.appendLine(`[checksum] Verifying ${Object.keys(expectedChecksums).length} files...`);
 
-        // 🔹 helper to stream hash a file with SHA-256
-        const hashFileSha256 = (filePath: string): Promise<string> => {
-          return new Promise((resolve, reject) => {
-            const hash = crypto.createHash('sha256');
-            const stream = fs.createReadStream(filePath);
-
-            stream.on('data', (chunk) => hash.update(chunk));
-            stream.on('end', () => resolve(hash.digest('hex')));
-            stream.on('error', (err) => reject(err));
-          });
-        };
-
         const CONCURRENCY = 16;
         const files = Object.entries(expectedChecksums);
         let ok = true;
@@ -126,18 +115,29 @@ export class ServerManager {
                 return false;
               }
 
-              const actualHash = await hashFileSha256(absPath);
-              if (actualHash !== expectedHash) {
-                this.outputChannel.appendLine(
-                  `[checksum] ❌ Mismatch in ${relPath}\n   expected: ${expectedHash}\n   got:      ${actualHash}`,
-                );
+              try {
+                const buffer = await fsp.readFile(absPath);
+                const signed = CRC32.buf(buffer);
+                const actualHash = (signed >>> 0).toString(16).padStart(8, '0');
+
+                if (actualHash !== expectedHash) {
+                  this.outputChannel.appendLine(
+                    `[checksum] ❌ Mismatch in ${relPath}\n   expected: ${expectedHash}\n   got:      ${actualHash}`,
+                  );
+                  return false;
+                }
+                return true;
+              } catch (err) {
+                this.outputChannel.appendLine(`[checksum] ❌ Error reading ${relPath}: ${(err as Error).message}`);
                 return false;
               }
-              return true;
             }),
           );
 
-          if (results.includes(false)) ok = false;
+          if (results.includes(false)) {
+            ok = false;
+            break; // stop early if any mismatch
+          }
         }
 
         if (ok) {
