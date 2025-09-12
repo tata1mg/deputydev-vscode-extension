@@ -11,7 +11,7 @@ export default function ActiveFileReferenceChip() {
 
   if (!activeFileUri) return null;
 
-  const filename = activeFileUri.split('/').pop() ?? activeFileUri;
+  const filename = activeFileUri.split(/[/\\]/).pop() ?? activeFileUri;
   const lineInfo =
     startLine !== undefined
       ? endLine !== undefined

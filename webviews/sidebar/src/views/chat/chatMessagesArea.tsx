@@ -12,6 +12,13 @@ import ErrorChipSelector from './chatElements/errorChips/ErrorChipSelector';
 import { TerminalNoShellIntegration } from './chatElements/toolChips/TerminalNoShellIntegrationChip';
 import InfoChip from './chatElements/toolChips/InfoChip';
 import TextMessageChip from './chatElements/toolChips/TextMessageChip';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import {
+  remarkPreventBoldFilenames,
+  remarkUrlToLink,
+} from './chatElements/toolChips/utils/RemarkPlugins';
+import rehypeKatex from 'rehype-katex';
 
 export function ChatArea() {
   const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
@@ -117,9 +124,23 @@ export function ChatArea() {
       {current && typeof current.content?.text === 'string' && (
         <div
           key="streaming"
-          className={`markdown-body text-base ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''}`}
+          className={`markdown-body text-base ${
+            ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
+          }`}
         >
-          <Markdown>{current.content.text}</Markdown>
+          <Markdown
+            remarkPlugins={[remarkGfm, remarkMath, remarkUrlToLink, remarkPreventBoldFilenames]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              table: ({ node, ...props }) => (
+                <div style={{ overflowX: 'auto' }}>
+                  <table {...props} />
+                </div>
+              ),
+            }}
+          >
+            {current.content.text}
+          </Markdown>
         </div>
       )}
     </>

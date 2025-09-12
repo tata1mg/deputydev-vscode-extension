@@ -91,6 +91,23 @@
   list-style-type: disc;
 }
 
+/* Nested list styles */
+ul ul {
+  list-style-type: circle;
+}
+
+ul ul ul {
+  list-style-type: square;
+}
+
+ol ol {
+  list-style-type: lower-alpha;
+}
+
+ol ol ol {
+  list-style-type: lower-roman;
+}
+
 .markdown-body hr {
   border: none;
   border-top: 1px solid #444;
@@ -139,11 +156,18 @@
   border-radius: 4px;
 }
 
-.markdown-body table {
+/* Wrapper to allow horizontal scrolling */
+.markdown-body .table-wrapper {
   width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-body table {
   border-collapse: collapse;
   margin: 1rem 0;
-  font-size: 0.875rem;
+  width: max-content; /* let table grow as wide as needed */
+  min-width: 100%; /* but don’t shrink smaller than container */
+  max-width: 200%; /* cap at 2x container width */
 }
 
 .markdown-body th,
@@ -151,6 +175,8 @@
   border: 1px solid #444;
   padding: 0.5rem;
   text-align: left;
+  vertical-align: top; /* Keeps multi-line text aligned nicely */
+  word-break: break-word;
 }
 
 .markdown-body th {
@@ -166,3 +192,40 @@
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+.markdown-body tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.03); /* subtle zebra striping */
+}
+
+.markdown-body a {
+  text-decoration: none;
+}
+.markdown-body a {
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* KaTeX styling */
+.markdown-body .katex {
+  font-size: 1.1em;
+  color: var(--vscode-editor-foreground);
+  font-family: KaTeX_Main, 'Times New Roman', serif;
+  line-height: 1.2;
+  white-space: normal;
+  text-indent: 0;
+}
+
+.markdown-body .katex-display {
+  display: block;
+  margin: 1em 0;
+  text-align: center;
+  padding: 0.5em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background-color: var(--vscode-textCodeBlock-background);
+  border-radius: 3px;
+}
+
+.markdown-body .katex-error {
+  color: var(--vscode-errorForeground);
+}
