@@ -381,45 +381,48 @@ export default function CodeReview() {
                 </div>
               </div>
 
-              <div className="relative px-4">
-                <motion.div
-                  className={`flex items-center justify-center gap-2 rounded-lg border ${useCodeReviewStore.getState().pastReviews.length === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} border-[var(--vscode-editorWidget-border)]`}
-                  style={{
-                    backgroundColor: 'var(--vscode-editor-background)',
-                  }}
-                  onClick={() => {
-                    if (useCodeReviewStore.getState().pastReviews.length > 0) {
-                      setShowResetReviewConfirmation(!showResetReviewConfirmation);
-                    }
-                  }}
-                  initial={false}
-                >
-                  <div
-                    className="flex items-center gap-2 p-2"
-                    data-tooltip-id="code-review-tooltips"
-                    data-tooltip-content={
-                      useCodeReviewStore.getState().pastReviews.length === 0
-                        ? "You haven't performed any reviews yet"
-                        : 'Clear all existing reviews on the diffs between the current source and target branch. Once reset, all previously reviewed diffs will reappear for review.'
-                    }
-                    data-tooltip-place="top-start"
-                    data-tooltip-class-name="z-50 max-w-[80%]"
-                    data-tooltip-effect="solid"
+              {/* Reset Reviews */}
+              {useCodeReviewStore.getState().new_review.review_count > 0 && (
+                <div className="relative px-4">
+                  <motion.div
+                    className={`flex items-center justify-center gap-2 rounded-lg border ${useCodeReviewStore.getState().new_review.review_count === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} border-[var(--vscode-editorWidget-border)]`}
+                    style={{
+                      backgroundColor: 'var(--vscode-editor-background)',
+                    }}
+                    onClick={() => {
+                      if (useCodeReviewStore.getState().new_review.review_count > 0) {
+                        setShowResetReviewConfirmation(!showResetReviewConfirmation);
+                      }
+                    }}
+                    initial={false}
                   >
-                    <RotateCwSquare className="h-4 w-4 flex-shrink-0" />
-                    <div className="text-center">
-                      <span>
-                        {'Reset '}
-                        {useCodeReviewStore.getState().pastReviews.length > 0 &&
-                          useCodeReviewStore.getState().pastReviews.length}
-                        {useCodeReviewStore.getState().pastReviews.length === 1
-                          ? ' Review'
-                          : ' Reviews'}
-                      </span>
+                    <div
+                      className="flex items-center gap-2 p-2"
+                      data-tooltip-id="code-review-tooltips"
+                      data-tooltip-content={
+                        useCodeReviewStore.getState().new_review.review_count === 0
+                          ? "You haven't performed any reviews yet"
+                          : 'Clear all existing reviews on the diffs between the current source and target branch. Once reset, all previously reviewed diffs will reappear for review.'
+                      }
+                      data-tooltip-place="top-start"
+                      data-tooltip-class-name="z-50 max-w-[80%]"
+                      data-tooltip-effect="solid"
+                    >
+                      <RotateCwSquare className="h-4 w-4 flex-shrink-0" />
+                      <div className="text-center">
+                        <span>
+                          {'Reset '}
+                          {useCodeReviewStore.getState().new_review.review_count > 0 &&
+                            useCodeReviewStore.getState().new_review.review_count}
+                          {useCodeReviewStore.getState().new_review.review_count === 1
+                            ? ' Review'
+                            : ' Reviews'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              </div>
+                  </motion.div>
+                </div>
+              )}
 
               {/* Main Content */}
               <div className="flex flex-col gap-2 px-4 py-2">

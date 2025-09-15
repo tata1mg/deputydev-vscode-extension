@@ -1186,6 +1186,7 @@ addCommandEventListener('new-review-error', ({ data }) => {
       target_commit: '',
       fail_message: '',
       eligible_for_review: false,
+      review_count: 0,
     },
   });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
