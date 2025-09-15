@@ -10,6 +10,7 @@ import {
   Info,
   LoaderCircle,
   Plus,
+  RotateCwSquare,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
@@ -30,6 +31,7 @@ import { Review } from './review';
 import { ReviewModal } from './ReviewModal';
 import { Tooltip } from 'react-tooltip';
 import { ViewSwitcher } from '@/components/ViewSwitcher';
+import { ResetReviewModal } from './ResetReviewModal';
 
 const dropdownVariants: Variants = {
   hidden: {
@@ -75,6 +77,7 @@ export default function CodeReview() {
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showResetReviewConfirmation, setShowResetReviewConfirmation] = useState(false);
 
   const getNoChangesFoundText = () => {
     switch (activeReviewOption.value) {
@@ -378,6 +381,46 @@ export default function CodeReview() {
                 </div>
               </div>
 
+              <div className="relative px-4">
+                <motion.div
+                  className={`flex items-center justify-center gap-2 rounded-lg border ${useCodeReviewStore.getState().pastReviews.length === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} border-[var(--vscode-editorWidget-border)]`}
+                  style={{
+                    backgroundColor: 'var(--vscode-editor-background)',
+                  }}
+                  onClick={() => {
+                    if (useCodeReviewStore.getState().pastReviews.length > 0) {
+                      setShowResetReviewConfirmation(!showResetReviewConfirmation);
+                    }
+                  }}
+                  initial={false}
+                >
+                  <div
+                    className="flex items-center gap-2 p-2"
+                    data-tooltip-id="code-review-tooltips"
+                    data-tooltip-content={
+                      useCodeReviewStore.getState().pastReviews.length === 0
+                        ? "You haven't performed any reviews yet"
+                        : 'Clear all existing reviews on the diffs between the current source and target branch. Once reset, all previously reviewed diffs will reappear for review.'
+                    }
+                    data-tooltip-place="top-start"
+                    data-tooltip-class-name="z-50 max-w-[80%]"
+                    data-tooltip-effect="solid"
+                  >
+                    <RotateCwSquare className="h-4 w-4 flex-shrink-0" />
+                    <div className="text-center">
+                      <span>
+                        {'Reset '}
+                        {useCodeReviewStore.getState().pastReviews.length > 0 &&
+                          useCodeReviewStore.getState().pastReviews.length}
+                        {useCodeReviewStore.getState().pastReviews.length === 1
+                          ? ' Review'
+                          : ' Reviews'}
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
               {/* Main Content */}
               <div className="flex flex-col gap-2 px-4 py-2">
                 {/* Files Section */}
@@ -388,13 +431,12 @@ export default function CodeReview() {
                   }}
                 >
                   <motion.div
-                    className={`flex cursor-pointer items-center justify-between p-2 ${showFilesToReview && 'border-b border-[var(--vscode-editorWidget-border)]'}`}
+                    className={`flex cursor-pointer items-center justify-between p-3 ${showFilesToReview && 'border-b border-[var(--vscode-editorWidget-border)]'}`}
+                    onClick={() => setShowFilesToReview(!showFilesToReview)}
+                    whileHover={{ backgroundColor: 'var(--vscode-list-hoverBackground)' }}
                     initial={false}
                   >
-                    <button
-                      className="flex items-center gap-2 text-[var(--vscode-descriptionForeground)] hover:text-[var(--vscode-foreground)]"
-                      onClick={() => setShowFilesToReview(!showFilesToReview)}
-                    >
+                    <div className="flex items-center gap-2">
                       <motion.div
                         animate={{ rotate: showFilesToReview ? 90 : 0 }}
                         transition={{ duration: 0.2 }}
@@ -404,19 +446,7 @@ export default function CodeReview() {
                       <h2 className="font-medium">
                         Files changed ({new_review?.file_wise_changes?.length})
                       </h2>
-                    </button>
-                    <button
-                      className="cursor-pointer rounded border border-[var(--vscode-editorWidget-border)] p-1 text-xs text-red-600 hover:bg-red-700 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        resetReview({
-                          targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
-                          reviewType: useCodeReviewStore.getState().activeReviewOption.value,
-                        });
-                      }}
-                    >
-                      Reset Reviews
-                    </button>
+                    </div>
                   </motion.div>
 
                   <AnimatePresence>
@@ -539,6 +569,17 @@ export default function CodeReview() {
           )}
 
           {useCodeReviewStore.getState().showReviewProcess && <Review />}
+
+          <ResetReviewModal
+            isOpen={showResetReviewConfirmation}
+            onClose={() => setShowResetReviewConfirmation(false)}
+            onConfirm={() => {
+              resetReview({
+                targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+                reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+              });
+            }}
+          />
 
           <ReviewModal
             isOpen={isModalOpen}
