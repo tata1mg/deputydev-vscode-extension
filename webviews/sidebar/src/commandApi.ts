@@ -368,9 +368,7 @@ export function resetReview(data: { reviewType: string; targetBranch: string }) 
 }
 
 export function hitSnapshot(reviewType: string, targetBranch: string) {
-  if (reviewType !== 'COMMITTED_ONLY') {
-    return callCommand('hit-snapshot', { reviewType, targetBranch });
-  }
+  return callCommand('hit-snapshot', { reviewType, targetBranch });
 }
 
 export function searchBranches(keyword: string) {
