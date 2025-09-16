@@ -54,15 +54,15 @@ jobs:
       - name: Package extension
         run: npx vsce package 
         
-      # - name: Publish Extension
-      #   run: |
-      #     if [ "${{ github.event.inputs.prerelease }}" == "YES" ]; then
-      #       echo "🚀 Publishing as pre-release..."
-      #       npx vsce publish --pre-release -p ${{ secrets.DD_MARKETPLACE_PAT }}
-      #     else
-      #       echo "🚀 Publishing as stable release..."
-      #       npx vsce publish -p ${{ secrets.DD_MARKETPLACE_PAT }}
-      #     fi
+      - name: Publish Extension
+        run: |
+          if [ "${{ github.event.inputs.prerelease }}" == "YES" ]; then
+            echo "🚀 Publishing as pre-release..."
+            npx vsce publish --pre-release -p ${{ secrets.DD_MARKETPLACE_PAT }}
+          else
+            echo "🚀 Publishing as stable release..."
+            npx vsce publish -p ${{ secrets.DD_MARKETPLACE_PAT }}
+          fi
 
       - name: Find VSIX filename
         id: find_vsix
