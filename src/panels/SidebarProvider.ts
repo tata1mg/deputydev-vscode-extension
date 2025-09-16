@@ -138,6 +138,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         case 'new-review':
           this.newReview(data);
           break;
+        case 'reset-review':
+          this.resetReview(data);
+          break;
         case 'hit-snapshot':
           this.handleSnapshot(data);
           break;
@@ -1118,6 +1121,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       this.sendMessageToSidebar({
         id: uuidv4(),
         command: 'new-review-error',
+        data: result.meta.message,
+      });
+    }
+  }
+
+  public async resetReview(data: any) {
+    const result = await this.reviewService.resetReview(data.targetBranch, data.reviewType);
+    if (result && !result.is_error) {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'review-reset-done',
+        data: result.data,
+      });
+    } else {
+      this.sendMessageToSidebar({
+        id: uuidv4(),
+        command: 'review-reset-error',
         data: result.meta.message,
       });
     }
