@@ -15,6 +15,7 @@ import { loaderMessage } from '../utilities/contextManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { pipeline as streamPipeline } from 'stream/promises';
 import { withLock } from './withLock';
+import CRC32 from 'crc-32'; // npm install crc-32
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
@@ -83,29 +84,101 @@ export class ServerManager {
     }
   }
 
-  private async isBinaryAvailable(): Promise<boolean> {
-    const binaryFilePath = this.getBinaryFilePath();
-    this.outputChannel.appendLine(`Checking for binary at: ${binaryFilePath}`);
-    const exists = await this.pathExists(binaryFilePath);
-    if (!exists) {
-      this.outputChannel.appendLine('Binary file does not exist.');
+  /** Compare checksums of binary directory or single binary file */
+  public async compareBinaryDirChecksum(binaryFilePath: string): Promise<boolean> {
+    try {
+      if (this.isPythonModuleMode()) {
+        const checksumsPath = path.join(binaryFilePath, 'checksums.json');
+        if (!(await this.pathExists(checksumsPath))) {
+          this.outputChannel.appendLine(`[checksum] ❌ checksums.json not found at ${checksumsPath}`);
+          return false;
+        }
+
+        const checksumsData = await fsp.readFile(checksumsPath, 'utf-8');
+        const expectedChecksums: Record<string, string> = JSON.parse(checksumsData);
+
+        this.outputChannel.appendLine(`[checksum] Verifying ${Object.keys(expectedChecksums).length} files...`);
+
+        const CONCURRENCY = 16;
+        const files = Object.entries(expectedChecksums);
+        let ok = true;
+
+        for (let i = 0; i < files.length; i += CONCURRENCY) {
+          const batch = files.slice(i, i + CONCURRENCY);
+
+          const results = await Promise.all(
+            batch.map(async ([relPath, expectedHash]) => {
+              const absPath = path.join(binaryFilePath, relPath);
+
+              if (!(await this.pathExists(absPath))) {
+                this.outputChannel.appendLine(`[checksum] ❌ Missing file: ${relPath}`);
+                return false;
+              }
+
+              try {
+                const buffer = await fsp.readFile(absPath);
+                const signed = CRC32.buf(buffer);
+                const actualHash = (signed >>> 0).toString(16).padStart(8, '0');
+
+                if (actualHash !== expectedHash) {
+                  this.outputChannel.appendLine(
+                    `[checksum] ❌ Mismatch in ${relPath}\n   expected: ${expectedHash}\n   got:      ${actualHash}`,
+                  );
+                  return false;
+                }
+                return true;
+              } catch (err) {
+                this.outputChannel.appendLine(`[checksum] ❌ Error reading ${relPath}: ${(err as Error).message}`);
+                return false;
+              }
+            }),
+          );
+
+          if (results.includes(false)) {
+            ok = false;
+            break; // stop early if any mismatch
+          }
+        }
+
+        if (ok) {
+          this.outputChannel.appendLine(`[checksum] ✅ All files verified successfully.`);
+        }
+        return ok;
+      } else {
+        const expectedChecksum = this.getBinaryFileChecksum();
+        const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath);
+
+        this.outputChannel.appendLine(`[checksum] Expected: ${expectedChecksum}`);
+        this.outputChannel.appendLine(`[checksum] Actual:   ${actualChecksum}`);
+
+        if (actualChecksum !== expectedChecksum) {
+          this.outputChannel.appendLine(`[checksum] ❌ Mismatch detected.`);
+          return false;
+        }
+
+        this.outputChannel.appendLine(`[checksum] ✅ Binary checksum verified successfully.`);
+        return true;
+      }
+    } catch (err) {
+      this.outputChannel.appendLine(`[checksum] ❌ Error verifying checksum: ${(err as Error).message}`);
       return false;
     }
-    // Checksum verification
-    const expectedChecksum = this.getBinaryFileChecksum();
-    this.outputChannel.appendLine(`Expected checksum: ${expectedChecksum}`);
-    this.outputChannel.appendLine(`Calculating checksum for binary file...`);
-    const actualChecksum = await this.getChecksumForBinaryFile(binaryFilePath);
-    this.outputChannel.appendLine(`Actual checksum: ${actualChecksum}`);
-    if (actualChecksum !== expectedChecksum) {
-      this.outputChannel.appendLine(`Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`);
-      return false;
-    }
-    this.outputChannel.appendLine('Checksum verification succeeded.');
-    return true;
   }
 
-  /** Ensure the binary exists and is extracted */
+  /** Check if binary is available and valid */
+  private async isBinaryAvailable(): Promise<boolean> {
+    const binaryFilePath = this.getBinaryFilePath();
+    this.outputChannel.appendLine(`[binary-check] Checking for binary at: ${binaryFilePath}`);
+
+    const exists = await this.pathExists(binaryFilePath);
+    if (!exists) {
+      this.outputChannel.appendLine(`[binary-check] ❌ Binary file does not exist.`);
+      return false;
+    }
+
+    return await this.compareBinaryDirChecksum(binaryFilePath);
+  }
+
   /** Ensure the binary exists and is extracted – guarded by lock */
   public async ensureBinaryExists(): Promise<boolean> {
     const lockDir = this.context.globalStorageUri.fsPath;
@@ -142,8 +215,13 @@ export class ServerManager {
       await this.downloadFile(fileUrl, downloadPath);
       this.logger.info(`Downloaded binary`);
       this.outputChannel.appendLine('Downloaded binary.');
+      await this.compareTarballChecksum(downloadPath);
       await this.extractTarGz(downloadPath, this.binaryPath);
       this.logger.info(`Extracted binary`);
+      const verified = await this.compareBinaryDirChecksum(this.getBinaryFilePath());
+      if (!verified) {
+        throw new Error('❌ Extracted binary files failed checksum verification.');
+      }
       return true;
     } catch (err) {
       this.outputChannel.appendLine(`Error downloading/extracting binary: ${err}`);
@@ -152,87 +230,130 @@ export class ServerManager {
     }
   }
 
-  /** Download the file from the URL */
   /**
    * Download a file from the given URL and save it to the specified output path.
-   * Logs the status of the download process to the output channel.
-   *
+   * Throws on any error but logs details for visibility.*
    * @param url - The URL to download the file from.
    * @param outputPath - The path where the downloaded file will be saved.
    */
   private async downloadFile(url: string, outputPath: string): Promise<void> {
-    this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
+    try {
+      this.outputChannel.appendLine(`Starting download from ${url} to ${outputPath}`);
 
-    // Always delete this.binaryPath_root and its contents (non‑blocking)
-    await fsp.rm(this.binaryPath_root, { recursive: true, force: true }).catch(() => {});
-    this.logger.info(`Deleted existing BinaryPath`);
+      // Always delete this.binaryPath_root and its contents (non‑blocking)
+      await fsp.rm(this.binaryPath_root, { recursive: true, force: true });
+      this.logger.info(`Deleted existing BinaryPath`);
 
-    // Ensure the directory for the output path exists
-    const dir = path.dirname(outputPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      this.outputChannel.appendLine(`Created directory: ${dir}`);
-    }
+      // Ensure the directory for the output path exists
+      const dir = path.dirname(outputPath);
+      await fsp.mkdir(dir, { recursive: true });
+      this.outputChannel.appendLine(`Ensured directory: ${dir}`);
 
-    await new Promise<void>((resolve, reject) => {
-      https
-        .get(url, async (response) => {
-          const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
-          if (response.statusCode !== 200 || !response.readable) {
-            this.logger.error(`Failed to download file. HTTP Status: ${response.statusCode}`);
-            this.outputChannel.appendLine(`❌ Failed to download file. HTTP Status: ${response.statusCode}`);
-            return reject(`HTTP ${response.statusCode}`);
-          }
-          loaderMessage(true, 'downloading', 0);
-          this.logger.info(`Download started`);
-          this.outputChannel.appendLine('Download in progress...');
-          const fileStream = fs.createWriteStream(outputPath);
-          let downloadedBytes = 0;
-          response.on('data', (chunk) => {
-            downloadedBytes += chunk.length;
-            fileStream.write(chunk);
+      await new Promise<void>((resolve, reject) => {
+        https
+          .get(url, (response) => {
+            const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
 
-            if (totalBytes > 0) {
-              const progress = Math.round((downloadedBytes / totalBytes) * 100);
-              loaderMessage(true, 'downloading', progress);
+            if (response.statusCode !== 200 || !response.readable) {
+              const errMsg = `❌ Failed to download file. HTTP Status: ${response.statusCode}`;
+              this.outputChannel.appendLine(errMsg);
+              this.logger.error(errMsg);
+              return reject(new Error(errMsg));
             }
-          });
 
-          response.on('end', () => {
-            fileStream.end();
-            this.outputChannel.appendLine('Download completed successfully.');
-            resolve();
-          });
+            loaderMessage(true, 'downloading', 0);
+            this.logger.info('Download started');
+            this.outputChannel.appendLine('Download in progress...');
 
-          response.on('error', (err) => {
-            fileStream.close();
-            fs.unlink(outputPath, () => {});
-            this.outputChannel.appendLine(`Error during download: ${err}`);
-            this.logger.error(`Error during download: ${err}`);
-            reject(err);
-          });
-        })
-        .on('error', reject);
-    });
+            const fileStream = fs.createWriteStream(outputPath);
+            let downloadedBytes = 0;
+
+            response.on('data', (chunk) => {
+              downloadedBytes += chunk.length;
+              fileStream.write(chunk);
+
+              if (totalBytes > 0) {
+                const progress = Math.round((downloadedBytes / totalBytes) * 100);
+                loaderMessage(true, 'downloading', progress);
+              }
+            });
+
+            response.on('end', () => {
+              fileStream.end();
+            });
+
+            fileStream.on('finish', () => {
+              this.outputChannel.appendLine('✅ Download completed and flushed to disk.');
+              resolve();
+            });
+
+            fileStream.on('error', (err) => {
+              fs.unlink(outputPath, () => {});
+              this.outputChannel.appendLine(`❌ Error writing file: ${err.message}`);
+              this.logger.error(`Error writing file: ${err.stack || err}`);
+              reject(err);
+            });
+
+            response.on('error', (err) => {
+              fileStream.destroy();
+              fs.unlink(outputPath, () => {});
+              reject(err);
+            });
+          })
+          .on('error', reject);
+      });
+    } catch (err) {
+      this.outputChannel.appendLine(`❌ Download failed: ${(err as Error).message}`);
+      this.logger.error(`Download failed: ${err instanceof Error ? err.stack : err}`);
+      throw err;
+    }
+  }
+
+  /** Compare the Checksum of Tarball file */
+  private async compareTarballChecksum(tarPath: string): Promise<void> {
+    try {
+      if (this.isPythonModuleMode()) {
+        const actualChecksum = await this.getChecksumForBinaryFile(tarPath);
+        const expectedChecksum = this.getBinaryFileChecksum();
+
+        if (actualChecksum !== expectedChecksum) {
+          const errMsg = `❌ Checksum mismatch: expected ${expectedChecksum}, got ${actualChecksum}`;
+          this.outputChannel.appendLine(errMsg);
+          throw new Error(errMsg);
+        }
+
+        this.outputChannel.appendLine('✅ Tarball checksum verified successfully.');
+      }
+    } catch (err) {
+      this.outputChannel.appendLine(`❌ Error verifying checksum: ${(err as Error).message}`);
+      throw err; // rethrow to caller
+    }
   }
 
   /** Extract a tar.gz using streaming pipeline */
   private async extractTarGz(tarPath: string, extractTo: string): Promise<void> {
-    loaderMessage(true, 'extracting', 0);
+    try {
+      loaderMessage(true, 'extracting', 0);
 
-    await fsp.mkdir(extractTo, { recursive: true });
+      // Ensure extraction directory exists
+      await fsp.mkdir(extractTo, { recursive: true });
 
-    // Extract tar.gz using streaming pipeline
-    const tarStream = createReadStream(tarPath);
-    await streamPipeline(tarStream, tar.x({ cwd: extractTo }));
+      // Extract tar.gz using streaming pipeline
+      const tarStream = createReadStream(tarPath);
+      await streamPipeline(tarStream, tar.x({ cwd: extractTo }));
 
-    // Set executable permissions on the main binary
-    const binaryPath = path.join(this.binaryPath_root, this.essential_config['BINARY']['service_path']);
-    await fsp.chmod(binaryPath, 0o755);
+      // Set executable permissions on the main binary
+      const binaryPath = this.getServiceExecutablePath();
+      await fsp.chmod(binaryPath, 0o755);
 
-    // Cleanup downloaded tarball
-    await fsp.unlink(tarPath).catch(() => {});
-    this.outputChannel.appendLine(`✅ Extract completed successfully.`);
+      // Cleanup downloaded tarball
+      await fsp.unlink(tarPath);
+
+      this.outputChannel.appendLine('✅ Extract completed successfully.');
+    } catch (err) {
+      this.outputChannel.appendLine(`❌ Extraction failed: ${(err as Error).message}`);
+      throw err; // rethrow so the caller knows something went wrong
+    }
   }
 
   /** Check if the port is available */
@@ -323,8 +444,8 @@ export class ServerManager {
         detached: false, // Important: this keeps child tied to parent
         shell: false, // Don't launch via shell
       };
-
-      const serverProcess = spawn(serviceExecutable, [port.toString()], spawnOptions);
+      const args = this.getSpawnArguments(port);
+      const serverProcess = spawn(serviceExecutable, args, spawnOptions);
 
       serverProcess.stdout?.on('data', (data) => this.outputChannel.appendLine(`Server: ${data}`));
       serverProcess.stderr?.on('data', (data) => this.outputChannel.appendLine(`Server Error: ${data}`));
@@ -360,6 +481,18 @@ export class ServerManager {
   private getServiceExecutablePath(): string {
     const service_path = this.essential_config['BINARY']['service_path'];
     return path.join(this.binaryPath_root, service_path);
+  }
+
+  private isPythonModuleMode(): boolean {
+    return this.essential_config['BINARY']?.['use_python_module'] ?? false;
+  }
+  // TODO : if we ever switch to Python module only, then remove this.
+  /** Build path to service executable */
+  private getSpawnArguments(port: number): string[] {
+    const usePythonModule = this.isPythonModuleMode();
+    return usePythonModule
+      ? ['-m', 'app.service', port.toString()] // Python module mode
+      : [port.toString()]; // Binary mode
   }
 
   private getBinaryFilePath(): string {

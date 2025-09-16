@@ -32,7 +32,7 @@ const FileEditedChip: React.FC<ToolProps> = ({
   }
   const isWriteToFileTool = toolRequest?.toolName === 'write_to_file';
   // just the filename for display
-  const filename = path?.split('/').pop() ?? '';
+  const filename = path?.split(/[/\\]/).pop() ?? '';
   const ext = filename.split('.').pop() ?? '';
   const { p: language } = getLanguageInfoByExtension(ext);
   const [showSnippet, setShowSnippet] = useState(false);

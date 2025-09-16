@@ -9,7 +9,7 @@ type Props = {
 export default function ActiveFileReferenceInChat({ activeFileReference }: Props) {
   const { activeFileUri, startLine, endLine } = activeFileReference;
 
-  const filename = activeFileUri.split('/').pop() ?? activeFileUri;
+  const filename = activeFileUri.split(/[/\\]/).pop() ?? activeFileUri;
   const lineInfo =
     startLine !== undefined
       ? endLine !== undefined

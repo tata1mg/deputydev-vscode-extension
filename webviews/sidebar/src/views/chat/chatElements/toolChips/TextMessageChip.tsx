@@ -5,6 +5,10 @@ import { ChatAssistantMessage, ChatReferenceItem, ChatUserMessage, S3Object } fr
 import { CircleUserRound } from 'lucide-react';
 import { ImageWithDownload } from '../imageView';
 import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import { remarkPreventBoldFilenames, remarkUrlToLink } from './utils/RemarkPlugins';
 
 const TextMessageChip: React.FC<{ msg: ChatUserMessage | ChatAssistantMessage }> = ({ msg }) => {
   const { themeKind } = useThemeStore();
@@ -85,9 +89,23 @@ const TextMessageChip: React.FC<{ msg: ChatUserMessage | ChatAssistantMessage }>
     case 'ASSISTANT': {
       return (
         <div
-          className={`markdown-body ${['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''}`}
+          className={`markdown-body ${
+            ['high-contrast', 'high-contrast-light'].includes(themeKind) ? themeKind : ''
+          }`}
         >
-          <Markdown>{String(msg.content?.text)}</Markdown>
+          <Markdown
+            remarkPlugins={[remarkGfm, remarkMath, remarkUrlToLink, remarkPreventBoldFilenames]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              table: ({ node, ...props }) => (
+                <div style={{ overflowX: 'auto' }}>
+                  <table {...props} />
+                </div>
+              ),
+            }}
+          >
+            {String(msg.content?.text)}
+          </Markdown>
         </div>
       );
     }
