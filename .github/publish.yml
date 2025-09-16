@@ -61,8 +61,14 @@ jobs:
       #       npx vsce publish -p ${{ secrets.DD_MARKETPLACE_PAT }}
       #     fi
 
+      - name: Find VSIX filename
+        id: find_vsix
+        run: |
+          FILE=$(ls *.vsix | head -n 1)
+          echo "vsix_file=$FILE" >> $GITHUB_OUTPUT
+
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extension-vsix
-          path: "*.vsix"
+          name: ${{ steps.find_vsix.outputs.vsix_file }}
+          path: ${{ steps.find_vsix.outputs.vsix_file }}
