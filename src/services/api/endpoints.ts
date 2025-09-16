@@ -49,6 +49,7 @@ export const API_ENDPOINTS = {
   CANCEL_CHAT: '/end_user/v2/code-gen/cancel',
   CODE_REVIEW_PRE_PROCESS: '/end_user/v1/ide-reviews/pre-process',
   NEW_REVIEW: '/v1/review/summary',
+  RESET_REVIEW: 'v1/review/reset',
   SEARCH_BRANCHES: '/v1/branches/all',
   SNAPSHOT: '/v1/review/snapshot',
   PAST_REVIEWS: '/end_user/v1/ide-reviews/history',
