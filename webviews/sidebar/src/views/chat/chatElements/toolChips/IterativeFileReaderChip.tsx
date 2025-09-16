@@ -58,7 +58,7 @@ const IterativeFileReaderChip: React.FC<ToolProps> = ({
         setRepoPath(repo_path);
 
         if (file_path) {
-          const filename = file_path.split('/').pop();
+          const filename = file_path.split(/[/\\]/).pop() ?? '';
           setFileName(filename);
         }
       }
