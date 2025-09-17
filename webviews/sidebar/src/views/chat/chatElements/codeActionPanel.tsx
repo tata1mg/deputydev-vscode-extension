@@ -204,7 +204,7 @@ export function CodeActionPanel({
   const isApplyDisabled = !diff;
 
   // Extract the filename from the full path
-  const filename = filepath ? filepath.split('/').pop() : '';
+  const filename = filepath ? (filepath.split(/[/\\]/).pop() ?? '') : '';
 
   return (
     <div className="mt-3 w-full overflow-hidden rounded-md border border-gray-500 bg-gray-900">

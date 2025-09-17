@@ -42,7 +42,7 @@ export function CodeActionPanelFileEdit({
 
   // ───────────────────────────────────────────────────────────────────────────
   // 2) filename + language (for syntax highlighting, etc)
-  const filename = path?.split('/').pop() ?? '';
+  const filename = path?.split(/[/\\]/).pop() ?? '';
   const ext = filename.split('.').pop() ?? '';
   const { p: language } = getLanguageInfoByExtension(ext);
 

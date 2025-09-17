@@ -1,0 +1,77 @@
+name: Publish Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      prerelease:
+        description: "Publish as pre-release?"
+        required: true
+        default: "NO"   # Default is NO
+        type: choice
+        options:
+          - "NO"
+          - "YES"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DD_HOST: ${{ vars.DD_HOST }}
+      ENABLE_OUTPUT_CHANNEL: ${{ vars.ENABLE_OUTPUT_CHANNEL }}
+      USE_LOCAL_BINARY: ${{ vars.USE_LOCAL_BINARY }}
+      LOCAL_BINARY_PORT: ${{ vars.LOCAL_BINARY_PORT }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify CLIENT_VERSION matches package.json version
+        run: |
+          CLIENT_VERSION=$(grep "export const CLIENT_VERSION" src/config.ts | sed -E "s/.*'([^']+)'.*/\1/")
+          PKG_VERSION=$(jq -r '.version' package.json)
+
+          echo "CLIENT_VERSION=$CLIENT_VERSION"
+          echo "PKG_VERSION=$PKG_VERSION"
+
+          if [ "$CLIENT_VERSION" != "$PKG_VERSION" ]; then
+            echo "❌ Version mismatch: CLIENT_VERSION ($CLIENT_VERSION) != package.json version ($PKG_VERSION)"
+            exit 1
+          else
+            echo "✅ Versions match!"
+          fi
+
+      - name: Install dependencies
+        run: yarn install:all
+
+      - name: Build extension
+        run: yarn build:all
+
+      - name: Package extension
+        run: npx vsce package 
+        
+      - name: Publish Extension
+        run: |
+          if [ "${{ github.event.inputs.prerelease }}" == "YES" ]; then
+            echo "🚀 Publishing as pre-release..."
+            npx vsce publish --pre-release -p ${{ secrets.DD_MARKETPLACE_PAT }}
+          else
+            echo "🚀 Publishing as stable release..."
+            npx vsce publish -p ${{ secrets.DD_MARKETPLACE_PAT }}
+          fi
+
+      - name: Find VSIX filename
+        id: find_vsix
+        run: |
+          FILE=$(ls *.vsix | head -n 1)
+          echo "vsix_file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.find_vsix.outputs.vsix_file }}
+          path: ${{ steps.find_vsix.outputs.vsix_file }}
