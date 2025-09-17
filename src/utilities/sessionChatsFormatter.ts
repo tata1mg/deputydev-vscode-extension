@@ -38,7 +38,7 @@ export function formatSessionChats(rawSessionChats: any[]) {
               tool_name: chat.message_data?.tool_name,
               tool_use_id: chat.message_data?.tool_use_id,
               // To handle cases where tool_status might be 'FAILED' or other statuses
-              // NOTE: We are converting 'FAILED' to 'error' to maintain consistency, this is a temporary fix
+              // HACK: We are converting 'FAILED' to 'error' to maintain consistency, this is a temporary fix
               status:
                 (chat.message_data?.tool_status || '').toLowerCase() === 'failed'
                   ? 'error'
