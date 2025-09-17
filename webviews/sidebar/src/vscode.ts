@@ -1135,6 +1135,15 @@ addCommandEventListener('hit-new-review-after-file-event', () => {
   }
 });
 
+addCommandEventListener('review-reset-done', () => {
+  if (useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
+});
+
 addCommandEventListener('comment-is-resolved', ({ data }) => {
   const commentId = data as number;
   useCodeReviewStore.setState((state) => ({
@@ -1181,6 +1190,7 @@ addCommandEventListener('new-review-error', ({ data }) => {
       target_commit: '',
       fail_message: '',
       eligible_for_review: false,
+      review_count: 0,
     },
   });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
