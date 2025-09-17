@@ -341,7 +341,7 @@ const ModelSelector: React.FC = () => {
                 {llmModels.length > 0 ? (
                   Object.entries(modelsByProvider).map(([provider, models]) => (
                     <div key={provider} className="pb-2">
-                      <div className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold uppercase text-gray-500">
+                      <div className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold text-gray-500">
                         {provider}
                       </div>
                       {models.map((model) => renderModelRow(model))}
