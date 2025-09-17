@@ -50,6 +50,7 @@ import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
 import { useCodeReviewSettingStore, useCodeReviewStore } from './stores/codeReviewStore';
+import { isEqual } from 'lodash';
 
 type Resolver = {
   resolve: (data: unknown) => void;
@@ -453,7 +454,7 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     type: 'code_snippet',
     keyword: response.keyword,
     // value is file name which we generate from response.path
-    value: response.path.split('/').pop() || '',
+    value: response.path.split(/[/\\]/).pop() || '',
     path: response.path,
     chunks: [response.chunk],
     noEdit: true,
@@ -755,20 +756,23 @@ addCommandEventListener('all-session-changes-rejected', ({ data }) => {
 
 addCommandEventListener('fetched-mcp-servers', ({ data }) => {
   const servers = data as MCPServer[];
-  const selectedServer = useMcpStore.getState().selectedServer;
+  const { mcpServers, selectedServer } = useMcpStore.getState();
+
+  // If servers list is empty
   if (servers.length === 0) {
-    useMcpStore.setState({ mcpServers: [] });
-    useMcpStore.setState({ selectedServer: undefined });
+    if (mcpServers.length > 0 || selectedServer !== undefined) {
+      useMcpStore.setState({ mcpServers: [], selectedServer: undefined });
+    }
+    return;
   }
-  if (servers && servers.length > 0) {
+  // If servers are present
+  if (!isEqual(mcpServers, servers)) {
     useMcpStore.setState({ mcpServers: servers });
-    if (selectedServer) {
-      // Find the new state of the selected server from the fetched servers
-      const newSelectedServer = servers.find((server) => server.name === selectedServer.name);
-      if (newSelectedServer) {
-        // Update the selected server with the new state
-        useMcpStore.setState({ selectedServer: newSelectedServer });
-      }
+  }
+  if (selectedServer) {
+    const newSelectedServer = servers.find((server) => server.name === selectedServer.name);
+    if (newSelectedServer && !isEqual(selectedServer, newSelectedServer)) {
+      useMcpStore.setState({ selectedServer: newSelectedServer });
     }
   }
 });
@@ -1131,6 +1135,15 @@ addCommandEventListener('hit-new-review-after-file-event', () => {
   }
 });
 
+addCommandEventListener('review-reset-done', () => {
+  if (useExtensionStore.getState().viewType === 'code-review') {
+    newReview({
+      targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+      reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+    });
+  }
+});
+
 addCommandEventListener('comment-is-resolved', ({ data }) => {
   const commentId = data as number;
   useCodeReviewStore.setState((state) => ({
@@ -1177,6 +1190,7 @@ addCommandEventListener('new-review-error', ({ data }) => {
       target_commit: '',
       fail_message: '',
       eligible_for_review: false,
+      review_count: 0,
     },
   });
   useCodeReviewStore.setState({ isFetchingChangedFiles: false });
