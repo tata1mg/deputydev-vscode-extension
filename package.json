@@ -2,19 +2,36 @@
   "name": "deputydev",
   "displayName": "DeputyDev",
   "description": "DeputyDev",
-  "version": "12.1.1",
-  "license": "UNLICENSED",
+  "version": "12.1.2",
+  "license": "AGPL-3.0",
   "publisher": "Tata1mg",
   "engines": {
     "vscode": "^1.93.0"
   },
   "icon": "assets/dd_logo_light.png",
   "categories": [
-    "Other"
+    "Programming Languages",
+    "Education",
+    "Testing",
+    "AI",
+    "Chat"
+  ],
+  "tags": [
+    "agent",
+    "ai",
+    "autonomous",
+    "chatgpt",
+    "claude",
+    "coding",
+    "dev",
+    "keybindings",
+    "mcp",
+    "openrouter",
+    "sonnet"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/tata1mg/"
+    "url": "https://github.com/tata1mg/deputydev-vscode-extension"
   },
   "activationEvents": [
     "onStartupFinished"
