@@ -10,6 +10,7 @@ import {
   Info,
   LoaderCircle,
   Plus,
+  RotateCwSquare,
 } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import { useEffect, useState, useRef } from 'react';
@@ -21,6 +22,7 @@ import {
   performCrudOnUserAgent,
   searchBranches,
   cancelReview,
+  resetReview,
 } from '@/commandApi';
 import { useCodeReviewSettingStore, useCodeReviewStore } from '@/stores/codeReviewStore';
 import { useClickAway } from 'react-use';
@@ -29,6 +31,7 @@ import { Review } from './review';
 import { ReviewModal } from './ReviewModal';
 import { Tooltip } from 'react-tooltip';
 import { ViewSwitcher } from '@/components/ViewSwitcher';
+import { ResetReviewModal } from './ResetReviewModal';
 
 const dropdownVariants: Variants = {
   hidden: {
@@ -74,6 +77,7 @@ export default function CodeReview() {
   const [isAgentExpanded, setIsAgentExpanded] = useState(false);
   const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showResetReviewConfirmation, setShowResetReviewConfirmation] = useState(false);
 
   const getNoChangesFoundText = () => {
     switch (activeReviewOption.value) {
@@ -377,6 +381,49 @@ export default function CodeReview() {
                 </div>
               </div>
 
+              {/* Reset Reviews */}
+              {useCodeReviewStore.getState().new_review.review_count > 0 && (
+                <div className="relative px-4">
+                  <motion.div
+                    className={`flex items-center justify-center gap-2 rounded-lg border ${useCodeReviewStore.getState().new_review.review_count === 0 ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} border-[var(--vscode-editorWidget-border)]`}
+                    style={{
+                      backgroundColor: 'var(--vscode-editor-background)',
+                    }}
+                    onClick={() => {
+                      if (useCodeReviewStore.getState().new_review.review_count > 0) {
+                        setShowResetReviewConfirmation(!showResetReviewConfirmation);
+                      }
+                    }}
+                    initial={false}
+                  >
+                    <div
+                      className="flex items-center gap-2 p-2"
+                      data-tooltip-id="code-review-tooltips"
+                      data-tooltip-content={
+                        useCodeReviewStore.getState().new_review.review_count === 0
+                          ? "You haven't performed any reviews yet"
+                          : 'Clear all existing reviews on the diffs between the current source and target branch. Once reset, all previously reviewed diffs will reappear for review.'
+                      }
+                      data-tooltip-place="top-start"
+                      data-tooltip-class-name="z-50 max-w-[80%]"
+                      data-tooltip-effect="solid"
+                    >
+                      <RotateCwSquare className="h-4 w-4 flex-shrink-0" />
+                      <div className="text-center">
+                        <span>
+                          {'Reset '}
+                          {useCodeReviewStore.getState().new_review.review_count > 0 &&
+                            useCodeReviewStore.getState().new_review.review_count}
+                          {useCodeReviewStore.getState().new_review.review_count === 1
+                            ? ' Review'
+                            : ' Reviews'}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+
               {/* Main Content */}
               <div className="flex flex-col gap-2 px-4 py-2">
                 {/* Files Section */}
@@ -525,6 +572,17 @@ export default function CodeReview() {
           )}
 
           {useCodeReviewStore.getState().showReviewProcess && <Review />}
+
+          <ResetReviewModal
+            isOpen={showResetReviewConfirmation}
+            onClose={() => setShowResetReviewConfirmation(false)}
+            onConfirm={() => {
+              resetReview({
+                targetBranch: useCodeReviewStore.getState().selectedTargetBranch,
+                reviewType: useCodeReviewStore.getState().activeReviewOption.value,
+              });
+            }}
+          />
 
           <ReviewModal
             isOpen={isModalOpen}

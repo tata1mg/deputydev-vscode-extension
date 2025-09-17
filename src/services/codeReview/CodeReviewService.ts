@@ -56,6 +56,32 @@ export class ReviewService {
     }
   }
 
+  public async resetReview(target_branch: string, review_type: string): Promise<any> {
+    try {
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const response = await binaryApi().post(
+        API_ENDPOINTS.RESET_REVIEW,
+        {},
+        {
+          params: {
+            repo_path: getActiveRepo(),
+            target_branch,
+            review_type,
+          },
+          headers,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error Resetting review/reviews during resetReview');
+      this.apiErrorHandler.handleApiError(error);
+      throw error;
+    }
+  }
+
   public async searchBranch(keyword: string): Promise<any> {
     try {
       const authToken = await fetchAuthToken();

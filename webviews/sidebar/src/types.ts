@@ -453,6 +453,7 @@ export interface NewReview {
   repo_name: string;
   fail_message: string;
   eligible_for_review: boolean;
+  review_count: number;
 }
 
 export interface ReviewOption {
