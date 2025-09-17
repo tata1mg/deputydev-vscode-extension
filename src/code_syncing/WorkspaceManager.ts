@@ -206,6 +206,7 @@ export class WorkspaceManager {
     this.initializeFileWatcher();
     this.sendReposToSidebar();
     this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
+    getIsLspReady({ force: true });
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
   }
 
