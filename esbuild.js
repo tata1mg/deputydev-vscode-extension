@@ -16,6 +16,7 @@ esbuild
       'process.env.ENABLE_OUTPUT_CHANNEL': JSON.stringify(process.env.ENABLE_OUTPUT_CHANNEL || 'false'),
       'process.env.USE_LOCAL_BINARY': JSON.stringify(process.env.USE_LOCAL_BINARY || 'false'),
       'process.env.LOCAL_BINARY_PORT': JSON.stringify(process.env.LOCAL_BINARY_PORT || '8001'),
+      'process.env.BINARY_DD_HOST': JSON.stringify(process.env.BINARY_DD_HOST || process.env.DD_HOST || 'http://localhost:8084'),
     },
   })
   .catch(() => process.exit(1));
