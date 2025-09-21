@@ -491,7 +491,7 @@ export class ServerManager {
   private getSpawnArguments(port: number): string[] {
     const usePythonModule = this.isPythonModuleMode();
     return usePythonModule
-      ? ['-m', 'app.service', port.toString()] // Python module mode
+      ? ['-m', 'app.service', '127.0.0.1', port.toString()] // Python module mode
       : [port.toString()]; // Binary mode
   }
 

@@ -7,7 +7,7 @@ import { AuthenticationManager } from '../auth/AuthenticationManager';
 import { ChatManager } from '../chat/ChatManager';
 import { CommentHandler } from '../codeReview/CommentHandler';
 import { CodeReviewManager } from '../codeReviewManager/CodeReviewManager';
-import { CLIENT_VERSION, DD_HOST, MCP_CONFIG_PATH } from '../config';
+import { BINARY_DD_HOST, CLIENT_VERSION, MCP_CONFIG_PATH } from '../config';
 import { CodeReviewDiffManager } from '../diff/codeReviewDiff/codeReviewDiffManager';
 import { DiffManager } from '../diff/diffManager';
 import { ReferenceManager } from '../references/ReferenceManager';
@@ -596,7 +596,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     const payload = {
       config: {
         DEPUTY_DEV: {
-          HOST: DD_HOST,
+          HOST: BINARY_DD_HOST,
         },
       },
       mcp_config_path: MCP_CONFIG_PATH,
