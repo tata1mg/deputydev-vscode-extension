@@ -492,7 +492,7 @@ export class ServerManager {
     const usePythonModule = this.isPythonModuleMode();
     return usePythonModule
       ? ['-m', 'app.service', '127.0.0.1', port.toString()] // Python module mode
-      : [port.toString()]; // Binary mode
+      : ['127.0.0.1', port.toString()]; // Binary mode
   }
 
   private getBinaryFilePath(): string {
