@@ -78,7 +78,7 @@ export class QuerySolverService {
     const handleMessage = (rawMessage: any): void => {
       const messageData = rawMessage.data;
       const messageId = rawMessage.message_id;
-      
+
       if (messageId) {
         lastMessageId = messageId;
       }
@@ -107,7 +107,7 @@ export class QuerySolverService {
           streamError = this.handleStreamError(messageData);
           return;
         }
-        
+
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
@@ -125,12 +125,10 @@ export class QuerySolverService {
         this.handleSocketClose(event, streamDone, streamError, queryId, lastMessageId, setupSocketConnection);
       });
 
-      const payloadToSend = isReconnection 
-        ? this.createResumptionPayload(queryId, lastMessageId)
-        : finalPayload;
+      const payloadToSend = isReconnection ? this.createResumptionPayload(queryId, lastMessageId) : finalPayload;
 
       await this.socketConn.sendMessageWithRetry(payloadToSend);
-      
+
       if (isReconnection) {
         this.logger.info('Successfully sent resumption payload after reconnection');
       }
@@ -194,11 +192,11 @@ export class QuerySolverService {
     const resumptionPayload: Record<string, any> = {
       resume_query_id: queryId,
     };
-    
+
     if (lastMessageId) {
       resumptionPayload.resume_offset_id = lastMessageId;
     }
-    
+
     return resumptionPayload;
   }
 
@@ -208,23 +206,23 @@ export class QuerySolverService {
     streamError: Error | null,
     queryId: string | null,
     lastMessageId: string | null,
-    setupSocketConnection: (isReconnection?: boolean) => Promise<void>
+    setupSocketConnection: (isReconnection?: boolean) => Promise<void>,
   ): Promise<void> {
     this.logger.info('WebSocket closed:', event);
-    
+
     // Only attempt reconnection if the stream hasn't ended and there's no error
     if (!streamDone && !streamError) {
       this.logger.warn('WebSocket closed unexpectedly. Attempting to reconnect...');
-      
+
       if (!queryId) {
         this.logger.error('Cannot reconnect: query_id not available for resumption');
         return;
       }
-      
+
       try {
         // Clean up the old connection
         this.socketConn = null;
-        
+
         // Create new connection and send resumption payload
         await setupSocketConnection(true);
       } catch (err) {
@@ -237,7 +235,7 @@ export class QuerySolverService {
   private async handleAuthenticationRetry(
     streamError: Error,
     finalPayload: Record<string, any>,
-    handleMessage: (rawMessage: any) => void
+    handleMessage: (rawMessage: any) => void,
   ): Promise<boolean> {
     if (!(streamError instanceof Error) || streamError.message !== 'NOT_VERIFIED') {
       this.logger.error('Error in querysolver WebSocket stream:', streamError);
@@ -246,16 +244,16 @@ export class QuerySolverService {
 
     let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
     this.logger.info('Session not verified, waiting for authentication...', isAuthenticated);
-    
+
     // Wait until the user is authenticated or timeout
     const startTime = Date.now();
     const maxWaitTime = 10 * 60 * 1000; // 10 minutes
-    
+
     while (!isAuthenticated && Date.now() - startTime < maxWaitTime) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       isAuthenticated = this.context.workspaceState.get('isAuthenticated');
     }
-    
+
     if (!isAuthenticated) {
       throw new Error('Session not verified');
     }
@@ -264,10 +262,10 @@ export class QuerySolverService {
     if (!this.socketConn) {
       this.socketConn = this.backendClient.querySolver();
     }
-    
+
     this.socketConn.onMessage.on('message', handleMessage);
     await this.socketConn.sendMessageWithRetry(finalPayload);
-    
+
     return true;
   }
 
