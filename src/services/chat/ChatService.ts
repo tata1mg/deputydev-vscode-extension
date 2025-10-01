@@ -61,7 +61,6 @@ export class QuerySolverService {
     signal?: AbortSignal,
   ): AsyncIterableIterator<any> {
     const repositories = await getContextRepositories();
-
     const currentSessionId = getSessionId();
 
     // adding context of repositories present in workspace except active repository in payload.
@@ -73,13 +72,17 @@ export class QuerySolverService {
     let streamDone = false;
     let streamError: Error | null = null;
     const eventsQueue: StreamEvent[] = [];
+    let lastMessageId: string | null = null;
+    let queryId: string | null = null;
 
-    if (!this.socketConn) {
-      console.log('Using new socket');
-      this.socketConn = this.backendClient.querySolver();
-    }
+    const handleMessage = (rawMessage: any): void => {
+      const messageData = rawMessage.data;
+      const messageId = rawMessage.message_id;
+      
+      if (messageId) {
+        lastMessageId = messageId;
+      }
 
-    const handleMessage = (messageData: any): void => {
       try {
         if (messageData.type === 'STREAM_START') {
           if (messageData.new_session_data) {
@@ -88,6 +91,11 @@ export class QuerySolverService {
             });
           }
           setCancelButtonStatus(true);
+        } else if (messageData.type === 'RESPONSE_METADATA') {
+          // Extract query ID from response metadata event for resumption
+          if (messageData.content?.query_id) {
+            queryId = messageData.content.query_id;
+          }
         } else if (messageData.type === 'STREAM_END_CLOSE_CONNECTION') {
           this.dispose();
           streamDone = true;
@@ -96,33 +104,40 @@ export class QuerySolverService {
           streamDone = true;
           return;
         } else if (messageData.type === 'STREAM_ERROR') {
-          if (messageData.status === 'LLM_THROTTLED') {
-            streamError = new ThrottlingException(messageData);
-            return;
-          } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
-            streamError = new TokenLimitException(messageData);
-            return;
-          } else if (messageData.status) {
-            streamError = new Error(messageData.status);
-            return;
-          }
-
-          this.logger.error('Error in querysolver WebSocket stream: ', messageData);
-          streamError = new Error(messageData.message);
+          streamError = this.handleStreamError(messageData);
           return;
         }
+        
         eventsQueue.push({ type: messageData.type, content: messageData.content });
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
       }
     };
 
-    // call the querySolver websocket endpoint
-    try {
-      if (this.socketConn) {
-        this.socketConn.onMessage.on('message', handleMessage);
-        await this.socketConn.sendMessageWithRetry(finalPayload);
+    const setupSocketConnection = async (isReconnection = false): Promise<void> => {
+      if (!this.socketConn) {
+        this.logger.info(isReconnection ? 'Creating new socket for reconnection' : 'Creating new socket connection');
+        this.socketConn = this.backendClient.querySolver();
       }
+
+      this.socketConn.onMessage.on('message', handleMessage);
+      this.socketConn.onClose.on('close', (event: { code: number; reason: string }) => {
+        this.handleSocketClose(event, streamDone, streamError, queryId, lastMessageId, setupSocketConnection);
+      });
+
+      const payloadToSend = isReconnection 
+        ? this.createResumptionPayload(queryId, lastMessageId)
+        : finalPayload;
+
+      await this.socketConn.sendMessageWithRetry(payloadToSend);
+      
+      if (isReconnection) {
+        this.logger.info('Successfully sent resumption payload after reconnection');
+      }
+    };
+
+    try {
+      await setupSocketConnection();
     } catch (error: any) {
       this.logger.error('Error calling querySolver endpoint:', error);
       streamError = error;
@@ -137,34 +152,14 @@ export class QuerySolverService {
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        console.log('Error in querysolver WebSocket stream:', streamError);
-        if (streamError instanceof Error && streamError.message === 'NOT_VERIFIED') {
-          let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
-          console.log('Session not verified, waiting for authentication...', isAuthenticated);
-          // wait until the user is authenticated or 10 minutes have passed
-          const startTime = Date.now();
-          const maxWaitTime = 10 * 60 * 1000; // 10 minutes
-          while (!isAuthenticated && Date.now() - startTime < maxWaitTime) {
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            isAuthenticated = this.context.workspaceState.get('isAuthenticated');
-          }
-          if (!isAuthenticated) {
-            throw new Error('Session not verified');
-          }
+        if (await this.handleAuthenticationRetry(streamError, finalPayload, handleMessage)) {
           streamDone = false;
           streamError = null;
-          if (!this.socketConn) {
-            this.socketConn = this.backendClient.querySolver();
-          }
-          this.socketConn.onMessage.on('message', handleMessage);
-          await this.socketConn.sendMessageWithRetry({
-            ...finalPayload,
-          });
-          continue; // Retry the querySolver call
+          continue;
         }
-
         throw streamError;
       }
+
       if (signal?.aborted) {
         this.dispose();
         return;
@@ -176,9 +171,104 @@ export class QuerySolverService {
         await new Promise((resolve) => setTimeout(resolve, 50));
       }
     }
+  }
 
-    // Clean up the WebSocket connection
-    // this.dispose();
+  private handleStreamError(messageData: any): Error {
+    if (messageData.status === 'LLM_THROTTLED') {
+      return new ThrottlingException(messageData);
+    } else if (messageData.status === 'INPUT_TOKEN_LIMIT_EXCEEDED') {
+      return new TokenLimitException(messageData);
+    } else if (messageData.status) {
+      return new Error(messageData.status);
+    }
+
+    this.logger.error('Error in querysolver WebSocket stream: ', messageData);
+    return new Error(messageData.message);
+  }
+
+  private createResumptionPayload(queryId: string | null, lastMessageId: string | null): Record<string, any> {
+    if (!queryId) {
+      throw new Error('Cannot create resumption payload: query_id is required but not available');
+    }
+
+    const resumptionPayload: Record<string, any> = {
+      resume_query_id: queryId,
+    };
+    
+    if (lastMessageId) {
+      resumptionPayload.resume_offset_id = lastMessageId;
+    }
+    
+    return resumptionPayload;
+  }
+
+  private async handleSocketClose(
+    event: { code: number; reason: string },
+    streamDone: boolean,
+    streamError: Error | null,
+    queryId: string | null,
+    lastMessageId: string | null,
+    setupSocketConnection: (isReconnection?: boolean) => Promise<void>
+  ): Promise<void> {
+    this.logger.info('WebSocket closed:', event);
+    
+    // Only attempt reconnection if the stream hasn't ended and there's no error
+    if (!streamDone && !streamError) {
+      this.logger.warn('WebSocket closed unexpectedly. Attempting to reconnect...');
+      
+      if (!queryId) {
+        this.logger.error('Cannot reconnect: query_id not available for resumption');
+        return;
+      }
+      
+      try {
+        // Clean up the old connection
+        this.socketConn = null;
+        
+        // Create new connection and send resumption payload
+        await setupSocketConnection(true);
+      } catch (err) {
+        this.logger.error('Failed to reconnect and send resumption payload', err);
+        // The error will be handled in the main loop
+      }
+    }
+  }
+
+  private async handleAuthenticationRetry(
+    streamError: Error,
+    finalPayload: Record<string, any>,
+    handleMessage: (rawMessage: any) => void
+  ): Promise<boolean> {
+    if (!(streamError instanceof Error) || streamError.message !== 'NOT_VERIFIED') {
+      this.logger.error('Error in querysolver WebSocket stream:', streamError);
+      return false;
+    }
+
+    let isAuthenticated = this.context.workspaceState.get('isAuthenticated');
+    this.logger.info('Session not verified, waiting for authentication...', isAuthenticated);
+    
+    // Wait until the user is authenticated or timeout
+    const startTime = Date.now();
+    const maxWaitTime = 10 * 60 * 1000; // 10 minutes
+    
+    while (!isAuthenticated && Date.now() - startTime < maxWaitTime) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      isAuthenticated = this.context.workspaceState.get('isAuthenticated');
+    }
+    
+    if (!isAuthenticated) {
+      throw new Error('Session not verified');
+    }
+
+    // Retry with new authentication
+    if (!this.socketConn) {
+      this.socketConn = this.backendClient.querySolver();
+    }
+    
+    this.socketConn.onMessage.on('message', handleMessage);
+    await this.socketConn.sendMessageWithRetry(finalPayload);
+    
+    return true;
   }
 
   public dispose(): void {
@@ -199,7 +289,7 @@ export class QuerySolverService {
    * off-load it to S3 and return a lightweight envelope.
    */
   private async preparePayload(original: Record<string, any>): Promise<Record<string, any>> {
-    // ── 1. Measure size ──────────────────────────────────────────────
+    // ── 1. Measure size ──────────────────────────────────────────────────────────────────────────
     const serialised = JSON.stringify(original);
     const byteSize = Buffer.byteLength(serialised, 'utf8');
     const mainConfigData = this.context.workspaceState.get('configData') as any;
@@ -208,7 +298,7 @@ export class QuerySolverService {
       return original;
     }
 
-    // ── 2. Too big → store in S3 (folder: 'payload') ────────────────
+    // ── 2. Too big → store in S3 (folder: 'payload') ────────────────────────────
     try {
       const { key: attachment_id } = await this.referenceManager.uploadPayloadToS3(serialised);
 
