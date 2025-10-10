@@ -2,6 +2,7 @@ import { useThemeStore } from '@/stores/useThemeStore';
 import {
   ChevronDown,
   GitBranch,
+  CircleHelp,
   Check,
   Pen,
   BotMessageSquare,
@@ -239,9 +240,24 @@ export default function CodeReview() {
           <div className="mt-4 px-4 pb-4">
             <div className="flex flex-col items-start gap-2">
               <ViewSwitcher />
-              <div className="flex items-center gap-2">
-                <p className="text-lg opacity-80">Ready for review? So are we.</p>
-                <Check className="text-sm text-green-500" />
+              <div className="flex w-full items-center">
+                <div className="flex items-center gap-2">
+                  <p className="text-lg opacity-80">Ready for review? So are we.</p>
+                  <a
+                    href="https://onedoc.ekdosis.com/docs/deputydev/content/IDE%20Review/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center opacity-60 transition-opacity hover:opacity-100 focus:outline-none"
+                    data-tooltip-id="code-review-tooltips"
+                    data-tooltip-content="View Code Review Documentation"
+                    data-tooltip-place="top-start"
+                    data-tooltip-class-name="z-50 max-w-[80%]"
+                    data-tooltip-effect="solid"
+                  >
+                    <CircleHelp className="h-4 w-4" strokeWidth={2.5} />
+                  </a>
+                  <Check className="text-sm text-green-500" />
+                </div>
               </div>
               <p className="text-md opacity-80">DeputyDev checks your code with precision.</p>
             </div>
