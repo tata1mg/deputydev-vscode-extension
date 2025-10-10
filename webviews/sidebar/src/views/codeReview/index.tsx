@@ -243,6 +243,7 @@ export default function CodeReview() {
               <div className="flex w-full items-center">
                 <div className="flex items-center gap-2">
                   <p className="text-lg opacity-80">Ready for review? So are we.</p>
+                  <Check className="text-sm text-green-500" />
                   <a
                     href="https://onedoc.ekdosis.com/docs/deputydev/content/IDE%20Review/"
                     target="_blank"
@@ -256,7 +257,6 @@ export default function CodeReview() {
                   >
                     <CircleHelp className="h-4 w-4" strokeWidth={2.5} />
                   </a>
-                  <Check className="text-sm text-green-500" />
                 </div>
               </div>
               <p className="text-md opacity-80">DeputyDev checks your code with precision.</p>
