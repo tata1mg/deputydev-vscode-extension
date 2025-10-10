@@ -260,7 +260,6 @@ export async function activate(context: vscode.ExtensionContext) {
     diffManager,
     usageTrackingManager,
     errorTrackingManager,
-    relevantCodeSearcherToolService,
   );
   inlineChatEditManager.inlineEdit();
   inlineChatEditManager.inlineChat();

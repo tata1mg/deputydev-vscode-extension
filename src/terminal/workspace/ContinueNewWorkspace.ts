@@ -33,7 +33,7 @@ export class ContinueNewWorkspace {
       const lastFolder = folders?.[folders.length - 1];
       if (lastFolder) {
         await this.context.workspaceState.update('activeRepo', lastFolder.uri.fsPath);
-        getIsLspReady({ force: true });
+        getIsLspReady({ force: true, repoPath: lastFolder.uri.fsPath });
       }
 
       // user did click “Continue Setup”:

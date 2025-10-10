@@ -1,36 +1,44 @@
 import path from 'path';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { LanguageFeaturesService } from './languageFeaturesService';
-import { getActiveRepo } from '../utilities/contextManager';
-
-let _lspReady: boolean | undefined;
-let _inFlight: Promise<boolean> | null = null;
+// Store LSP readiness state per repo
+const _lspReadyByRepo = new Map<string, boolean>();
+const _inFlightByRepo = new Map<string, Promise<boolean>>();
 
 function isUnder(childAbs: string, parentAbs: string): boolean {
   const rel = path.relative(parentAbs, childAbs);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
-export function getCachedLspReady(): boolean | undefined {
-  return _lspReady;
+export function getCachedLspReady(repoPath: string): boolean | undefined {
+  if (!repoPath) return undefined;
+  const absRepo = path.resolve(repoPath);
+  return _lspReadyByRepo.get(absRepo);
 }
 
-export async function getIsLspReady(opts?: { force?: boolean }): Promise<boolean> {
-  if (!opts?.force && typeof _lspReady === 'boolean') return _lspReady;
-  if (_inFlight && !opts?.force) return _inFlight;
+export async function getIsLspReady(opts: { force?: boolean; repoPath: string }): Promise<boolean> {
+  const repoPath = opts.repoPath;
+  const root = repoPath ? path.resolve(repoPath) : null;
+  if (!root) {
+    _lspReadyByRepo.set('unknown', false);
+    return false;
+  }
+
+  // Check existing cache
+  if (!opts.force && _lspReadyByRepo.has(root)) {
+    return _lspReadyByRepo.get(root)!;
+  }
+
+  // Avoid duplicate in-flight checks per repo
+  if (_inFlightByRepo.has(root) && !opts.force) {
+    return _inFlightByRepo.get(root)!;
+  }
 
   const logger = SingletonLogger.getInstance();
   const lfs = new LanguageFeaturesService();
 
-  _inFlight = (async () => {
+  const inFlight = (async () => {
     try {
-      const activeRepo = getActiveRepo();
-      const root = activeRepo ? path.resolve(activeRepo) : null;
-      if (!root) {
-        _lspReady = false;
-        return _lspReady;
-      }
-
       const queries = ['', 'a', 'e', '_', 'class', 'func'];
 
       const getSymbols = async (q: string) => {
@@ -41,7 +49,6 @@ export async function getIsLspReady(opts?: { force?: boolean }): Promise<boolean
         }
       };
 
-      // Run queries in parallel
       const tasks = queries.map(async (q) => {
         const syms = await getSymbols(q);
         return syms.some((s) => {
@@ -50,21 +57,22 @@ export async function getIsLspReady(opts?: { force?: boolean }): Promise<boolean
         });
       });
 
-      // Global timeout safeguard (max 10s)
       const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 30000));
 
       const found = Promise.any(tasks).catch(() => false);
 
-      _lspReady = await Promise.race([found, timeout]);
-      return _lspReady;
+      const result = await Promise.race([found, timeout]);
+      _lspReadyByRepo.set(root, result);
+      return result;
     } catch (err) {
-      logger.error?.(`LSP readiness check failed: ${String(err)}`);
-      _lspReady = false;
-      return _lspReady;
+      logger.error(`LSP readiness check failed for ${root}: ${String(err)}`);
+      _lspReadyByRepo.set(root, false);
+      return false;
     } finally {
-      _inFlight = null;
+      _inFlightByRepo.delete(root);
     }
   })();
 
-  return _inFlight;
+  _inFlightByRepo.set(root, inFlight);
+  return inFlight;
 }

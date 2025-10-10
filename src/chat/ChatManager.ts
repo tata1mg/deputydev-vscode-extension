@@ -36,7 +36,7 @@ import { resolveDirectoryRelative } from '../utilities/path';
 import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
 import { getIsLspReady } from '../languageServer/lspStatus';
 import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
-import { Session } from 'inspector/promises';
+import { GrepSearchTool } from './tools/GrepSearchTool';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -63,6 +63,7 @@ export class ChatManager {
   public onTerminalApprove = this._onTerminalApprove.event;
   public onToolUseApprovalEvent = this._onToolUseApprove.event;
   private readonly terminalExecutor: TerminalExecutor;
+  private readonly grepSearchTool: GrepSearchTool;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
   private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
@@ -84,6 +85,7 @@ export class ChatManager {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
+    this.grepSearchTool = new GrepSearchTool(this.outputChannel, this.authService);
     this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
   }
 
@@ -286,7 +288,7 @@ export class ChatManager {
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
       payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo(payload.repoPath);
-      payload.is_lsp_ready = await getIsLspReady({ force: false });
+      payload.is_lsp_ready = await getIsLspReady({ force: false, repoPath: payload.repoPath });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
       this.outputChannel.info(`Processed payload: ${JSON.stringify(payload)}`);
@@ -811,58 +813,6 @@ export class ChatManager {
     }
   }
 
-  // Grep Searcher Tool Implementation
-  async _runGrepSearch(
-    search_path: string,
-    repoPath: string,
-    query: string,
-    case_insensitive?: boolean,
-    use_regex?: boolean,
-  ): Promise<any> {
-    this.outputChannel.info(`Running grep search tool for ${search_path}`);
-    const authToken = await this.authService.loadAuthToken();
-    const headers = { Authorization: `Bearer ${authToken}` };
-    try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.GREP_SEARCH,
-        {
-          repo_path: repoPath,
-          directory_path: await resolveDirectoryRelative(search_path), // Ensures the search path is always relative
-          search_term: query,
-          case_insensitive: case_insensitive || false,
-          use_regex: use_regex || false,
-        },
-        { headers },
-      );
-      this.outputChannel.info('Grep search API call successful.');
-      this.outputChannel.info(`Grep search result: ${JSON.stringify(response.data)}`);
-      return response.data;
-    } catch (error: any) {
-      // This will be removed ASAP, its just for now for EMPTY_TOOL_RESPONSE error type.
-      try {
-        this.apiErrorHandler.handleApiError(error);
-      } catch (error: any) {
-        const errorData: any = error?.response?.data;
-        if (
-          errorData &&
-          errorData.error_subtype === 'EMPTY_TOOL_RESPONSE' &&
-          errorData.error_type === 'HANDLED_TOOL_ERROR'
-        ) {
-          return {
-            data: [],
-            search_term: query,
-            directory_path: search_path,
-            case_insensitive: case_insensitive,
-            use_regex: use_regex,
-          };
-        } else {
-          this.logger.error(`Error calling Grep search API`);
-          this.apiErrorHandler.handleApiError(error);
-        }
-      }
-    }
-  }
-
   // Public URL Content Reader Tool Implementation
   async _runPublicUrlContentReader(payload: { urls: string[] }, sessionId: number) {
     const authToken = await this.authService.loadAuthToken();
@@ -1321,13 +1271,13 @@ export class ChatManager {
           parsedContent.end_line,
         ),
       grep_search: () =>
-        this._runGrepSearch(
-          parsedContent.search_path,
-          parsedContent.repo_path || repoPath,
-          parsedContent.query,
-          parsedContent.case_insensitive,
-          parsedContent.use_regex,
-        ),
+        this.grepSearchTool.runGrepSearch({
+          search_path: parsedContent.search_path,
+          repoPath: parsedContent.repo_path || repoPath,
+          query: parsedContent.query,
+          case_insensitive: parsedContent.case_insensitive,
+          use_regex: parsedContent.use_regex,
+        }),
       get_usage_tool: () =>
         this.getUsagesTool.getUsages({ symbolName: parsedContent.symbol_name, filePaths: parsedContent.file_paths }),
       resolve_import_tool: () =>
