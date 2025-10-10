@@ -14,15 +14,15 @@ export class ErrorTrackingManager {
     errorType: string;
     errorSource: string;
     errorData: Record<string, any>;
-    repoName?: string;
+    repoPath?: string;
     sessionId?: number;
     timestamp?: string;
     stack_trace?: string;
   }) {
     const userData = getUserData();
     const userEmail = userData?.email;
-    const activeRepo = getActiveRepo();
-    const sessionId = getSessionId();
+    const activeRepo = errorPayload.repoPath || getActiveRepo();
+    const sessionId = errorPayload.sessionId || getSessionId();
     const userSystemData = getUserSystemData();
 
     const errorAnalyticsPayload: ErrorTrackingRequestForBackend = {
@@ -46,7 +46,7 @@ export class ErrorTrackingManager {
    * @param error The Error object caught during tool execution.
    * @param toolRequest The ToolRequest associated with this execution.
    */
-  async trackToolExecutionError(error: unknown, toolRequest: ToolRequest) {
+  async trackToolExecutionError(error: unknown, toolRequest: ToolRequest, repoPath: string, sessionId: number) {
     // Always include these basics:
     const baseErrorData = {
       toolName: toolRequest.tool_name,
@@ -150,6 +150,8 @@ export class ErrorTrackingManager {
       errorType: 'TOOL_EXECUTION_ERROR',
       errorSource: errorSource,
       errorData,
+      repoPath,
+      sessionId,
       stack_trace,
     });
   }
@@ -162,12 +164,21 @@ export class ErrorTrackingManager {
    * This method handles AxiosError, standard Error, and other object types.
    * It cleans up the error data to avoid sending sensitive information like tracebacks.
    */
-  async trackGeneralError(
-    error: unknown,
-    errorType: string,
-    errorSource: 'EXTENSION' | 'BINARY' | 'BACKEND',
-    extraData?: Record<string, any>,
-  ) {
+  async trackGeneralError({
+    error,
+    errorType,
+    errorSource,
+    extraData,
+    repoPath,
+    sessionId,
+  }: {
+    error: unknown;
+    errorType: string;
+    errorSource: 'EXTENSION' | 'BINARY' | 'BACKEND';
+    extraData?: Record<string, any>;
+    repoPath?: string;
+    sessionId?: number;
+  }) {
     let errorData: Record<string, any> = {};
     let stack_trace: string | undefined;
 
@@ -228,6 +239,8 @@ export class ErrorTrackingManager {
       errorType: errorType,
       errorSource: errorSource,
       errorData,
+      repoPath,
+      sessionId,
       stack_trace,
     });
   }

@@ -8,7 +8,7 @@ interface RelevantChunksParams {
   focus_files?: string[];
   focus_directories?: string[];
   perform_chunking?: boolean;
-  session_id?: number;
+  sessionId?: number;
   session_type?: string;
 }
 

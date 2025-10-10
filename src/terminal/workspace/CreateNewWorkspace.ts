@@ -9,6 +9,7 @@ function isMultiRootWorkspace(): boolean {
 }
 
 export async function createNewWorkspaceFn(
+  chatId: string,
   tool_use_id: string,
   context: vscode.ExtensionContext,
   outputChannel: vscode.LogOutputChannel,
@@ -30,12 +31,12 @@ export async function createNewWorkspaceFn(
   updateWorkspaceToolStatus({ tool_use_id, status: 'completed' });
   await new Promise((r) => setTimeout(r, 100));
   const isMultiRootWorkspaceFlag = isMultiRootWorkspace();
-
   if (alreadyAdded) {
     // The folder is already in the workspace: trigger your update immediately
     updateCurrentWorkspaceDD();
     return; // Stop here, no need to add the folder or set up event listeners
   }
+  outputChannel.info(`[debug] isMultiRootWorkspace: ${isMultiRootWorkspaceFlag}`);
 
   if (isMultiRootWorkspaceFlag) {
     // ——— WE ARE ALREADY IN A WORKSPACE ———
@@ -45,9 +46,8 @@ export async function createNewWorkspaceFn(
     // this add will cause VS Code to reload into an untitled workspace,
     // so copy your session data into globalState now:
     const pendingChatSession = context.workspaceState.get('chat-storage');
-    const pendingChatSessionId = context.workspaceState.get('sessionId');
-    await context.globalState.update('sessionId-copy', pendingChatSessionId);
     await context.globalState.update('chat-storage-copy', pendingChatSession);
+    await context.globalState.update('chatId-copy', chatId);
   }
 
   // finally actually add the folder into the workspace
@@ -56,7 +56,6 @@ export async function createNewWorkspaceFn(
     /* deleteCount */ 0,
     { uri: folderUri },
   );
-
   if (isMultiRootWorkspaceFlag) {
     const disposable = vscode.workspace.onDidChangeWorkspaceFolders((event) => {
       for (const added of event.added) {

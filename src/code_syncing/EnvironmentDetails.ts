@@ -2,17 +2,18 @@ import * as vscode from 'vscode';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
 import { ChatPayload } from '../types';
-import { getActiveRepo, getRepositoriesForContext } from '../utilities/contextManager';
+import { getRepositoriesForContext } from '../utilities/contextManager';
 const FILE_CONTEXT_THRESHOLD = 100;
 
 export async function getEnvironmentDetails(
   includeFileDetails: boolean = false,
+  repoPath: string,
   payload?: ChatPayload,
 ): Promise<string> {
   let details = '';
 
   // --- Get Current Working Directory ---
-  const cwd = getActiveRepo();
+  const cwd = repoPath;
   const contextRepositories = getRepositoriesForContext();
   if (!cwd) {
     return '<environment_details>\n(No active repository found)\n</environment_details>';

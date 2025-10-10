@@ -33,7 +33,12 @@ export class InlineEditService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'INLINE_EDIT_GENERATION_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'INLINE_EDIT_GENERATION_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: sessionId,
+      });
       this.logger.error('Error generating inline edit', error);
       this.apiErrorHandler.handleApiError(error);
     }

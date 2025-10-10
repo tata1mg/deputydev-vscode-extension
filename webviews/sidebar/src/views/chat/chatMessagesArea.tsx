@@ -19,10 +19,15 @@ import {
   remarkUrlToLink,
 } from './chatElements/toolChips/utils/RemarkPlugins';
 import rehypeKatex from 'rehype-katex';
+import { rehypeCodeActionPanelComponents } from './chatElements/toolChips/utils/RehypeOptions';
 
 export function ChatArea() {
-  const { history: messages, current, showSkeleton, showGeneratingEffect } = useChatStore();
+  const currentChatId = useChatStore((s) => s.currentChatId);
+  const chat = useChatStore((s) => s.chats[currentChatId]);
+  const sessionId = chat.sessionId;
   const { themeKind } = useThemeStore();
+
+  const { history: messages, current, showSkeleton, showGeneratingEffect } = chat;
 
   return (
     <>
@@ -72,6 +77,7 @@ export function ChatArea() {
                   toolRunStatus={msg.content.status}
                   terminal={msg.content.toolStateMetaData?.terminal}
                   isHistory={msg.content.isHistory}
+                  sessionId={sessionId}
                 />
               </div>
             );
@@ -132,6 +138,7 @@ export function ChatArea() {
             remarkPlugins={[remarkGfm, remarkMath, remarkUrlToLink, remarkPreventBoldFilenames]}
             rehypePlugins={[rehypeKatex]}
             components={{
+              ...rehypeCodeActionPanelComponents,
               table: ({ node, ...props }) => (
                 <div style={{ overflowX: 'auto' }}>
                   <table {...props} />

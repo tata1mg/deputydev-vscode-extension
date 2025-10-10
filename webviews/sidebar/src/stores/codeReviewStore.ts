@@ -48,7 +48,6 @@ export const useCodeReviewStore = create<
       steps: [],
       failedAgents: [],
       showFailedAgentsDialog: false,
-      commentFixQuery: '',
       reviewErrorMessage: '',
       showReviewError: false,
       isFetchingPastReviews: true,

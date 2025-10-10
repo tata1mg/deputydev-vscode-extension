@@ -11,10 +11,16 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       activeRepo: null,
       setWorkspaceRepos: (repos, activeRepo) => set({ workspaceRepos: repos, activeRepo }),
       setActiveRepo: (repoPath) =>
-        set((state) => ({
-          activeRepo: repoPath,
-          workspaceRepos: state.workspaceRepos,
-        })),
+        set((state) => {
+          if (!repoPath) {
+            repoPath = state.activeRepo;
+          }
+          const exists = state.workspaceRepos.some((repo) => repo.repoPath === repoPath);
+          return {
+            ...state,
+            activeRepo: exists ? repoPath : null,
+          };
+        }),
     }),
     {
       name: 'workspace-storage',

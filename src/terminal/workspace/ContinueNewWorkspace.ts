@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { v4 as uuidv4 } from 'uuid';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { sendLastChatData } from '../../utilities/contextManager';
 import { getIsLspReady } from '../../languageServer/lspStatus';
@@ -9,7 +8,7 @@ export class ContinueNewWorkspace {
   private _onDidAuthChange = new vscode.EventEmitter<boolean>();
   public readonly onDidAuthChange = this._onDidAuthChange.event;
 
-  private restoredSessionId?: string;
+  private restoredChatId?: string;
   private restoredChatData?: string;
   private hasRestored = false;
 
@@ -21,10 +20,13 @@ export class ContinueNewWorkspace {
   }
 
   public async init() {
-    const sessionId = (await this.context.globalState.get('sessionId-copy')) as string | undefined;
     const lastChatData = (await this.context.globalState.get('chat-storage-copy')) as string | undefined;
 
-    if (sessionId && lastChatData) {
+    const chatId = (await this.context.globalState.get('chatId-copy')) as string | undefined;
+
+    if (chatId && lastChatData) {
+      this.restoredChatId = chatId;
+      this.restoredChatData = lastChatData;
       await vscode.commands.executeCommand('deputydev-sidebar.focus');
       const folders = vscode.workspace.workspaceFolders;
       // get last folder
@@ -35,14 +37,9 @@ export class ContinueNewWorkspace {
       }
 
       // user did click “Continue Setup”:
-      this.outputChannel.info(`Session ID: ${sessionId}`);
-
-      await this.context.workspaceState.update('sessionId', sessionId);
-      await this.context.globalState.update('sessionId-copy', undefined);
+      this.outputChannel.info(`Chat ID: ${chatId}`);
+      await this.context.globalState.update('chatId-copy', undefined);
       await this.context.globalState.update('chat-storage-copy', undefined);
-
-      this.restoredSessionId = sessionId;
-      this.restoredChatData = lastChatData;
       const isAuthenticated = !!(await this.context.workspaceState.get('isAuthenticated'));
       this.triggerAuthChange(isAuthenticated);
       this.logger.info('Restored session from previous workspace');
@@ -50,8 +47,8 @@ export class ContinueNewWorkspace {
 
     // Authentication listener
     this.onDidAuthChange((isAuthenticated) => {
-      if (isAuthenticated && this.restoredChatData && !this.hasRestored) {
-        sendLastChatData(this.restoredChatData);
+      if (isAuthenticated && this.restoredChatId && !this.hasRestored && this.restoredChatData) {
+        sendLastChatData(this.restoredChatId, this.restoredChatData);
         this.hasRestored = true;
       }
     });

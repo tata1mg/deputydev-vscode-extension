@@ -2,8 +2,6 @@ import { WebSocket, RawData } from 'ws';
 import { CLIENT, CLIENT_VERSION } from '../../../config';
 import { AuthService } from '../../../services/auth/AuthService';
 import { SESSION_TYPE } from '../../../constants';
-import { getSessionId } from '../../../utilities/contextManager';
-
 interface WebSocketConnectionOptions {
   baseUrl: string;
   endpoint: string;
@@ -15,6 +13,7 @@ interface WebSocketConnectionOptions {
   reconnectAttempts?: number;
   reconnectBackoffMs?: number;
   heartbeatIntervalMs?: number;
+  sessionId?: number;
 }
 
 const fetchAuthToken = async () => {
@@ -62,7 +61,7 @@ export class WebSocketConnection {
       this.options.onError?.(error);
     }
     const authToken = await fetchAuthToken();
-    const currentSessionId = getSessionId();
+    const sessionId = this.options.sessionId;
     const headers: any = {
       'X-Client': CLIENT,
       'X-Client-Version': CLIENT_VERSION,
@@ -70,8 +69,8 @@ export class WebSocketConnection {
       Authorization: `Bearer ${authToken}`,
       ...(latestExtraHeaders || {}),
     };
-    if (currentSessionId && currentSessionId !== undefined) {
-      headers['X-Session-ID'] = currentSessionId;
+    if (sessionId) {
+      headers['X-Session-ID'] = sessionId;
     }
 
     this.socket = new WebSocket(this.url, {

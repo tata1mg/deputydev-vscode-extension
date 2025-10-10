@@ -37,7 +37,11 @@ export class ProfileUiService {
       return response.data.data;
     } catch (error) {
       this.logger.error('Error fetching user profile data');
-      this.errorTrackingManager.trackGeneralError(error, 'PROFILE_UI_FETCHING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'PROFILE_UI_FETCHING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }

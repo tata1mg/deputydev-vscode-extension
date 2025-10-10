@@ -102,7 +102,11 @@ export class ConfigManager {
       }
     } catch (error: any) {
       this.apiErrorHandler.handleApiError(error);
-      this.errorTrackingManager.trackGeneralError(error, 'MAIN_CONFIG_FETCHING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'MAIN_CONFIG_FETCHING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.logger.error(`Error fetching main config`);
       // this.outputChannel.error(`Error fetching CONFIG: ${error}`);
     }
@@ -166,7 +170,11 @@ export class ConfigManager {
       refreshCurrentToken(response.headers);
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
-      this.errorTrackingManager.trackGeneralError(error, 'SYNCING_USER_SETTING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'SYNCING_USER_SETTING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.logger.error(`Error saving settings`);
     }
   }
@@ -196,7 +204,11 @@ export class ConfigManager {
       return null;
     } catch (error) {
       this.apiErrorHandler.handleApiError(error);
-      this.errorTrackingManager.trackGeneralError(error, 'USER_SETTING_INITIALIZING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'USER_SETTING_INITIALIZING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.logger.error(`Error fetching settings`);
       return null;
     }

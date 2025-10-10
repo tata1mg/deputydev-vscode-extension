@@ -11,7 +11,7 @@ type TaskCompletionChipProps = {
 };
 
 export const TaskCompletionChip: React.FC<TaskCompletionChipProps> = ({ index, msg }) => {
-  const { elapsedTime, feedbackState: feedback, queryId, success } = msg.content;
+  const { elapsedTime, feedbackState: feedback, queryId, sessionId, success } = msg.content;
   let statusText = '';
   let statusColor = '';
 
@@ -33,10 +33,13 @@ export const TaskCompletionChip: React.FC<TaskCompletionChipProps> = ({ index, m
       statusText = 'Task Completed';
     }
   }
+  const getCurrentChat = useChatStore((s) => s.getCurrentChat);
 
   const handleFeedbackClick = (type: 'UPVOTE' | 'DOWNVOTE') => {
+    const currentChat = getCurrentChat();
+
     if (feedback !== type) {
-      const updatedMessages = useChatStore.getState().history.map((m, i) => {
+      const updatedMessages = currentChat.history.map((m, i) => {
         if (i !== index) return m;
         if (m.type === 'TASK_COMPLETION' || (m.type === 'TEXT_BLOCK' && m.actor === 'ASSISTANT')) {
           return {
@@ -50,8 +53,8 @@ export const TaskCompletionChip: React.FC<TaskCompletionChipProps> = ({ index, m
         return m;
       });
 
-      useChatStore.setState({ history: updatedMessages as ChatMessage[] });
-      submitFeedback(type, queryId);
+      useChatStore.getState().updateCurrentChat({ history: updatedMessages as ChatMessage[] });
+      submitFeedback(type, queryId, sessionId);
     }
   };
 

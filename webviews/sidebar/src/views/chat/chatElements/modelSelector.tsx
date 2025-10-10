@@ -5,6 +5,7 @@ import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import _ from 'lodash';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useClickAway } from 'react-use';
 
 /**
  * Model + Reasoning selector — submenu opens/closes with 50ms delay
@@ -117,23 +118,16 @@ const ModelSelector: React.FC = () => {
     }, SUBMENU_CLOSE_DELAY);
     setHoverTimer(id);
   };
+  useClickAway(dropdownRef, (event) => {
+    const target = event.target as Node | null;
+    const inSubmenu = submenuRef.current?.contains(target ?? null);
 
-  // Close menus on outside click
-  useEffect(() => {
-    const onDown = (event: MouseEvent) => {
-      const target = event.target as Node | null;
+    // Ignore clicks inside submenu
+    if (inSubmenu) return;
 
-      const inDropdown = dropdownRef.current?.contains(target ?? null);
-      const inSubmenu = submenuRef.current?.contains(target ?? null);
-
-      if (!inDropdown && !inSubmenu) {
-        setIsOpen(false);
-        closeSubmenu();
-      }
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, []);
+    setIsOpen(false);
+    closeSubmenu();
+  });
 
   const handleSelectModelOnly = (model: LLMModels) => {
     // For non-reasoning models only

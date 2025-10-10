@@ -39,7 +39,11 @@ export class HistoryService {
       return response.data.data;
     } catch (error) {
       this.logger.error('Error fetching past sessions');
-      this.errorTrackingManager.trackGeneralError(error, 'HISTORY_LIST_FETCHING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'HISTORY_LIST_FETCHING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -56,7 +60,11 @@ export class HistoryService {
       return response.data.data;
     } catch (error) {
       this.logger.error('Error reordering pinned sessions');
-      this.errorTrackingManager.trackGeneralError(error, 'HISTORY_REORDERING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'HISTORY_REORDERING_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -76,7 +84,12 @@ export class HistoryService {
       return response.data.data;
     } catch (error) {
       this.logger.error('Error fetching past session chats');
-      this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_FETCHING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'HISTORY_SESSION_FETCHING_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: sessionId,
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -94,7 +107,12 @@ export class HistoryService {
       return response.data;
     } catch (error) {
       this.logger.error('Error deleting session');
-      this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_DELETION_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'HISTORY_SESSION_DELETION_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: sessionId,
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -122,7 +140,12 @@ export class HistoryService {
       return response.data.data;
     } catch (error) {
       this.logger.error('Error pinning or unpinning session');
-      this.errorTrackingManager.trackGeneralError(error, 'HISTORY_SESSION_PINNING_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'HISTORY_SESSION_PINNING_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: data.sessionId,
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }

@@ -126,7 +126,11 @@ export class ReferenceService {
         throw new Error('Failed to update URL');
       }
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'UPDATE_SAVED_URL_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'UPDATE_SAVED_URL_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -143,7 +147,11 @@ export class ReferenceService {
       );
       return searchResponse.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'URL_SEARCH_ERROR', 'BINARY');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'URL_SEARCH_ERROR',
+        errorSource: 'BINARY',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }
@@ -226,7 +234,11 @@ export class ReferenceService {
       refreshCurrentToken(response.headers);
       return response.data.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'GET_DOWNLOAD_URL_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'GET_DOWNLOAD_URL_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }
@@ -245,7 +257,11 @@ export class ReferenceService {
       refreshCurrentToken(response.headers);
       return response.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'DELETE_IMAGE_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'DELETE_IMAGE_ERROR',
+        errorSource: 'BACKEND',
+      });
       this.apiErrorHandler.handleApiError(error);
       throw error;
     }

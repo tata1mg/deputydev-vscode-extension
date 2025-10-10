@@ -17,10 +17,9 @@ export class UserQueryEnhancerService {
   private apiErrorHandler = new ApiErrorHandler();
   constructor(private errorTrackingManager: ErrorTrackingManager) {}
 
-  public async generateEnhancedUserQuery(userQuery: string): Promise<any> {
+  public async generateEnhancedUserQuery(userQuery: string, sessionId: number | undefined): Promise<any> {
     try {
       const authToken = await fetchAuthToken();
-      const sessionId = getSessionId();
       const headers = {
         'X-Session-ID': sessionId,
         Authorization: `Bearer ${authToken}`,
@@ -32,13 +31,16 @@ export class UserQueryEnhancerService {
         { headers },
       );
       refreshCurrentToken(response.headers);
-      if (response.data.data.session_id) {
-        setSessionId(response.data.data.session_id);
-      }
       return response.data.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'QUERY_ENHANCER_API_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'QUERY_ENHANCER_API_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: sessionId,
+      });
       this.apiErrorHandler.handleApiError(error);
+      throw error;
     }
   }
 }

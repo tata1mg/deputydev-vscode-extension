@@ -21,7 +21,8 @@ export function ThrottledChatMessage({
   retry,
   payloadToRetry,
 }: ThrottledChatMessageProps) {
-  const { sendChatMessage } = useChatStore();
+  const { sendChatMessage, currentChatId } = useChatStore();
+
   const { llmModels, setActiveModel } = useLLMModelStore();
   const [secondsLeft, setSecondsLeft] = useState(retryAfterSeconds);
   const [selectedModel, setSelectedModel] = useState(currentModel);
@@ -72,7 +73,16 @@ export function ThrottledChatMessage({
       ...(payloadToRetry as Record<string, unknown>),
       llm_model: selectedModel,
     };
-    sendChatMessage('retry', [], undefined, true, newPayload, undefined, 'THROTTLED');
+    sendChatMessage(
+      currentChatId,
+      'retry',
+      [],
+      undefined,
+      true,
+      newPayload,
+      undefined,
+      'THROTTLED'
+    );
   }
 
   function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {

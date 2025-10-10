@@ -23,6 +23,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
   toolRunStatus,
   terminal,
   isHistory,
+  sessionId,
 }) => {
   switch (toolRequest?.toolName) {
     case 'ask_user_input':
@@ -142,6 +143,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
           process_id={terminal?.process_id}
           terminal_output={terminal?.terminal_output || ''}
           exit_code={terminal?.exit_code}
+          sessionId={sessionId}
         />
       );
 

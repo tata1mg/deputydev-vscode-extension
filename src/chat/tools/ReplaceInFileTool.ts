@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
 import { ChunkCallback, ToolRequest } from '../../types';
-import { getActiveRepo, getSessionId } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { SidebarProvider } from '../../panels/SidebarProvider';
 import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
@@ -19,7 +18,8 @@ interface ApplyDiffArgs {
   };
   chunkCallback: ChunkCallback;
   toolRequest: ToolRequest;
-  messageId?: string;
+  repoPath: string;
+  sessionId: number;
 }
 
 export class ReplaceInFile {
@@ -39,9 +39,7 @@ export class ReplaceInFile {
   }
 
   public async applyDiff(args: ApplyDiffArgs): Promise<any> {
-    const { parsedContent, chunkCallback, toolRequest, messageId } = args;
-    const activeRepo = getActiveRepo() ?? '';
-    const sessionId = getSessionId();
+    const { parsedContent, chunkCallback, toolRequest, repoPath, sessionId } = args;
     const relativePath = await resolveDirectoryRelative(parsedContent.path);
     if (sessionId) {
       this.usageTrackingManager.trackUsage({
@@ -60,13 +58,13 @@ export class ReplaceInFile {
           path: relativePath,
           search_and_replace_blocks: parsedContent.diff,
         },
-        activeRepo,
+        repoPath,
         {
           usageTrackingSource: toolRequest.is_inline ? 'inline-chat-act' : 'act',
           usageTrackingSessionId: sessionId ?? null,
         },
         toolRequest.write_mode,
-        sessionId as number,
+        sessionId,
       );
       if (diffApplySuccess) {
         this.sidebarProvider?.sendMessageToSidebar({
@@ -77,18 +75,14 @@ export class ReplaceInFile {
             removedLines,
             filePath: relativePath,
             fileName: path.basename(relativePath),
-            repoPath: activeRepo,
+            repoPath: repoPath,
             sessionId: sessionId,
           },
         });
       }
-      this.sidebarProvider.sendMessageToSidebar({
-        id: messageId,
-        command: 'chunk',
-        data: {
-          name: 'APPLY_DIFF_RESULT',
-          data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
-        },
+      chunkCallback({
+        name: 'APPLY_DIFF_RESULT',
+        data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
       });
       return {
         llmNextStep: 'successfully modified the file, please continue with the next steps',
@@ -110,14 +104,9 @@ export class ReplaceInFile {
       }
       const enhancedErrorMessage = `Failed to apply changes. Please read the conflicting file content first using the iterative_file_reader tool.\n${(error as Error).message}`;
       this.logger.error(`Error applying diff: ${enhancedErrorMessage}`);
-
-      this.sidebarProvider.sendMessageToSidebar({
-        id: messageId,
-        command: 'chunk',
-        data: {
-          name: 'APPLY_DIFF_RESULT',
-          data: { status: 'error', addedLines: 0, removedLines: 0 },
-        },
+      chunkCallback({
+        name: 'APPLY_DIFF_RESULT',
+        data: { status: 'error', addedLines: 0, removedLines: 0 },
       });
       // Optionally: rethrow if the caller of this method needs to handle it too
       throw {

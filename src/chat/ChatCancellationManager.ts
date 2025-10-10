@@ -1,12 +1,13 @@
 // ChatCancellationManager.ts
 import { api } from '../services/api/axios';
 import { AuthService } from '../services/auth/AuthService';
-import { getSessionId } from '../utilities/contextManager';
 import { SESSION_TYPE } from '../constants';
 import { CLIENT, CLIENT_VERSION } from '../config';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
 import { API_ENDPOINTS } from '../services/api/endpoints';
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
+import { ApiErrorHandler } from '../services/api/apiErrorHandler';
 
 interface CancellableTask {
   abortController: AbortController;
@@ -25,25 +26,10 @@ export function unregisterApiChatTask(task: CancellableTask) {
   activeApiChatTasks.delete(task);
 }
 
-export function cancelAllApiChats() {
-  activeApiChatTasks.forEach((task) => {
-    task.abortController.abort();
-    if (task.asyncIterator && typeof task.asyncIterator.return === 'function') {
-      task.asyncIterator.return(undefined); // ✅ Fix: provide argument
-    }
-  });
-  activeApiChatTasks.clear();
-}
-
-export async function cancelChat(): Promise<void> {
+export async function cancelChat(sessionId: number): Promise<void> {
   try {
     const authToken = await authService.loadAuthToken();
     if (!authToken) {
-      return;
-    }
-
-    const sessionId = getSessionId();
-    if (!sessionId) {
       return;
     }
 
@@ -63,6 +49,16 @@ export async function cancelChat(): Promise<void> {
     );
     refreshCurrentToken(response.headers);
   } catch (error) {
+    const errorTrackingManager = new ErrorTrackingManager();
+    const apiErrorHandler = new ApiErrorHandler();
+    errorTrackingManager.trackGeneralError({
+      error,
+      errorType: 'CHAT_CANCELLATION_ERROR',
+      errorSource: 'BACKEND',
+      sessionId,
+    });
+    apiErrorHandler.handleApiError(error);
     logger.error(' Backend cancellation failed:', error);
+    throw error;
   }
 }

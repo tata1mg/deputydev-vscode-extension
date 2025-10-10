@@ -18,7 +18,11 @@ export class DirectoryStructureService {
       return response.data;
     } catch (error) {
       this.logger.error('Error fetching directory structure');
-      this.errorTrackingManager.trackGeneralError(error, 'DIRECTORY_STRUCTURE_ERROR', 'BINARY');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'DIRECTORY_STRUCTURE_ERROR',
+        errorSource: 'BINARY',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }

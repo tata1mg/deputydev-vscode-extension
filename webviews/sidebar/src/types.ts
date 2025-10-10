@@ -103,6 +103,22 @@ export type ActiveFileChatReferenceItem = {
 };
 
 export type ChatType = 'ask' | 'write';
+export type ChatStatusType =
+  | 'in_progress'
+  | 'error'
+  | 'completed'
+  | 'aborted'
+  | 'action_required'
+  | 'history';
+export type ChatStatus = {
+  type: ChatStatusType;
+  message?:
+    | 'ask_user_input'
+    | 'terminal_approval'
+    | 'mcp_approval'
+    | 'model_change'
+    | 'create_new_workspace';
+};
 
 export type ChatChunkMessage = {
   chunk: string;
@@ -145,7 +161,7 @@ export interface ChatUserMessage {
   activeFileReference?: ActiveFileChatReferenceItem;
   attachments: S3Object[];
   actor: 'USER';
-  lastMessageSentTime?: Date | null;
+  lastMessageSentTime?: string | null;
 }
 
 export interface ChatAssistantMessage {
@@ -166,6 +182,7 @@ export interface TerminalPanelProps {
   is_execa_process?: boolean;
   process_id?: number;
   exit_code?: number;
+  sessionId?: number;
 }
 
 export interface ChatToolUseMessage {
@@ -255,6 +272,7 @@ export interface ChatCompleteMessage {
     elapsedTime: number;
     feedbackState: string;
     queryId: number;
+    sessionId: number;
     success: boolean;
     summary?: string;
   };
@@ -310,7 +328,7 @@ export interface WorkspaceStore {
   workspaceRepos: WorkspaceRepo[];
   activeRepo: string | null;
   setWorkspaceRepos: (repos: WorkspaceRepo[], activeRepo: string | null) => void;
-  setActiveRepo: (repoPath: string) => void;
+  setActiveRepo: (repoPath: string | null) => void;
 }
 
 export type UsageTrackingRequestFromSidebar = {
@@ -373,6 +391,7 @@ export interface ToolProps {
   displayText?: string;
   terminal?: TerminalProcess;
   isHistory?: boolean;
+  sessionId?: number;
 }
 
 export interface ThinkingChipProps {
@@ -417,11 +436,6 @@ export interface ChangedFile {
   removedLines: number;
   sessionId: number;
   accepted: boolean;
-}
-
-export interface ChangedFilesStorage {
-  changedFiles: ChangedFile[];
-  filesChangedSessionId: number;
 }
 
 export interface IndexingDataStorage {
@@ -495,7 +509,6 @@ export interface CodeReviewStorage {
   showReviewProcess: boolean;
   reviewStatus: 'RUNNING' | 'COMPLETED' | 'STOPPED' | 'IDLE' | 'FAILED';
   repoId: number;
-  commentFixQuery: string;
   reviewErrorMessage: string;
   showReviewError: boolean;
   isFetchingPastReviews: boolean;

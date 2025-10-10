@@ -19,12 +19,7 @@ import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
-import {
-  getActiveRepo,
-  getIsEmbeddingDoneForActiveRepo,
-  getSessionId,
-  setSessionId,
-} from '../utilities/contextManager';
+import { getIsEmbeddingDoneForActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { cancelChat, registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
@@ -41,6 +36,7 @@ import { resolveDirectoryRelative } from '../utilities/path';
 import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
 import { getIsLspReady } from '../languageServer/lspStatus';
 import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
+import { Session } from 'inspector/promises';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -56,7 +52,7 @@ export class ChatManager {
   private readonly getUsagesTool = new GetUsagesTool(this.languageFeaturesService);
   private readonly getResolveModuleTool = new GetResolveModuleTool(this.languageFeaturesService);
 
-  private currentAbortController: AbortController | null = null;
+  private chatAbortControllers = new Map<string, AbortController>();
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
   public _onTerminalApprove = new vscode.EventEmitter<{ toolUseId: string; command: string }>();
   public _onToolUseApprove = new vscode.EventEmitter<{
@@ -128,11 +124,6 @@ export class ChatManager {
   }
 
   async getFocusChunks(data: ChatPayload): Promise<any[]> {
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      throw new Error('Active repository is not defined.');
-    }
-
     const focusItemsResult: Array<any> = [];
     this.outputChannel.info(`Focus items: ${JSON.stringify(data.focusItems)}`);
 
@@ -143,7 +134,7 @@ export class ChatManager {
           if (item.type === 'directory') {
             const directoryPayload = {
               auth_token: await this.authService.loadAuthToken?.(),
-              repo_path: active_repo,
+              repo_path: data.repoPath,
               directory_path: item.path,
             };
 
@@ -168,7 +159,7 @@ export class ChatManager {
 
             const result = await this.focusChunksService.getFocusChunks({
               auth_token: await this.authService.loadAuthToken(),
-              repo_path: active_repo,
+              repo_path: data.repoPath,
               chunks: chunkDetails,
               search_item_name: item.value,
               search_item_type: item.type,
@@ -201,20 +192,14 @@ export class ChatManager {
    * @returns An object containing the concatenated text of relevant history and their IDs.
    */
 
-  private async getDeputyDevRulesContent(): Promise<string | null> {
-    const active_repo = getActiveRepo();
-    if (!active_repo) {
-      this.outputChannel.error('Active repository is not defined.');
-      return null;
-    }
-
-    const filePath = path.join(active_repo, '.deputydevrules');
+  private async getDeputyDevRulesContent(repoPath: string): Promise<string | null> {
+    const filePath = path.join(repoPath, '.deputydevrules');
 
     try {
       if (fs.existsSync(filePath)) {
         return fs.readFileSync(filePath, 'utf8');
       }
-    } catch (error) {
+    } catch {
       this.logger.error('Error reading .deputydevrules file');
       this.outputChannel.error('Error reading .deputydevrules file');
     }
@@ -260,8 +245,9 @@ export class ChatManager {
 
   async apiChat(payload: ChatPayload, chunkCallback: ChunkCallback) {
     const originalPayload = structuredClone(payload);
+    const chatId = payload.chatId;
     const abortController = new AbortController();
-    this.currentAbortController = abortController; // Track the current controller
+    this.chatAbortControllers.set(payload.chatId, abortController);
     let querySolverTask:
       | {
           abortController: AbortController;
@@ -290,16 +276,16 @@ export class ChatManager {
       }
       delete payload.is_tool_response;
 
-      const deputyDevRules = await this.getDeputyDevRulesContent();
+      const deputyDevRules = await this.getDeputyDevRulesContent(payload.repoPath);
       if (deputyDevRules) {
         payload.deputy_dev_rules = deputyDevRules;
       }
       payload.os_name = await getOSName();
       payload.shell = getShell();
-      payload.vscode_env = await getEnvironmentDetails(true, payload);
+      payload.vscode_env = await getEnvironmentDetails(true, payload.repoPath, payload);
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
-      payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo();
+      payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo(payload.repoPath);
       payload.is_lsp_ready = await getIsLspReady({ force: false });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');
@@ -315,7 +301,7 @@ export class ChatManager {
       let currentToolRequest: ToolRequest | null = null;
       let currentDiffRequest: { filepath: string; raw_diff?: string } | null = null;
       const pendingToolRequests: ToolRequest[] = [];
-
+      let sessionId: number | undefined;
       for await (const event of querySolverIterator) {
         if (abortController.signal.aborted) {
           this.outputChannel.warn('apiChat aborted by cancellation signal.');
@@ -323,11 +309,12 @@ export class ChatManager {
         }
         switch (event.type) {
           case 'RESPONSE_METADATA': {
-            const sessionId = event.content?.session_id;
-            if (sessionId) {
+            const newSessionId = event.content?.session_id;
+            if (newSessionId) {
               // Set session ID if not already set
-              setSessionId(sessionId);
-              this.outputChannel.info(`Session ID set: ${sessionId}`);
+              setSessionId(newSessionId);
+              sessionId = newSessionId;
+              this.outputChannel.info(`Session ID set: ${newSessionId}`);
             }
             chunkCallback({ name: event.type, data: event.content });
             break;
@@ -349,6 +336,7 @@ export class ChatManager {
               chunkCallback({
                 name: 'TOOL_CHIP_UPSERT',
                 data: {
+                  phase: 'start',
                   toolRequest: {
                     requestData: null,
                     toolName: event.content.tool_name,
@@ -367,6 +355,7 @@ export class ChatManager {
               chunkCallback({
                 name: 'TOOL_CHIP_UPSERT',
                 data: {
+                  phase: 'start',
                   toolRequest: {
                     toolName: event.content.tool_name,
                   },
@@ -386,6 +375,7 @@ export class ChatManager {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
+                    phase: 'delta',
                     toolRequest: {
                       requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
@@ -405,6 +395,7 @@ export class ChatManager {
                 // chunkCallback({
                 //   name: 'TOOL_CHIP_UPSERT',
                 //   data: {
+                //     phase: 'delta',
                 //     toolRequest: {
                 //       requestData: currentToolRequest.accumulatedContent,
                 //       toolName: currentToolRequest.tool_name,
@@ -425,6 +416,7 @@ export class ChatManager {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
+                    phase: 'end',
                     toolRequest: {
                       requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
@@ -443,6 +435,7 @@ export class ChatManager {
                 chunkCallback({
                   name: 'TOOL_CHIP_UPSERT',
                   data: {
+                    phase: 'end',
                     toolRequest: {
                       requestData: currentToolRequest.accumulatedContent,
                       toolName: currentToolRequest.tool_name,
@@ -474,14 +467,9 @@ export class ChatManager {
               currentDiffRequest.raw_diff = event.content.diff;
               chunkCallback({ name: event.type, data: event.content });
 
-              const activeRepo = getActiveRepo();
-              if (!activeRepo) {
-                throw new Error('Active repository is not defined. cannot apply diff');
-              }
               if (payload.write_mode) {
                 try {
                   // Usage tracking
-                  const sessionId = getSessionId();
                   if (sessionId) {
                     this.usageTrackingManager.trackUsage({
                       eventType: 'GENERATED',
@@ -498,10 +486,10 @@ export class ChatManager {
                       path: currentDiffRequest.filepath,
                       incrementalUdiff: currentDiffRequest.raw_diff,
                     },
-                    activeRepo,
+                    payload.repoPath,
                     {
                       usageTrackingSource: payload.is_inline ? 'inline-chat-act' : 'act',
-                      usageTrackingSessionId: getSessionId() || null,
+                      usageTrackingSessionId: sessionId || null,
                     },
                     payload.write_mode,
                     sessionId as number,
@@ -516,29 +504,21 @@ export class ChatManager {
                         removedLines,
                         filePath: currentDiffRequest.filepath,
                         fileName: path.basename(currentDiffRequest.filepath),
-                        repoPath: activeRepo,
+                        repoPath: payload.repoPath,
                         sessionId: sessionId,
                       },
                     });
                   }
-
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: 'chunk',
-                    data: {
-                      name: 'APPLY_DIFF_RESULT',
-                      data: diffApplySuccess ? { status: 'completed', addedLines, removedLines } : 'error',
-                    },
+                  chunkCallback({
+                    name: 'APPLY_DIFF_RESULT',
+                    data: diffApplySuccess ? { status: 'completed', addedLines, removedLines } : 'error',
                   });
                 } catch (error: any) {
                   this.outputChannel.error(`Error in udiff apply: ${error.message}`);
-                  this.sidebarProvider?.sendMessageToSidebar({
-                    id: messageId,
-                    command: 'chunk',
-                    data: {
-                      name: 'APPLY_DIFF_RESULT',
-                      data: { status: 'error', addedLines: 0, removedLines: 0 },
-                    },
+
+                  chunkCallback({
+                    name: 'APPLY_DIFF_RESULT',
+                    data: { status: 'error', addedLines: 0, removedLines: 0 },
                   });
                 }
               }
@@ -579,7 +559,6 @@ export class ChatManager {
               errorData: errorData,
             };
 
-            const sessionId = getSessionId();
             if (sessionId) {
               this.usageTrackingManager.trackUsage({
                 eventType: 'MALFORMED_TOOL_USE_REQUEST',
@@ -599,7 +578,15 @@ export class ChatManager {
 
       // 3. Handle any remaining Tool Requests (parallel or single)
       if (pendingToolRequests.length > 0) {
-        await this._runToolsInParallel(pendingToolRequests, messageId, chunkCallback, clientTools);
+        await this._runToolsInParallel(
+          pendingToolRequests,
+          messageId,
+          chunkCallback,
+          clientTools,
+          payload.repoPath,
+          payload.sessionId || sessionId || 0,
+          chatId,
+        );
       }
 
       // Signal end of stream.
@@ -607,7 +594,7 @@ export class ChatManager {
     } catch (error: any) {
       this.outputChannel.error(`Error during apiChat: ${error.message}`, error);
       this.onError(error);
-      if (this.currentAbortController?.signal.aborted) {
+      if (this._isAborted(chatId)) {
         this.outputChannel.info('apiChat was cancelled.');
         return;
       }
@@ -621,7 +608,14 @@ export class ChatManager {
           region: errorData.region,
         };
 
-        this.errorTrackingManager.trackGeneralError(error, 'THROTTLING_ERROR', 'BACKEND', extraErrorInfo);
+        this.errorTrackingManager.trackGeneralError({
+          error,
+          errorType: 'THROTTLING_ERROR',
+          errorSource: 'BACKEND',
+          extraData: extraErrorInfo,
+          repoPath: payload.repoPath,
+          sessionId: payload.sessionId,
+        });
 
         chunkCallback({
           name: 'error',
@@ -643,8 +637,14 @@ export class ChatManager {
           max_tokens: errorData.max_tokens,
         };
 
-        this.errorTrackingManager.trackGeneralError(error, 'TOKEN_LIMIT_ERROR', 'BACKEND', extraErrorInfo);
-
+        this.errorTrackingManager.trackGeneralError({
+          error,
+          errorType: 'TOKEN_LIMIT_ERROR',
+          errorSource: 'BACKEND',
+          extraData: extraErrorInfo,
+          repoPath: payload.repoPath,
+          sessionId: payload.sessionId,
+        });
         chunkCallback({
           name: 'error',
           data: {
@@ -665,7 +665,14 @@ export class ChatManager {
           error_message: typeof error.message === 'object' ? JSON.stringify(error.message) : error.message,
         };
 
-        this.errorTrackingManager.trackGeneralError(error, 'CHAT_ERROR', 'EXTENSION', extraErrorInfo);
+        this.errorTrackingManager.trackGeneralError({
+          error,
+          errorType: 'CHAT_ERROR',
+          errorSource: 'EXTENSION',
+          extraData: extraErrorInfo,
+          repoPath: payload.repoPath,
+          sessionId: payload.sessionId,
+        });
 
         // Send error details back to the UI for potential retry
         chunkCallback({
@@ -682,14 +689,15 @@ export class ChatManager {
       if (querySolverTask) {
         unregisterApiChatTask(querySolverTask);
       }
-      this.currentAbortController = null;
-      this.outputChannel.info('apiChat finished cleanup.');
+      this.chatAbortControllers.delete(chatId);
+      this.outputChannel.info(`apiChat cleanup complete for chat ${chatId}`);
     }
   }
 
   // Related Code Searcher Tool Implementation
   private async _runRelatedCodeSearcher(
     repo_path: string,
+    sessionId: number,
     params: {
       search_query?: string;
       paths?: string[];
@@ -697,11 +705,6 @@ export class ChatManager {
   ): Promise<any> {
     const query = params.search_query || '';
     // const focusFiles = params.paths || []; // Currently unused based on original code?
-    const currentSessionId = getSessionId();
-
-    if (!currentSessionId) {
-      throw new Error('Session ID is required for related_code_searcher');
-    }
     this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
 
     try {
@@ -713,7 +716,7 @@ export class ChatManager {
         focus_chunks: [],
         // Uncomment and use focusFiles if needed:
         // focus_files: focusFiles,
-        session_id: currentSessionId,
+        sessionId: sessionId,
         session_type: SESSION_TYPE,
       });
 
@@ -861,12 +864,12 @@ export class ChatManager {
   }
 
   // Public URL Content Reader Tool Implementation
-  async _runPublicUrlContentReader(payload: { urls: string[] }) {
+  async _runPublicUrlContentReader(payload: { urls: string[] }, sessionId: number) {
     const authToken = await this.authService.loadAuthToken();
     const headers = {
       Authorization: `Bearer ${authToken}`,
       'X-Session-Type': SESSION_TYPE,
-      'X-Session-Id': getSessionId(),
+      'X-Session-Id': sessionId,
     };
     try {
       const response = await binaryApi().post(
@@ -885,12 +888,12 @@ export class ChatManager {
   }
 
   // Web Searcher Tool Implementation
-  async _runWebSearch(payload: { descriptive_query: string[] }) {
+  async _runWebSearch(payload: { descriptive_query: string[] }, sessionId: number) {
     const authToken = await this.authService.loadAuthToken();
     const headers = {
       Authorization: `Bearer ${authToken}`,
       'X-Session-Type': SESSION_TYPE,
-      'X-Session-Id': getSessionId(),
+      'X-Session-Id': sessionId,
     };
     try {
       const response = await api.post(
@@ -944,6 +947,9 @@ export class ChatManager {
       status: 'COMPLETED' | 'FAILED';
     }>,
     messageId: string | undefined,
+    repoPath: string,
+    sessionId: number,
+    chatId: string,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
@@ -954,7 +960,7 @@ export class ChatManager {
     this.outputChannel.info(`Sending batch of ${toolResults.length} tool responses to backend`);
     this.outputChannel.info(`Batch payload: ${JSON.stringify(toolResults)}`);
 
-    const environmentDetails = await getEnvironmentDetails(true);
+    const environmentDetails = await getEnvironmentDetails(true, repoPath);
     const batchPayload: ChatPayload = {
       search_web: toolResults[0].toolRequest.search_web,
       llm_model: toolResults[0].toolRequest.llm_model,
@@ -972,6 +978,9 @@ export class ChatManager {
       shell: getShell(),
       vscode_env: environmentDetails,
       client_tools: clientTools,
+      repoPath: repoPath,
+      sessionId: sessionId,
+      chatId: chatId,
     };
 
     await this.apiChat(batchPayload, chunkCallback);
@@ -983,6 +992,9 @@ export class ChatManager {
     messageId: string | undefined,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
+    repoPath: string,
+    sessionId: number,
+    chatId: string,
   ): Promise<void> {
     this.outputChannel.info(`Running ${toolRequests.length} tool${toolRequests.length > 1 ? 's' : ''}`);
 
@@ -995,7 +1007,14 @@ export class ChatManager {
       }> = [];
       await Promise.all(
         toolRequests.map(async (toolRequest) => {
-          const executionResult = await this._executeTool(toolRequest, messageId, chunkCallback, clientTools);
+          const executionResult = await this._executeTool(
+            toolRequest,
+            sessionId,
+            repoPath,
+            chatId,
+            chunkCallback,
+            clientTools,
+          );
           if (executionResult) {
             toolResults.push({ toolRequest, result: executionResult.result, status: executionResult.status });
           }
@@ -1004,7 +1023,15 @@ export class ChatManager {
 
       // Send all successful tool responses to backend in a single call
       if (toolResults.length > 0) {
-        await this._sendBatchedToolResponses(toolResults, messageId, chunkCallback, clientTools);
+        await this._sendBatchedToolResponses(
+          toolResults,
+          messageId,
+          repoPath,
+          sessionId,
+          chatId,
+          chunkCallback,
+          clientTools,
+        );
       }
       this.outputChannel.info(`Completed parallel execution of ${toolRequests.length} tools`);
     } catch (error: any) {
@@ -1113,6 +1140,9 @@ export class ChatManager {
   private async _handleToolError(
     error: any,
     toolRequest: ToolRequest,
+    chatId: string,
+    repoPath: string,
+    sessionId: number,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<void> {
@@ -1121,12 +1151,12 @@ export class ChatManager {
       return;
     }
 
-    if (this._isAborted()) return;
+    if (this._isAborted(chatId)) return;
 
     this.logger.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`);
     this.outputChannel.error(`Error running tool ${toolRequest.tool_name}: ${error.message}`, error);
     this.onError(error);
-    this.errorTrackingManager.trackToolExecutionError(error, toolRequest);
+    this.errorTrackingManager.trackToolExecutionError(error, toolRequest, repoPath, sessionId);
     const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
 
     if (detectedClientTool) {
@@ -1159,11 +1189,8 @@ export class ChatManager {
 
   // Utility Function For Preparing Tool Execution
   private async _prepareToolExecution(toolRequest: ToolRequest) {
-    const activeRepo = getActiveRepo();
-    if (!activeRepo) throw new Error('Active repository is not defined for running tool.');
-
     const parsedContent = this._parseToolContent(toolRequest.accumulatedContent);
-    return { activeRepo, parsedContent };
+    return parsedContent;
   }
 
   // Utility Function For Finding Client Tool
@@ -1172,9 +1199,16 @@ export class ChatManager {
   }
 
   // Check Aborted Status
-  private _isAborted(): boolean {
-    const aborted = this.currentAbortController?.signal.aborted;
-    if (aborted) this.outputChannel.warn(`Tool execution aborted`);
+  private _isAborted(chatId?: string): boolean {
+    if (!chatId) return false; // No chat context to check
+
+    const controller = this.chatAbortControllers.get(chatId);
+    const aborted = controller?.signal.aborted;
+
+    if (aborted) {
+      this.outputChannel.warn(`Chat ${chatId} execution aborted`);
+    }
+
     return !!aborted;
   }
 
@@ -1267,20 +1301,21 @@ export class ChatManager {
   // Built-in Tool Execution
   private async _executeBuiltinTool(
     toolName: string,
-    activeRepo: string,
+    repoPath: string,
+    sessionId: number,
     parsedContent: any,
     chunkCallback: ChunkCallback,
     toolRequest: ToolRequest,
-    messageId: string | undefined,
   ): Promise<any> {
     const toolMap: Record<string, () => Promise<any>> = {
-      related_code_searcher: () => this._runRelatedCodeSearcher(parsedContent.repo_path || activeRepo, parsedContent),
+      related_code_searcher: () =>
+        this._runRelatedCodeSearcher(parsedContent.repo_path || repoPath, sessionId, parsedContent),
       focused_snippets_searcher: () =>
-        this._runFocusedSnippetsSearcher(parsedContent.repo_path || activeRepo, parsedContent),
-      file_path_searcher: () => this._runFilePathSearcher(parsedContent.repo_path || activeRepo, parsedContent),
+        this._runFocusedSnippetsSearcher(parsedContent.repo_path || repoPath, parsedContent),
+      file_path_searcher: () => this._runFilePathSearcher(parsedContent.repo_path || repoPath, parsedContent),
       iterative_file_reader: () =>
         this._runIterativeFileReader(
-          parsedContent.repo_path || activeRepo,
+          parsedContent.repo_path || repoPath,
           parsedContent.file_path,
           parsedContent.start_line,
           parsedContent.end_line,
@@ -1288,7 +1323,7 @@ export class ChatManager {
       grep_search: () =>
         this._runGrepSearch(
           parsedContent.search_path,
-          parsedContent.repo_path || activeRepo,
+          parsedContent.repo_path || repoPath,
           parsedContent.query,
           parsedContent.case_insensitive,
           parsedContent.use_regex,
@@ -1300,7 +1335,7 @@ export class ChatManager {
           importName: parsedContent.import_name,
           filePath: parsedContent.file_path,
         }),
-      public_url_content_reader: () => this._runPublicUrlContentReader(parsedContent),
+      public_url_content_reader: () => this._runPublicUrlContentReader(parsedContent, sessionId),
       execute_command: () =>
         this.terminalExecutor.runCommand({
           original: parsedContent.command,
@@ -1308,10 +1343,13 @@ export class ChatManager {
           isLongRunning: !!parsedContent.is_long_running,
           chunkCallback,
           toolRequest,
+          repoPath,
         }),
-      web_search: () => this._runWebSearch(parsedContent),
-      replace_in_file: () => this.replaceInFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId }),
-      write_to_file: () => this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, messageId }),
+      web_search: () => this._runWebSearch(parsedContent, sessionId),
+      replace_in_file: () =>
+        this.replaceInFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, repoPath, sessionId }),
+      write_to_file: () =>
+        this.writeToFileTool.applyDiff({ parsedContent, chunkCallback, toolRequest, repoPath, sessionId }),
     };
 
     const toolFunction = toolMap[toolName];
@@ -1324,7 +1362,9 @@ export class ChatManager {
   // Individual Tool Execution
   private async _executeTool(
     toolRequest: ToolRequest,
-    messageId: string | undefined,
+    sessionId: number,
+    repoPath: string,
+    chatId: string,
     chunkCallback: ChunkCallback,
     clientTools: Array<ClientTool>,
   ): Promise<
@@ -1340,46 +1380,49 @@ export class ChatManager {
 
     this.outputChannel.info(`Running tool: ${toolRequest.tool_name} (ID: ${toolRequest.tool_use_id})`);
 
-    if (this._isAborted()) return undefined;
+    if (this._isAborted(chatId)) return undefined;
 
     try {
-      const { activeRepo, parsedContent } = await this._prepareToolExecution(toolRequest);
+      const parsedContent = await this._prepareToolExecution(toolRequest);
       const detectedClientTool = this._findClientTool(toolRequest.tool_name, clientTools);
 
       const toolResponse = detectedClientTool
         ? await this._executeClientTool(detectedClientTool, parsedContent, toolRequest, chunkCallback)
         : await this._executeBuiltinTool(
             toolRequest.tool_name,
-            activeRepo,
+            repoPath,
+            sessionId,
             parsedContent,
             chunkCallback,
             toolRequest,
-            messageId,
           );
 
-      if (this._isAborted()) return undefined;
+      if (this._isAborted(chatId)) return undefined;
 
       await this._handleToolSuccess(toolResponse, toolRequest, chunkCallback, parsedContent, detectedClientTool);
       return { result: toolResponse, status: 'COMPLETED' };
     } catch (error: any) {
       const toolErrorResponse = this._formatErrorResponse(error);
-      await this._handleToolError(error, toolRequest, chunkCallback, clientTools);
+      await this._handleToolError(error, toolRequest, chatId, repoPath, sessionId, chunkCallback, clientTools);
       return { result: toolErrorResponse, status: 'FAILED' };
     }
   }
 
   /** Note below methods are for stopping and killing processes using somewhere else */
-  public async stopChat(): Promise<void> {
-    cancelChat();
-    this.querySolverService.dispose();
-    if (this.currentAbortController) {
-      this.currentAbortController.abort();
-      this.outputChannel.warn('Stopping active chat request...');
-      // The finally block in apiChat handles unregistering and nulling the controller
+  public async stopChat(sessionId: number, chatId: string): Promise<void> {
+    await cancelChat(sessionId);
+    this.querySolverService.closeSocket(chatId);
+
+    const abortController = this.chatAbortControllers.get(chatId);
+    if (abortController) {
+      abortController.abort();
+      this.chatAbortControllers.delete(chatId);
+      this.outputChannel.warn(`Stopped active chat [chatId=${chatId}]`);
     } else {
-      this.outputChannel.info('No active chat request to stop.');
+      this.outputChannel.info(`No active chat request found for chatId=${chatId}`);
     }
   }
+
   public async killAllProcesses() {
     await this.terminalExecutor.abortAllCommands();
   }

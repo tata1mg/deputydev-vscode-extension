@@ -282,7 +282,6 @@ export async function activate(context: vscode.ExtensionContext) {
   // add button click
   context.subscriptions.push(
     vscode.commands.registerCommand('deputydev.AddButtonClick', () => {
-      chatService.stopChat();
       outputChannel.info('Add button clicked!');
       sidebarProvider.newChat();
     }),
@@ -370,6 +369,7 @@ export async function activate(context: vscode.ExtensionContext) {
             command: 'fix-with-dd',
             data: commentFixQuery.data,
           });
+          await vscode.commands.executeCommand('deputydev-sidebar.focus');
         }
       }
     }),
