@@ -804,7 +804,7 @@ export const useChatStore = create(
                           } as ChatToolUseMessage);
                         }
 
-                        const showGeneratingEffect =
+                        let showGeneratingEffect =
                           baseToolProps.toolRunStatus === 'completed'
                             ? true
                             : prev.showGeneratingEffect;
@@ -817,6 +817,7 @@ export const useChatStore = create(
                                 type: 'action_required',
                                 message: baseToolProps.toolRequest?.toolName,
                               };
+                              showGeneratingEffect = false;
                               break;
                             default:
                               chatStatus = { type: 'in_progress' };
@@ -1325,7 +1326,21 @@ export const getActiveChatCount = (groupedChangedFiles: ChangedFilesGroup[]) => 
     ).length - 1
   );
   const maxParallelChats = Number(import.meta.env.VITE_PARALLEL_CHATS_COUNT) || 3;
-  const disableChatInput = activeChatCount >= maxParallelChats;
+  const currentChatId = state.currentChatId;
+  const isFallbackCurrentChat = currentChatId && currentChatId === FALLBACK_CHAT_ID;
+  const currentChat = currentChatId ? state.chats[currentChatId] : undefined;
+  const currentChatInProgress = currentChat
+    ? ['in_progress', 'action_required'].includes(currentChat.status.type)
+    : false;
+
+  let disableChatInput: boolean;
+  if (isFallbackCurrentChat) {
+    disableChatInput = activeChatCount >= maxParallelChats;
+  } else if (currentChatInProgress) {
+    disableChatInput = false;
+  } else {
+    disableChatInput = activeChatCount >= maxParallelChats;
+  }
   return { activeChatCount, disableChatInput };
 };
 
