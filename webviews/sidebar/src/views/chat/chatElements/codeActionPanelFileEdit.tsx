@@ -3,7 +3,7 @@ import { SnippetReference } from './CodeBlockStyle';
 
 import { checkDiffApplicable, usageTracking, openFile, writeFile } from '@/commandApi';
 import { useEffect, useState } from 'react';
-import { useChatSettingStore } from '@/stores/chatStore';
+import { useChatSettingStore } from '@/stores/chatSettingStore';
 import { usePartialFileDiff } from '@/utils/usePartialFileDiff';
 import { getLanguageInfoByExtension } from '@/utils/getLanguageByExtension';
 

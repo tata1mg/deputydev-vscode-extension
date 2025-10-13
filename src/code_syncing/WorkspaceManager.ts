@@ -42,7 +42,7 @@ export class WorkspaceManager {
     this.sidebarProvider.onDidChangeRepo((newRepoPath) => {
       this.outputChannel.info(`Received active repo change event: ${newRepoPath}`);
       this.setActiveRepo(newRepoPath);
-      getIsLspReady({ force: true });
+      if (newRepoPath) getIsLspReady({ force: true, repoPath: newRepoPath });
     });
 
     this.updateWorkspaceRepos();
@@ -109,7 +109,7 @@ export class WorkspaceManager {
     if (newActiveRepo !== this.activeRepo) {
       this.activeRepo = newActiveRepo;
       this.initializeFileWatcher();
-      getIsLspReady({ force: true });
+      if (newActiveRepo) getIsLspReady({ force: true, repoPath: newActiveRepo });
     }
 
     // this.outputChannel.info('Done with WebSockets.');
@@ -206,7 +206,7 @@ export class WorkspaceManager {
     this.initializeFileWatcher();
     this.sendReposToSidebar();
     this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
-    getIsLspReady({ force: true });
+    getIsLspReady({ force: true, repoPath: newActiveRepo });
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
   }
 

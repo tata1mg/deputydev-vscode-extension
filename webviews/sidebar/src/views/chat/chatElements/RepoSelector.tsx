@@ -1,15 +1,19 @@
-import { useWorkspaceStore } from '../../../stores/workspaceStore';
 import { hitEmbedding, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
-import { useChatStore } from '../../../stores/chatStore';
 import { useIndexingStore } from '@/stores/indexingDataStore';
-import { ChevronDown, RefreshCw, Square, Check, Info } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Check, ChevronDown, Info, RefreshCw, Square } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
+import { useChatStore } from '../../../stores/chatStore';
+import { useWorkspaceStore } from '../../../stores/workspaceStore';
 
 const RepoSelector = () => {
   const { workspaceRepos, activeRepo, setActiveRepo, contextRepositories } = useWorkspaceStore();
-  const { history: messages, isLoading } = useChatStore();
+
+  // Per-chat state (falls back to empty session if none)
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const { history: messages, isLoading } = currentChat;
+
   const { indexingProgressData } = useIndexingStore();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -65,7 +69,7 @@ const RepoSelector = () => {
     });
   };
 
-  const removeRepoFromContext = (repoPath: string, repoName: string) => {
+  const removeRepoFromContext = (repoPath: string) => {
     useWorkspaceStore.setState({
       contextRepositories: contextRepositories.filter((repo) => repo.repoPath !== repoPath),
     });
@@ -303,7 +307,7 @@ const RepoSelector = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             if (contextRepositories.some((r) => r.repoPath === repo.repoPath)) {
-                              removeRepoFromContext(repo.repoPath, repo.repoName);
+                              removeRepoFromContext(repo.repoPath);
                             } else {
                               addRepoToContext(repo.repoPath, repo.repoName);
                             }

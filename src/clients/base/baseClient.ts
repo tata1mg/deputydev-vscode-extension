@@ -27,6 +27,7 @@ export class BaseWebsocketEndpoint {
     endpoint: string,
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     messageHandlers: Array<(data: any) => Promise<void>> = [],
+    sessionId?: number,
   ) {
     // initialize the websocket connection
     this.defaultMessageHandlers = messageHandlers;
@@ -49,6 +50,7 @@ export class BaseWebsocketEndpoint {
       reconnectAttempts: 5,
       reconnectBackoffMs: 1000,
       heartbeatIntervalMs: 3000,
+      sessionId: sessionId,
     });
   }
 
@@ -124,7 +126,7 @@ export class BaseClient {
     extraHeadersFetcher?: () => Promise<Record<string, string>>,
     handlerMiddlewares: Array<BaseHandlerMiddleware> = [],
     forNonGateway: boolean = false,
-  ): () => BaseWebsocketEndpoint {
+  ): (sessionId?: number) => BaseWebsocketEndpoint {
     if (forNonGateway && !this.nonGatewayWsHost) {
       throw new Error('Non-Gateway WebSocket host is not defined');
     }
@@ -146,12 +148,14 @@ export class BaseClient {
       };
     });
 
-    return () =>
+    // accept sessionId here and pass it through
+    return (sessionId?: number) =>
       new BaseWebsocketEndpoint(
         forNonGateway ? (this.nonGatewayWsHost as string) : (this.wsHost as string),
         endpoint,
         combinedExtraHeadersFetcher,
         [...websocketHandlers],
+        sessionId,
       );
   }
 }

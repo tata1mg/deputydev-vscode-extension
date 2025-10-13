@@ -4,6 +4,7 @@ import {
   Settings,
   AgentPayload,
   NewReview,
+  ChatStatus,
 } from './types';
 import { callCommand } from './vscode';
 
@@ -25,7 +26,8 @@ export function checkFileExists(filePath: string) {
 
 // chat api calls
 
-export function apiChat(payload: unknown) {
+export function apiChat(payload: any, id: string) {
+  payload['chatId'] = id;
   return callCommand<{ name: string; data: unknown }>('api-chat', payload, {
     stream: true,
   });
@@ -43,8 +45,8 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
-export function apiStopChat() {
-  return callCommand('api-stop-chat', null);
+export function apiStopChat(sessionId: number, chatId: string) {
+  return callCommand('api-stop-chat', { sessionId, chatId });
 }
 
 export function keywordSearch(payload: unknown) {
@@ -129,19 +131,6 @@ export function createOrOpenFile(path: string) {
 
 export function openMcpSettings() {
   return callCommand('open-mcp-settings', {});
-}
-
-// generate code
-export function cancelGenerateCode() {
-  return callCommand('cancel-generate-code', null);
-}
-
-export function acceptGenerateCode() {
-  return callCommand('accept-generate-code', null);
-}
-
-export function rejectGenerateCode() {
-  return callCommand('reject-generate-code', null);
 }
 
 export function logToOutput(type: 'info' | 'warn' | 'error', message: string) {
@@ -270,10 +259,14 @@ export function acceptTerminalCommand(tool_use_id: string, command: string) {
 export function rejectTerminalCommand() {
   return callCommand('reject-terminal-command', {});
 }
-export function createNewWorkspace(tool_use_id: string) {
-  return callCommand('create-new-workspace', { tool_use_id });
+export function createNewWorkspace(tool_use_id: string, chatId: string) {
+  return callCommand('create-new-workspace', { tool_use_id, chatId });
 }
-export function editTerminalCommand(data: { user_query: string; old_command: string }) {
+export function editTerminalCommand(data: {
+  user_query: string;
+  old_command: string;
+  sessionId: number | undefined;
+}) {
   return callCommand('edit-terminal-command', data);
 }
 export function killProcessById(tool_use_id: string) {
@@ -295,12 +288,16 @@ export function webviewInitialized() {
   return callCommand('webview-initialized', {});
 }
 
-export function submitFeedback(feedback: 'UPVOTE' | 'DOWNVOTE', queryId: number) {
-  return callCommand('submit-feedback', { feedback, queryId });
+export function submitFeedback(
+  feedback: 'UPVOTE' | 'DOWNVOTE',
+  queryId: number,
+  sessionId: number
+) {
+  return callCommand('submit-feedback', { feedback, queryId, sessionId });
 }
 
-export function enhanceUserQuery(userQuery: string) {
-  return callCommand('enhance-user-query', { userQuery });
+export function enhanceUserQuery(userQuery: string, sessionId?: number) {
+  return callCommand('enhance-user-query', { userQuery, sessionId });
 }
 
 // MCP Operations
@@ -432,4 +429,8 @@ export function submitCommentFeedback(data: {
   feedbackComment?: string;
 }) {
   return callCommand('submit-comment-feedback', data);
+}
+
+export function onActionRequired(chatId: string, chatStatusMsg?: string, summary?: string) {
+  return callCommand('on-action-required', { chatId, chatStatusMsg, summary });
 }

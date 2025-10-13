@@ -1,4 +1,5 @@
-import { useChatSettingStore, useChatStore } from '@/stores/chatStore';
+import { useChatStore } from '@/stores/chatStore';
+import { useChatSettingStore } from '@/stores/chatSettingStore';
 import { useThemeStore } from '@/stores/useThemeStore';
 
 interface ChatTypeToggleProps {
@@ -8,7 +9,10 @@ interface ChatTypeToggleProps {
 }
 
 function ChatTypeToggle(props: ChatTypeToggleProps) {
-  const { isLoading } = useChatStore();
+  const state = useChatStore.getState();
+  const currentChat = state.getCurrentChat();
+  const isLoading = currentChat.isLoading;
+
   const store = useChatSettingStore();
   const { themeKind } = useThemeStore();
   const chatType = props.chatType ?? store.chatType;
@@ -26,7 +30,6 @@ function ChatTypeToggle(props: ChatTypeToggleProps) {
 
   // Define the heights
   const activeHeightClass = 'h-5'; // The taller height (e.g., 1.25rem)
-  const inactiveHeightClass = 'h-4'; // The shorter height (e.g., 1rem)
   // Calculate vertical offset for centering the inactive background
   // If h-5 is 1.25rem and h-4 is 1rem, difference is 0.25rem. Half is 0.125rem.
   // Tailwind's '0.5' unit is 0.125rem, so we use inset-y-0.5

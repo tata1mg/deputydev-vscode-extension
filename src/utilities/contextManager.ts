@@ -87,20 +87,11 @@ export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
 }
 
-export function setCancelButtonStatus(Status: boolean) {
-  sidebarProvider?.sendMessageToSidebar({
-    id: uuidv4(),
-    command: 'set-cancel-button-status',
-    data: Status,
-  });
-}
-
-export function getIsEmbeddingDoneForActiveRepo(): boolean {
-  const activeRepo = getActiveRepo();
+export function getIsEmbeddingDoneForActiveRepo(repoPath: string): boolean {
   const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
   const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
   const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
-  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === activeRepo);
+  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === repoPath);
   if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'COMPLETED') {
     return true;
   }
@@ -133,7 +124,6 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   if (isLogout) {
     await extensionContext.secrets.delete('authToken');
     await extensionContext.workspaceState.update('configData', undefined);
-    await extensionContext.workspaceState.update('chat-storage', undefined);
     await extensionContext.workspaceState.update('user-profile-store', undefined);
     await extensionContext.workspaceState.update('sessionId', undefined);
     await extensionContext.workspaceState.update('isAuthenticated', false);
@@ -148,7 +138,6 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('workspace-storage', undefined);
   await extensionContext.workspaceState.update('view-state-storage', undefined);
   await extensionContext.workspaceState.update('sessions-storage', undefined);
-  await extensionContext.workspaceState.update('chat-storage', undefined);
   await extensionContext.workspaceState.update('user-profile-store', undefined);
   await extensionContext.workspaceState.update('repo-selector-storage', false);
   await extensionContext.workspaceState.update('sessionId', undefined);
@@ -195,11 +184,11 @@ export function sendForceUpgrade(data: { url: string; upgradeVersion: string; cu
   });
 }
 
-export function sendLastChatData(data: string) {
+export function sendLastChatData(chatId: string, chatData: string) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
     command: 'last-chat-data',
-    data: data,
+    data: { chatId, chatData },
   });
 }
 

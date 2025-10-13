@@ -14,7 +14,7 @@ import {
   PostProcessEvent,
 } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { getActiveRepo, getReviewId } from '../utilities/contextManager';
+import { getReviewId } from '../utilities/contextManager';
 import { resolveDirectoryRelative } from '../utilities/path';
 import { binaryApi } from '../services/api/axios';
 import { API_ENDPOINTS } from '../services/api/endpoints';
@@ -48,15 +48,18 @@ export class CodeReviewManager {
     this.sidebarProvider = sidebarProvider;
   }
 
-  public async startCodeReview(agentsPayload: { review_id: number; agents: AgentPayload[] }): Promise<void> {
+  public async startCodeReview(
+    agentsPayload: { review_id: number; agents: AgentPayload[] },
+    repoPath: string,
+  ): Promise<void> {
     const abortController = new AbortController();
     this.currentAbortController = abortController;
-
+    console.log('Starting code review with payload:', agentsPayload); // Debug log
     try {
       this.outputChannel.info('Starting code review...');
 
       for await (const event of this.reviewService.startReview(agentsPayload, abortController.signal)) {
-        await this.handleReviewEvent(event);
+        await this.handleReviewEvent(event, repoPath);
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -69,8 +72,8 @@ export class CodeReviewManager {
     }
   }
 
-  private async handleReviewEvent(event: ReviewEvent): Promise<void> {
-    this.outputChannel.info(`Processing review event: ${event}`);
+  private async handleReviewEvent(event: ReviewEvent, repoPath: string): Promise<void> {
+    this.outputChannel.info(`Processing review event: ${JSON.stringify(event)}`);
     let currentToolRequest: ReviewToolUseRequest | undefined;
 
     switch (event.type) {
@@ -104,11 +107,11 @@ export class CodeReviewManager {
     }
     // 3. Handle Tool Requests
     if (currentToolRequest) {
-      await this._runTool(currentToolRequest);
+      await this._runTool(currentToolRequest, repoPath);
     }
   }
 
-  private async _runTool(toolRequest: ReviewToolUseRequest): Promise<void> {
+  private async _runTool(toolRequest: ReviewToolUseRequest, repoPath: string): Promise<void> {
     class UnknownToolError extends Error {
       constructor(toolName: string) {
         super(`Unknown tool requested: ${toolName}`);
@@ -131,17 +134,12 @@ export class CodeReviewManager {
     const agent_id = toolRequest.agent_id;
     let rawResult: any;
     try {
-      const active_repo = getActiveRepo();
-      if (!active_repo) {
-        throw new Error('Active repository is not defined for running tool.');
-      }
-
       // Execute the specific tool function
       switch (toolRequest.tool_name) {
         case 'file_path_searcher': {
           this.outputChannel.info(`Running file_path_searcher with params: ${JSON.stringify(toolRequest.tool_input)}`);
           const input = toolRequest.tool_input as FilePathSearchInput;
-          rawResult = await this._runFilePathSearcher(active_repo, input.directory, input.search_terms);
+          rawResult = await this._runFilePathSearcher(repoPath, input.directory, input.search_terms);
           break;
         }
 
@@ -150,12 +148,7 @@ export class CodeReviewManager {
             `Running iterative_file_reader with params: ${JSON.stringify(toolRequest.tool_input)}`,
           );
           const input = toolRequest.tool_input as IterativeFileReaderInput;
-          rawResult = await this._runIterativeFileReader(
-            active_repo,
-            input.file_path,
-            input.start_line,
-            input.end_line,
-          );
+          rawResult = await this._runIterativeFileReader(repoPath, input.file_path, input.start_line, input.end_line);
           break;
         }
 
@@ -164,7 +157,7 @@ export class CodeReviewManager {
           const input = toolRequest.tool_input as GrepSearchInput;
           const response = await this._runGrepSearch(
             input.search_path,
-            active_repo,
+            repoPath,
             input.query,
             input.case_insensitive,
             input.use_regex,
@@ -205,7 +198,7 @@ export class CodeReviewManager {
         agents: agentsToolUseResponses,
       };
 
-      await this.startCodeReview(continuationPayload);
+      await this.startCodeReview(continuationPayload, repoPath);
     } catch (error: any) {
       const reviewId = getReviewId();
       if (!reviewId) {
@@ -248,7 +241,7 @@ export class CodeReviewManager {
           agents: agentsToolUseResponses,
         };
 
-        await this.startCodeReview(continuationPayload);
+        await this.startCodeReview(continuationPayload, repoPath);
       }
     }
   }

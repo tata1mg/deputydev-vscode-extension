@@ -9,7 +9,7 @@ import {
   checkFileExists,
 } from '@/commandApi';
 import { useEffect, useState } from 'react';
-import { useChatSettingStore } from '@/stores/chatStore';
+import { useChatSettingStore } from '@/stores/chatSettingStore';
 
 export interface CodeActionPanelProps {
   language: string;

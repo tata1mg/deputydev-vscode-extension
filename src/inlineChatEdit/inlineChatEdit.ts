@@ -3,30 +3,32 @@ import * as os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import { ChatManager } from '../chat/ChatManager';
 import { InlineEditService } from '../services/inlineEdit/inlineEditService';
-import { getActiveRepo } from '../utilities/contextManager';
 import * as path from 'node:path';
 import * as fs from 'fs';
 import { SidebarProvider } from '../panels/SidebarProvider';
-import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
-import { SESSION_TYPE } from '../constants';
-import { binaryApi } from '../services/api/axios';
-import { API_ENDPOINTS } from '../services/api/endpoints';
-import { SearchTerm } from '../types';
 import { AuthService } from '../services/auth/AuthService';
 import { DiffManager } from '../diff/diffManager';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { calculateDiffMetric } from '../utilities/calculateDiffLinesNo';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
+import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
+import { getIsEmbeddingDoneForActiveRepo } from '../utilities/contextManager';
+import { GetUsagesTool } from '../chat/tools/usages/GetUsageTool';
+import { GrepSearchTool } from '../chat/tools/GrepSearchTool';
 
 interface InlineEditPayload {
   query: string;
+  repo_path: string;
   relevant_chunks: string[];
   llm_model: string;
   search_web: boolean;
+  is_lsp_ready: boolean;
+  is_embedding_done: boolean;
   code_selection: {
     selected_text?: string;
     file_path?: string;
+    line_range?: { start_line: number; end_line: number };
   };
   tool_use_response?: {
     tool_name: string;
@@ -61,11 +63,11 @@ export class InlineChatEditManager {
   private focus_chunks: string[] | undefined;
   private file_path: string | undefined;
   private focus_files: string[] | undefined;
-  private active_repo: string | undefined;
   private relative_file_path: string | undefined;
   private readonly authService = new AuthService();
-  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
-
+  private readonly grepSearchTool: GrepSearchTool;
+  private readonly languageFeaturesService = new LanguageFeaturesService();
+  private readonly getUsagesTool = new GetUsagesTool(this.languageFeaturesService);
   constructor(
     context: vscode.ExtensionContext,
     outputChannel: vscode.LogOutputChannel,
@@ -74,14 +76,13 @@ export class InlineChatEditManager {
     private readonly diffManager: DiffManager,
     private readonly usageTrackingManager: UsageTrackingManager,
     private readonly errorTrackingManager: ErrorTrackingManager,
-    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
   ) {
     this.context = context;
     this.outputChannel = outputChannel;
     this.logger = SingletonLogger.getInstance();
     this.usageTrackingManager = usageTrackingManager;
     this.errorTrackingManager = errorTrackingManager;
-    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
+    this.grepSearchTool = new GrepSearchTool(this.outputChannel, this.authService);
   }
 
   public async inlineChatEditQuickFixes() {
@@ -144,42 +145,52 @@ export class InlineChatEditManager {
       this.sidebarProvider.setViewType('chat');
       await vscode.commands.executeCommand('deputydev-sidebar.focus');
       this.editor = vscode.window.activeTextEditor;
-      if (!this.editor) {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        this.outputChannel.warn('No active text editor found.');
         return;
       }
-      // Extracting file name
-      const activeFileFullName = this.editor.document.fileName;
-      const activeFileName = path.basename(activeFileFullName);
-      this.outputChannel.info(`Active file path: ${activeFileName}`);
+      const document = editor.document;
+      const fileUri = document.uri;
 
-      this.active_repo = getActiveRepo();
-      this.outputChannel.info(`Active repo: ${this.active_repo}`);
-      // Get file path
-      this.file_path = this.editor.document.uri.fsPath;
-      if (!this.active_repo) {
+      // Full and relative paths
+      const filePath = fileUri.fsPath;
+      const fileName = path.basename(filePath);
+
+      this.outputChannel.info(`Active file: ${fileName}`);
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
+      const repoPath = workspaceFolder?.uri.fsPath ?? '';
+
+      if (!repoPath) {
+        this.outputChannel.warn('No workspace folder found for active file.');
         return;
       }
-      // Extracting relativa path
-      this.relative_file_path = path.relative(this.active_repo, this.file_path);
-      this.outputChannel.info(`Relative path: ${this.relative_file_path}`);
 
-      const selection = this.editor.selection;
+      this.outputChannel.info(`Active repo: ${repoPath}`);
+
+      const relativePath = path.relative(repoPath, filePath);
+      this.outputChannel.info(`Relative path: ${relativePath}`);
+
+      const selection = editor.selection;
       if (!selection) {
         return;
       }
+      const startLine = selection.start.line + 1;
+      const endLine = selection.end.line + 1;
       // Extracting selected text start and end line
       const start_line = selection.start.line;
       const end_line = selection.end.line;
       this.outputChannel.info(`start line = ${start_line}, end line = ${end_line}`);
 
       const inlineChatData = {
-        keyword: activeFileName,
-        path: this.relative_file_path,
+        keyword: fileName,
+        path: relativePath,
         chunk: {
-          file_path: this.relative_file_path,
-          start_line: start_line + 1,
-          end_line: end_line + 1,
-          chunk_hash: `${this.relative_file_path}_${activeFileName}_${start_line + 1}_${end_line + 1}`,
+          file_path: relativePath,
+          start_line: startLine,
+          end_line: endLine,
+          chunk_hash: `${relativePath}_${fileName}_${startLine}_${endLine}`,
         },
       };
 
@@ -191,53 +202,61 @@ export class InlineChatEditManager {
     });
   }
 
-  public async inlineEdit() {
+  public async inlineEdit(): Promise<void> {
     // Register the command for inline editing
     vscode.commands.registerCommand('deputydev.editThisCode', (collapse: boolean = false) => {
       this.logger.info('Edit command triggered');
       this.outputChannel.info('Edit command triggered');
-      const commentController = vscode.comments.createCommentController('DeputyDevAI', 'DeputyDevAI Inline Edit');
 
-      this.editor = vscode.window.activeTextEditor;
-      if (!this.editor) {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        this.outputChannel.warn('No active text editor found.');
         return;
       }
-
-      this.active_repo = getActiveRepo();
-      this.outputChannel.info(`Active repo: ${this.active_repo}`);
-      // Get file path
-      this.file_path = this.editor.document.uri.fsPath;
-      if (!this.active_repo) {
+      const document = editor.document;
+      const fileUri = document.uri;
+      const filePath = fileUri.fsPath;
+      this.outputChannel.info(`File path: ${filePath}`);
+      this.outputChannel.info(`File URI: ${fileUri.toString()}`);
+      // --- Get repo path ---
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(fileUri);
+      const repoPath = workspaceFolder?.uri.fsPath;
+      if (!repoPath) {
+        this.outputChannel.warn('No workspace folder found for active file.');
         return;
       }
-      this.relative_file_path = path.relative(this.active_repo, this.file_path);
-      this.outputChannel.info(`Relative path: ${this.relative_file_path}`);
+      this.outputChannel.info(`Active repo: ${repoPath}`);
+      // --- Relative path ---
+      const relativePath = path.relative(repoPath, filePath);
+      this.relative_file_path = relativePath;
+      this.outputChannel.info(`Relative path: ${relativePath}`);
 
-      this.focus_files = [];
-      this.focus_files?.push(this.file_path);
-      this.outputChannel.info(`Current Active File Path: ${this.file_path}`);
+      this.focus_files = [filePath];
       this.outputChannel.info(`Current focus files: ${JSON.stringify(this.focus_files)}`);
 
-      const selection = this.editor.selection;
-
-      if (!selection) {
+      const selection = editor.selection;
+      if (selection.isEmpty) {
+        this.outputChannel.warn('No text selected for inline edit.');
         return;
       }
       // Get selected text as a string
-      this.selected_text = this.editor.document.getText(selection);
-      if (this.selected_text) {
-        this.focus_chunks = [];
-        // Add selected text to focus_chunks array
-        this.focus_chunks.push(this.selected_text);
-        this.outputChannel.info(`Focus Chunks: ${JSON.stringify(this.focus_chunks)}`);
+      this.selected_text = editor.document.getText(selection);
+      if (!this.selected_text.trim()) {
+        this.outputChannel.warn('Selected text is empty.');
+        return;
       }
 
+      this.focus_chunks = [this.selected_text];
+      this.outputChannel.info(`Focus chunks: ${JSON.stringify(this.focus_chunks)}`);
+
+      // --- Anchor comment thread above selection ---
+      const commentController = vscode.comments.createCommentController('DeputyDevAI', 'DeputyDevAI Inline Edit');
       // Get the start and end positions of the selection
-      this.startLineOfSelectedText = selection.start.line; // Start line number
 
       // Create a range using the start and end positions
       // Clamp to 0 so we don't go out of bounds at top of file
-      const commentLine = Math.max(this.startLineOfSelectedText - 1, 0);
+      const commentLine = Math.max(selection.start.line - 1, 0);
+
       // Use a zero-length range (same start and end) to anchor comment box
       this.range = new vscode.Range(new vscode.Position(commentLine, 0), new vscode.Position(commentLine, 0));
 
@@ -246,7 +265,7 @@ export class InlineChatEditManager {
       if (!this.range) {
         return;
       }
-      const comment_box_thread = commentController.createCommentThread(this.editor.document.uri, this.range, []);
+      const comment_box_thread = commentController.createCommentThread(editor.document.uri, this.range, []);
 
       commentController.options = {
         prompt: 'Ask DeputyDev AI To Edit Your Code...',
@@ -262,38 +281,46 @@ export class InlineChatEditManager {
 
     // Register the command for AI editing
     this.context.subscriptions.push(
-      vscode.commands.registerCommand('deputydev.aiEdit', (reply: vscode.CommentReply) => {
+      vscode.commands.registerCommand('deputydev.aiEdit', async (reply: vscode.CommentReply) => {
         this.outputChannel.info('Now inside edit feature.....');
-        this.active_repo = getActiveRepo();
+        const thread = reply.thread;
+        const docUri = thread.uri;
 
-        //Getting search web value from chat storage
-        const chatStorage = this.context.workspaceState.get('chat-storage') as string;
-        const parsedChatStorage = JSON.parse(chatStorage);
-        const search_web = parsedChatStorage?.state?.search_web;
+        if (!docUri) {
+          this.outputChannel.warn('No document URI found in comment thread.');
+          return;
+        }
 
-        //Getting active model value from chat type storage
-        const chatTypeStorage = this.context.globalState.get('chat-type-storage') as string;
-        const parsedChatTypeStorage = JSON.parse(chatTypeStorage);
-        // let llm_model = parsedChatTypeStorage?.state?.activeModel;
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(docUri);
+        const repoPath = workspaceFolder?.uri.fsPath ?? '';
 
-        // if (llm_model === 'GEMINI_2_POINT_5_PRO') {
-        //   llm_model = 'GPT_4_POINT_1';
-        // }
-
+        if (!repoPath) {
+          this.outputChannel.warn(`No workspace folder found for file: ${docUri.fsPath}`);
+          return;
+        }
+        this.outputChannel.info(`Resolved repo path from thread: ${repoPath}`);
+        const documentSymbols = await this.languageFeaturesService.getDocumentSymbols(docUri);
+        const isLspReady = Array.isArray(documentSymbols) && documentSymbols.length > 0;
+        const isEmbeddingDone = getIsEmbeddingDoneForActiveRepo(repoPath);
+        const fileName = path.basename(docUri.fsPath);
         const payloadForInlineEdit: InlineEditPayload = {
           llm_model: 'GPT_4_POINT_1',
-          search_web: search_web ? search_web : false,
+          search_web: false,
           query: reply.text,
+          repo_path: repoPath,
+          is_lsp_ready: isLspReady,
+          is_embedding_done: isEmbeddingDone,
           relevant_chunks: [],
           code_selection: {
             selected_text: this.selected_text,
             file_path: this.relative_file_path,
+            line_range: this.range
+              ? { start_line: this.range.start.line + 1, end_line: this.range.end.line + 1 }
+              : undefined,
           },
         };
-        vscode.commands.executeCommand('deputydev.editThisCode', true);
-        const thread = reply.thread;
-        const docUri = thread.uri;
-        const fileName = path.basename(docUri.fsPath);
+        this.outputChannel.info(`Payload for inline edit: ${JSON.stringify(payloadForInlineEdit, null, 2)}`);
+        reply.thread.collapsibleState = vscode.CommentThreadCollapsibleState.Collapsed;
         vscode.window.withProgress(
           {
             location: vscode.ProgressLocation.Notification,
@@ -308,84 +335,62 @@ export class InlineChatEditManager {
     );
   }
 
-  public async runTool(payload: any, sessionId?: number) {
+  public async runTool(payload: any, repoPath: string, sessionId?: number): Promise<any> {
     this.outputChannel.info(`Running tool: ${payload.content.tool_name}`);
     this.outputChannel.info(`Session ID: ${sessionId}`);
 
-    if (!this.active_repo) {
-      this.outputChannel.error('Active repo is not set.');
-      throw new Error('Active repo is not set.');
-    }
-
     let toolResult: any = null;
     switch (payload.content.tool_name) {
-      case 'related_code_searcher': {
+      case 'grep_search': {
         try {
-          const result = await this.relevantCodeSearcherToolService.runTool({
-            repo_path: this.active_repo,
-            query: payload.content.tool_input.search_query,
-            focus_files: [],
-            focus_directories: [],
-            focus_chunks: [],
-            session_id: sessionId,
-            session_type: SESSION_TYPE,
+          toolResult = this.grepSearchTool.runGrepSearch({
+            search_path: payload.content.tool_input.search_path,
+            repoPath: repoPath,
+            query: payload.content.tool_input.query,
+            case_insensitive: payload.content.tool_input.case_insensitive,
+            use_regex: payload.content.tool_input.use_regex,
           });
-
-          toolResult = { RELEVANT_CHUNKS: result.relevant_chunks || [] };
         } catch (error) {
           const extraErrorInfo = {
-            toolName: 'related_code_searcher',
+            toolName: 'grep_search',
             toolUseId: payload.content.tool_use_id,
           };
-          this.errorTrackingManager.trackGeneralError(
+
+          this.errorTrackingManager.trackGeneralError({
             error,
-            'INLINE_RELATED_CODE_SEARCHER_FAILED',
-            'BINARY',
-            extraErrorInfo,
-          );
+            errorType: 'INLINE_GREP_SEARCH_FAILED',
+            errorSource: 'BINARY',
+            extraData: extraErrorInfo,
+            repoPath: repoPath,
+            sessionId: sessionId,
+          });
           toolResult = {
-            RELEVANT_CHUNKS: [],
+            GREP_SEARCH: [],
           };
         }
         break;
       }
-      case 'focused_snippets_searcher':
-        this.outputChannel.info(`Calling batch chunks search API.`);
+      case 'get_usage_tool':
         try {
-          const authToken = await this.authService.loadAuthToken();
-          const headers = { Authorization: `Bearer ${authToken}` };
-          const response = await binaryApi().post(
-            API_ENDPOINTS.BATCH_CHUNKS_SEARCH,
-            {
-              repo_path: this.active_repo,
-              search_terms: payload.content.tool_input.search_terms as SearchTerm[],
-            },
-            { headers },
-          );
-
-          if (response.status === 200) {
-            this.outputChannel.info('Batch chunks search API call successful.');
-            toolResult = {
-              batch_chunks_search: response.data,
-            };
-          } else {
-            this.logger.error(`Batch chunks search API failed with status ${response.status}`);
-            this.outputChannel.error(`Batch chunks search API failed with status ${response.status}`);
-            throw new Error(`Batch chunks search failed with status ${response.status}`);
-          }
+          toolResult = await this.getUsagesTool.getUsages({
+            symbolName: payload.content.tool_input.symbol_name,
+            filePaths: payload.content.tool_input.file_paths,
+          });
         } catch (error: any) {
           const extraErrorInfo = {
-            toolName: 'focused_snippets_searcher',
+            toolName: 'get_usage_tool',
             toolUseId: payload.content.tool_use_id,
           };
-          this.errorTrackingManager.trackGeneralError(
+          this.errorTrackingManager.trackGeneralError({
             error,
-            'INLINE_FOCUSED_SNIPPET_SEARCHER_FAILED',
-            'BINARY',
-            extraErrorInfo,
-          );
+            errorType: 'INLINE_GET_USAGES_TOOL_FAILED',
+            errorSource: 'EXTENSION',
+            extraData: extraErrorInfo,
+            repoPath: repoPath,
+            sessionId: sessionId,
+          });
           toolResult = {
-            batch_chunks_search: [],
+            get_usage_tool_result: ['Failed to fetch usages: ' + (error?.message || String(error))],
           };
         }
         break;
@@ -407,12 +412,14 @@ export class InlineChatEditManager {
             ? `Inline modify failed. ${tool_input.message}`
             : 'Inline modify failed. as per LLM response';
 
-          this.errorTrackingManager.trackGeneralError(
-            new Error(errorMessage),
-            'INLINE_MODIFY_FAILED',
-            'EXTENSION',
-            extraErrorInfo,
-          );
+          this.errorTrackingManager.trackGeneralError({
+            error: new Error(errorMessage),
+            errorType: 'INLINE_MODIFY_FAILED',
+            errorSource: 'EXTENSION',
+            extraData: extraErrorInfo,
+            repoPath: repoPath,
+            sessionId: sessionId,
+          });
 
           this.outputChannel.error('Inline Task failed.');
           vscode.window.showErrorMessage('Failed to modify the file.');
@@ -430,8 +437,8 @@ export class InlineChatEditManager {
           );
           const toolInput = payload.content.tool_input;
           const iterativeFileReaderResult = await this.chatService._runIterativeFileReader(
-            this.active_repo,
-            toolInput.path,
+            repoPath,
+            toolInput.file_path,
             toolInput.start_line,
             toolInput.end_line,
           );
@@ -441,17 +448,19 @@ export class InlineChatEditManager {
             iterative_file_reader_result: toolResponse,
           };
         } catch (error: any) {
-          this.outputChannel.info(`Iterative file reader result at failed: ${error?.message || error}`);
+          this.outputChannel.info(`Iterative file reader result at failed: ${error}`);
           const extraErrorInfo = {
             toolName: 'iterative_file_reader',
             toolUseId: payload.content.tool_use_id,
           };
-          this.errorTrackingManager.trackGeneralError(
-            error,
-            'INLINE_ITERATIVE_FILE_READER_FAILED',
-            'BINARY',
-            extraErrorInfo,
-          );
+          this.errorTrackingManager.trackGeneralError({
+            error: error,
+            errorType: 'INLINE_ITERATIVE_FILE_READER_FAILED',
+            errorSource: 'BINARY',
+            extraData: extraErrorInfo,
+            repoPath: repoPath,
+            sessionId: sessionId,
+          });
           toolResult = {
             iterative_file_reader_result: `Failed to read file: ${error?.message || error}. \n If repeated failures occur, invoke the "task_completion" tool with status "failed".  \n Otherwise, try reading the latest content with the "iterative_file_reader" tool before retrying your modification.`,
           };
@@ -480,7 +489,7 @@ export class InlineChatEditManager {
               path: diffFilePath,
               search_and_replace_blocks: diffPayload,
             },
-            this.active_repo,
+            repoPath,
             true,
             {
               usageTrackingSessionId: sessionId ?? null,
@@ -497,7 +506,14 @@ export class InlineChatEditManager {
             toolName: 'replace_in_file',
             toolUseId: payload.content.tool_use_id,
           };
-          this.errorTrackingManager.trackGeneralError(error, 'INLINE_REPLACE_IN_FILE_FAILED', 'BINARY', extraErrorInfo);
+          this.errorTrackingManager.trackGeneralError({
+            error: error,
+            errorType: 'INLINE_REPLACE_IN_FILE_FAILED',
+            errorSource: 'BINARY',
+            extraData: extraErrorInfo,
+            repoPath: repoPath,
+            sessionId: sessionId,
+          });
           this.outputChannel.error(`Failed to apply diff:\n${error?.message || error}`);
           toolResult = { FileEditResult: `Failed to apply diff:\n ${error?.message || String(error)}` };
         }
@@ -508,10 +524,10 @@ export class InlineChatEditManager {
 
   public async fetchInlineEditResult(
     payload: InlineEditPayload,
-    session_id?: number,
+    sessionId?: number,
     token?: vscode.CancellationToken,
   ): Promise<any> {
-    const job = await this.inlineEditService.generateInlineEdit(payload, session_id);
+    const job = await this.inlineEditService.generateInlineEdit(payload, sessionId);
     let inlineEditResponse;
     if (job.job_id) {
       inlineEditResponse = await this.pollInlineDiffResult(job.job_id, token);
@@ -520,7 +536,7 @@ export class InlineChatEditManager {
       for (const codeSnippet of inlineEditResponse.code_snippets) {
         const modified_file_path = codeSnippet.file_path;
         const raw_diff = codeSnippet.code;
-        if (!modified_file_path || !raw_diff || !this.active_repo) {
+        if (!modified_file_path || !raw_diff || !payload.repo_path) {
           this.outputChannel.error('Modified file path, raw diff, or active repo is not set.');
           return;
         }
@@ -539,7 +555,7 @@ export class InlineChatEditManager {
         });
         this.diffManager.applyDiff(
           { path: modified_file_path, search_and_replace_blocks: raw_diff },
-          this.active_repo,
+          payload.repo_path,
           true,
           {
             usageTrackingSessionId: job.session_id,
@@ -550,7 +566,7 @@ export class InlineChatEditManager {
       }
     }
     if (inlineEditResponse.tool_use_request) {
-      const toolResult = await this.runTool(inlineEditResponse.tool_use_request, job.session_id);
+      const toolResult = await this.runTool(inlineEditResponse.tool_use_request, payload.repo_path, job.session_id);
       if (inlineEditResponse.tool_use_request.content.tool_name === 'task_completion') {
         return;
       }

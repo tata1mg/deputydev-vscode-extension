@@ -1,7 +1,14 @@
+import {
+  apiChat,
+  apiStopChat,
+  logToOutput,
+  onActionRequired,
+  showErrorMessage,
+} from '@/commandApi';
+import { useChatSettingStore } from '@/stores/chatSettingStore';
+import _ from 'lodash';
 import { create } from 'zustand';
 import { combine, persist } from 'zustand/middleware';
-
-import { apiChat, apiStopChat, logToOutput, showErrorMessage } from '@/commandApi';
 
 import {
   ActiveFileChatReferenceItem,
@@ -13,24 +20,28 @@ import {
   ChatMessage,
   ChatMetaData,
   ChatReferenceItem,
+  ChatStatus,
   ChatTerminalNoShell,
   ChatThinkingMessage,
   ChatToolUseMessage,
   ChatType,
   ChatUserMessage,
+  LLMModels,
   S3Object,
   ToolProps,
 } from '@/types';
-import pick from 'lodash/pick';
+import { v4 as uuidv4 } from 'uuid';
 import { useActiveFileStore } from './activeFileStore';
-import { persistGlobalStorage, persistStorage } from './lib';
+import { persistStorage } from './lib';
 import { useLLMModelStore } from './llmModelStore';
 import { useSettingsStore } from './settingsStore';
+import useExtensionStore from './useExtensionStore';
+import { useWorkspaceStore } from './workspaceStore';
+import { ChangedFilesGroup } from './changedFilesStore';
 
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
-
 export const initialAutocompleteOptions: AutocompleteOption[] = [
   {
     icon: 'directory',
@@ -73,52 +84,277 @@ export const initialAutocompleteOptions: AutocompleteOption[] = [
   Chat Store
 ===========================================================================*/
 
+type ChatSession = {
+  // your previous chat-local fields:
+  history: ChatMessage[];
+  current: ChatAssistantMessage | undefined;
+  userInput: string;
+  isLoading: boolean;
+  showSkeleton: boolean;
+  currentEditorReference: ChatReferenceItem[];
+  ChatAutocompleteOptions: AutocompleteOption[];
+  chipIndexBeingEdited: number;
+  forceUpgradeData: { url: string; upgradeVersion: string };
+  selectedOptionIndex: number;
+  enhancingUserQuery: boolean;
+  enhancedUserQuery: string;
+  webSearchInToolUse: boolean;
+  search_web: boolean;
+  imageUploadProgress: number;
+  s3Objects: S3Object[];
+  showGeneratingEffect: boolean;
+  disableStopButton: boolean;
+  // below are new fields for parallel/multi-chat
+  status: ChatStatus;
+  repoPath: string | null;
+  sessionId?: number;
+  summary?: string;
+  activeModel: LLMModels | null;
+  chatType: ChatType;
+  changedFiles: number;
+};
+
+type MultiChatStore = {
+  /** All chat sessions keyed by chatId */
+  chats: Record<string, ChatSession>;
+  /** The active chatId */
+  currentChatId: string | undefined;
+
+  /** Session lifecycle */
+  createChat: () => void;
+  deleteChat: (chatId: string) => void;
+  switchChat: (chatId: string) => void;
+
+  /** Helpers */
+  getChat: (chatId: string) => ChatSession | undefined;
+  getCurrentChat: () => ChatSession | undefined;
+
+  /** Actions (per chat) */
+  clearChat: (chatId?: string) => Promise<void>;
+  sendChatMessage: (
+    chatId: string,
+    message: string,
+    focusItems: ChatReferenceItem[],
+    attachments?: S3Object[],
+    retryChat?: boolean,
+    retry_payload?: any,
+    create_new_workspace_payload?: any,
+    retryReason?: string
+  ) => Promise<void>;
+  cancelChat: (chatId?: string) => void;
+};
+
+/** ============================================================================
+ * HELPERS
+ * ============================================================================ */
+
+const makeInitialChatSession = (): ChatSession => ({
+  history: [],
+  current: undefined,
+  userInput: '',
+  isLoading: false,
+  showSkeleton: false,
+  currentEditorReference: [],
+  ChatAutocompleteOptions: initialAutocompleteOptions,
+  chipIndexBeingEdited: -1,
+  forceUpgradeData: { url: '', upgradeVersion: '' },
+  selectedOptionIndex: -1,
+  enhancingUserQuery: false,
+  enhancedUserQuery: '',
+  webSearchInToolUse: false,
+  search_web: false,
+  imageUploadProgress: 0,
+  s3Objects: [],
+  showGeneratingEffect: false,
+  disableStopButton: true,
+  sessionId: undefined,
+  status: { type: 'in_progress', message: undefined },
+  summary: undefined,
+  repoPath: useWorkspaceStore.getState().activeRepo,
+  chatType: useChatSettingStore.getState().chatType,
+  activeModel: useLLMModelStore.getState().activeModel,
+  changedFiles: 0,
+});
+
+/**
+ * Safe chat updater. Creates the chat if it doesn't exist.
+ */
+function produceChatUpdate(
+  state: MultiChatStore,
+  chatId: string,
+  updater: (prev: ChatSession) => ChatSession
+): MultiChatStore {
+  const prev = state.chats[chatId] ?? makeInitialChatSession();
+  const next = updater(prev);
+  return {
+    ...state,
+    chats: {
+      ...state.chats,
+      [chatId]: next,
+    },
+  };
+}
+
+export const FALLBACK_CHAT_ID = 'default';
+
 export const useChatStore = create(
   persist(
     combine(
       {
-        history: [] as ChatMessage[],
-        current: undefined as ChatAssistantMessage | undefined,
-        userInput: '',
-        currentChatRequest: undefined as any,
-        isLoading: false,
-        showSkeleton: false,
-        currentEditorReference: [] as ChatReferenceItem[],
-        ChatAutocompleteOptions: initialAutocompleteOptions,
-        chipIndexBeingEdited: -1,
-        forceUpgradeData: {} as { url: string; upgradeVersion: string },
-        lastMessageSentTime: null as Date | null,
-        selectedOptionIndex: -1,
-        enhancingUserQuery: false,
-        enhancedUserQuery: '',
-        webSearchInToolUse: false,
-        search_web: false,
-        imageUploadProgress: 0,
-        s3Objects: [] as S3Object[],
-        showGeneratingEffect: false,
-        setCancelButtonStatus: false,
+        chats: {
+          [FALLBACK_CHAT_ID]: makeInitialChatSession(),
+        } as Record<string, ChatSession>,
+        currentChatId: FALLBACK_CHAT_ID,
       },
       (set, get) => {
-        // Helper to generate an incremental message ID.
+        // helper
+        const ensureFallback = () => {
+          const state = get();
+          if (!state.chats[FALLBACK_CHAT_ID]) {
+            set((s) => ({
+              ...s,
+              chats: { ...s.chats, [FALLBACK_CHAT_ID]: makeInitialChatSession() },
+            }));
+          }
+        };
+
+        // small helper to update one chat slice
+        const setChat = (chatId: string, updater: (prev: ChatSession) => ChatSession) => {
+          set((state) => produceChatUpdate(state as MultiChatStore, chatId, updater));
+        };
+
+        // Resolve a chatId (fallback to current)
+        const resolveChatId = (maybeId?: string) => {
+          const id = maybeId ?? get().currentChatId ?? null;
+          if (!id) throw new Error('No active chatId. Call createChat() or switchChat() first.');
+          return id;
+        };
 
         return {
-          async clearChat() {
-            set({
-              history: [],
-              current: undefined,
-              currentChatRequest: undefined,
-              isLoading: false,
-              currentEditorReference: [],
-              s3Objects: [],
-              enhancedUserQuery: '',
-              enhancingUserQuery: false,
-              showGeneratingEffect: false,
-              setCancelButtonStatus: false,
-              showSkeleton: false,
+          // --------------------------
+          // Session lifecycle
+          // --------------------------
+          async createChat(isHistory = false) {
+            set((state) => {
+              const currentChatId = state.currentChatId;
+              const currentChat = currentChatId ? state.chats[currentChatId] : undefined;
+
+              // CASE 1: No current chat
+              if (!currentChatId || !currentChat) {
+                const newChatId = uuidv4();
+                return {
+                  ...state,
+                  chats: { ...state.chats, [newChatId]: makeInitialChatSession() },
+                  currentChatId: newChatId,
+                };
+              }
+
+              // CASE 2: Current chat exists but is empty
+              if (currentChat.history.length === 0) {
+                const newChatId = uuidv4();
+                return {
+                  ...state,
+                  chats: { ...state.chats, [newChatId]: makeInitialChatSession() },
+                  currentChatId: newChatId,
+                };
+              }
+
+              // CASE 3: Current chat is from history view
+              if (isHistory) {
+                const newChatId = uuidv4();
+                return {
+                  ...state,
+                  chats: { ...state.chats, [newChatId]: makeInitialChatSession() },
+                  currentChatId: newChatId,
+                };
+              }
+
+              // CASE 4: Otherwise, leave state unchanged
+              return state;
             });
           },
 
+          deleteChat(chatId: string) {
+            set((state) => {
+              const { [chatId]: _, ...rest } = state.chats;
+
+              // if fallback deleted, recreate it
+              const chats =
+                chatId === FALLBACK_CHAT_ID
+                  ? { ...rest, [FALLBACK_CHAT_ID]: makeInitialChatSession() }
+                  : rest;
+
+              const nextCurrent =
+                state.currentChatId === chatId ? FALLBACK_CHAT_ID : state.currentChatId;
+
+              return { ...state, chats, currentChatId: nextCurrent };
+            });
+          },
+
+          switchChat(chatId: string) {
+            // add a lot of consoles for debugging
+            set((state) => {
+              ensureFallback();
+              if (!state.chats[chatId]) {
+                return {
+                  ...state,
+                  chats: { ...state.chats, [chatId]: makeInitialChatSession() },
+                  currentChatId: chatId,
+                };
+              }
+              const chat = state.chats[chatId];
+              useChatSettingStore.getState().setChatType(chat.chatType);
+              useWorkspaceStore.getState().setActiveRepo(chat.repoPath);
+              useLLMModelStore.getState().setActiveModel(chat.activeModel?.name ?? null);
+
+              return { ...state, currentChatId: chatId };
+            });
+          },
+
+          // --------------------------
+          // Helpers
+          // --------------------------
+
+          getChat(chatId: string) {
+            ensureFallback();
+            return get().chats[chatId];
+          },
+
+          getCurrentChat() {
+            ensureFallback();
+            return get().chats[get().currentChatId ?? FALLBACK_CHAT_ID];
+          },
+
+          // --------------------------
+          // Actions (per chat)
+          // --------------------------
+          async clearChat(chatId?: string) {
+            const id = resolveChatId(chatId);
+            setChat(id, () => ({
+              ...makeInitialChatSession(),
+            }));
+          },
+
+          updateCurrentChat(partial: Partial<ChatSession>) {
+            const id = get().currentChatId ?? FALLBACK_CHAT_ID;
+            set((state) =>
+              produceChatUpdate(state as MultiChatStore, id, (prev) => ({
+                ...prev,
+                ...partial,
+              }))
+            );
+          },
+          updateChatChangedFiles(sessionId: number, count: number) {
+            const state = get();
+            const chatId = Object.keys(state.chats).find(
+              (id) => state.chats[id].sessionId === sessionId
+            );
+            if (!chatId) return;
+            setChat(chatId, (prev) => ({ ...prev, changedFiles: count }));
+          },
+
           async sendChatMessage(
+            chatId: string,
             message: string,
             focusItems: ChatReferenceItem[],
             attachments: S3Object[] = [],
@@ -127,21 +363,35 @@ export const useChatStore = create(
             create_new_workspace_payload?: any,
             retryReason?: string
           ) {
-            logToOutput('info', `sendChatMessage: ${message}`);
-            let stream;
-            if (create_new_workspace_payload) {
-              useChatStore.setState({ showGeneratingEffect: true });
-              stream = apiChat(create_new_workspace_payload);
-            } else {
-              const { history } = get();
-              let activeFileChatReferenceItem: ActiveFileChatReferenceItem | undefined = undefined;
+            const id = resolveChatId(chatId);
+            if (id === FALLBACK_CHAT_ID) {
+              console.log(`Fallback chat ID detected`);
+              return;
+            }
+            setChat(id, (prev) => ({
+              ...prev,
+              status: { type: 'in_progress', message: undefined },
+            }));
+            logToOutput('info', `sendChatMessage[${id}]: ${message}`);
 
+            let stream: AsyncIterable<any>;
+            if (create_new_workspace_payload) {
+              // per-chat flag flip
+              setChat(id, (prev) => ({ ...prev, showGeneratingEffect: true }));
+              stream = apiChat(create_new_workspace_payload, id);
+            } else {
+              const session = get().chats[id];
+              const history = session.history;
+
+              // active file metadata (global store as before)
               const {
                 activeFileUri,
                 startLine: activeStartLine,
                 endLine: activeEndLine,
                 disableActiveFile,
               } = useActiveFileStore.getState();
+
+              let activeFileChatReferenceItem: ActiveFileChatReferenceItem | undefined = undefined;
               if (!disableActiveFile && activeFileUri) {
                 activeFileChatReferenceItem = {
                   type: 'file',
@@ -151,50 +401,50 @@ export const useChatStore = create(
                 };
               }
 
+              // last ask_user_input tool chip (from this chat's history)
               let lastAskUserInput: { tool_name: string; tool_use_id: string } | undefined;
               const lastMsg = history[history.length - 1];
-
-              // Check if last message is ask user input
               if (
                 lastMsg?.type === 'TOOL_CHIP_UPSERT' &&
                 lastMsg.content?.tool_name === 'ask_user_input'
               ) {
-                // If it is, we can use the lastAskUserInput
                 lastAskUserInput = {
                   tool_name: lastMsg.content.tool_name,
                   tool_use_id: lastMsg.content.tool_use_id,
                 };
               }
 
-              // Create the user message
+              // build user message
               const userMessage: ChatUserMessage = {
                 type: 'TEXT_BLOCK',
                 content: { text: message },
-                focusItems: focusItems,
-                attachments: attachments,
+                focusItems,
+                attachments,
                 actor: 'USER',
-                lastMessageSentTime: useChatStore.getState().lastMessageSentTime,
+                lastMessageSentTime: new Date().toISOString(),
                 activeFileReference: activeFileChatReferenceItem,
               };
 
+              // push user message & open current assistant
               if (!retryChat) {
-                set({
-                  history: [...history, userMessage],
+                setChat(id, (prev) => ({
+                  ...prev,
+                  history: [...prev.history, userMessage],
                   current: {
                     type: 'TEXT_BLOCK',
                     content: { text: '' },
                     actor: 'ASSISTANT',
                   },
-                });
+                }));
               }
 
-              // Remove any error messages from history
-              // Update CODE_BLOCK_STREAMING message status to 'aborted' if pending
-              set((state) => {
-                const newHistory = [...state.history];
-                const lastMsg = newHistory[newHistory.length - 1];
-                if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
-                  const toolMsg = lastMsg as ChatToolUseMessage;
+              // cleanup pending statuses / remove errors
+              setChat(id, (prev) => {
+                const newHistory = [...prev.history];
+                const last = newHistory[newHistory.length - 1];
+
+                if (last?.type === 'TOOL_CHIP_UPSERT') {
+                  const toolMsg = last as ChatToolUseMessage;
                   newHistory[newHistory.length - 1] = {
                     ...toolMsg,
                     content: {
@@ -213,27 +463,27 @@ export const useChatStore = create(
                     },
                   };
                 }
-                //  Abort pending CODE_BLOCK_STREAMING messages
+
                 if (
-                  (lastMsg?.type === 'CODE_BLOCK_STREAMING' || lastMsg?.type === 'THINKING') &&
-                  lastMsg.status === 'pending'
+                  (last?.type === 'CODE_BLOCK_STREAMING' || last?.type === 'THINKING') &&
+                  (last as any).status === 'pending'
                 ) {
                   newHistory[newHistory.length - 1] = {
-                    ...lastMsg,
+                    ...(last as any),
                     status: 'aborted',
                   };
                 }
 
-                // Remove any error messages
                 return {
-                  history: newHistory.filter((msg) => msg.type !== 'ERROR'),
+                  ...prev,
+                  history: newHistory.filter((m) => m.type !== 'ERROR'),
                 };
               });
 
-              set({
-                isLoading: true,
-                showSkeleton: true,
-              });
+              // show skeleton
+              setChat(id, (prev) => ({ ...prev, isLoading: true, showSkeleton: true }));
+
+              // active file reference payload
               const activeFile = useActiveFileStore.getState().activeFileUri;
               const startLine = useActiveFileStore.getState().startLine;
               const endLine = useActiveFileStore.getState().endLine;
@@ -247,128 +497,137 @@ export const useChatStore = create(
                 end_line: endLine,
               };
 
-              // Build the payload
+              // Build payload (kept global model/settings as before)
               const payload: any = {
-                search_web: useChatStore.getState().search_web,
+                search_web: get().chats[id]?.search_web ?? false,
                 llm_model: useLLMModelStore.getState().activeModel?.name,
                 reasoning: useLLMModelStore.getState().getActiveReasoning(),
                 query: message,
                 focusItems: userMessage.focusItems,
+                sessionId: get().chats[id].sessionId,
+                repoPath: useWorkspaceStore.getState().activeRepo,
                 is_tool_response: false,
-                write_mode: useChatSettingStore.getState().chatType === 'write',
+                write_mode: get().chats[id].chatType === 'write',
                 is_inline: useChatSettingStore.getState().chatSource === 'inline-chat',
                 attachments: attachments.map((ref) => ({ attachment_id: ref.key })),
                 ...(disableActiveFile === false && { active_file_reference: activeFileReference }),
               };
 
-              // If a tool response was stored, add it to the payload
               if (lastAskUserInput) {
                 payload.is_tool_response = true;
                 payload.batch_tool_responses = [
                   {
                     tool_name: lastAskUserInput.tool_name,
                     tool_use_id: lastAskUserInput.tool_use_id,
-                    response: {
-                      user_response: message,
-                    },
+                    response: { user_response: message },
                   },
                 ];
               }
 
               if (retryChat) {
-                logToOutput(
-                  'info',
-                  `retrying chat with payload finally: ${JSON.stringify(retry_payload)}`
-                );
+                logToOutput('info', `retrying chat with payload: ${JSON.stringify(retry_payload)}`);
                 retry_payload['reasoning'] = useLLMModelStore.getState().getActiveReasoning();
-                if (retryReason) {
-                  retry_payload['retry_reason'] = retryReason;
-                }
-                stream = apiChat(retry_payload);
+                retry_payload['repoPath'] = useWorkspaceStore.getState().activeRepo;
+                if (retryReason) retry_payload['retry_reason'] = retryReason;
+                stream = apiChat(retry_payload, id);
+              } else {
+                stream = apiChat(payload, id);
               }
-              stream = apiChat(payload);
             }
 
+            // STREAM HANDLER — capture chatId in closure so every event updates the right slice
             try {
               for await (const event of stream) {
                 switch (event.name) {
+                  case 'STREAM_START':
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      disableStopButton: true,
+                    }));
+                    break;
+
                   case 'RESPONSE_METADATA': {
-                    set((state) => ({
+                    setChat(id, (prev) => ({
+                      ...prev,
                       history: [
-                        ...state.history,
+                        ...prev.history,
                         {
                           type: 'RESPONSE_METADATA',
                           content: event.data,
                         } as ChatMetaData,
                       ],
+                      sessionId: event.data.session_id,
+                      disableStopButton: false,
                     }));
-
                     logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
                     break;
                   }
 
-                  // Text Block Events
+                  // SUMMARY
+                  case 'SESSION_SUMMARY': {
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      sessionId: event.data.session_id,
+                      summary: event.data.summary,
+                    }));
+                    logToOutput('info', `Summary received: ${JSON.stringify(event.data)}`);
+                    break;
+                  }
+
+                  // TEXT
                   case 'TEXT_START': {
-                    // Initialize a new current message with the desired structure
-                    set((state) => ({
-                      current: state.current || {
-                        type: 'TEXT_BLOCK',
-                        content: { text: '' },
-                        actor: 'ASSISTANT',
-                      },
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      current:
+                        prev.current ??
+                        ({
+                          type: 'TEXT_BLOCK',
+                          content: { text: '' },
+                          actor: 'ASSISTANT',
+                        } as ChatAssistantMessage),
+                      showGeneratingEffect: false,
                     }));
-                    useChatStore.setState({ showGeneratingEffect: false });
                     break;
                   }
-
                   case 'TEXT_DELTA': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
                     const textChunk = (event.data as any)?.text || '';
-
-                    set((state) => ({
-                      current: state.current
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      showSkeleton: false,
+                      showGeneratingEffect: false,
+                      current: prev.current
                         ? {
-                            ...state.current,
-                            content: {
-                              text: state.current.content.text + textChunk,
-                            },
+                            ...prev.current,
+                            content: { text: prev.current.content.text + textChunk },
                           }
-                        : state.current,
+                        : prev.current,
                     }));
                     break;
                   }
-
                   case 'TEXT_BLOCK_END': {
-                    set((state) => {
-                      if (state.current) {
-                        const newMessage = { ...state.current };
-                        newMessage.content.text = newMessage.content.text.replace(
-                          /(\r?\n\s*)+$/,
-                          ''
-                        ); //remove trailing new/empty lines
-                        return {
-                          history: [...state.history, newMessage],
-                          current: undefined,
-                        };
-                      }
-                      return state;
+                    setChat(id, (prev) => {
+                      if (!prev.current) return prev;
+                      const newMsg = { ...prev.current };
+                      newMsg.content.text = newMsg.content.text.replace(/(\r?\n\s*)+$/, '');
+                      return {
+                        ...prev,
+                        history: [...prev.history, newMsg],
+                        current: undefined,
+                        showGeneratingEffect: true,
+                      };
                     });
-                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
-                  // Thinking Events
+                  // THINKING
                   case 'THINKING_BLOCK_START': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    const thinkingContent = (event.data as any)?.content || {
-                      text: '',
-                    };
-
-                    set((state) => ({
+                    const thinkingContent = (event.data as any)?.content || { text: '' };
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      showSkeleton: false,
+                      showGeneratingEffect: false,
                       history: [
-                        ...state.history,
+                        ...prev.history,
                         {
                           type: 'THINKING',
                           text: thinkingContent.text,
@@ -380,14 +639,10 @@ export const useChatStore = create(
                     }));
                     break;
                   }
-
                   case 'THINKING_BLOCK_DELTA': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
                     const thinkingDelta = (event.data as any)?.thinking_delta || '';
-
-                    set((state) => {
-                      const newHistory = [...state.history];
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
                       for (let i = newHistory.length - 1; i >= 0; i--) {
                         const msg = newHistory[i];
                         if (msg.type === 'THINKING') {
@@ -395,15 +650,18 @@ export const useChatStore = create(
                           break;
                         }
                       }
-                      return { history: newHistory };
+                      return {
+                        ...prev,
+                        showSkeleton: false,
+                        showGeneratingEffect: false,
+                        history: newHistory,
+                      };
                     });
                     break;
                   }
-
                   case 'THINKING_BLOCK_END': {
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      // Find the last 'THINKING' message from the end
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
                       for (let i = newHistory.length - 1; i >= 0; i--) {
                         const msg = newHistory[i];
                         if (msg.type === 'THINKING') {
@@ -411,201 +669,200 @@ export const useChatStore = create(
                           break;
                         }
                       }
-                      return { history: newHistory };
+                      return { ...prev, history: newHistory, showGeneratingEffect: true };
                     });
-                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
-                  // Code Block Events
+                  // CODE
                   case 'CODE_BLOCK_START': {
-                    useChatStore.setState({ showGeneratingEffect: false });
                     const codeData = event.data as {
                       language?: string;
                       filepath?: string;
                       is_diff?: boolean;
                     };
-
-                    const codeBlockMsg: ChatCodeBlockMessage = {
-                      type: 'CODE_BLOCK_STREAMING',
-                      content: {
-                        language: codeData.language || '',
-                        file_path: codeData.filepath,
-                        code: '',
-                        is_live_chat: true,
-                        is_diff: codeData.is_diff || false, // ✅ Save is_diff here
-                      },
-                      completed: false,
-                      actor: 'ASSISTANT',
-                      write_mode: useChatSettingStore.getState().chatType === 'write',
-                      status: 'pending',
-                    };
-
-                    set((state) => ({
-                      history: [...state.history, codeBlockMsg],
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      showGeneratingEffect: false,
+                      history: [
+                        ...prev.history,
+                        {
+                          type: 'CODE_BLOCK_STREAMING',
+                          content: {
+                            language: codeData.language || '',
+                            file_path: codeData.filepath,
+                            code: '',
+                            is_live_chat: true,
+                            is_diff: codeData.is_diff || false,
+                          },
+                          completed: false,
+                          actor: 'ASSISTANT',
+                          write_mode: useChatSettingStore.getState().chatType === 'write',
+                          status: 'pending',
+                        } as ChatCodeBlockMessage,
+                      ],
                     }));
                     break;
                   }
-
                   case 'CODE_BLOCK_DELTA': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
                     const codeData = event.data as { code_delta?: string };
                     const codeDelta = codeData.code_delta || '';
-
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
+                      const lastMsg = newHistory[newHistory.length - 1] as any;
                       if (lastMsg?.type === 'CODE_BLOCK_STREAMING') {
-                        lastMsg.content.code += codeDelta; // Update the code inside content
+                        lastMsg.content.code += codeDelta;
                       }
-
-                      return { history: newHistory };
+                      return {
+                        ...prev,
+                        showSkeleton: false,
+                        showGeneratingEffect: false,
+                        history: newHistory,
+                      };
                     });
                     break;
                   }
-
                   case 'CODE_BLOCK_END': {
                     const endData = event.data as {
                       diff: string | null;
                       added_lines: number | null;
                       removed_lines: number | null;
                     };
-                    logToOutput('info', `code end data ${endData.diff}`);
-
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
+                      const lastMsg = newHistory[newHistory.length - 1] as any;
                       if (lastMsg?.type === 'CODE_BLOCK_STREAMING') {
                         lastMsg.completed = true;
-                        // ✅ Update diff info
                         lastMsg.content.diff = endData.diff;
                         lastMsg.content.added_lines = endData.added_lines;
                         lastMsg.content.removed_lines = endData.removed_lines;
                       }
-
-                      return { history: newHistory };
+                      return { ...prev, history: newHistory, showGeneratingEffect: true };
                     });
-                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
-
                   case 'APPLY_DIFF_RESULT': {
                     const diffResultData = event.data as {
                       status: 'completed' | 'error';
                       addedLines: number;
                       removedLines: number;
                     };
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
-
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
+                      const lastMsg = newHistory[newHistory.length - 1] as any;
                       if (lastMsg?.type === 'CODE_BLOCK_STREAMING') {
-                        const status = diffResultData.status;
-                        newHistory[newHistory.length - 1] = {
-                          ...lastMsg,
-                          status,
-                        };
-                        return { history: newHistory };
+                        lastMsg.status = diffResultData.status;
                       } else if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
-                        const toolMsg = lastMsg as ChatToolUseMessage;
-                        const status = diffResultData.status;
-                        newHistory[newHistory.length - 1] = {
-                          ...toolMsg,
-                          content: {
-                            ...toolMsg.content,
-                            status,
-                            toolResponse: {
-                              ...toolMsg.content.toolResponse,
-                              addedLines: diffResultData.addedLines,
-                              removedLines: diffResultData.removedLines,
-                            },
+                        lastMsg.content = {
+                          ...lastMsg.content,
+                          status: diffResultData.status,
+                          toolResponse: {
+                            ...lastMsg.content.toolResponse,
+                            addedLines: diffResultData.addedLines,
+                            removedLines: diffResultData.removedLines,
                           },
                         };
-                        return { history: newHistory };
                       }
-
-                      return {}; // ✅ Return an empty object if no condition matches
+                      return { ...prev, history: newHistory };
                     });
                     break;
                   }
 
-                  // Tool Events
+                  // TOOL CHIPS
                   case 'TOOL_CHIP_UPSERT': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    const baseToolProps = event.data as ToolProps;
+                    const baseToolProps = event.data as ToolProps & { phase: string };
                     if (baseToolProps) {
-                      const newToolMsg: ChatToolUseMessage = {
-                        type: 'TOOL_CHIP_UPSERT',
-                        content: {
-                          tool_name: baseToolProps.toolRequest?.toolName || '',
-                          tool_use_id: baseToolProps.toolUseId,
-                          status: baseToolProps.toolRunStatus || 'pending',
-                          toolRequest: baseToolProps.toolRequest,
-                        },
-                      };
-
-                      set((state) => {
-                        // First check if we already have this tool message
-                        const existingToolMsgIndex = state.history.findIndex(
-                          (msg) =>
-                            msg.type === 'TOOL_CHIP_UPSERT' &&
-                            msg.content.tool_use_id === baseToolProps.toolUseId
+                      setChat(id, (prev) => {
+                        const newHistory = [...prev.history];
+                        const existingIndex = newHistory.findIndex(
+                          (m) =>
+                            m.type === 'TOOL_CHIP_UPSERT' &&
+                            (m as ChatToolUseMessage).content.tool_use_id ===
+                              baseToolProps.toolUseId
                         );
 
-                        if (existingToolMsgIndex !== -1) {
-                          // If it exists, update it
-                          const newHistory = [...state.history];
-                          newHistory[existingToolMsgIndex] = {
-                            ...newHistory[existingToolMsgIndex],
+                        if (existingIndex !== -1) {
+                          const existing = newHistory[existingIndex] as ChatToolUseMessage;
+                          newHistory[existingIndex] = {
+                            ...existing,
                             content: {
-                              ...newHistory[existingToolMsgIndex].content,
+                              ...existing.content,
                               ...(baseToolProps.toolRequest && {
                                 toolRequest: baseToolProps.toolRequest,
                               }),
                               ...(baseToolProps.toolResponse && {
                                 toolResponse: baseToolProps.toolResponse,
                               }),
-                              status: baseToolProps.toolRunStatus,
+                              status: baseToolProps.toolRunStatus || existing.content.status,
                             },
                           };
-                          if (baseToolProps.toolRunStatus === 'completed') {
-                            useChatStore.setState({ showGeneratingEffect: true });
-                          }
-                          return { history: newHistory };
                         } else {
-                          // If it doesn't exist, add it
-                          return { history: [...state.history, newToolMsg] };
+                          newHistory.push({
+                            type: 'TOOL_CHIP_UPSERT',
+                            content: {
+                              tool_name: baseToolProps.toolRequest?.toolName || '',
+                              tool_use_id: baseToolProps.toolUseId,
+                              status: baseToolProps.toolRunStatus || 'pending',
+                              toolRequest: baseToolProps.toolRequest,
+                            },
+                          } as ChatToolUseMessage);
                         }
+
+                        let showGeneratingEffect =
+                          baseToolProps.toolRunStatus === 'completed'
+                            ? true
+                            : prev.showGeneratingEffect;
+                        let chatStatus = prev.status;
+                        if (baseToolProps.phase === 'end') {
+                          switch (baseToolProps.toolRequest?.toolName) {
+                            case 'ask_user_input':
+                            case 'create_new_workspace':
+                              chatStatus = {
+                                type: 'action_required',
+                                message: baseToolProps.toolRequest?.toolName,
+                              };
+                              showGeneratingEffect = false;
+                              break;
+                            default:
+                              chatStatus = { type: 'in_progress' };
+                          }
+                        }
+                        return {
+                          ...prev,
+                          history: newHistory,
+                          showSkeleton: false,
+                          showGeneratingEffect,
+                          status: chatStatus,
+                        };
                       });
                     }
                     break;
                   }
 
                   case 'MALFORMED_TOOL_USE_REQUEST': {
-                    useChatStore.setState({ showGeneratingEffect: true });
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      showGeneratingEffect: true,
+                      status: { type: 'error' },
+                    }));
                     break;
                   }
 
-                  // Terminal Events
+                  // TERMINAL
                   case 'TERMINAL_NO_SHELL_INTEGRATION': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-                    set((state) => ({
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      showSkeleton: false,
+                      showGeneratingEffect: false,
                       history: [
-                        ...state.history,
+                        ...prev.history,
                         {
                           type: 'TERMINAL_NO_SHELL_INTEGRATION',
                           actor: 'ASSISTANT',
                         } as ChatTerminalNoShell,
                       ],
                     }));
-                    useSettingsStore.setState({
-                      disableShellIntegration: true,
-                    });
+                    useSettingsStore.setState({ disableShellIntegration: true });
                     break;
                   }
 
@@ -615,8 +872,8 @@ export const useChatStore = create(
                       tool_use_id: string;
                       terminal_approval_required: boolean;
                     };
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
+                    setChat(id, (prev) => {
+                      const newHistory = prev.history.map((msg) => {
                         if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalApprovalData.tool_use_id) {
@@ -624,7 +881,6 @@ export const useChatStore = create(
                               ...toolMsg,
                               content: {
                                 ...toolMsg.content,
-                                // Correct: update terminal.terminal_approval_required here
                                 toolStateMetaData: {
                                   ...toolMsg.content.toolStateMetaData,
                                   terminal: {
@@ -639,22 +895,23 @@ export const useChatStore = create(
                         }
                         return msg;
                       });
-                      return { history: newHistory };
+                      return {
+                        ...prev,
+                        history: newHistory,
+                        status: { type: 'action_required', message: 'terminal_approval' },
+                      };
                     });
                     break;
                   }
 
                   case 'EXECA_TERMINAL_PROCESS_STARTED': {
-                    const terminalData = event.data as {
-                      tool_use_id: string;
-                      process_id: number;
-                    };
+                    const terminalData = event.data as { tool_use_id: string; process_id: number };
                     logToOutput(
                       'info',
-                      `EXECA_TERMINAL_PROCESS_STARTED: tool_use_id=${terminalData.tool_use_id}, process_id=${terminalData.process_id}`
+                      `EXECA_TERMINAL_PROCESS_STARTED[${id}]: tool_use_id=${terminalData.tool_use_id}, process_id=${terminalData.process_id}`
                     );
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
+                    setChat(id, (prev) => {
+                      const newHistory = prev.history.map((msg) => {
                         if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
@@ -676,7 +933,7 @@ export const useChatStore = create(
                         }
                         return msg;
                       });
-                      return { history: newHistory };
+                      return { ...prev, history: newHistory };
                     });
                     break;
                   }
@@ -686,8 +943,8 @@ export const useChatStore = create(
                       tool_use_id: string;
                       output_lines: string;
                     };
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
+                    setChat(id, (prev) => {
+                      const newHistory = prev.history.map((msg) => {
                         if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
@@ -710,18 +967,15 @@ export const useChatStore = create(
                         }
                         return msg;
                       });
-                      return { history: newHistory };
+                      return { ...prev, history: newHistory };
                     });
                     break;
                   }
 
                   case 'EXECA_TERMINAL_PROCESS_COMPLETED': {
-                    const terminalData = event.data as {
-                      tool_use_id: string;
-                      exit_code: number;
-                    };
-                    set((state) => {
-                      const newHistory = state.history.map((msg) => {
+                    const terminalData = event.data as { tool_use_id: string; exit_code: number };
+                    setChat(id, (prev) => {
+                      const newHistory = prev.history.map((msg) => {
                         if (msg.type === 'TOOL_CHIP_UPSERT') {
                           const toolMsg = msg as ChatToolUseMessage;
                           if (toolMsg.content.tool_use_id === terminalData.tool_use_id) {
@@ -742,17 +996,13 @@ export const useChatStore = create(
                         }
                         return msg;
                       });
-                      return { history: newHistory };
+                      return { ...prev, history: newHistory, showGeneratingEffect: true };
                     });
-                    useChatStore.setState({ showGeneratingEffect: true });
                     break;
                   }
 
-                  // Error Events
+                  // ERROR
                   case 'error': {
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
-
                     const errorData = event.data as {
                       payload_to_retry: unknown;
                       error_msg: string;
@@ -773,33 +1023,31 @@ export const useChatStore = create(
                     };
 
                     const err = errorData.error_msg || 'Unknown error';
-
+                    let chatStatus: ChatStatus = { type: 'error' };
                     logToOutput(
                       'info',
                       `payload data: ${JSON.stringify(errorData.payload_to_retry, null, 2)}`
                     );
-                    logToOutput('error', `Streaming error: ${err}`);
+                    logToOutput('error', `Streaming error[${id}]: ${err}`);
 
-                    set((state) => {
-                      const newHistory = [...state.history];
-                      const lastMsg = newHistory[newHistory.length - 1];
+                    setChat(id, (prev) => {
+                      const newHistory = [...prev.history];
+                      const lastMsg = newHistory[newHistory.length - 1] as any;
 
-                      // Update TOOL_CHIP_UPSERT message status to 'error' if it exists
                       if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
-                        const toolMsg = lastMsg as ChatToolUseMessage;
                         newHistory[newHistory.length - 1] = {
-                          ...toolMsg,
+                          ...lastMsg,
                           content: {
-                            ...toolMsg.content,
+                            ...lastMsg.content,
                             status: 'error',
                             toolStateMetaData: {
-                              ...toolMsg.content.toolStateMetaData,
+                              ...lastMsg.content.toolStateMetaData,
                               terminal: {
-                                ...toolMsg.content.toolStateMetaData?.terminal,
+                                ...lastMsg.content.toolStateMetaData?.terminal,
                                 terminal_approval_required:
-                                  toolMsg.content.tool_name === 'execute_command'
+                                  lastMsg.content.tool_name === 'execute_command'
                                     ? false
-                                    : toolMsg.content.toolStateMetaData?.terminal
+                                    : lastMsg.content.toolStateMetaData?.terminal
                                         ?.terminal_approval_required,
                               },
                             },
@@ -807,25 +1055,18 @@ export const useChatStore = create(
                         };
                       }
 
-                      // Update CODE_BLOCK_STREAMING or THINKING status if pending
                       if (
                         lastMsg?.type === 'CODE_BLOCK_STREAMING' &&
                         lastMsg.status === 'pending'
                       ) {
-                        newHistory[newHistory.length - 1] = {
-                          ...lastMsg,
-                          status: 'error',
-                        };
+                        newHistory[newHistory.length - 1] = { ...lastMsg, status: 'error' };
                       }
                       if (lastMsg?.type === 'THINKING' && lastMsg.status === 'pending') {
-                        newHistory[newHistory.length - 1] = {
-                          ...lastMsg,
-                          status: 'completed',
-                        };
+                        newHistory[newHistory.length - 1] = { ...lastMsg, status: 'completed' };
                       }
 
-                      // Append the new error message
                       if (errorData.errorType === 'THROTTLING_ERROR') {
+                        chatStatus = { type: 'action_required', message: 'model_change' };
                         newHistory.push({
                           type: 'ERROR',
                           error_msg: err,
@@ -840,6 +1081,7 @@ export const useChatStore = create(
                           },
                         } as ChatErrorMessage);
                       } else if (errorData.errorType === 'TOKEN_LIMIT_ERROR') {
+                        chatStatus = { type: 'action_required', message: 'model_change' };
                         newHistory.push({
                           type: 'ERROR',
                           error_msg: err,
@@ -871,119 +1113,125 @@ export const useChatStore = create(
                       }
 
                       return {
+                        ...prev,
                         history: newHistory,
+                        isLoading: false,
+                        showSkeleton: false,
+                        showGeneratingEffect: false,
+                        status: chatStatus,
                       };
                     });
 
-                    set({ isLoading: false, currentChatRequest: undefined });
                     break;
                   }
 
-                  // Task Events
+                  // TASK COMPLETION
                   case 'TASK_COMPLETION': {
                     const taskCompletionData = event.data as {
                       query_id: number;
                       success: boolean;
                       summary?: string;
                     };
-                    useChatStore.setState({ showSkeleton: false });
-                    useChatStore.setState({ showGeneratingEffect: false });
 
-                    const { history } = useChatStore.getState();
-                    const latestUserMessage = [...history]
-                      .reverse()
-                      .find((msg) => msg.type === 'TEXT_BLOCK' && msg.actor === 'USER');
-
-                    let elapsedTime: any;
-                    if (
-                      latestUserMessage &&
-                      latestUserMessage.lastMessageSentTime !== null &&
-                      latestUserMessage.lastMessageSentTime !== undefined
-                    ) {
-                      elapsedTime =
-                        new Date().getTime() - latestUserMessage.lastMessageSentTime.getTime();
-                    }
-
-                    set((state) => ({
-                      history: [
-                        ...state.history,
-                        {
-                          type: 'TASK_COMPLETION',
-                          actor: 'ASSISTANT',
-                          content: {
-                            elapsedTime,
-                            feedbackState: '',
-                            queryId: taskCompletionData.query_id,
-                            success: taskCompletionData.success,
-                            summary: taskCompletionData.summary,
-                          },
-                        } as ChatCompleteMessage,
-                      ],
-                    }));
+                    setChat(id, (prev) => {
+                      const latestUserMessage = [...prev.history]
+                        .reverse()
+                        .find((m) => m.type === 'TEXT_BLOCK' && (m as any).actor === 'USER') as
+                        | ChatUserMessage
+                        | undefined;
+                      let elapsedTime: number | undefined;
+                      if (latestUserMessage?.lastMessageSentTime) {
+                        const sentTime = new Date(latestUserMessage.lastMessageSentTime); // handles string or Date
+                        elapsedTime = Date.now() - sentTime.getTime();
+                      }
+                      return {
+                        ...prev,
+                        status: { type: 'completed' },
+                        showSkeleton: false,
+                        showGeneratingEffect: false,
+                        history: [
+                          ...prev.history,
+                          {
+                            type: 'TASK_COMPLETION',
+                            actor: 'ASSISTANT',
+                            content: {
+                              elapsedTime,
+                              feedbackState: '',
+                              queryId: taskCompletionData.query_id,
+                              sessionId: prev.sessionId,
+                              success: taskCompletionData.success,
+                              summary: taskCompletionData.summary,
+                            },
+                          } as ChatCompleteMessage,
+                        ],
+                      };
+                    });
 
                     logToOutput('info', `query complete ${JSON.stringify(event.data)}`);
                     break;
                   }
 
                   case 'end': {
-                    set({ isLoading: false, currentChatRequest: undefined });
-                    logToOutput('info', 'Chat stream ended');
+                    setChat(id, (prev) => ({
+                      ...prev,
+                      isLoading: false,
+                    }));
+                    logToOutput('info', `Chat stream ended[${id}]`);
                     break;
                   }
-                  default: {
+
+                  default:
                     break;
-                  }
                 }
               }
             } catch (err) {
-              logToOutput('error', `Error: ${String(err)}`);
+              logToOutput('error', `Error[${id}]: ${String(err)}`);
               showErrorMessage(`Error: ${String(err)}`);
-              set({ isLoading: false });
-              useChatStore.setState({ showSkeleton: false });
-              useChatStore.setState({ showGeneratingEffect: false });
+              setChat(id, (prev) => ({
+                ...prev,
+                isLoading: false,
+                showSkeleton: false,
+                showGeneratingEffect: false,
+              }));
             }
           },
 
-          cancelChat() {
-            apiStopChat();
-            useChatStore.setState((state) => {
-              const newHistory = [...state.history];
-              if (state.current && state.current.content.text) {
-                newHistory.push(state.current);
+          async cancelChat(chatId?: string) {
+            const id = resolveChatId(chatId);
+            const sessionId = get().chats[id]?.sessionId;
+            if (sessionId) {
+              apiStopChat(sessionId, id);
+            }
+
+            setChat(id, (prev) => {
+              const newHistory = [...prev.history];
+
+              if (prev.current && prev.current.content.text) {
+                newHistory.push(prev.current);
               }
-              const lastMsg = newHistory[newHistory.length - 1];
+              const lastMsg = newHistory[newHistory.length - 1] as any;
+
               if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
-                const toolMsg = lastMsg as ChatToolUseMessage;
                 newHistory[newHistory.length - 1] = {
-                  ...toolMsg,
+                  ...lastMsg,
                   content: {
-                    ...toolMsg.content,
-                    status: 'aborted',
-                  },
-                };
-              }
-              if (lastMsg?.type === 'TOOL_CHIP_UPSERT') {
-                const toolMsg = lastMsg as ChatToolUseMessage;
-                newHistory[newHistory.length - 1] = {
-                  ...toolMsg,
-                  content: {
-                    ...toolMsg.content,
+                    ...lastMsg.content,
                     status: 'aborted',
                     toolStateMetaData: {
-                      ...toolMsg.content.toolStateMetaData,
+                      ...lastMsg.content.toolStateMetaData,
                       terminal: {
-                        ...toolMsg.content.toolStateMetaData?.terminal,
+                        ...lastMsg.content.toolStateMetaData?.terminal,
                         terminal_approval_required:
-                          toolMsg.content.tool_name === 'execute_command'
+                          lastMsg.content.tool_name === 'execute_command'
                             ? false
-                            : toolMsg.content.toolStateMetaData?.terminal
+                            : lastMsg.content.toolStateMetaData?.terminal
                                 ?.terminal_approval_required,
                       },
                     },
                   },
                 };
               }
-              //  Abort pending CODE_BLOCK_STREAMING messages
+
               if (
                 (lastMsg?.type === 'CODE_BLOCK_STREAMING' || lastMsg?.type === 'THINKING') &&
                 lastMsg.status === 'pending'
@@ -994,52 +1242,168 @@ export const useChatStore = create(
                 };
               }
 
+              logToOutput('info', `User canceled the chat stream[${id}]`);
+
               return {
+                ...prev,
+                status: { type: 'aborted' },
                 history: newHistory,
                 current: undefined,
-                currentChatRequest: undefined,
                 isLoading: false,
                 showSkeleton: false,
                 showGeneratingEffect: false,
               };
             });
-
-            logToOutput('info', 'User canceled the chat stream');
           },
         };
       }
     ),
     {
       name: 'chat-storage', // Unique key for local storage persistence
-      storage: persistStorage, // Uses the same storage as in `useChatSessionStore`
+      storage: persistStorage,
+      // optional: prune extremely large histories / keep only N recent chats, etc.
     }
   )
 );
 
-// =============================================================================
-// CHAT SETTING STORE
-// =============================================================================
+// 🔔 Subscribe to store changes
+useChatStore.subscribe((state, prevState) => {
+  for (const [chatId, chat] of Object.entries(state.chats)) {
+    const currentChatId = state.currentChatId;
+    const viewType = useExtensionStore.getState().viewType;
+    const prevChat = prevState.chats[chatId];
+    if (
+      chat?.status.type === 'action_required' &&
+      prevChat?.status.type !== 'action_required' &&
+      !(viewType === 'chat' && chatId === currentChatId)
+    ) {
+      onActionRequired(chatId, chat.status.message, chat.summary);
+    }
+  }
+});
 
-export const useChatSettingStore = create(
-  persist(
-    combine(
-      {
-        chatType: 'ask' as ChatType,
-        chatSource: 'chat' as string,
+// ─────────────────────────────────────────────
+// 🔁 Keep active chat in sync with global stores
+// ─────────────────────────────────────────────
+
+function syncGlobalToChat<T>(store: any, key: keyof ChatSession, selector: (state: any) => T) {
+  store.subscribe((state: any) => {
+    const chatStore = useChatStore.getState();
+    const currentChatId = chatStore.currentChatId ?? FALLBACK_CHAT_ID;
+    const value = selector(state);
+
+    useChatStore.setState((prev) => {
+      const prevChat = prev.chats[currentChatId];
+      if (!prevChat) return {};
+      return {
+        chats: {
+          ...prev.chats,
+          [currentChatId]: {
+            ...prevChat,
+            [key]: value,
+          },
+        },
+      };
+    });
+  });
+}
+
+// Usage
+syncGlobalToChat(useChatSettingStore, 'chatType', (s) => s.chatType);
+syncGlobalToChat(useWorkspaceStore, 'repoPath', (s) => s.activeRepo);
+syncGlobalToChat(useLLMModelStore, 'activeModel', (s) => s.activeModel);
+
+export const getActiveChatCount = (groupedChangedFiles: ChangedFilesGroup[]) => {
+  const state = useChatStore.getState();
+  const chats = Object.values(state.chats);
+  // Collect valid sessionIds from groupedChangedFiles
+  const changedSessionIds = new Set<number>(_.chain(groupedChangedFiles).map('sessionId').value());
+
+  // Count active chats or those linked to changed session IDs
+  const activeChatCount = Math.max(
+    0,
+    _.filter(
+      chats,
+      (chat) =>
+        ['in_progress', 'action_required'].includes(chat.status.type) ||
+        (typeof chat.sessionId === 'number' && changedSessionIds.has(chat.sessionId))
+    ).length
+  );
+  const maxParallelChats = Number(import.meta.env.VITE_PARALLEL_CHATS_COUNT) || 3;
+  const currentChatId = state.currentChatId;
+  const isFallbackCurrentChat = currentChatId && currentChatId === FALLBACK_CHAT_ID;
+  const currentChat = currentChatId ? state.chats[currentChatId] : undefined;
+  const currentChatInProgress = currentChat
+    ? ['in_progress', 'action_required'].includes(currentChat.status?.type)
+    : false;
+
+  let disableChatInput: boolean;
+  if (isFallbackCurrentChat) {
+    disableChatInput = activeChatCount >= maxParallelChats;
+  } else if (currentChatInProgress) {
+    disableChatInput = false;
+  } else {
+    disableChatInput = activeChatCount >= maxParallelChats;
+  }
+  return { activeChatCount, disableChatInput };
+};
+
+export const getFilteredChatList = () => {
+  const state = useChatStore.getState();
+
+  // 1️⃣ Filter out fallback and history chats
+  const chats = _.pickBy(state.chats, (chat, chatId) => {
+    return chatId !== FALLBACK_CHAT_ID && chat.status.type !== 'history';
+  });
+
+  // 2️⃣ Transform chats to list with metadata
+  const chatList = _.map(chats, (chat, chatId) => {
+    const latestUserMessage = _.findLast(
+      chat.history,
+      (m) => m.type === 'TEXT_BLOCK' && (m as any).actor === 'USER'
+    ) as ChatUserMessage | undefined;
+
+    const updatedAt = latestUserMessage?.lastMessageSentTime ?? new Date().toISOString();
+    const rawUserText = _.trim(_.get(latestUserMessage, 'content.text', ''));
+    const fallbackSummary = rawUserText.length > 0 ? rawUserText : 'New chat...';
+
+    const summary = _.trim(chat.summary) || fallbackSummary;
+
+    return {
+      chatId,
+      summary,
+      updatedAt,
+      state: chat.status,
+      sessionId: chat.sessionId,
+      changedFiles: chat.changedFiles,
+    };
+  });
+
+  // 3️⃣ Sort chats — prioritize active ones (in_progress, action_required), then by recency
+  const sorted = _.orderBy(
+    chatList,
+    [
+      (c) => {
+        // Assign priority: active chats (in_progress/action_required) = 0, others = 1
+        return ['in_progress', 'action_required'].includes(c.state.type) ? 0 : 1;
       },
-      (set) => ({
-        setChatType(nextChatType: ChatType) {
-          set({ chatType: nextChatType });
-        },
-        setChatSource(nextChatSource: string) {
-          set({ chatSource: nextChatSource });
-        },
-      })
-    ),
-    {
-      name: 'chat-type-storage',
-      storage: persistGlobalStorage,
-      partialize: (state) => pick(state, ['chatType', 'chatSource', 'activeModel']),
+      (c) => Date.parse(c.updatedAt), // newer first
+    ],
+    ['asc', 'desc']
+  );
+
+  // 4️⃣ Keep top 3 chats only
+  const topChats = sorted.slice(0, 3);
+
+  // 5️⃣ Delete all other chats (except fallback & history)
+  const allChatIds = Object.keys(chats);
+  const topChatIds = new Set(topChats.map((c) => c.chatId));
+
+  allChatIds.forEach((chatId) => {
+    if (!topChatIds.has(chatId)) {
+      useChatStore.getState().deleteChat(chatId);
     }
-  )
-);
+  });
+
+  return topChats;
+};

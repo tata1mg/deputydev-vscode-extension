@@ -20,6 +20,7 @@ jobs:
       ENABLE_OUTPUT_CHANNEL: ${{ vars.ENABLE_OUTPUT_CHANNEL }}
       USE_LOCAL_BINARY: ${{ vars.USE_LOCAL_BINARY }}
       LOCAL_BINARY_PORT: ${{ vars.LOCAL_BINARY_PORT }}
+      VITE_PARALLEL_CHATS_COUNT: ${{ vars.VITE_PARALLEL_CHATS_COUNT }}
 
     steps:
       - name: Checkout repository

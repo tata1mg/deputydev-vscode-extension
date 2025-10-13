@@ -8,7 +8,7 @@ interface LLMModelStore {
   llmModels: LLMModels[];
   activeModel: LLMModels | null;
   setLLMModels: (models: LLMModels[]) => void;
-  setActiveModel: (modelName: string) => void;
+  setActiveModel: (modelName: string | null) => void;
   setActiveReasoning: (level: ReasoningLevel) => void;
   getActiveReasoning: () => ReasoningLevel | null;
 }
@@ -60,13 +60,16 @@ export const useLLMModelStore = create<LLMModelStore>()(
       },
 
       setActiveModel: (modelName) => {
-        const model = get().llmModels.find((m) => m.name === modelName) || null;
-        set({ activeModel: model });
+        set((state) => {
+          const targetName = modelName ?? state.activeModel?.name ?? null;
+          const model = state.llmModels.find((m) => m.name === targetName) ?? null;
 
-        // If it's non-multimodal, clear s3Objects in chat store
-        if (model && !model.multimodal) {
-          useChatStore.setState({ s3Objects: [] });
-        }
+          if (model && !model.multimodal) {
+            useChatStore.getState().updateCurrentChat({ s3Objects: [] });
+          }
+
+          return { activeModel: model };
+        });
       },
 
       setActiveReasoning: (level) => {

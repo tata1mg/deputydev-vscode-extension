@@ -357,7 +357,7 @@ const AutocompleteListItem: FC<AutocompleteListItemProps> = ({
         e.preventDefault();
         onSelect(option);
       }}
-      onMouseEnter={() => useChatStore.setState({ selectedOptionIndex: index })}
+      onMouseEnter={() => useChatStore.getState().updateCurrentChat({ selectedOptionIndex: index })}
       role="option"
       aria-selected={isSelected}
     >
@@ -391,8 +391,11 @@ export const AutocompleteMenu: FC<AutocompleteMenuProps> = ({
   options,
   onSelect,
 }) => {
+  // Per-chat state (falls back to empty session if none)
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const { selectedOptionIndex } = currentChat;
+
   const safeBg = useSafeAutocompleteBackground();
-  const { selectedOptionIndex } = useChatStore();
   const listRef = useRef<HTMLUListElement>(null);
 
   const [formState, setFormState] = useState<{
