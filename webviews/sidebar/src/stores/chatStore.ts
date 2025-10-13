@@ -808,7 +808,7 @@ export const useChatStore = create(
                           baseToolProps.toolRunStatus === 'completed'
                             ? true
                             : prev.showGeneratingEffect;
-                        let chatStatus: ChatStatus = { type: 'in_progress' };
+                        let chatStatus = prev.status;
                         if (baseToolProps.phase === 'end') {
                           switch (baseToolProps.toolRequest?.toolName) {
                             case 'ask_user_input':
@@ -818,6 +818,8 @@ export const useChatStore = create(
                                 message: baseToolProps.toolRequest?.toolName,
                               };
                               break;
+                            default:
+                              chatStatus = { type: 'in_progress' };
                           }
                         }
                         return {
@@ -1313,16 +1315,17 @@ export const getActiveChatCount = (groupedChangedFiles: ChangedFilesGroup[]) => 
   const changedSessionIds = new Set<number>(_.chain(groupedChangedFiles).map('sessionId').value());
 
   // Count active chats or those linked to changed session IDs
-  const activeChatCount =
+  const activeChatCount = Math.max(
+    0,
     _.filter(
       chats,
       (chat) =>
         ['in_progress', 'action_required'].includes(chat.status.type) ||
         (typeof chat.sessionId === 'number' && changedSessionIds.has(chat.sessionId))
-    ).length - 1;
-
-  const disableChatInput = activeChatCount >= 3;
-
+    ).length - 1
+  );
+  const maxParallelChats = Number(import.meta.env.VITE_PARALLEL_CHATS_COUNT) || 3;
+  const disableChatInput = activeChatCount >= maxParallelChats;
   return { activeChatCount, disableChatInput };
 };
 

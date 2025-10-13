@@ -260,7 +260,8 @@ const ChatList: React.FC = () => {
   const handleViewMore = () => {
     useExtensionStore.setState({ viewType: 'history' });
   };
-  const hasMoreThanThree = chatList.length >= 3;
+  const maxParallelChats = Number(import.meta.env.VITE_PARALLEL_CHATS_COUNT) || 3;
+  const hasMoreThanThree = chatList.length >= maxParallelChats;
 
   return (
     <Tooltip.Provider delayDuration={150} skipDelayDuration={200}>
