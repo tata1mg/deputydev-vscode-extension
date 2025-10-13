@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { v4 as uuidv4 } from 'uuid';
 import { useExtensionStore } from './stores/useExtensionStore';
-import { useChatSettingStore, useChatStore } from './stores/chatStore';
+import { FALLBACK_CHAT_ID, getActiveChatCount, useChatStore } from './stores/chatStore';
+import { useChatSettingStore } from '@/stores/chatSettingStore';
 import { useWorkspaceStore } from './stores/workspaceStore';
 import { useRepoSelectorStore } from './stores/repoSelectorStore';
+import { format, Locale, parseISO } from 'date-fns';
+import { enUS, fr, hi } from 'date-fns/locale';
 import {
   ChatMessage,
   Session,
@@ -27,7 +30,6 @@ import {
   logToOutput,
   sendWorkspaceRepoChange,
   getGlobalState,
-  rejectAllChangesInSession,
   hitEmbedding,
   updateContextRepositories,
   newReview,
@@ -37,6 +39,7 @@ import {
   hitSnapshot,
   reviewNotification,
   fetchRepoDetails,
+  showErrorMessage,
 } from './commandApi';
 import { useSessionsStore } from './stores/sessionsStore';
 import { LoaderPhase, useLoaderViewStore } from './stores/useLoaderViewStore';
@@ -45,7 +48,7 @@ import { useThemeStore } from './stores/useThemeStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { useMcpStore } from './stores/mcpStore';
 import { useActiveFileStore } from './stores/activeFileStore';
-import { useChangedFilesStore } from './stores/changedFilesStore';
+import { groupChangedFiles, useChangedFilesStore } from './stores/changedFilesStore';
 import { useIndexingStore } from './stores/indexingDataStore';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import { useAuthStore } from './stores/authStore';
@@ -209,25 +212,12 @@ export function addCommandEventListener(command: string, listener: EventListener
   events[command].push(listener);
 }
 
-const getLocaleTimeString = (dateString: string) => {
-  const cleanedDateString = dateString.split('.')[0] + 'Z'; // Force UTC
-  const date = new Date(cleanedDateString);
-  const dateOptions: Intl.DateTimeFormatOptions = {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  };
-  const timeOptions: Intl.DateTimeFormatOptions = {
-    hour: 'numeric',
-    minute: 'numeric',
-    hour12: true,
-  };
+const getLocaleTimeString = (dateString: string, localeCode: string = 'enUS') => {
+  const locales: Record<string, Locale> = { enUS, fr, hi };
+  const cleanedDateString = dateString.split('.')[0] + 'Z';
+  const date = parseISO(cleanedDateString);
 
-  const locale = navigator.language || 'en-US';
-  const datePart = date.toLocaleDateString(locale, dateOptions);
-  const timePart = date.toLocaleTimeString(locale, timeOptions);
-
-  return `${datePart}, ${timePart.toUpperCase()}`;
+  return format(date, 'MMMM d, yyyy, h:mm a', { locale: locales[localeCode] || enUS });
 };
 
 export function removeCommandEventListener(command: string, listener: EventListener) {
@@ -244,11 +234,9 @@ addCommandEventListener('new-chat', async () => {
     useChatSettingStore.setState({
       chatSource: 'new-chat',
     });
-    useChatStore.getState().clearChat();
-    callCommand('delete-session-id', null);
+    useChatStore.getState().switchChat(FALLBACK_CHAT_ID);
+    callCommand('kill-all-processes', null);
   }
-  rejectAllChangesInSession(useChangedFilesStore.getState().filesChangedSessionId);
-  useChangedFilesStore.setState({ changedFiles: [] });
 });
 
 addCommandEventListener('set-view-type', ({ data }) => {
@@ -263,8 +251,10 @@ addCommandEventListener('set-view-type', ({ data }) => {
   useExtensionStore.setState({ viewType: data as ViewType });
 });
 
-addCommandEventListener('repo-selector-state', ({ data }) => {
-  useRepoSelectorStore.getState().setRepoSelectorDisabled(data as boolean);
+addCommandEventListener('focus-chat-and-open-action-required', ({ data }) => {
+  const chatId = data as string;
+  useChatStore.getState().switchChat(chatId);
+  useExtensionStore.setState({ viewType: 'chat' });
 });
 
 addCommandEventListener('repo-selector-state', ({ data }) => {
@@ -293,7 +283,6 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
       ],
     });
   }
-
   updateContextRepositories({
     contextRepositories: useWorkspaceStore.getState().contextRepositories,
   });
@@ -314,10 +303,14 @@ addCommandEventListener('set-workspace-repos', ({ data }) => {
     .indexingProgressData.filter((repo) => repo.status === 'IN_PROGRESS');
 
   // Hit embedding for new repos
-  if (newRepos.length > 0 && newRepos.length != repos.length && inProgressRepos.length == 0) {
+  if (newRepos.length > 0 && newRepos.length != repos.length) {
     newRepos.forEach((newRepo) => {
-      hitEmbedding(newRepo.repoPath);
+      // hitEmbedding(newRepo.repoPath);
     });
+    logToOutput(
+      'info',
+      `Workspace repos updated: ${JSON.stringify(repos)}, active repo: ${activeRepo}`
+    );
   }
 });
 
@@ -363,7 +356,7 @@ addCommandEventListener('keyword-search-response', ({ data }) => {
     };
   });
   logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
-  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+  useChatStore.getState().updateCurrentChat({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     return;
   }
@@ -398,7 +391,7 @@ addCommandEventListener('keyword-type-search-response', ({ data }) => {
     };
   });
   logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
-  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+  useChatStore.getState().updateCurrentChat({ ChatAutocompleteOptions: AutoSearchResponse });
   if (!Array.isArray(data)) {
     return;
   }
@@ -417,7 +410,7 @@ addCommandEventListener('get-saved-urls-response', ({ data }) => {
     };
   });
   logToOutput('info', `AutoSearchResponse :: ${JSON.stringify(AutoSearchResponse)}`);
-  useChatStore.setState({ ChatAutocompleteOptions: AutoSearchResponse });
+  useChatStore.getState().updateCurrentChat({ ChatAutocompleteOptions: AutoSearchResponse });
 });
 
 addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
@@ -426,28 +419,30 @@ addCommandEventListener('get-saved-urls-response-settings', ({ data }) => {
 
 addCommandEventListener('image-upload-progress', (event) => {
   const { data } = event as { data: { progress: number } };
-  useChatStore.setState({ imageUploadProgress: data.progress as number });
+  useChatStore.getState().updateCurrentChat({ imageUploadProgress: data.progress as number });
 });
 
 addCommandEventListener('uploaded-image-key', (event) => {
   const { data } = event as { data: { key: string; get_url: string } };
-  const currentS3Objects = useChatStore.getState().s3Objects;
-  useChatStore.setState({ s3Objects: [...currentS3Objects, data] });
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const currentS3Objects = currentChat.s3Objects;
+  useChatStore.getState().updateCurrentChat({ s3Objects: [...currentS3Objects, data] });
 });
 
 addCommandEventListener('enhanced-user-query', ({ data }: any) => {
   if (data && data.enhancedUserQuery && !data.error) {
-    useChatStore.setState({
+    useChatStore.getState().updateCurrentChat({
       enhancedUserQuery: data.enhancedUserQuery as string,
     });
   } else {
-    useChatStore.setState({ enhancingUserQuery: false });
+    useChatStore.getState().updateCurrentChat({ enhancingUserQuery: false });
   }
 });
 
 addCommandEventListener('inline-chat-data', ({ data }) => {
   const response = data as InlineChatReferenceData;
-  const currentEditorReference = useChatStore.getState().currentEditorReference;
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const currentEditorReference = currentChat.currentEditorReference;
   const lengthOfCurrentEditorReference = currentEditorReference.length;
   const chatReferenceItem: ChatReferenceItem = {
     index: lengthOfCurrentEditorReference,
@@ -459,9 +454,9 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     chunks: [response.chunk],
     noEdit: true,
   };
-  useChatStore.setState({
-    currentEditorReference: [...currentEditorReference, chatReferenceItem],
-  });
+  useChatStore
+    .getState()
+    .updateCurrentChat({ currentEditorReference: [...currentEditorReference, chatReferenceItem] });
   useChatSettingStore.setState({ chatSource: 'inline-chat' });
 });
 
@@ -523,67 +518,101 @@ addCommandEventListener('send-client-version', ({ data }) => {
 });
 
 addCommandEventListener('last-chat-data', ({ data }) => {
-  const lastChatData = data as string;
-  const lastChatDataParsed = JSON.parse(lastChatData).state;
+  const { chatId, chatData } = data as { chatId: string; chatData: string };
+  if (!chatId || !chatData) return;
+  const lastChatDataParsed = JSON.parse(chatData).state;
   useChatStore.setState({
-    history: lastChatDataParsed.history as ChatMessage[],
+    chats: lastChatDataParsed.chats || {},
+    currentChatId: lastChatDataParsed.currentChatId,
   });
-  useChatStore.setState({ isLoading: true });
-  useChatStore.setState({ showSkeleton: true });
-  const lastMessage = [...lastChatDataParsed.history]
+
+  const state = useChatStore.getState();
+
+  state.switchChat(chatId);
+  state.updateCurrentChat({
+    isLoading: true,
+    showSkeleton: true,
+  });
+  setTimeout(() => {
+    state.updateCurrentChat({
+      status: { type: 'in_progress', message: undefined },
+    });
+  }, 3000);
+
+  const currentChat = state.getCurrentChat();
+
+  const lastMessage = [...currentChat.history]
     .reverse()
     .find(
       (msg) => msg.type === 'TOOL_CHIP_UPSERT' && msg.content?.tool_name === 'create_new_workspace'
     );
 
-  const newRepoPath = useWorkspaceStore.getState().activeRepo;
-  // Create the base message
-  let baseMessage = `
-    - Workspace Created Successfully, and now we are inside new Workspace${newRepoPath ? `, with directory: ${newRepoPath}` : ''}.
-    - Inside <thinking> tags, Analyze the user's requirements, define project structure, essential files, and dependencies.
-    - If additional setup steps or library installations are required (eg. setting up nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
-    - If the user asked to create a new app like nextjs, react, tailiwind , python, etc then your first step should be to install those libraries and check if they are installed successfully and check folder strucutre with tool.
-    - Make sure you don't mess up the structure of the codebase, utlize file_path_searcher tool to check the added files if you have any confusions.
-    - If you are modifying existing or already created file and you don't have context then utilize file reader, etc tool.
-    - Leverage other available tools as needed to complete scaffolding.
-  `;
+  if (!lastMessage) return;
 
-  // Add the conditional instructions based on chat type
-  if (useChatSettingStore.getState().chatType === 'write') {
+  const newRepoPath = useWorkspaceStore.getState().activeRepo;
+
+  let baseMessage = `
+        - Workspace Created Successfully, and now we are inside new Workspace${
+          newRepoPath ? `, with directory: ${newRepoPath}` : ''
+        }.
+        - Inside <thinking> tags, analyze the user's requirements, define project structure, essential files, and dependencies.
+        - If additional setup steps or library installations are required (e.g., nextjs, react, python, tailwind, etc), invoke the "execute_command" tool.
+        - If the user asked to create a new app like nextjs, react, tailwind, python, etc, first install those libraries and check folder structure.
+        - Make sure you don't mess up the structure of the codebase — use the file_path_searcher tool if unsure.
+        - If modifying existing files and context is missing, use file reader tools.
+        - Leverage other available tools as needed to complete scaffolding.
+      `;
+
+  const chatType = useChatSettingStore.getState().chatType;
+  if (chatType === 'write') {
     baseMessage += `
-    - If file-creation steps are needed in a follow-up, use the "replace_in_file" tool to make changes to existing files or "write_in_file" tool to create new files.
-    - Do not use execute_command tool to create files, instead use "write_in_file" or "replace_in_file" tool.
-    `;
+        - For file creation or modification, use "write_in_file" or "replace_in_file".
+        - Do not use "execute_command" to create files.
+        `;
   } else {
     baseMessage += `
-    - If file-creation steps are needed in a follow-up, send code blocks with udiff inside and make sure you make that <is_diff> true.
-    - Do not use execute_command tool to create files, instead send code blocks with udiff MapPinPlusInside.
-    `;
+        - For file creation steps, send code blocks with udiff (<is_diff>true>).
+        - Do not use "execute_command" to create files.
+        `;
   }
 
   const continuationPayload = {
-    write_mode: useChatSettingStore.getState().chatType === 'write',
+    write_mode: chatType === 'write',
+    repoPath: newRepoPath,
+    sessionId: currentChat.sessionId,
+    search_web: currentChat.search_web,
     batch_tool_responses: [
       {
         tool_name: lastMessage.content.tool_name,
         tool_use_id: lastMessage.content.tool_use_id,
-        response: {
-          message: baseMessage,
-        },
-        status: 'COMPLETED', // ✅ required, since ToolUseResponseInput expects status
+        response: { message: baseMessage },
+        status: 'COMPLETED',
       },
     ],
   };
-  const { sendChatMessage } = useChatStore.getState();
-  sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
+
+  useChatStore
+    .getState()
+    .sendChatMessage(
+      chatId,
+      'create new workspace payload',
+      [],
+      undefined,
+      false,
+      {},
+      continuationPayload
+    );
+
+  return;
 });
 
 addCommandEventListener('update-workspace-tool-status', ({ data }) => {
-  const { tool_use_id, status } = data as {
+  const { tool_use_id } = data as {
     tool_use_id: string;
     status: string;
   };
-  const currentHistory = useChatStore.getState().history;
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const currentHistory = currentChat.history;
   // if toolId matches with any of the history, then update the status
   const updatedHistory = currentHistory.map((msg) => {
     if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
@@ -597,12 +626,15 @@ addCommandEventListener('update-workspace-tool-status', ({ data }) => {
     }
     return msg;
   });
-  useChatStore.setState({ history: updatedHistory as ChatMessage[] });
+  useChatStore.getState().updateCurrentChat({ history: updatedHistory as ChatMessage[] });
 });
 
 addCommandEventListener('update-workspace-dd', () => {
   // Get list of current workspace repositories and update active repo to last or latest workspace
   const workspaceRepos = useWorkspaceStore.getState().workspaceRepos;
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const currentChatId = useChatStore.getState().currentChatId;
+  const currentHistory = currentChat.history;
   if (workspaceRepos.length > 0) {
     const lastWorkspaceRepo = workspaceRepos[workspaceRepos.length - 1];
     const repoPath = lastWorkspaceRepo.repoPath;
@@ -612,9 +644,7 @@ addCommandEventListener('update-workspace-dd', () => {
       logToOutput('error', 'repoPath is null or undefined.');
     }
     sendWorkspaceRepoChange({ repoPath });
-    useChatStore.setState({ isLoading: true });
-    useChatStore.setState({ showSkeleton: true });
-    const currentHistory = useChatStore.getState().history;
+    useChatStore.getState().updateCurrentChat({ isLoading: true, showSkeleton: true });
     const lastToolMessage = [...currentHistory]
       .reverse()
       .find(
@@ -652,6 +682,9 @@ addCommandEventListener('update-workspace-dd', () => {
     }
     const continuationPayload = {
       write_mode: useChatSettingStore.getState().chatType === 'write',
+      repoPath: newRepoPath,
+      sessionId: currentChat.sessionId,
+      search_web: currentChat.search_web,
       batch_tool_responses: [
         {
           tool_name: lastToolMessage.content.tool_name,
@@ -664,8 +697,17 @@ addCommandEventListener('update-workspace-dd', () => {
       ],
     };
 
-    const { sendChatMessage } = useChatStore.getState();
-    sendChatMessage('create new workspace payload', [], undefined, false, {}, continuationPayload);
+    useChatStore
+      .getState()
+      .sendChatMessage(
+        currentChatId,
+        'create new workspace payload',
+        [],
+        undefined,
+        false,
+        {},
+        continuationPayload
+      );
   } else {
     logToOutput(
       'error',
@@ -676,8 +718,9 @@ addCommandEventListener('update-workspace-dd', () => {
 
 addCommandEventListener('terminal-output-to-chat', ({ data }) => {
   const terminalOutput = data as { terminalOutput: string };
-  const currentUserInput = useChatStore.getState().userInput;
-  useChatStore.setState({
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const currentUserInput = currentChat.userInput;
+  useChatStore.getState().updateCurrentChat({
     userInput: currentUserInput + terminalOutput.terminalOutput,
   });
 });
@@ -711,7 +754,6 @@ addCommandEventListener('file-diff-applied', ({ data }) => {
       return { changedFiles: [...state.changedFiles, newFile] };
     }
   });
-  useChangedFilesStore.setState({ filesChangedSessionId: sessionId });
 });
 
 addCommandEventListener('all-file-changes-finalized', ({ data }) => {
@@ -746,11 +788,7 @@ addCommandEventListener('all-file-changes-rejected', ({ data }) => {
   });
 });
 
-addCommandEventListener('all-session-changes-finalized', ({ data }) => {
-  useChangedFilesStore.setState({ changedFiles: [] });
-});
-
-addCommandEventListener('all-session-changes-rejected', ({ data }) => {
+addCommandEventListener('all-session-changes-finalized', () => {
   useChangedFilesStore.setState({ changedFiles: [] });
 });
 
@@ -779,8 +817,8 @@ addCommandEventListener('fetched-mcp-servers', ({ data }) => {
 
 addCommandEventListener('terminal-process-completed', ({ data }) => {
   const { toolUseId, exitCode } = data as { toolUseId: string; exitCode: number };
-
-  const history = useChatStore.getState().history;
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const history = currentChat.history;
 
   const updatedHistory = history.map((msg) => {
     if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === toolUseId) {
@@ -802,11 +840,7 @@ addCommandEventListener('terminal-process-completed', ({ data }) => {
     return msg;
   });
 
-  useChatStore.setState({ history: updatedHistory as ChatMessage[] });
-});
-
-addCommandEventListener('set-cancel-button-status', ({ data }) => {
-  useChatStore.setState({ setCancelButtonStatus: data as boolean });
+  useChatStore.getState().updateCurrentChat({ history: updatedHistory as ChatMessage[] });
 });
 
 addCommandEventListener('active-file-change', ({ data }) => {
@@ -885,7 +919,7 @@ addCommandEventListener('user-agents', ({ data }) => {
   }
 });
 
-addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', ({ data }) => {
+addCommandEventListener('REVIEW_PRE_PROCESS_STARTED', () => {
   const store = useCodeReviewStore.getState();
 
   // Add setup step
@@ -928,12 +962,12 @@ addCommandEventListener('REVIEW_PRE_PROCESS_COMPLETED', ({ data }) => {
   });
 });
 
-addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', ({ data }) => {
+addCommandEventListener('REVIEW_PRE_PROCESS_FAILED', () => {
   useCodeReviewStore.getState().updateStepStatus('INITIAL_SETUP', 'FAILED');
   reviewNotification('REVIEW_FAILED');
 });
 
-addCommandEventListener('REVIEW_STARTED', ({ data }) => {
+addCommandEventListener('REVIEW_STARTED', () => {
   const store = useCodeReviewStore.getState();
   const enabledAgents = useCodeReviewSettingStore.getState().enabledAgents;
 
@@ -1047,7 +1081,7 @@ addCommandEventListener('AGENT_FAIL', ({ data }) => {
   }
 });
 
-addCommandEventListener('POST_PROCESS_START', ({ data }) => {
+addCommandEventListener('POST_PROCESS_START', () => {
   const store = useCodeReviewStore.getState();
 
   // Add setup step
@@ -1058,7 +1092,7 @@ addCommandEventListener('POST_PROCESS_START', ({ data }) => {
   });
 });
 
-addCommandEventListener('POST_PROCESS_COMPLETE', ({ data }) => {
+addCommandEventListener('POST_PROCESS_COMPLETE', () => {
   useCodeReviewStore.getState().updateStepStatus('FINALIZING_REVIEW', 'COMPLETED');
   fetchPastReviews({
     sourceBranch: useCodeReviewStore.getState().new_review.source_branch,
@@ -1080,7 +1114,7 @@ addCommandEventListener('POST_PROCESS_ERROR', ({ data }) => {
   useCodeReviewStore.setState({ reviewStatus: 'COMPLETED' });
 });
 
-addCommandEventListener('REVIEW_CANCELLED', ({ data }) => {
+addCommandEventListener('REVIEW_CANCELLED', () => {
   const store = useCodeReviewStore.getState();
 
   // Update all in-progress steps and their agents to STOPPED
@@ -1119,11 +1153,35 @@ addCommandEventListener('user-agent-deleted', ({ data }) => {
   });
 });
 
-addCommandEventListener('fix-with-dd', ({ data }) => {
+addCommandEventListener('fix-with-dd', async ({ data }) => {
   const { fix_query } = data as { fix_query: string };
-  useCodeReviewStore.setState({ commentFixQuery: fix_query });
+
+  // Switch to chat view
   useExtensionStore.setState({ viewType: 'chat' });
+
+  // Access store utilities
+  const chatStore = useChatStore.getState();
+  const { createChat, sendChatMessage } = chatStore;
+
+  // Group changed files and check limits
+  const rawChangedFiles = useChangedFilesStore.getState().changedFiles;
+  const changedFiles = groupChangedFiles(rawChangedFiles);
+  const { disableChatInput } = getActiveChatCount(changedFiles);
+
+  if (disableChatInput) {
+    showErrorMessage(
+      'You have reached the maximum number of active chats (3). Please stop some chats before fixing with DD.'
+    );
+    return;
+  }
+
+  // Set chat mode
   useChatSettingStore.setState({ chatType: 'ask' });
+
+  // Create chat first and wait for state to update
+  await createChat(); // ensure createChat returns the ID or wait for it to set
+  const chatId = useChatStore.getState().currentChatId;
+  sendChatMessage(chatId, fix_query, [], []);
 });
 
 addCommandEventListener('hit-new-review-after-file-event', () => {

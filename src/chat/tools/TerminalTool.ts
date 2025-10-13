@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Disposable, ExtensionContext } from 'vscode';
 import { ChunkCallback, Settings, ToolRequest } from '../../types';
-import { getActiveRepo, terminalProcessCompleted } from '../../utilities/contextManager';
+import { terminalProcessCompleted } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { Terminal } from '../../terminal/Terminal';
 import { ExitCodeDetails, DDTerminalCallbacks, DDTerminalProcess } from '../../terminal/types';
@@ -13,6 +13,7 @@ export interface RunOptions {
   isLongRunning: boolean;
   chunkCallback: ChunkCallback;
   toolRequest: ToolRequest;
+  repoPath: string;
 }
 
 /** Which backend actually executes the shell command. */
@@ -49,7 +50,7 @@ export class TerminalExecutor {
    * 4. Streams / truncates / times-out output and returns the final string
    */
   public async runCommand(opts: RunOptions): Promise<string> {
-    const { original, requiresApproval, isLongRunning, chunkCallback, toolRequest } = opts;
+    const { original, requiresApproval, isLongRunning, chunkCallback, toolRequest, repoPath } = opts;
     if (!original) {
       throw new Error('Command is empty.');
     }
@@ -116,6 +117,7 @@ export class TerminalExecutor {
       preferredProvider,
       chunkCallback,
       toolRequest,
+      repoPath,
     );
 
     // Only track if Execa provider is used
@@ -172,17 +174,13 @@ export class TerminalExecutor {
     provider: TerminalProvider,
     chunkCallback: ChunkCallback,
     toolRequest: ToolRequest,
+    repoPath: string,
   ): Promise<{
     process: DDTerminalProcess;
     terminalId: number;
     providerActuallyUsed: TerminalProvider;
   }> {
-    const activeRepo = getActiveRepo();
-    if (!activeRepo) {
-      throw new Error('Command failed: Active repository is not defined.');
-    }
-
-    this.outputChannel.info(`Launching command in repo: ${activeRepo}`);
+    this.outputChannel.info(`Launching command in repo: ${repoPath}`);
 
     let shellIntegrationError: string | undefined;
     let process: DDTerminalProcess;
@@ -247,7 +245,7 @@ export class TerminalExecutor {
     // Try the preferred provider first
     if (provider === TerminalProvider.VSCODE) {
       try {
-        const terminal = await TerminalRegistry.getOrCreateTerminal(activeRepo, true, undefined, 'vscode');
+        const terminal = await TerminalRegistry.getOrCreateTerminal(repoPath, true, undefined, 'vscode');
         if (terminal instanceof Terminal) {
           terminal.terminal.show(true);
         }
@@ -277,7 +275,7 @@ export class TerminalExecutor {
     // Execa fallback (or direct execa if requested)
     this.outputChannel.info('Using execa provider for command execution');
 
-    const execaTerminal = await TerminalRegistry.getOrCreateTerminal(activeRepo, true, undefined, 'execa');
+    const execaTerminal = await TerminalRegistry.getOrCreateTerminal(repoPath, true, undefined, 'execa');
     process = execaTerminal.runCommand(command, callbacks);
     terminalId = execaTerminal.id;
     actualProvider = TerminalProvider.EXECA;

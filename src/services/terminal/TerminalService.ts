@@ -5,7 +5,6 @@ import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 import { AuthService } from '../auth/AuthService';
 import { SESSION_TYPE } from '../../constants';
-import { getSessionId } from '../../utilities/contextManager';
 import { getOSName } from '../../utilities/osName';
 import { getShell } from '../../terminal/utils/shell';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
@@ -24,14 +23,14 @@ export class TerminalService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
 
-  async editTerminalCommand(data: { user_query: string; old_command: string }) {
+  async editTerminalCommand(data: { user_query: string; old_command: string; sessionId: number }): Promise<string> {
     try {
       const { user_query, old_command } = data;
       const authToken = await fetchAuthToken();
       const headers = {
         Authorization: `Bearer ${authToken}`,
         'X-Session-Type': SESSION_TYPE,
-        'X-Session-Id': getSessionId(),
+        'X-Session-Id': data.sessionId,
       };
       const payload = {
         query: user_query,
@@ -47,7 +46,12 @@ export class TerminalService {
     } catch (error) {
       this.logger.error('Error updating terminal command:');
       this.apiErrorHandler.handleApiError(error);
-      this.errorTrackingManager.trackGeneralError(error, 'TERMINAL_COMMAND_EDIT_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'TERMINAL_COMMAND_EDIT_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: data.sessionId,
+      });
       throw error;
     }
   }

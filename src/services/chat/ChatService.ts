@@ -3,7 +3,7 @@ import { BackendClient } from '../../clients/backendClient';
 import { SESSION_TYPE } from '../../constants';
 import { ReferenceManager } from '../../references/ReferenceManager';
 import { InputTokenLimitErrorData, ThrottlingErrorData } from '../../types';
-import { getContextRepositories, getSessionId, setCancelButtonStatus } from '../../utilities/contextManager';
+import { getContextRepositories } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 import { BaseWebsocketEndpoint } from '../../clients/base/baseClient';
@@ -19,7 +19,7 @@ export class QuerySolverService {
   private readonly referenceManager: ReferenceManager;
   private readonly outputChannel: vscode.LogOutputChannel;
   private readonly backendClient: BackendClient;
-  private socketConn: BaseWebsocketEndpoint | null = null;
+  private sockets = new Map<string, BaseWebsocketEndpoint>();
 
   constructor(context: vscode.ExtensionContext, outputChannel: vscode.LogOutputChannel, backendClient: BackendClient) {
     this.logger = SingletonLogger.getInstance();
@@ -37,7 +37,7 @@ export class QuerySolverService {
     let firstAttemptYielded = false;
 
     try {
-      for await (const event of this._runQuerySolverAttempt(payload, signal)) {
+      for await (const event of this._runQuerySolverAttempt(payload, payload.chatId, signal)) {
         firstAttemptYielded = true;
 
         yield event;
@@ -46,7 +46,7 @@ export class QuerySolverService {
       if (!firstAttemptYielded) {
         this.logger.warn('querySolver failed...', err);
         await new Promise((res) => setTimeout(res, 200)); // small delay before retry
-        for await (const event of this._runQuerySolverAttempt(payload, signal)) {
+        for await (const event of this._runQuerySolverAttempt(payload, payload.chatId, signal)) {
           yield event;
         }
       } else {
@@ -58,15 +58,15 @@ export class QuerySolverService {
 
   private async *_runQuerySolverAttempt(
     payload: Record<string, any>,
+    chatId: string,
     signal?: AbortSignal,
   ): AsyncIterableIterator<any> {
     const repositories = await getContextRepositories();
-    const currentSessionId = getSessionId();
 
     // adding context of repositories present in workspace except active repository in payload.
     payload['repositories'] = repositories || [];
     const finalPayload = await this.preparePayload(payload);
-    finalPayload.session_id = currentSessionId;
+    finalPayload.session_id = payload.sessionId;
     finalPayload.session_type = SESSION_TYPE;
 
     let streamDone = false;
@@ -84,50 +84,47 @@ export class QuerySolverService {
       }
 
       try {
-        if (messageData.type === 'STREAM_START') {
-          if (messageData.new_session_data) {
-            refreshCurrentToken({
-              new_session_data: messageData.new_session_data,
-            });
-          }
-          setCancelButtonStatus(true);
-        } else if (messageData.type === 'RESPONSE_METADATA') {
-          // Extract query ID from response metadata event for resumption
-          if (messageData.content?.query_id) {
-            queryId = messageData.content.query_id;
-          }
-        } else if (messageData.type === 'STREAM_END_CLOSE_CONNECTION') {
-          this.dispose();
-          streamDone = true;
-          return;
-        } else if (messageData.type === 'STREAM_END') {
-          streamDone = true;
-          return;
-        } else if (messageData.type === 'STREAM_ERROR') {
-          streamError = this.handleStreamError(messageData);
-          return;
-        }
+        switch (messageData.type) {
+          case 'STREAM_START':
+            if (messageData.new_session_data) {
+              refreshCurrentToken({ new_session_data: messageData.new_session_data });
+            }
+            eventsQueue.push({ type: messageData.type, content: messageData.content });
+            break;
 
-        eventsQueue.push({ type: messageData.type, content: messageData.content });
+          case 'RESPONSE_METADATA':
+            if (messageData.content?.query_id) queryId = messageData.content.query_id;
+            eventsQueue.push({ type: messageData.type, content: messageData.content });
+            break;
+
+          case 'STREAM_END_CLOSE_CONNECTION':
+          case 'STREAM_END':
+            streamDone = true;
+            return;
+
+          case 'STREAM_ERROR':
+            streamError = this.handleStreamError(messageData);
+            return;
+
+          default:
+            eventsQueue.push({ type: messageData.type, content: messageData.content });
+        }
       } catch (error) {
         this.logger.error('Error parsing querysolver WebSocket message', error);
       }
     };
 
     const setupSocketConnection = async (isReconnection = false): Promise<void> => {
-      if (!this.socketConn) {
-        this.logger.info(isReconnection ? 'Creating new socket for reconnection' : 'Creating new socket connection');
-        this.socketConn = this.backendClient.querySolver();
-      }
+      const socketConn = this.getOrCreateSocket(chatId, finalPayload.session_id);
 
-      this.socketConn.onMessage.on('message', handleMessage);
-      this.socketConn.onClose.on('close', (event: { code: number; reason: string }) => {
-        this.handleSocketClose(event, streamDone, streamError, queryId, lastMessageId, setupSocketConnection);
+      socketConn.onMessage.on('message', handleMessage);
+      socketConn.onClose.on('close', (event: { code: number; reason: string }) => {
+        this.handleSocketClose(chatId, event, streamDone, streamError, queryId, lastMessageId, setupSocketConnection);
       });
 
       const payloadToSend = isReconnection ? this.createResumptionPayload(queryId, lastMessageId) : finalPayload;
 
-      await this.socketConn.sendMessageWithRetry(payloadToSend);
+      await socketConn.sendMessageWithRetry(payloadToSend);
 
       if (isReconnection) {
         this.logger.info('Successfully sent resumption payload after reconnection');
@@ -143,14 +140,15 @@ export class QuerySolverService {
 
     if (signal) {
       signal.addEventListener('abort', () => {
-        this.dispose();
+        this.closeSocket(chatId);
+        streamError = null;
         streamDone = true;
       });
     }
 
     while (!streamDone || eventsQueue.length > 0) {
       if (streamError) {
-        if (await this.handleAuthenticationRetry(streamError, finalPayload, handleMessage)) {
+        if (await this.handleAuthenticationRetry(chatId, streamError, finalPayload, handleMessage)) {
           streamDone = false;
           streamError = null;
           continue;
@@ -159,7 +157,7 @@ export class QuerySolverService {
       }
 
       if (signal?.aborted) {
-        this.dispose();
+        this.closeSocket(chatId);
         return;
       }
 
@@ -201,6 +199,7 @@ export class QuerySolverService {
   }
 
   private async handleSocketClose(
+    chatId: string,
     event: { code: number; reason: string },
     streamDone: boolean,
     streamError: Error | null,
@@ -208,7 +207,7 @@ export class QuerySolverService {
     lastMessageId: string | null,
     setupSocketConnection: (isReconnection?: boolean) => Promise<void>,
   ): Promise<void> {
-    this.logger.info('WebSocket closed:', event);
+    this.logger.info(`WebSocket closed for chat ${chatId}:`, event);
 
     // Only attempt reconnection if the stream hasn't ended and there's no error
     if (!streamDone && !streamError) {
@@ -221,7 +220,7 @@ export class QuerySolverService {
 
       try {
         // Clean up the old connection
-        this.socketConn = null;
+        this.closeSocket(chatId);
 
         // Create new connection and send resumption payload
         await setupSocketConnection(true);
@@ -233,6 +232,7 @@ export class QuerySolverService {
   }
 
   private async handleAuthenticationRetry(
+    chatId: string,
     streamError: Error,
     finalPayload: Record<string, any>,
     handleMessage: (rawMessage: any) => void,
@@ -247,9 +247,9 @@ export class QuerySolverService {
 
     // Wait until the user is authenticated or timeout
     const startTime = Date.now();
-    const maxWaitTime = 10 * 60 * 1000; // 10 minutes
+    const maxWait = 10 * 60 * 1000; // 10 minutes
 
-    while (!isAuthenticated && Date.now() - startTime < maxWaitTime) {
+    while (!isAuthenticated && Date.now() - startTime < maxWait) {
       await new Promise((resolve) => setTimeout(resolve, 100));
       isAuthenticated = this.context.workspaceState.get('isAuthenticated');
     }
@@ -258,26 +258,38 @@ export class QuerySolverService {
       throw new Error('Session not verified');
     }
 
-    // Retry with new authentication
-    if (!this.socketConn) {
-      this.socketConn = this.backendClient.querySolver();
-    }
+    const socket = this.getOrCreateSocket(chatId, finalPayload.session_id);
 
-    this.socketConn.onMessage.on('message', handleMessage);
-    await this.socketConn.sendMessageWithRetry(finalPayload);
+    socket.onMessage.on('message', handleMessage);
+
+    await socket.sendMessageWithRetry(finalPayload);
 
     return true;
   }
 
-  public dispose(): void {
-    if (this.socketConn) {
+  private getOrCreateSocket(chatId: string, sessionId?: number): BaseWebsocketEndpoint {
+    let socket = this.sockets.get(chatId);
+    if (!socket) {
+      this.logger.info(`Creating new socket for chat ${chatId}`);
+      socket = this.backendClient.querySolver(sessionId);
+      this.sockets.set(chatId, socket);
+    }
+    return socket;
+  }
+
+  public closeSocket(chatId: string): void {
+    const socket = this.sockets.get(chatId);
+
+    if (socket) {
+      console.log('Closing socket for chatId:', chatId);
+      this.logger.info(`Closing socket for chat ${chatId}`);
+
       try {
-        console.log('Closing socket connection');
-        this.socketConn.close();
-      } catch (error) {
-        this.logger.error('Error while closing socket connection:', error);
+        socket.close();
+      } catch (e) {
+        this.logger.error(`Error closing socket for chat ${chatId}`, e);
       } finally {
-        this.socketConn = null;
+        this.sockets.delete(chatId);
       }
     }
   }

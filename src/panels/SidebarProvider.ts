@@ -24,7 +24,7 @@ import { TerminalService } from '../services/terminal/TerminalService';
 import { UserQueryEnhancerService } from '../services/userQueryEnhancer/userQueryEnhancerService';
 import { ContinueNewWorkspace } from '../terminal/workspace/ContinueNewWorkspace';
 import { createNewWorkspaceFn } from '../terminal/workspace/CreateNewWorkspace';
-import { AgentPayload, NewReview } from '../types';
+import { AgentPayload, ChatStatusMsg, NewReview } from '../types';
 import { ConfigManager } from '../utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
@@ -181,12 +181,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
         case 'api-stop-chat':
-          promise = this.chatService.stopChat(); // Calls abort on the active request
+          promise = this.chatService.stopChat(data.sessionId, data.chatId); // Calls abort on the active request
           break;
-        case 'delete-session-id':
-          this.outputChannel.info('Deleting session ID and killing all processes');
+        case 'kill-all-processes':
+          this.outputChannel.info('killing all processes');
           this.chatService.killAllProcesses();
-          deleteSessionId();
           break;
         case 'get-client-version':
           promise = this.sendMessageToSidebar({
@@ -271,12 +270,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
         // Feedback
         case 'submit-feedback':
-          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId);
+          promise = this.feedbackService.submitFeedback(data.feedback, data.queryId, data.sessionId);
           break;
 
         // Enhance user query feature
         case 'enhance-user-query':
-          promise = this.enhanceUserQuery(data.userQuery);
+          promise = this.enhanceUserQuery(data.userQuery, data.sessionId);
           break;
 
         // Logging and Messages
@@ -364,7 +363,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.setWorkspaceRepo(data);
           break;
         case 'create-new-workspace':
-          promise = this.createNewWorkspace(data.tool_use_id);
+          promise = this.createNewWorkspace(data.tool_use_id, data.chatId);
           break;
         case 'accept-terminal-command':
           this.chatService._onTerminalApprove.fire({
@@ -382,6 +381,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
             autoAcceptNextTime: data.autoAcceptNextTime,
             approved: data.approved,
           });
+          break;
+        case 'on-action-required':
+          this.onActionRequiredNotification(data.chatId, data.chatStatusMsg, data.summary);
           break;
 
         // terminal
@@ -424,22 +426,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         }
 
         case 'accept-all-changes-in-session': {
-          await this.diffManager.acceptAllFilesForSession(data.sessionId);
-          this.sendMessageToSidebar({
-            id: message.id,
-            command: 'all-session-changes-finalized',
-            data: { sessionId: data.sessionId },
-          });
+          promise = this.diffManager.acceptAllFilesForSession(data.sessionId);
           break;
         }
 
         case 'reject-all-changes-in-session': {
-          await this.diffManager.rejectAllFilesForSession(data.sessionId);
-          this.sendMessageToSidebar({
-            id: message.id,
-            command: 'all-session-changes-finalized',
-            data: { sessionId: data.sessionId },
-          });
+          promise = this.diffManager.rejectAllFilesForSession(data.sessionId);
           break;
         }
 
@@ -635,7 +627,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         if (attempt === 3) {
           this.logger.warn('Binary initialization failed');
           this.outputChannel.warn('🚨 Binary initialization failed.');
-          this.errorTrackingManager.trackGeneralError(err, 'BINARY_INIT_ERROR', 'BINARY');
+          this.errorTrackingManager.trackGeneralError({
+            error: err,
+            errorType: 'BINARY_INIT_ERROR',
+            errorSource: 'BINARY',
+            repoPath: activeRepo,
+          });
           this.setViewType('error');
           throw err;
         }
@@ -662,7 +659,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     } catch (error) {
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
-      this.errorTrackingManager.trackGeneralError(error, 'EMBEDDING_ERROR', 'BINARY');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'EMBEDDING_ERROR',
+        errorSource: 'BINARY',
+        repoPath: activeRepo,
+      });
       throw error;
     }
   }
@@ -676,7 +678,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     try {
       await this.indexingService.updateVectorStore(params);
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'RETRY_EMBEDDING_ERROR', 'BINARY');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'RETRY_EMBEDDING_ERROR',
+        errorSource: 'BINARY',
+        repoPath: repoPath,
+      });
       this.logger.warn('Embedding failed');
       this.outputChannel.warn('Embedding failed');
     }
@@ -731,7 +738,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       await vscode.window.showTextDocument(document);
     } catch (error: any) {
       vscode.window.showErrorMessage(`Failed to open or create mcp settings file: ${error.message}`);
-      this.errorTrackingManager.trackGeneralError(error, 'OPEN_MCP_SETTINGS_ERROR', 'EXTENSION');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'OPEN_MCP_SETTINGS_ERROR',
+        errorSource: 'EXTENSION',
+      });
     }
   }
 
@@ -800,21 +811,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     return this.context.secrets.delete(data.key);
   }
 
-  async enhanceUserQuery(userQuery: string) {
-    try {
-      const response = await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery);
-      this.sendMessageToSidebar({
-        id: uuidv4(),
-        command: 'enhanced-user-query',
-        data: { enhancedUserQuery: response.enhanced_query },
-      });
-    } catch (error) {
-      this.sendMessageToSidebar({
-        id: uuidv4(),
-        command: 'enhanced-user-query',
-        data: { error: error },
-      });
-    }
+  async enhanceUserQuery(userQuery: string, sessionId?: number) {
+    return await this.userQueryEnhancerService.generateEnhancedUserQuery(userQuery, sessionId);
   }
 
   async getSessions(data: { limit: number; offset: number }) {
@@ -861,7 +859,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     let response: any[] = [];
     try {
       response = await this.historyService.getPastSessionChats(sessionData.sessionId);
-      setSessionId(sessionData.sessionId);
+      setSessionId(sessionData.sessionId); // remove
       const formattedResponse = formatSessionChats(response);
       return formattedResponse;
     } catch {
@@ -889,8 +887,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     vscode.commands.executeCommand('workbench.action.reloadWindow');
   }
 
-  async createNewWorkspace(tool_use_id: string) {
-    createNewWorkspaceFn(tool_use_id, this.context, this.outputChannel);
+  async createNewWorkspace(tool_use_id: string, chatId: string) {
+    createNewWorkspaceFn(chatId, tool_use_id, this.context, this.outputChannel);
   }
 
   setViewType(
@@ -1102,7 +1100,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     });
 
     const agentsPayload = data as { review_id: number; agents: AgentPayload[] };
-    this.codeReviewManager.startCodeReview(agentsPayload);
+    const repoPath = getActiveRepo();
+    if (!repoPath) return;
+    this.codeReviewManager.startCodeReview(agentsPayload, repoPath);
   }
 
   public async handleCodeReviewPostProcess(data: any) {
@@ -1342,5 +1342,30 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       data.promptText,
       data.commentId,
     );
+  }
+  public onActionRequiredNotification(chatId: string, chatStatusMsg?: ChatStatusMsg, summary?: string) {
+    // Define the custom message map
+    const messageMap: Record<ChatStatusMsg, string> = {
+      ask_user_input: 'Deputydev needs your input to continue.',
+      terminal_approval: 'Deputydev is waiting for your approval to run a terminal command.',
+      mcp_approval: 'Deputydev requires your approval for an MCP action.',
+      model_change: 'Deputydev is requesting your confirmation to change the model.',
+      create_new_workspace: 'Deputydev needs to create a new workspace to continue.',
+    };
+
+    // Use a strongly typed lookup
+    const finalMessage =
+      (chatStatusMsg ? messageMap[chatStatusMsg] : undefined) ?? 'Deputydev is requesting your intervention.'; // default fallback
+
+    vscode.window.showInformationMessage(finalMessage, 'Open Chat').then((selection) => {
+      if (selection === 'Open Chat') {
+        this.sendMessageToSidebar({
+          id: uuidv4(),
+          command: 'focus-chat-and-open-action-required',
+          data: chatId,
+        });
+        vscode.commands.executeCommand('deputydev-sidebar.focus');
+      }
+    });
   }
 }

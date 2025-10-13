@@ -11,7 +11,7 @@ export class BackendClient extends BaseClient {
   };
 
   // endpoints
-  public querySolver!: () => BaseWebsocketEndpoint;
+  public querySolver!: (sessionId?: number) => BaseWebsocketEndpoint;
   public codeReviewSolver!: () => BaseWebsocketEndpoint;
   public postProcessSolver!: () => BaseWebsocketEndpoint;
 

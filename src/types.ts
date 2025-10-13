@@ -82,6 +82,9 @@ export interface ChatPayload {
   vscode_env?: string;
   os_name: string;
   shell: string;
+  repoPath: string;
+  sessionId?: number;
+  chatId: string;
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
   retry_reason?: string;
@@ -299,3 +302,9 @@ export interface NewReview {
   origin_url: string;
   repo_name: string;
 }
+export type ChatStatusMsg =
+  | 'ask_user_input'
+  | 'terminal_approval'
+  | 'mcp_approval'
+  | 'model_change'
+  | 'create_new_workspace';

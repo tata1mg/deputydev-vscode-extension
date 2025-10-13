@@ -152,14 +152,23 @@ export function TokenLimitExceededPanel({
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Get fresh instance of sendChatMessage and send as a new message (not retry)
-      const { sendChatMessage } = useChatStore.getState();
+      const { sendChatMessage, currentChatId } = useChatStore();
 
       const newPayload = {
         ...(payloadToRetry as Record<string, unknown>),
         llm_model: selectedModel,
       };
 
-      sendChatMessage('retry', [], undefined, true, newPayload, undefined, 'TOKEN_LIMIT_EXCEEDED');
+      sendChatMessage(
+        currentChatId,
+        'retry',
+        [],
+        undefined,
+        true,
+        newPayload,
+        undefined,
+        'TOKEN_LIMIT_EXCEEDED'
+      );
 
       setRetryMessage(`Started fresh query with ${selectedModelDisplay}.`);
     } catch (error) {

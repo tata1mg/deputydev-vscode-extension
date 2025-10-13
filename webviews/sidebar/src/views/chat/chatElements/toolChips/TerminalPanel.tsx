@@ -20,9 +20,14 @@ import { SnippetReference } from '../CodeBlockStyle';
  * @param required The new approval status (true if required, false otherwise).
  */
 function updateTerminalApproval(tool_use_id: string, required: boolean) {
-  const history = useChatStore.getState().history;
+  // Extract state and actions from the chat store.
+  // Root-level state/actions
+  // Per-chat state (falls back to empty session if none)
+  const state = useChatStore.getState();
+  const currentChat = state.getCurrentChat();
+  const messages = currentChat.history;
 
-  const updatedHistory = history.map((msg) => {
+  const updatedHistory = messages.map((msg) => {
     if (msg.type === 'TOOL_CHIP_UPSERT' && msg.content.tool_use_id === tool_use_id) {
       // Ensure terminal exists before updating
       if (msg.content.toolStateMetaData?.terminal !== undefined) {
@@ -43,10 +48,13 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
     }
     return msg;
   });
-
+  console.log('Updated terminal history with new approval status:', updatedHistory);
   // Only update state if changes were actually made (or potentially made)
   // A more robust check might compare old and new history arrays if performance is critical.
-  useChatStore.setState({ history: updatedHistory });
+  state.updateCurrentChat({
+    history: updatedHistory,
+    status: { type: 'in_progress', message: undefined },
+  });
 }
 
 export function TerminalPanel({
@@ -58,6 +66,7 @@ export function TerminalPanel({
   is_execa_process,
   process_id,
   exit_code,
+  sessionId,
 }: TerminalPanelProps) {
   const [isStreaming, setIsStreaming] = useState(true);
   const [editInput, setEditInput] = useState('');
@@ -150,6 +159,7 @@ export function TerminalPanel({
       const newCommand = await editTerminalCommand({
         user_query: userQuery,
         old_command: currentCommand,
+        sessionId: sessionId,
       });
 
       if (newCommand !== null && newCommand !== undefined) {

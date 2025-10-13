@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
 import { ChunkCallback, ToolRequest } from '../../types';
-import { getActiveRepo, getSessionId } from '../../utilities/contextManager';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { SidebarProvider } from '../../panels/SidebarProvider';
 import { UsageTrackingManager } from '../../analyticsTracking/UsageTrackingManager';
@@ -18,7 +17,8 @@ interface ApplyDiffArgs {
   };
   chunkCallback: ChunkCallback;
   toolRequest: ToolRequest;
-  messageId?: string;
+  repoPath: string;
+  sessionId: number;
 }
 
 export class WriteToFileTool {
@@ -38,9 +38,7 @@ export class WriteToFileTool {
   }
 
   public async applyDiff(args: ApplyDiffArgs): Promise<any> {
-    const { parsedContent, chunkCallback, toolRequest, messageId } = args;
-    const activeRepo = getActiveRepo() || '';
-    const sessionId = getSessionId();
+    const { parsedContent, chunkCallback, toolRequest, repoPath, sessionId } = args;
     const diff = parsedContent.diff;
     const relativePath = await resolveDirectoryRelative(parsedContent.path);
     if (sessionId) {
@@ -61,7 +59,7 @@ export class WriteToFileTool {
           path: relativePath,
           directReplace: diff,
         },
-        activeRepo,
+        repoPath,
         {
           usageTrackingSource: toolRequest.is_inline ? 'inline-chat-act' : 'act',
           usageTrackingSessionId: sessionId || null,
@@ -78,18 +76,14 @@ export class WriteToFileTool {
             removedLines,
             filePath: relativePath,
             fileName: path.basename(relativePath),
-            repoPath: activeRepo,
+            repoPath: repoPath,
             sessionId: sessionId,
           },
         });
       }
-      this.sidebarProvider.sendMessageToSidebar({
-        id: messageId,
-        command: 'chunk',
-        data: {
-          name: 'APPLY_DIFF_RESULT',
-          data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
-        },
+      chunkCallback({
+        name: 'APPLY_DIFF_RESULT',
+        data: { status: 'completed', addedLines: addedLines, removedLines: removedLines },
       });
       return {
         llmNextStep: 'successfully written the file, please continue with the next steps',
@@ -100,15 +94,11 @@ export class WriteToFileTool {
     } catch (error) {
       const enhancedErrorMessage = `Failed to write file.\n${(error as Error).message}`;
       this.logger.error(`Error applying diff: ${enhancedErrorMessage}`);
-
-      this.sidebarProvider.sendMessageToSidebar({
-        id: messageId,
-        command: 'chunk',
-        data: {
-          name: 'APPLY_DIFF_RESULT',
-          data: { status: 'error', addedLines: 0, removedLines: 0 },
-        },
+      chunkCallback({
+        name: 'APPLY_DIFF_RESULT',
+        data: { status: 'error', addedLines: 0, removedLines: 0 },
       });
+      // Optionally: rethrow if the caller of this method needs to handle it too
       throw {
         response: {
           data: {

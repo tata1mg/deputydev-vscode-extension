@@ -3,15 +3,15 @@ import { useChatStore } from '@/stores/chatStore';
 import { useLLMModelStore } from '@/stores/llmModelStore';
 
 export function RetryChip({
-  error_msg,
   retry,
-  payload_to_retry,
 }: {
   error_msg: string;
   retry: boolean;
   payload_to_retry: unknown;
 }) {
-  const { history: messages, sendChatMessage } = useChatStore();
+  const { sendChatMessage, currentChatId } = useChatStore();
+  const currentChat = useChatStore.getState().getCurrentChat();
+  const { history: messages } = currentChat;
   const { activeModel } = useLLMModelStore();
   // Retry function defined within ChatArea component
   const retryChat = () => {
@@ -35,7 +35,7 @@ export function RetryChip({
         ...(errorData.payload_to_retry as Record<string, unknown>),
         llm_model: activeModel?.name,
       };
-      sendChatMessage('retry', [], undefined, true, newPayload);
+      sendChatMessage(currentChatId, 'retry', [], undefined, true, newPayload);
     } else {
       // console.log("No error found to retry.");
     }

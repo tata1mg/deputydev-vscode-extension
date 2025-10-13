@@ -17,10 +17,9 @@ export class FeedbackService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
 
-  public async submitFeedback(feedback: string, queryId: number): Promise<any> {
+  public async submitFeedback(feedback: string, queryId: number, sessionId: number): Promise<any> {
     try {
       const authToken = await fetchAuthToken();
-      const sessionId = getSessionId();
       const headers = {
         'X-Session-ID': sessionId,
         Authorization: `Bearer ${authToken}`,
@@ -32,7 +31,12 @@ export class FeedbackService {
       refreshCurrentToken(response.headers);
       return response.data;
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError(error, 'FEEDBACK_API_ERROR', 'BACKEND');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'FEEDBACK_API_ERROR',
+        errorSource: 'BACKEND',
+        sessionId: sessionId,
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }

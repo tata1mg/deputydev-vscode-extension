@@ -15,6 +15,7 @@ import Error from './views/error';
 import ForceUpgradeView from './views/forceUpgradeView';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import CodeReview from './views/codeReview';
+import { resetChatState } from './utils/resetChatState';
 
 function App() {
   // Retrieve state from the extension store
@@ -32,6 +33,9 @@ function App() {
   useEffect(() => {
     // Send a message to the extension host when the webview is initialized
     webviewInitialized();
+    setTimeout(() => {
+      resetChatState();
+    }, 1500);
   }, []);
 
   switch (extensionState.viewType) {

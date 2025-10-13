@@ -7,7 +7,7 @@ import { Tooltip } from 'react-tooltip';
 import { useClickAway } from 'react-use';
 
 const MCPCircleHelpTooltipContent =
-  'MCP grants DeputyDev to custom tools, click Configure icon to get started with setup.';
+  'MCP grants DeputyDev to custom tools, click Configure icon to get started with setup. Note: changing MCP will impact all active chats.';
 
 const MCPServerStatus: React.FC<{ mcpServerStatus: string }> = ({ mcpServerStatus }) => {
   switch (mcpServerStatus) {
@@ -99,7 +99,7 @@ export default function FeaturesBar() {
   };
 
   return (
-    <div className="flex justify-center rounded-t-md pl-3 pr-3">
+    <div className="z-30 flex justify-center rounded-t-md pl-3 pr-3">
       <div
         ref={featuresBarRef}
         className="flex w-full flex-col rounded-t-md border border-b-[0.5px] border-[var(--vscode-editorWidget-border)]"
@@ -253,7 +253,7 @@ export default function FeaturesBar() {
                 </div>
               </button>
               <a
-                href="https://onedoc.ekdosis.com/docs/deputydev/content/DeputyDev%20-%20VSCode%20plugin/mcp_server_guide"
+                href="https://onedoc.ekdosis.com/docs/deputydev/content/DeputyDev%20extension/mcp_servers"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center"

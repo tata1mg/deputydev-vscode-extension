@@ -9,6 +9,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { remarkPreventBoldFilenames, remarkUrlToLink } from './utils/RemarkPlugins';
+import { rehypeCodeActionPanelComponents } from './utils/RehypeOptions';
 
 const TextMessageChip: React.FC<{ msg: ChatUserMessage | ChatAssistantMessage }> = ({ msg }) => {
   const { themeKind } = useThemeStore();
@@ -97,6 +98,7 @@ const TextMessageChip: React.FC<{ msg: ChatUserMessage | ChatAssistantMessage }>
             remarkPlugins={[remarkGfm, remarkMath, remarkUrlToLink, remarkPreventBoldFilenames]}
             rehypePlugins={[rehypeKatex]}
             components={{
+              ...rehypeCodeActionPanelComponents,
               table: ({ node, ...props }) => (
                 <div style={{ overflowX: 'auto' }}>
                   <table {...props} />

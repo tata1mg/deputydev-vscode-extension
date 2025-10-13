@@ -5,7 +5,8 @@ import { ToolStatusIcon } from './ChipBase';
 
 export function CreateNewWorkspace({ tool_id, status }: { tool_id: string; status: string }) {
   const handleContinue = () => {
-    createNewWorkspace(tool_id);
+    const currentChatId = useChatStore.getState().currentChatId;
+    createNewWorkspace(tool_id, currentChatId);
   };
 
   const handleCancel = () => {

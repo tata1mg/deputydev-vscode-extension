@@ -19,7 +19,11 @@ export class FocusChunksService {
       return response.data;
     } catch (error) {
       this.logger.error('Error fetching focus chunks');
-      this.errorTrackingManager.trackGeneralError(error, 'FOCUS_CHUNKS_ERROR', 'BINARY');
+      this.errorTrackingManager.trackGeneralError({
+        error,
+        errorType: 'FOCUS_CHUNKS_ERROR',
+        errorSource: 'BINARY',
+      });
       this.apiErrorHandler.handleApiError(error);
     }
   }

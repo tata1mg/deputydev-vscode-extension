@@ -32,7 +32,7 @@ type SortableItemProps = {
     age: string;
     updated_at: string;
   };
-  handleGetSessionChats: (sessionId: number) => void;
+  handleGetSessionChats: (session: Session) => void;
   handleDeleteSession: (sessionId: number) => void;
   handlePinUnpinSession: (session: Session, pin_or_unpin: 'PINNED' | 'UNPINNED') => void;
   isPinned: boolean;
@@ -105,7 +105,7 @@ const SortableItem: React.FC<SortableItemProps> = ({
       className="flex items-center gap-3 overflow-visible rounded-lg p-3 shadow-md"
     >
       <div
-        onClick={() => handleGetSessionChats(session.id)}
+        onClick={() => handleGetSessionChats(session)}
         className="flex w-full cursor-pointer items-start justify-between gap-2 overflow-hidden"
       >
         {isPinned ? (
@@ -356,11 +356,31 @@ export default function History() {
     noPinnedSessions,
     noUnpinnedSessions,
   } = useSessionsStore();
+  const handleGetSessionChats = async (session: Session) => {
+    try {
+      const chatStore = useChatStore.getState();
+      const existingChatId = Object.keys(chatStore.chats).find((chatId) => {
+        const chat = chatStore.chats[chatId];
+        return chat.sessionId === session.id;
+      });
 
-  const handleGetSessionChats = async (sessionId: number) => {
-    const data = await getSessionChats(sessionId);
-    useExtensionStore.setState({ viewType: 'chat' });
-    useChatStore.setState({ history: data as ChatMessage[] });
+      if (existingChatId) {
+        chatStore.switchChat(existingChatId);
+        useExtensionStore.setState({ viewType: 'chat' });
+        return;
+      }
+      const data = await getSessionChats(session.id);
+      useExtensionStore.setState({ viewType: 'chat' });
+      chatStore.createChat(true);
+      chatStore.updateCurrentChat({
+        history: data as ChatMessage[],
+        sessionId: session.id,
+        status: { type: 'history', message: undefined },
+        summary: session.summary,
+      });
+    } catch (error) {
+      console.error('Error fetching session chats:', error);
+    }
   };
 
   const handlePinUnpinSession = async (
