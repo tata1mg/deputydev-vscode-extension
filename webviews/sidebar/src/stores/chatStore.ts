@@ -364,6 +364,10 @@ export const useChatStore = create(
             retryReason?: string
           ) {
             const id = resolveChatId(chatId);
+            if (id === FALLBACK_CHAT_ID) {
+              console.log(`Fallback chat ID detected`);
+              return;
+            }
             setChat(id, (prev) => ({
               ...prev,
               status: { type: 'in_progress', message: undefined },
@@ -1323,14 +1327,14 @@ export const getActiveChatCount = (groupedChangedFiles: ChangedFilesGroup[]) => 
       (chat) =>
         ['in_progress', 'action_required'].includes(chat.status.type) ||
         (typeof chat.sessionId === 'number' && changedSessionIds.has(chat.sessionId))
-    ).length - 1
+    ).length
   );
   const maxParallelChats = Number(import.meta.env.VITE_PARALLEL_CHATS_COUNT) || 3;
   const currentChatId = state.currentChatId;
   const isFallbackCurrentChat = currentChatId && currentChatId === FALLBACK_CHAT_ID;
   const currentChat = currentChatId ? state.chats[currentChatId] : undefined;
   const currentChatInProgress = currentChat
-    ? ['in_progress', 'action_required'].includes(currentChat.status.type)
+    ? ['in_progress', 'action_required'].includes(currentChat.status?.type)
     : false;
 
   let disableChatInput: boolean;
