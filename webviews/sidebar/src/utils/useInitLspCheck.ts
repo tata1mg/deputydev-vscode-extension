@@ -16,7 +16,7 @@ export function useInitLspCheck() {
     }, 1500);
 
     const runChecks = async () => {
-      const delays = [10, 30];
+      const delays = [10, 30, 60];
       for (const delay of delays) {
         await new Promise((res) => setTimeout(res, delay * 1000));
         const ok = await hitLspCheck();
