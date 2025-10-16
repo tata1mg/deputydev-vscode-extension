@@ -16,17 +16,13 @@ import ForceUpgradeView from './views/forceUpgradeView';
 import { useForceUpgradeStore } from './stores/forceUpgradeStore';
 import CodeReview from './views/codeReview';
 import { resetChatState } from './utils/resetChatState';
+import { useInitLspCheck } from './utils/useInitLspCheck';
 
 function App() {
-  // Retrieve state from the extension store
   const extensionState = useExtensionStore();
-
-  // Retrieve authentication state and setter from the auth store
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  // Retrieve force upgrade state and setter from the force upgrade store
   const showForceUpgrade = useForceUpgradeStore((state) => state.showForceUpgrade);
-
+  useInitLspCheck();
   // Variable to hold the view to be rendered
   let view;
 

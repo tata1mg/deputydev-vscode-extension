@@ -499,6 +499,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
         case 'hit-embedding':
           this.hitEmbedding(data.repoPath);
+break;
+
+        case 'hit-lsp-check':
+          promise = await getIsLspReady({ force: true, repoPath: data.repoPath });
           break;
 
         case 'webview-initialized':
