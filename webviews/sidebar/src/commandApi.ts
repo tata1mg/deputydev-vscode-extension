@@ -252,6 +252,10 @@ export function hitEmbedding(repoPath: string) {
   }
 }
 
+export function hitLspCheck() {
+  return callCommand('hit-lsp-check', {});
+}
+
 // terminal
 export function acceptTerminalCommand(tool_use_id: string, command: string) {
   return callCommand('accept-terminal-command', { tool_use_id, command });
