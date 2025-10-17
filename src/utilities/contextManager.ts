@@ -128,6 +128,10 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
     await extensionContext.workspaceState.update('sessionId', undefined);
     await extensionContext.workspaceState.update('isAuthenticated', false);
     await extensionContext.workspaceState.update('sessions-storage', undefined);
+    await extensionContext.workspaceState.update('chat-storage', undefined);
+    await extensionContext.workspaceState.update('llm-models-storage', undefined);
+    await extensionContext.workspaceState.update('changed-files-storage', undefined);
+    await extensionContext.workspaceState.update('force-upgrade-storage', undefined);
     await extensionContext.globalState.update('userData', undefined);
     return;
   }
