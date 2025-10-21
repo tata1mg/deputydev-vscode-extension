@@ -46,8 +46,8 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
-export function apiStopChat(sessionId: number, chatId: string) {
-  return callCommand('api-stop-chat', { sessionId, chatId });
+export function apiStopChat(chatId: string, sessionId?: number) {
+  return callCommand('api-stop-chat', { chatId, sessionId });
 }
 
 export function keywordSearch(payload: unknown) {
@@ -256,8 +256,9 @@ export function hitEmbedding(repoPath: string) {
 export function hitLspCheck() {
   const repoPath = useWorkspaceStore.getState().activeRepo;
   if (!repoPath) {
-    throw new Error('Active repository path is undefined.');
+    return;
   }
+  console.log('Hitting LSP check for repoPath:', repoPath);
   return callCommand('hit-lsp-check', { repoPath });
 }
 
@@ -294,6 +295,7 @@ export function setDisableShellIntegrationMessage(data: { key: string; value: un
 }
 
 export function webviewInitialized() {
+  console.log('Webview initialized command called');
   return callCommand('webview-initialized', {});
 }
 

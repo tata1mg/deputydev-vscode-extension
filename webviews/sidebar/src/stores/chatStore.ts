@@ -1199,9 +1199,7 @@ export const useChatStore = create(
           async cancelChat(chatId?: string) {
             const id = resolveChatId(chatId);
             const sessionId = get().chats[id]?.sessionId;
-            if (sessionId) {
-              apiStopChat(sessionId, id);
-            }
+            apiStopChat(id, sessionId);
 
             setChat(id, (prev) => {
               const newHistory = [...prev.history];

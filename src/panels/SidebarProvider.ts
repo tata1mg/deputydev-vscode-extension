@@ -182,7 +182,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           promise = this.chatService.apiChat(data, chunkCallback);
           break;
         case 'api-stop-chat':
-          promise = this.chatService.stopChat(data.sessionId, data.chatId); // Calls abort on the active request
+          promise = this.chatService.stopChat(data.chatId, data.sessionId); // Calls abort on the active request
           break;
         case 'kill-all-processes':
           this.outputChannel.info('killing all processes');
