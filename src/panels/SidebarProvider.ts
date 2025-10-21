@@ -41,6 +41,7 @@ import { getUri } from '../utilities/getUri';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { formatSessionChats } from '../utilities/sessionChatsFormatter';
+import { getIsLspReady } from '../languageServer/lspStatus';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
@@ -499,7 +500,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
         case 'hit-embedding':
           this.hitEmbedding(data.repoPath);
-break;
+          break;
 
         case 'hit-lsp-check':
           promise = await getIsLspReady({ force: true, repoPath: data.repoPath });

@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from './stores/workspaceStore';
 import {
   UsageTrackingRequestFromSidebar,
   SaveUrlRequest,
@@ -253,7 +254,11 @@ export function hitEmbedding(repoPath: string) {
 }
 
 export function hitLspCheck() {
-  return callCommand('hit-lsp-check', {});
+  const repoPath = useWorkspaceStore.getState().activeRepo;
+  if (!repoPath) {
+    throw new Error('Active repository path is undefined.');
+  }
+  return callCommand('hit-lsp-check', { repoPath });
 }
 
 // terminal
