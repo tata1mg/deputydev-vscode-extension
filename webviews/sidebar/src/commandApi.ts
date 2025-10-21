@@ -294,7 +294,6 @@ export function setDisableShellIntegrationMessage(data: { key: string; value: un
 }
 
 export function webviewInitialized() {
-  console.log('Webview initialized command called');
   return callCommand('webview-initialized', {});
 }
 
