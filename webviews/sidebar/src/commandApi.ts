@@ -258,7 +258,6 @@ export function hitLspCheck() {
   if (!repoPath) {
     return;
   }
-  console.log('Hitting LSP check for repoPath:', repoPath);
   return callCommand('hit-lsp-check', { repoPath });
 }
 
