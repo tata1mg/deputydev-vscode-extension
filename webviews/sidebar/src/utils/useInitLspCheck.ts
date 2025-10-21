@@ -1,31 +1,35 @@
 import { useEffect } from 'react';
-import { hitLspCheck, webviewInitialized } from '@/commandApi';
-import { resetChatState } from './resetChatState';
+import { hitLspCheck } from '@/commandApi';
 
 /**
- * Initializes the webview, resets chat, and checks LSP status
- * at 10s, and 30s intervals until success or final attempt.
+ * Keeps running LSP checks forever:
+ * - At 10s, 30s, and 60s initially
+ * - Then every 60s indefinitely
  */
 export function useInitLspCheck() {
   useEffect(() => {
-    webviewInitialized();
+    // Run initial checks at 10s, 30s, 60s
+    const delays = [10, 30, 60];
+    delays.forEach((delay) => {
+      setTimeout(async () => {
+        try {
+          await hitLspCheck();
+        } catch (err) {
+          console.error('Error in initial LSP check:', err);
+        }
+      }, delay * 1000);
+    });
 
-    // Reset chat after 1.5 seconds
-    const resetTimer = setTimeout(() => {
-      resetChatState();
-    }, 1500);
-
-    const runChecks = async () => {
-      const delays = [10, 30, 60];
-      for (const delay of delays) {
-        await new Promise((res) => setTimeout(res, delay * 1000));
-        const ok = await hitLspCheck();
-        if (ok) break;
+    // Run periodic checks every 60s forever
+    const intervalId = setInterval(async () => {
+      try {
+        await hitLspCheck();
+      } catch (err) {
+        console.error('Error in periodic LSP check:', err);
       }
-    };
+    }, 60_000);
 
-    runChecks();
-
-    return () => clearTimeout(resetTimer);
+    // Clear interval on unmount
+    return () => clearInterval(intervalId);
   }, []);
 }

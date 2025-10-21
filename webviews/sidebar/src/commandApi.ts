@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from './stores/workspaceStore';
 import {
   UsageTrackingRequestFromSidebar,
   SaveUrlRequest,
@@ -45,8 +46,8 @@ export function apiChatSetting(payload: unknown) {
   return callCommand('api-chat-setting', payload);
 }
 
-export function apiStopChat(sessionId: number, chatId: string) {
-  return callCommand('api-stop-chat', { sessionId, chatId });
+export function apiStopChat(chatId: string, sessionId?: number) {
+  return callCommand('api-stop-chat', { chatId, sessionId });
 }
 
 export function keywordSearch(payload: unknown) {
@@ -253,7 +254,11 @@ export function hitEmbedding(repoPath: string) {
 }
 
 export function hitLspCheck() {
-  return callCommand('hit-lsp-check', {});
+  const repoPath = useWorkspaceStore.getState().activeRepo;
+  if (!repoPath) {
+    return;
+  }
+  return callCommand('hit-lsp-check', { repoPath });
 }
 
 // terminal

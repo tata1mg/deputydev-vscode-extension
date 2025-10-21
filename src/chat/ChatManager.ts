@@ -1359,8 +1359,8 @@ export class ChatManager {
   }
 
   /** Note below methods are for stopping and killing processes using somewhere else */
-  public async stopChat(sessionId: number, chatId: string): Promise<void> {
-    await cancelChat(sessionId);
+  public async stopChat(chatId: string, sessionId?: number): Promise<void> {
+    if (sessionId) await cancelChat(sessionId);
     this.querySolverService.closeSocket(chatId);
 
     const abortController = this.chatAbortControllers.get(chatId);
