@@ -63,7 +63,12 @@ export class BackgroundPinger implements vscode.Disposable {
       this.inProgress = true;
 
       try {
-        const response = await binaryApi().get(API_ENDPOINTS.PING);
+        const vscodePid = process.pid;
+        const response = await binaryApi().get(API_ENDPOINTS.PING, {
+          params: {
+            vscodePid: vscodePid,
+          },
+        });
         if (response.status === 200) {
           // Successful ping, reset failure count
           this.failureCount = 0;
