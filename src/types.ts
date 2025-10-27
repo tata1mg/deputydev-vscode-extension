@@ -88,7 +88,7 @@ export interface ChatPayload {
   is_from_runTool_response?: string;
   client_tools: Array<ClientTool>;
   retry_reason?: string;
-  is_embedding_done?: boolean;
+  is_indexing_ready?: boolean;
   is_lsp_ready?: boolean;
   active_file_reference?: {
     active_file: string;
@@ -168,21 +168,12 @@ export interface IndexingStatusData {
   file_path: string;
   status: ProgressStatus;
 }
-
-export type IndexingProgressData = {
+export interface IndexingProgressData {
   task: string;
   status: ProgressStatus;
   repo_path: string;
-  progress: number;
-  indexing_status: IndexingStatusData[];
-};
-
-export type EmbeddingProgressData = {
-  task: string;
-  status: ProgressStatus;
-  repo_path: string;
-  progress: number;
-};
+  indexed_files: string[];
+}
 
 export interface FileSummaryResponse {
   file_path: string;

@@ -19,7 +19,12 @@ import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
-import { getIsEmbeddingDoneForActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
+import {
+  getIsEmbeddingDoneForActiveRepo,
+  getIsIndexingDoneForRepo,
+  getSessionId,
+  setSessionId,
+} from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { cancelChat, registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
@@ -156,24 +161,21 @@ export class ChatManager {
               url: item.url,
             });
             // Process chunks if present (even for directories)
-          } else if (item.chunks && item.chunks.length > 0) {
-            const chunkDetails: Array<Chunk> = item.chunks;
-
+          } else {
             const result = await this.focusChunksService.getFocusChunks({
-              auth_token: await this.authService.loadAuthToken(),
               repo_path: data.repoPath,
-              chunks: chunkDetails,
+              chunk: item?.chunks?.[0],
               search_item_name: item.value,
               search_item_type: item.type,
               search_item_path: item.path,
             });
-
-            const finalChunkInfos: Array<any> = result.map((chunkInfoWithHash: any) => chunkInfoWithHash.chunk_info);
+            console.log('focus chunks', result);
+            // convert result to array
 
             focusItemsResult.push({
               type: item.type,
               value: item.value,
-              chunks: finalChunkInfos || [],
+              chunks: [result],
               path: item.path,
             });
           }
@@ -287,7 +289,7 @@ export class ChatManager {
       payload.vscode_env = await getEnvironmentDetails(true, payload.repoPath, payload);
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
-      payload.is_embedding_done = getIsEmbeddingDoneForActiveRepo(payload.repoPath);
+      payload.is_indexing_ready = getIsIndexingDoneForRepo(payload.repoPath);
       payload.is_lsp_ready = await getIsLspReady({ force: false, repoPath: payload.repoPath });
 
       this.outputChannel.info('Payload prepared for QuerySolverService.');

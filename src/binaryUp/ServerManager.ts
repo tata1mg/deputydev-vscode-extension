@@ -16,6 +16,7 @@ import { SingletonLogger } from '../utilities/Singleton-logger';
 import { pipeline as streamPipeline } from 'stream/promises';
 import { withLock } from './withLock';
 import CRC32 from 'crc-32'; // npm install crc-32
+import { binaryApi } from '../services/api/axios';
 
 export class ServerManager {
   private readonly context: vscode.ExtensionContext;
@@ -384,8 +385,12 @@ export class ServerManager {
       const existingPort = getBinaryPort();
 
       if (!existingPort) return false;
-
-      const response = await axios.get('http://localhost:' + existingPort + API_ENDPOINTS.PING);
+      const vscodePid = process.pid;
+      const response = await binaryApi().get(API_ENDPOINTS.PING, {
+        params: {
+          vscodePid: vscodePid,
+        },
+      });
       if (response?.status === 200) {
         // vscode.window.showInformationMessage('Server is already running.');
         this.logger.info(`Reusing running local server at port ${existingPort}`);

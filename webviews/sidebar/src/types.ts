@@ -17,24 +17,11 @@ export type UserData = {
   userName: string;
 };
 
-export interface IndexingStatusData {
-  file_path: string;
-  status: ProgressStatus;
-}
-
 export type IndexingProgressData = {
   task: string;
   status: ProgressStatus;
   repo_path: string;
-  progress: number;
-  indexing_status: IndexingStatusData[];
-};
-
-export type EmbeddingProgressData = {
-  task: string;
-  status: ProgressStatus;
-  repo_path: string;
-  progress: number;
+  indexed_files: string[];
 };
 
 export type ProfileUiDiv = {
@@ -436,11 +423,6 @@ export interface ChangedFile {
   removedLines: number;
   sessionId: number;
   accepted: boolean;
-}
-
-export interface IndexingDataStorage {
-  indexingProgressData: IndexingProgressData[];
-  embeddingProgressData: EmbeddingProgressData[];
 }
 
 // Code review

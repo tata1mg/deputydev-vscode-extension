@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { EmbeddingProgressData } from '../types';
+import { EmbeddingProgressData, IndexingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -63,19 +63,6 @@ export function setReviewSessionId(value: number) {
   return;
 }
 
-export function sendEmbeddingDoneMessage(embeddingProgressData: {
-  task: string;
-  status: string;
-  repo_path: string;
-  progress: number;
-}) {
-  sidebarProvider?.sendMessageToSidebar({
-    id: uuidv4(),
-    command: 'embedding-progress',
-    data: embeddingProgressData,
-  });
-}
-
 export function getRepositoriesForContext(): { repoPath: string; repoName: string }[] | undefined {
   return extensionContext?.workspaceState.get<{ repoPath: string; repoName: string }[]>('contextRepositories');
 }
@@ -87,15 +74,14 @@ export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
 }
 
-export function getIsEmbeddingDoneForActiveRepo(repoPath: string): boolean {
+export function getIsIndexingDoneForRepo(repoPath: string): boolean {
   const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
+  if (!indexingDataStorage) return false;
   const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
-  const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
-  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === repoPath);
-  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'COMPLETED') {
-    return true;
-  }
-  return false;
+  const indexingProgressData = parsedIndexingDataStorage?.state?.indexingProgressData as IndexingProgressData[];
+  if (!Array.isArray(indexingProgressData)) return false;
+  const repoProgress = indexingProgressData.find((p) => p.repo_path === repoPath);
+  return repoProgress?.status === 'COMPLETED';
 }
 
 export function getUserData() {
@@ -214,8 +200,7 @@ export function sendProgress(indexingProgressData: {
   task: string;
   status: string;
   repo_path: string;
-  progress: number;
-  indexing_status: { file_path: string; status: string }[];
+  indexed_files: string[];
 }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),

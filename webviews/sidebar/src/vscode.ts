@@ -20,7 +20,6 @@ import {
   MCPServer,
   ChangedFile,
   IndexingProgressData,
-  EmbeddingProgressData,
   NewReview,
   Review,
   UserAgent,
@@ -30,7 +29,7 @@ import {
   logToOutput,
   sendWorkspaceRepoChange,
   getGlobalState,
-  hitEmbedding,
+  hitIndexing,
   updateContextRepositories,
   newReview,
   startCodeReview,
@@ -473,14 +472,9 @@ addCommandEventListener('indexing-progress', ({ data }) => {
     );
 
     if (nextIdleRepo) {
-      hitEmbedding(nextIdleRepo.repo_path);
+      hitIndexing(nextIdleRepo.repo_path);
     }
   }
-});
-
-addCommandEventListener('embedding-progress', ({ data }) => {
-  const response = data as EmbeddingProgressData;
-  useIndexingStore.getState().updateOrAppendEmbeddingData(response);
 });
 
 addCommandEventListener('profile-ui-data', ({ data }) => {

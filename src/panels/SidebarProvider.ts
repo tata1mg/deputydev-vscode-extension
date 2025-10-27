@@ -17,7 +17,6 @@ import { AuthService } from '../services/auth/AuthService';
 import { ReviewService } from '../services/codeReview/CodeReviewService';
 import { FeedbackService } from '../services/feedback/feedbackService';
 import { HistoryService } from '../services/history/HistoryService';
-import { IndexingService } from '../services/indexing/indexingService';
 import { MCPService } from '../services/mcp/mcpService';
 import { ProfileUiService } from '../services/profileUi/profileUiService';
 import { TerminalService } from '../services/terminal/TerminalService';
@@ -41,6 +40,7 @@ import { getUri } from '../utilities/getUri';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { formatSessionChats } from '../utilities/sessionChatsFormatter';
+import { IndexingService } from '../services/indexing/indexingServiceNew';
 import { getIsLspReady } from '../languageServer/lspStatus';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -498,8 +498,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           break;
         }
 
-        case 'hit-embedding':
-          this.hitEmbedding(data.repoPath);
+        case 'hit-indexing':
+          this.hitIndexing(data.repoPath);
           break;
 
         case 'hit-lsp-check':
@@ -607,8 +607,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
         task: 'INDEXING',
         status: 'IN_PROGRESS',
         repo_path: activeRepo,
-        progress: 0,
-        indexing_status: [],
+        indexed_files: [],
       });
     }
 
@@ -656,17 +655,23 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
     this.continueWorkspace.triggerAuthChange(true);
 
-    const params = { repo_path: activeRepo };
+    const params = { repo_path: activeRepo, sync: true };
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
 
     try {
-      await this.indexingService.updateVectorStore(params);
+      const indexed_files = await this.indexingService.syncRepoIndex(params);
+      sendProgress({
+        task: 'INDEXING',
+        status: 'COMPLETED',
+        repo_path: activeRepo,
+        indexed_files: indexed_files,
+      });
     } catch (error) {
-      this.logger.warn('Embedding failed');
-      this.outputChannel.warn('Embedding failed');
+      this.logger.warn('Indexing failed');
+      this.outputChannel.warn('Indexing failed');
       this.errorTrackingManager.trackGeneralError({
         error,
-        errorType: 'EMBEDDING_ERROR',
+        errorType: 'INDEXING_ERROR',
         errorSource: 'BINARY',
         repoPath: activeRepo,
       });
@@ -674,23 +679,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     }
   }
 
-  async hitEmbedding(repoPath: string) {
+  async hitIndexing(repoPath: string) {
     if (!repoPath) {
       return;
     }
-    const params = { repo_path: repoPath, retried_by_user: true };
+    const params = { repo_path: repoPath, sync: true };
     this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
     try {
-      await this.indexingService.updateVectorStore(params);
+      await this.indexingService.syncRepoIndex(params);
     } catch (error) {
-      this.errorTrackingManager.trackGeneralError({
-        error,
-        errorType: 'RETRY_EMBEDDING_ERROR',
-        errorSource: 'BINARY',
-        repoPath: repoPath,
-      });
-      this.logger.warn('Embedding failed');
-      this.outputChannel.warn('Embedding failed');
+      this.logger.warn('indexing failed');
+      this.outputChannel.warn('indexing failed');
     }
   }
 

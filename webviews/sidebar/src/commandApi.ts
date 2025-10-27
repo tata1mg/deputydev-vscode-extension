@@ -247,9 +247,9 @@ export function showUserLogs() {
   return callCommand('show-logs', {});
 }
 
-export function hitEmbedding(repoPath: string) {
+export function hitIndexing(repoPath: string | null | undefined) {
   if (repoPath) {
-    return callCommand('hit-embedding', { repoPath });
+    return callCommand('hit-indexing', { repoPath });
   }
 }
 

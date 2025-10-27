@@ -1,4 +1,4 @@
-import { hitEmbedding, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
+import { hitIndexing, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown, Info, RefreshCw, Square } from 'lucide-react';
@@ -88,24 +88,28 @@ const RepoSelector = () => {
   };
 
   const getIndexingStatusForTooltip = () => {
+    const repo = indexingProgressData.find((r) => r.repo_path === activeRepo);
+    const status = repo?.status;
+
     if (!isOpen) {
-      return disableRepoSelector
-        ? 'Create new chat to select new repo'
-        : `${Math.round(
-            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.progress ?? 0
-          )}% ${
-            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-            'COMPLETED'
-              ? 'Indexing Completed'
-              : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                  'IN_PROGRESS'
-                ? 'Indexed'
-                : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                    'FAILED'
-                  ? 'Indexing Failed, Retry'
-                  : 'Indexed'
-          }`;
+      if (disableRepoSelector) {
+        return 'Create new chat to select new repo';
+      }
+
+      switch (status) {
+        case 'COMPLETED':
+          return 'Indexing Completed';
+        case 'IN_PROGRESS':
+          return 'Indexing in Progress';
+        case 'FAILED':
+          return 'Indexing Failed, Retry';
+        case 'IDLE':
+          return 'Ready to Index';
+        default:
+          return 'Indexed';
+      }
     }
+
     return 'Indexed';
   };
 
@@ -144,7 +148,7 @@ const RepoSelector = () => {
               className="inline-flex items-center justify-center"
               onClick={(e) => {
                 e.stopPropagation();
-                hitEmbedding(activeRepo ?? '');
+                hitIndexing(activeRepo);
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >

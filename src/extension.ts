@@ -46,7 +46,7 @@ import { binaryApi } from './services/api/axios';
 import { ActiveFileListener } from './code_syncing/ActiveFileListener';
 import { BackendClient } from './clients/backendClient';
 import { BinaryClient } from './clients/binaryClient';
-import { IndexingService } from './services/indexing/indexingService';
+import { IndexingService } from './services/indexing/indexingServiceNew';
 import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
 import { setUserSystemData } from './utilities/getSystemInformation';
 import { ReviewService } from './services/codeReview/CodeReviewService';
@@ -193,7 +193,6 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
     configManager,
     authenticationManager,
-    indexingService,
     relevantCodeSearcherToolService,
   );
   context.subscriptions.push(pinger);
@@ -209,7 +208,6 @@ export async function activate(context: vscode.ExtensionContext) {
       getBinaryHost(), // This will be the binary host URL
       getBinaryWsHost(), // This will be the binary WebSocket host URL
     );
-    indexingService.init(binaryClient);
     relevantCodeSearcherToolService.init(binaryClient);
     if (!isLocalBinary) {
       pinger.start();
