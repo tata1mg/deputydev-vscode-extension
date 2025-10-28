@@ -13,6 +13,7 @@ import { getMainConfig } from '../../config/configSetGet';
 import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 import { refreshCurrentToken } from '../refreshToken/refreshCurrentToken';
 export class ReferenceService {
+  private controller?: AbortController;
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
   private fetchAuthToken = async () => {
@@ -23,22 +24,28 @@ export class ReferenceService {
 
   public async keywordSearch(payload: unknown): Promise<any> {
     // console.log(`Keyword Search ${JSON.stringify(payload)}`)
-    let response;
-    try {
-      response = await binaryApi().post(API_ENDPOINTS.FOCUS_SEARCH, payload);
-      return response.data;
-    } catch (error) {
-      this.apiErrorHandler.handleApiError(error);
+    // Cancel previous request if still pending
+    if (this.controller) {
+      this.controller.abort();
     }
-  }
-  public async keywordTypeSearch(payload: unknown): Promise<any> {
-    // console.log(`Keyword Type Search ${JSON.stringify(payload)}`)
+
+    // Create new abort controller
+    this.controller = new AbortController();
     let response;
+
     try {
-      response = await binaryApi().post(API_ENDPOINTS.FOCUS_SEARCH, payload);
+      response = await binaryApi().post(
+        API_ENDPOINTS.FOCUS_SEARCH,
+        payload,
+        { signal: this.controller.signal }, // attach signal
+      );
       return response.data;
-    } catch (error) {
-      this.apiErrorHandler.handleApiError(error);
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        console.log('Previous search cancelled');
+      } else {
+        this.apiErrorHandler.handleApiError(error);
+      }
     }
   }
 
