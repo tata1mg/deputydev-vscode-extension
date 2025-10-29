@@ -454,9 +454,12 @@ export class ChatManager {
           }
           case 'TASK_PLAN': {
             this.outputChannel.info(`Received TASK_PLAN event: ${JSON.stringify(event.content)}`);
-            chunkCallback({ name: 'TASK_PLAN_UPSERT', data: {
-              latest_plan_steps: event.content.latest_plan_steps,
-            } });
+            chunkCallback({
+              name: 'TASK_PLAN_UPSERT',
+              data: {
+                latest_plan_steps: event.content.latest_plan_steps,
+              },
+            });
             break;
           }
           case 'CODE_BLOCK_START':

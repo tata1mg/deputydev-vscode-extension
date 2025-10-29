@@ -21,6 +21,7 @@ import {
   ChatMetaData,
   ChatReferenceItem,
   ChatStatus,
+  ChatTaskPlanMessage,
   ChatTerminalNoShell,
   ChatThinkingMessage,
   ChatToolUseMessage,
@@ -836,6 +837,56 @@ export const useChatStore = create(
                         };
                       });
                     }
+                    break;
+                  }
+
+                  case 'TASK_PLAN_UPSERT': {
+                    const taskPlanData = event.data as {
+                      latest_plan_steps: Array<{
+                        step_description: string;
+                        is_completed: boolean;
+                      }>;
+                    };
+                    
+                    setChat(id, (prev) => {
+                      // Check if a plan message already exists in the history
+                      const existingPlanIndex = prev.history.findIndex(
+                        (msg) => msg.type === 'TASK_PLAN_UPSERT'
+                      );
+
+                      let newHistory;
+                      if (existingPlanIndex !== -1) {
+                        // Update the existing plan message
+                        newHistory = prev.history.map((msg, idx) => {
+                          if (idx === existingPlanIndex) {
+                            return {
+                              type: 'TASK_PLAN_UPSERT',
+                              content: {
+                                latest_plan_steps: taskPlanData.latest_plan_steps,
+                              },
+                            } as ChatTaskPlanMessage;
+                          }
+                          return msg;
+                        });
+                      } else {
+                        // Add a new plan message
+                        newHistory = [
+                          ...prev.history,
+                          {
+                            type: 'TASK_PLAN_UPSERT',
+                            content: {
+                              latest_plan_steps: taskPlanData.latest_plan_steps,
+                            },
+                          } as ChatTaskPlanMessage,
+                        ];
+                      }
+
+                      return {
+                        ...prev,
+                        history: newHistory,
+                        showSkeleton: false,
+                      };
+                    });
                     break;
                   }
 

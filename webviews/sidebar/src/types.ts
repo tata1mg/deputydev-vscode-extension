@@ -135,7 +135,8 @@ export type ChatMessage =
   | ChatErrorMessage
   | ChatCompleteMessage
   | ChatTerminalNoShell
-  | InfoMessage;
+  | InfoMessage 
+  | ChatTaskPlanMessage;
 
 export interface InfoMessage {
   type: 'INFO';
