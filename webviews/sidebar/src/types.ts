@@ -197,6 +197,18 @@ export interface ChatToolUseMessage {
     isHistory?: boolean;
   };
 }
+
+export interface PlanStep {
+  step_description: string;
+  is_completed: boolean;
+}
+export interface ChatTaskPlanMessage {
+  type: 'TASK_PLAN_UPSERT';
+  content: {
+    latest_plan_steps: PlanStep[];
+  };
+}
+
 export interface TerminalProcess {
   terminal_approval_required?: boolean;
   terminal_output?: string;
