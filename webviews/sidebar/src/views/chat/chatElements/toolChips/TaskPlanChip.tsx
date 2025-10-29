@@ -15,15 +15,13 @@ export const TaskPlanChip: React.FC<TaskPlanChipProps> = ({ msg }) => {
   const isLight = ['light', 'high-contrast-light'].includes(themeKind);
   const planSteps = msg.content.latest_plan_steps || [];
 
-  const completedCount = planSteps.filter(step => step.is_completed).length;
+  const completedCount = planSteps.filter((step) => step.is_completed).length;
   const totalCount = planSteps.length;
 
   return (
     <div
       className={`mt-2 flex flex-col rounded-md border px-3 py-2 ${
-        isLight
-          ? 'border-blue-300 bg-blue-50/60'
-          : 'border-blue-500/40 bg-blue-900/20'
+        isLight ? 'border-blue-300 bg-blue-50/60' : 'border-blue-500/40 bg-blue-900/20'
       }`}
     >
       {/* Header */}
@@ -41,11 +39,7 @@ export const TaskPlanChip: React.FC<TaskPlanChipProps> = ({ msg }) => {
           </span>
         </div>
         <div className="flex items-center">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
+          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </div>
       </div>
 
@@ -61,23 +55,17 @@ export const TaskPlanChip: React.FC<TaskPlanChipProps> = ({ msg }) => {
                     ? 'bg-green-100/50'
                     : 'bg-gray-100/50'
                   : step.is_completed
-                  ? 'bg-green-900/20'
-                  : 'bg-gray-800/20'
+                    ? 'bg-green-900/20'
+                    : 'bg-gray-800/20'
               }`}
             >
               <div className="mt-0.5 flex-shrink-0">
                 {step.is_completed ? (
                   <CheckCircle
-                    className={`h-4 w-4 ${
-                      isLight ? 'text-green-600' : 'text-green-400'
-                    }`}
+                    className={`h-4 w-4 ${isLight ? 'text-green-600' : 'text-green-400'}`}
                   />
                 ) : (
-                  <Circle
-                    className={`h-4 w-4 ${
-                      isLight ? 'text-gray-400' : 'text-gray-500'
-                    }`}
-                  />
+                  <Circle className={`h-4 w-4 ${isLight ? 'text-gray-400' : 'text-gray-500'}`} />
                 )}
               </div>
               <div
@@ -87,8 +75,8 @@ export const TaskPlanChip: React.FC<TaskPlanChipProps> = ({ msg }) => {
                       ? 'text-gray-700 line-through opacity-70'
                       : 'text-gray-400 line-through opacity-70'
                     : isLight
-                    ? 'text-gray-800'
-                    : 'text-gray-200'
+                      ? 'text-gray-800'
+                      : 'text-gray-200'
                 }`}
               >
                 {step.step_description}

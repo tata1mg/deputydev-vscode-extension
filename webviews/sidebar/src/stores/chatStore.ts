@@ -847,7 +847,7 @@ export const useChatStore = create(
                         is_completed: boolean;
                       }>;
                     };
-                    
+
                     setChat(id, (prev) => {
                       // Check if a plan message already exists in the history
                       const existingPlanIndex = prev.history.findIndex(
