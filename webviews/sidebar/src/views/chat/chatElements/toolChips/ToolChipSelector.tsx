@@ -41,7 +41,7 @@ const ToolChipSelector: React.FC<ToolProps> = ({
           toolRunStatus={toolRunStatus}
         />
       );
-
+    case 'semantic_search':
     case 'related_code_searcher':
       return (
         <RelatedCodeSearcher
