@@ -849,16 +849,46 @@ export const useChatStore = create(
                     };
 
                     setChat(id, (prev) => {
-                      // Check if a plan message already exists in the history
-                      const existingPlanIndex = prev.history.findIndex(
-                        (msg) => msg.type === 'TASK_PLAN_UPSERT'
-                      );
+                      // Find the index of the last user message
+                      let lastUserMessageIndex = -1;
+                      for (let i = prev.history.length - 1; i >= 0; i--) {
+                        if (
+                          prev.history[i].type === 'TEXT_BLOCK' &&
+                          (prev.history[i] as ChatUserMessage).actor === 'USER'
+                        ) {
+                          lastUserMessageIndex = i;
+                          break;
+                        }
+                      }
+
+                      // If no user message found, append to end
+                      if (lastUserMessageIndex === -1) {
+                        return {
+                          ...prev,
+                          history: [
+                            ...prev.history,
+                            {
+                              type: 'TASK_PLAN_UPSERT',
+                              content: {
+                                latest_plan_steps: taskPlanData.latest_plan_steps,
+                              },
+                            } as ChatTaskPlanMessage,
+                          ],
+                          showSkeleton: false,
+                        };
+                      }
+
+                      // Check if there's already a task plan immediately after the last user message
+                      const nextIndex = lastUserMessageIndex + 1;
+                      const hasTaskPlanAfterUser =
+                        nextIndex < prev.history.length &&
+                        prev.history[nextIndex].type === 'TASK_PLAN_UPSERT';
 
                       let newHistory;
-                      if (existingPlanIndex !== -1) {
-                        // Update the existing plan message
+                      if (hasTaskPlanAfterUser) {
+                        // Update the existing task plan
                         newHistory = prev.history.map((msg, idx) => {
-                          if (idx === existingPlanIndex) {
+                          if (idx === nextIndex) {
                             return {
                               type: 'TASK_PLAN_UPSERT',
                               content: {
@@ -869,15 +899,16 @@ export const useChatStore = create(
                           return msg;
                         });
                       } else {
-                        // Add a new plan message
+                        // Insert a new task plan right after the last user message
                         newHistory = [
-                          ...prev.history,
+                          ...prev.history.slice(0, nextIndex),
                           {
                             type: 'TASK_PLAN_UPSERT',
                             content: {
                               latest_plan_steps: taskPlanData.latest_plan_steps,
                             },
                           } as ChatTaskPlanMessage,
+                          ...prev.history.slice(nextIndex),
                         ];
                       }
 
