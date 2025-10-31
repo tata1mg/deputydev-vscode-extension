@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '../services/api/endpoints';
 import { AuthService } from '../services/auth/AuthService';
 import { BaseClient, BaseWebsocketEndpoint } from './base/baseClient';
 
@@ -15,24 +16,17 @@ const getAuthorizationHeader = async () => {
 };
 
 export class BinaryClient extends BaseClient {
-  // Default endpoints can be set here if needed
-  endpointMap: Record<string, string> = {
-    UPDATE_VECTOR_DB: '/v1/update_chunks',
-    GET_RELEVANT_CHUNKS: '/v1/relevant_chunks',
-  };
-
   // endpoints
   public updateVectorDB!: () => BaseWebsocketEndpoint;
-  public getRelevantChunks!: () => BaseWebsocketEndpoint;
+  public semanticSearch!: () => BaseWebsocketEndpoint;
 
-  constructor(httpHost?: string, wsHost?: string, endpointsMap: Record<string, string> = {}) {
+  constructor(httpHost?: string, wsHost?: string) {
     super(httpHost, wsHost, undefined, getAuthorizationHeader);
-    this.endpointMap = { ...this.endpointMap, ...endpointsMap };
     this.initEndpoints();
   }
 
   initEndpoints() {
-    this.updateVectorDB = this.createWebsocketEndpoint(this.endpointMap['UPDATE_VECTOR_DB']);
-    this.getRelevantChunks = this.createWebsocketEndpoint(this.endpointMap['GET_RELEVANT_CHUNKS']);
+    this.updateVectorDB = this.createWebsocketEndpoint(API_ENDPOINTS.UPDATE_VECTOR_DB);
+    this.semanticSearch = this.createWebsocketEndpoint(API_ENDPOINTS.SEMANTIC_SEARCH);
   }
 }

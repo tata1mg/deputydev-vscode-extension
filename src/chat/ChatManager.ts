@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
+import { SemanticSearchToolService } from '../services/tools/semanticSearchTool/SemanticSearchToolService';
 import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,7 +16,7 @@ import { AuthService } from '../services/auth/AuthService';
 import { QuerySolverService, ThrottlingException, TokenLimitException } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { getShell } from '../terminal/utils/shell';
-import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ThrottlingErrorData, ToolRequest } from '../types';
+import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getIsEmbeddingDoneForActiveRepo, getSessionId, setSessionId } from '../utilities/contextManager';
@@ -66,7 +66,7 @@ export class ChatManager {
   private readonly grepSearchTool: GrepSearchTool;
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
-  private readonly relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
+  private readonly semanticSearchToolService: SemanticSearchToolService;
   // private mcpManager: MCPManager;
 
   onStarted: () => void = () => {};
@@ -80,13 +80,13 @@ export class ChatManager {
     private readonly usageTrackingManager: UsageTrackingManager,
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly backendClient: BackendClient,
-    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
+    semanticSearchToolService: SemanticSearchToolService,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
     this.grepSearchTool = new GrepSearchTool(this.outputChannel, this.authService);
-    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
+    this.semanticSearchToolService = semanticSearchToolService;
   }
 
   // Method to set the sidebar provider later
@@ -707,32 +707,31 @@ export class ChatManager {
   }
 
   // Related Code Searcher Tool Implementation
-  private async _runRelatedCodeSearcher(
+  private async _runSemanticSearcher(
     repo_path: string,
     sessionId: number,
     params: {
-      search_query?: string;
+      query?: string;
       paths?: string[];
+      explanation?: string;
     },
   ): Promise<any> {
-    const query = params.search_query || '';
+    if (!params.query || !params.explanation) {
+      throw new Error("Missing 'query' or 'explanation' parameter for semantic_search");
+    }
     // const focusFiles = params.paths || []; // Currently unused based on original code?
-    this.outputChannel.info(`Executing related_code_searcher: query="${query.substring(0, 50)}..."`);
-
+    this.outputChannel.info(`Executing semantic_search: query="${params.query.substring(0, 50)}..."`);
     try {
-      const result = await this.relevantCodeSearcherToolService.runTool({
+      const result = await this.semanticSearchToolService.runTool({
         repo_path: repo_path,
-        query: query,
-        focus_files: [], // Explicitly empty based on original logic
-        focus_directories: [],
-        focus_chunks: [],
-        // Uncomment and use focusFiles if needed:
-        // focus_files: focusFiles,
-        sessionId: sessionId,
+        query: params.query,
+        explanation: params.explanation,
+        focus_directories: params.paths,
+        session_id: sessionId,
         session_type: SESSION_TYPE,
       });
 
-      return result.relevant_chunks || []; // Return chunks or empty array
+      return result.relevant_chunks;
     } catch (error: any) {
       this.logger.error('Failed to run related code searcher: ', error);
       throw error;
@@ -881,8 +880,8 @@ export class ChatManager {
   // Structures the raw tool result into the format expected by the backend's tool_use_response.
   private _structureToolResponse(toolName: string, rawResult: any): any {
     switch (toolName) {
-      case 'related_code_searcher':
-        return { RELEVANT_CHUNKS: rawResult };
+      case 'semantic_search':
+        return { relevant_code_snippets: rawResult };
       case 'focused_snippets_searcher':
         return { batch_chunks_search: rawResult };
       case 'file_path_searcher':
@@ -1268,8 +1267,7 @@ export class ChatManager {
     toolRequest: ToolRequest,
   ): Promise<any> {
     const toolMap: Record<string, () => Promise<any>> = {
-      related_code_searcher: () =>
-        this._runRelatedCodeSearcher(parsedContent.repo_path || repoPath, sessionId, parsedContent),
+      semantic_search: () => this._runSemanticSearcher(parsedContent.repo_path || repoPath, sessionId, parsedContent),
       focused_snippets_searcher: () =>
         this._runFocusedSnippetsSearcher(parsedContent.repo_path || repoPath, parsedContent),
       file_path_searcher: () => this._runFilePathSearcher(parsedContent.repo_path || repoPath, parsedContent),

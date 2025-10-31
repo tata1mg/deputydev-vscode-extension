@@ -47,7 +47,7 @@ import { ActiveFileListener } from './code_syncing/ActiveFileListener';
 import { BackendClient } from './clients/backendClient';
 import { BinaryClient } from './clients/binaryClient';
 import { IndexingService } from './services/indexing/indexingService';
-import { RelevantCodeSearcherToolService } from './services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
+import { SemanticSearchToolService } from './services/tools/semanticSearchTool/SemanticSearchToolService';
 import { setUserSystemData } from './utilities/getSystemInformation';
 import { ReviewService } from './services/codeReview/CodeReviewService';
 import { CodeReviewDiffManager } from './diff/codeReviewDiff/codeReviewDiffManager';
@@ -112,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
   const indexingService = new IndexingService();
-  const relevantCodeSearcherToolService = new RelevantCodeSearcherToolService();
+  const semanticSearchToolService = new SemanticSearchToolService();
   const reviewService = new ReviewService();
   const codeReviewDiffManager = new CodeReviewDiffManager();
   const commentHandler = new CommentHandler(context);
@@ -134,7 +134,7 @@ export async function activate(context: vscode.ExtensionContext) {
     usageTrackingManager,
     errorTrackingManager,
     backendClient,
-    relevantCodeSearcherToolService,
+    semanticSearchToolService,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
@@ -194,7 +194,7 @@ export async function activate(context: vscode.ExtensionContext) {
     configManager,
     authenticationManager,
     indexingService,
-    relevantCodeSearcherToolService,
+    semanticSearchToolService,
   );
   context.subscriptions.push(pinger);
   (async () => {
@@ -210,7 +210,7 @@ export async function activate(context: vscode.ExtensionContext) {
       getBinaryWsHost(), // This will be the binary WebSocket host URL
     );
     indexingService.init(binaryClient);
-    relevantCodeSearcherToolService.init(binaryClient);
+    semanticSearchToolService.init(binaryClient);
     if (!isLocalBinary) {
       pinger.start();
     }
