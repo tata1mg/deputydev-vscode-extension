@@ -21,6 +21,7 @@ import {
   ChatMetaData,
   ChatReferenceItem,
   ChatStatus,
+  ChatTaskPlanMessage,
   ChatTerminalNoShell,
   ChatThinkingMessage,
   ChatToolUseMessage,
@@ -836,6 +837,87 @@ export const useChatStore = create(
                         };
                       });
                     }
+                    break;
+                  }
+
+                  case 'TASK_PLAN_UPSERT': {
+                    const taskPlanData = event.data as {
+                      latest_plan_steps: Array<{
+                        step_description: string;
+                        is_completed: boolean;
+                      }>;
+                    };
+
+                    setChat(id, (prev) => {
+                      // Find the index of the last user message
+                      let lastUserMessageIndex = -1;
+                      for (let i = prev.history.length - 1; i >= 0; i--) {
+                        if (
+                          prev.history[i].type === 'TEXT_BLOCK' &&
+                          (prev.history[i] as ChatUserMessage).actor === 'USER'
+                        ) {
+                          lastUserMessageIndex = i;
+                          break;
+                        }
+                      }
+
+                      // If no user message found, append to end
+                      if (lastUserMessageIndex === -1) {
+                        return {
+                          ...prev,
+                          history: [
+                            ...prev.history,
+                            {
+                              type: 'TASK_PLAN_UPSERT',
+                              content: {
+                                latest_plan_steps: taskPlanData.latest_plan_steps,
+                              },
+                            } as ChatTaskPlanMessage,
+                          ],
+                          showSkeleton: false,
+                        };
+                      }
+
+                      // Check if there's already a task plan immediately after the last user message
+                      const nextIndex = lastUserMessageIndex + 1;
+                      const hasTaskPlanAfterUser =
+                        nextIndex < prev.history.length &&
+                        prev.history[nextIndex].type === 'TASK_PLAN_UPSERT';
+
+                      let newHistory;
+                      if (hasTaskPlanAfterUser) {
+                        // Update the existing task plan
+                        newHistory = prev.history.map((msg, idx) => {
+                          if (idx === nextIndex) {
+                            return {
+                              type: 'TASK_PLAN_UPSERT',
+                              content: {
+                                latest_plan_steps: taskPlanData.latest_plan_steps,
+                              },
+                            } as ChatTaskPlanMessage;
+                          }
+                          return msg;
+                        });
+                      } else {
+                        // Insert a new task plan right after the last user message
+                        newHistory = [
+                          ...prev.history.slice(0, nextIndex),
+                          {
+                            type: 'TASK_PLAN_UPSERT',
+                            content: {
+                              latest_plan_steps: taskPlanData.latest_plan_steps,
+                            },
+                          } as ChatTaskPlanMessage,
+                          ...prev.history.slice(nextIndex),
+                        ];
+                      }
+
+                      return {
+                        ...prev,
+                        history: newHistory,
+                        showSkeleton: false,
+                      };
+                    });
                     break;
                   }
 

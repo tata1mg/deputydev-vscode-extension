@@ -12,6 +12,7 @@ import ErrorChipSelector from './chatElements/errorChips/ErrorChipSelector';
 import { TerminalNoShellIntegration } from './chatElements/toolChips/TerminalNoShellIntegrationChip';
 import InfoChip from './chatElements/toolChips/InfoChip';
 import TextMessageChip from './chatElements/toolChips/TextMessageChip';
+import { TaskPlanChip } from './chatElements/toolChips/TaskPlanChip';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import {
@@ -79,6 +80,14 @@ export function ChatArea() {
                   isHistory={msg.content.isHistory}
                   sessionId={sessionId}
                 />
+              </div>
+            );
+          }
+
+          case 'TASK_PLAN_UPSERT': {
+            return (
+              <div key={index}>
+                <TaskPlanChip index={index} msg={msg} />
               </div>
             );
           }
