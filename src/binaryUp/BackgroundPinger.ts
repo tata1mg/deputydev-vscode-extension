@@ -7,10 +7,9 @@ import { SidebarProvider } from '../panels/SidebarProvider';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
-import { RelevantCodeSearcherToolService } from '../services/tools/relevantCodeSearcherTool/relevantCodeSearcherToolServivce';
+import { SemanticSearchToolService } from '../services/tools/semanticSearchTool/SemanticSearchToolService';
 import { BinaryClient } from '../clients/binaryClient';
 import { sendNotVerified, sendVerified } from '../utilities/contextManager';
-
 export class BackgroundPinger implements vscode.Disposable {
   private context: vscode.ExtensionContext;
   private sideBarProvider: SidebarProvider;
@@ -18,7 +17,7 @@ export class BackgroundPinger implements vscode.Disposable {
   private outputChannel: vscode.LogOutputChannel;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private configManager: ConfigManager;
-  private relevantCodeSearcherToolService: RelevantCodeSearcherToolService;
+  private semanticSearchToolService: SemanticSearchToolService;
   private authenticationManager: AuthenticationManager;
   private interval: NodeJS.Timeout | null = null;
   private failureCount: number = 0;
@@ -31,7 +30,7 @@ export class BackgroundPinger implements vscode.Disposable {
     outputChannel: vscode.LogOutputChannel,
     configManager: ConfigManager,
     authenticationManager: AuthenticationManager,
-    relevantCodeSearcherToolService: RelevantCodeSearcherToolService,
+    semanticSearchToolService: SemanticSearchToolService,
   ) {
     this.logger = SingletonLogger.getInstance();
     this.context = context;
@@ -40,7 +39,7 @@ export class BackgroundPinger implements vscode.Disposable {
     this.outputChannel = outputChannel;
     this.configManager = configManager;
     this.authenticationManager = authenticationManager;
-    this.relevantCodeSearcherToolService = relevantCodeSearcherToolService;
+    this.semanticSearchToolService = semanticSearchToolService;
   }
 
   public start(): void {
@@ -59,7 +58,12 @@ export class BackgroundPinger implements vscode.Disposable {
       this.inProgress = true;
 
       try {
-        const response = await binaryApi().get(API_ENDPOINTS.PING);
+        const vscodePid = process.pid;
+        const response = await binaryApi().get(API_ENDPOINTS.PING, {
+          params: {
+            vscodePid: vscodePid,
+          },
+        });
         if (response.status === 200) {
           // Successful ping, reset failure count
           this.failureCount = 0;
@@ -92,7 +96,7 @@ export class BackgroundPinger implements vscode.Disposable {
 
           if (serverStatus) {
             const binaryClient = new BinaryClient(getBinaryHost(), getBinaryWsHost());
-            this.relevantCodeSearcherToolService.init(binaryClient);
+            this.semanticSearchToolService.init(binaryClient);
 
             try {
               const status = await this.authenticationManager.validateCurrentSession();
