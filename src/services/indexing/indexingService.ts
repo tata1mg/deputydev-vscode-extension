@@ -39,9 +39,8 @@ export class IndexingService {
       const headers = {
         Authorization: `Bearer ${authToken}`,
       };
-      const response = await binaryApi().post(API_ENDPOINTS.SYNC_REPO_INDEX, {
+      const response = await binaryApi().post(API_ENDPOINTS.SYNC_REPO_INDEX, params, {
         headers,
-        params,
       });
       sendProgress({
         task: 'INDEXING',
@@ -51,7 +50,7 @@ export class IndexingService {
       });
       return response.data;
     } catch (error) {
-      this.logger.error('Error fetching focus chunks');
+      this.logger.error('error syncing repo index');
       this.errorTrackingManager.trackGeneralError({
         error,
         errorType: 'INDEXING_SERVICE_ERROR',
@@ -75,9 +74,8 @@ export class IndexingService {
       const headers = {
         Authorization: `Bearer ${authToken}`,
       };
-      response = await binaryApi().post(API_ENDPOINTS.UPDATE_REPO_INDEX, {
+      response = await binaryApi().post(API_ENDPOINTS.UPDATE_REPO_INDEX, params, {
         headers,
-        params,
       });
       return response.data;
     } catch (error) {

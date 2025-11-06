@@ -141,6 +141,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('active-file-store', undefined);
   await extensionContext.workspaceState.update('contextRepositories', undefined);
   await extensionContext.workspaceState.update('code-review-storage', undefined);
+  await extensionContext.workspaceState.update('completed_with_embeddings', undefined);
 }
 
 // =====================================================================================
@@ -351,5 +352,12 @@ export function isEmbeddingsEnabled(): boolean {
   const isEmbeddingsEnabled = configData?.ENABLE_EXTENSION_EMBEDDINGS;
   const isSemanticSearchEnabled = extensionContext?.globalState.get<boolean>('enable-semantic-search');
   const isCompletedWithEmbeddings = extensionContext?.globalState.get<boolean>('completed_with_embeddings');
-  return isEmbeddingsEnabled && isSemanticSearchEnabled && isCompletedWithEmbeddings ? true : false;
+
+  if (isCompletedWithEmbeddings === undefined) {
+    // Ignore this flag if undefined
+    return !!(isEmbeddingsEnabled && isSemanticSearchEnabled);
+  }
+
+  return !!(isEmbeddingsEnabled && isSemanticSearchEnabled && isCompletedWithEmbeddings);
 }
+

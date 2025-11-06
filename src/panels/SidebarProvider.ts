@@ -653,14 +653,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       const params = { repo_path: activeRepo, sync: true, enable_embeddings };
       await this.indexingService.syncRepoIndex(params);
     } catch (error) {
-      this.logger.warn('Indexing failed');
       this.outputChannel.warn('Indexing failed');
-      this.errorTrackingManager.trackGeneralError({
-        error,
-        errorType: 'INDEXING_ERROR',
-        errorSource: 'BINARY',
-        repoPath: activeRepo,
-      });
       throw error;
     }
   }
