@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
-import { IndexingService, SyncRepoIndexParams } from '../services/indexing/indexingServiceNew';
+import { IndexingService, SyncRepoIndexParams } from '../services/indexing/indexingService';
 import { IndexingProgressData } from '../types';
 import { getIsLspReady } from '../languageServer/lspStatus';
 

@@ -28,6 +28,7 @@ import {
   openBrowserPage,
   urlSearch,
   createOrOpenFile,
+  openFile,
   setGlobalState,
   setShellIntegrationTimeoutMessage,
   setDisableShellIntegrationMessage,
@@ -469,8 +470,9 @@ const IndexingArea: React.FC = () => {
     return (
       <div
         style={style}
-        className="flex items-center justify-between px-2 text-xs text-gray-400 hover:text-gray-200"
-      >
+        className="flex cursor-pointer items-center justify-between px-2 text-xs text-gray-400 hover:text-gray-200"
+        onClick={() => openFile(file.file_path)}
+      > 
         <span className="truncate">{file.file_path}</span>
       </div>
     );
@@ -478,7 +480,7 @@ const IndexingArea: React.FC = () => {
   FileRow.displayName = 'FileRow';
 
   return (
-    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto">
+    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-x-auto overflow-y-auto">
       {indexingProgressData.map((repo) => {
         const repoName = repo.repo_path.split(/[/\\]/).pop() ?? repo.repo_path;
         const isExpanded = expandedRepos[repo.repo_path] || false;
@@ -489,7 +491,7 @@ const IndexingArea: React.FC = () => {
         return (
           <div
             key={repo.repo_path}
-            className="overflow-hidden rounded-md border border-[var(--vscode-editorWidget-border)]"
+            className="min-w-max rounded-md border border-[var(--vscode-editorWidget-border)]"
           >
             <div className="flex h-12 items-center justify-between p-2">
               <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -523,7 +525,7 @@ const IndexingArea: React.FC = () => {
 
             {isExpanded && fileData.length > 0 && (
               <div
-                className="p-3 text-sm"
+                className="p-2 text-sm"
                 style={{ borderTop: '1px solid var(--vscode-editorWidget-border)' }}
               >
                 <div className="mb-2 font-medium">Indexed Files:</div>

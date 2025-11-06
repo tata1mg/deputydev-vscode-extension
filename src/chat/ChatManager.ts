@@ -16,15 +16,10 @@ import { AuthService } from '../services/auth/AuthService';
 import { QuerySolverService, ThrottlingException, TokenLimitException } from '../services/chat/ChatService';
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { getShell } from '../terminal/utils/shell';
-import { ChatPayload, Chunk, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
+import { ChatPayload, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
 import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
-import {
-  getIsEmbeddingDoneForActiveRepo,
-  getIsIndexingDoneForRepo,
-  getSessionId,
-  setSessionId,
-} from '../utilities/contextManager';
+import { getIsIndexingDoneForRepo, getSessionId, setSessionId } from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { cancelChat, registerApiChatTask, unregisterApiChatTask } from './ChatCancellationManager';
@@ -42,6 +37,7 @@ import { DirectoryStructureService } from '../services/focusChunks/directoryStru
 import { getIsLspReady } from '../languageServer/lspStatus';
 import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
 import { GrepSearchTool } from './tools/GrepSearchTool';
+import { IndexingService } from '../services/indexing/indexingService';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -72,6 +68,7 @@ export class ChatManager {
   private replaceInFileTool!: ReplaceInFile;
   private writeToFileTool!: WriteToFileTool;
   private readonly semanticSearchToolService: SemanticSearchToolService;
+  private readonly indexingService: IndexingService;
   // private mcpManager: MCPManager;
 
   onStarted: () => void = () => {};
@@ -86,12 +83,14 @@ export class ChatManager {
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly backendClient: BackendClient,
     semanticSearchToolService: SemanticSearchToolService,
+    indexingService: IndexingService,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
     this.grepSearchTool = new GrepSearchTool(this.outputChannel, this.authService);
     this.semanticSearchToolService = semanticSearchToolService;
+    this.indexingService = indexingService;
   }
 
   // Method to set the sidebar provider later
@@ -169,7 +168,6 @@ export class ChatManager {
               search_item_type: item.type,
               search_item_path: item.path,
             });
-            console.log('focus chunks', result);
             // convert result to array
 
             focusItemsResult.push({
@@ -289,6 +287,7 @@ export class ChatManager {
       payload.vscode_env = await getEnvironmentDetails(true, payload.repoPath, payload);
       const clientTools = await this.getExtraTools();
       payload.client_tools = clientTools;
+      payload.is_embeddings_ready = await this.indexingService.repoSyncStatus({ repo_path: payload.repoPath });
       payload.is_indexing_ready = getIsIndexingDoneForRepo(payload.repoPath);
       payload.is_lsp_ready = await getIsLspReady({ force: false, repoPath: payload.repoPath });
 
@@ -743,18 +742,11 @@ export class ChatManager {
   // Focused Snippets Searcher Tool Implementation
   private async _fetchBatchChunksSearch(repoPath: string, searchTerms: SearchTerm[]): Promise<any> {
     this.outputChannel.info(`Calling batch chunks search API.`);
-    const authToken = await this.authService.loadAuthToken();
-    const headers = { Authorization: `Bearer ${authToken}` };
     try {
-      const response = await binaryApi().post(
-        API_ENDPOINTS.BATCH_CHUNKS_SEARCH,
-        {
-          repo_path: repoPath,
-          search_terms: searchTerms,
-        },
-        { headers },
-      );
-
+      const response = await binaryApi().post(API_ENDPOINTS.BATCH_CHUNKS_SEARCH, {
+        repo_path: repoPath,
+        search_terms: searchTerms,
+      });
       this.outputChannel.info('Batch chunks search API call successful.');
       return response.data;
     } catch (error: any) {

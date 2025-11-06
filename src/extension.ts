@@ -46,7 +46,7 @@ import { binaryApi } from './services/api/axios';
 import { ActiveFileListener } from './code_syncing/ActiveFileListener';
 import { BackendClient } from './clients/backendClient';
 import { BinaryClient } from './clients/binaryClient';
-import { IndexingService } from './services/indexing/indexingServiceNew';
+import { IndexingService } from './services/indexing/indexingService';
 import { SemanticSearchToolService } from './services/tools/semanticSearchTool/SemanticSearchToolService';
 import { setUserSystemData } from './utilities/getSystemInformation';
 import { ReviewService } from './services/codeReview/CodeReviewService';
@@ -135,6 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
     errorTrackingManager,
     backendClient,
     semanticSearchToolService,
+    indexingService,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);

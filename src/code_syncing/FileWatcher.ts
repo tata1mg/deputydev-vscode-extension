@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import ignore from 'ignore';
 import { v4 as uuidv4 } from 'uuid';
 
-import { IndexingService, UpdateRepoIndexParams } from '../services/indexing/indexingServiceNew';
+import { IndexingService, UpdateRepoIndexParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
 export class WorkspaceFileWatcher {
@@ -164,7 +164,7 @@ export class WorkspaceFileWatcher {
     this.changeTimeout = setTimeout(() => {
       this.processFileUpdates();
       this.changeTimeout = null;
-    }, 500);
+    }, 10000);
   }
 
   /**
@@ -173,18 +173,16 @@ export class WorkspaceFileWatcher {
   private processFileUpdates(): void {
     if (this.pendingFileChanges.size > 0) {
       const fileListArray = Array.from(this.pendingFileChanges);
-      const fileList = fileListArray.join(', '); // Convert to string
       // Construct request payload
+      const essentialConfigs = this.configManager.getAllConfigEssentials();
+      const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
       const params: UpdateRepoIndexParams = {
         repo_path: this.activeRepoPath, // Send active repository path
         files_to_update: fileListArray, // Send updated file list
+        enable_embeddings: enable_embeddings,
       };
-      this.outputChannel.info(`Sending update to WebSocket: ${JSON.stringify(params)}`);
-
-      // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
+      this.outputChannel.info(`Sending update to the indexing service: ${JSON.stringify(params)}`);
       this.indexingService.updateRepoIndex(params);
-
-      this.outputChannel.info(`Files updated with websockets: ${fileList}`);
       this.pendingFileChanges.clear();
 
       // Notify the sidebar to refresh the review state

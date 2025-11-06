@@ -472,6 +472,7 @@ export const useChatStore = create(
                   newHistory[newHistory.length - 1] = {
                     ...(last as any),
                     status: 'aborted',
+                    disableStopButton: true,
                   };
                 }
 
@@ -540,12 +541,12 @@ export const useChatStore = create(
             try {
               for await (const event of stream) {
                 switch (event.name) {
-                  case 'STREAM_START':
-                    setChat(id, (prev) => ({
-                      ...prev,
-                      disableStopButton: true,
-                    }));
-                    break;
+                  // case 'STREAM_START':
+                  //   setChat(id, (prev) => ({
+                  //     ...prev,
+                  //     disableStopButton: true,
+                  //   }));
+                  //   break;
 
                   case 'RESPONSE_METADATA': {
                     setChat(id, (prev) => ({

@@ -89,6 +89,7 @@ export interface ChatPayload {
   client_tools: Array<ClientTool>;
   retry_reason?: string;
   is_indexing_ready?: boolean;
+  is_embeddings_ready?: boolean;
   is_lsp_ready?: boolean;
   active_file_reference?: {
     active_file: string;

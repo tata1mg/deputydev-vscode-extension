@@ -40,7 +40,7 @@ import { getUri } from '../utilities/getUri';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { formatSessionChats } from '../utilities/sessionChatsFormatter';
-import { IndexingService } from '../services/indexing/indexingServiceNew';
+import { IndexingService } from '../services/indexing/indexingService';
 import { getIsLspReady } from '../languageServer/lspStatus';
 
 export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -581,10 +581,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     const sendMessage = (message: any) => {
       this.sendMessageToSidebar(message);
     };
+
+    // Store token securely
     await this.context.secrets.store('authToken', authToken);
+
+    // Initialize settings
     this.configManager.initializeSettings(sendMessage);
-    const essentialConfig = this.configManager.getAllConfigEssentials();
-    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfig)}`);
+    const essentialConfigs = this.configManager.getAllConfigEssentials();
+    this.outputChannel.info(`📦 Essential config: ${JSON.stringify(essentialConfigs)}`);
 
     // Prepare binary init payload
     this.logger.info('Initiating binary...');
@@ -596,54 +600,49 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           HOST: BINARY_DD_HOST,
         },
       },
-      mcp_config_path: MCP_CONFIG_PATH,
+      enable_embeddings: essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false,
     };
 
     const headers = {
       Authorization: `Bearer ${authToken}`,
     };
-    if (activeRepo) {
-      sendProgress({
-        task: 'INDEXING',
-        status: 'IN_PROGRESS',
-        repo_path: activeRepo,
-        indexed_files: [],
-      });
-    }
 
-    let response: any;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
-        this.outputChannel.info(`✅ Binary init status: ${response.data.status}`);
+    try {
+      const response = await binaryApi().post(API_ENDPOINTS.INIT_BINARY, payload, { headers });
+      const status = response.data.status;
 
-        if (response.data.status === 'COMPLETED') {
-          this.outputChannel.info('Binary initialization completed successfully.');
-          this.logger.info('Binary initialization completed successfully.');
-          break;
-        } else if (attempt < 3) {
-          this.outputChannel.info(`🔄 Retrying binary init (attempt ${attempt + 1})...`);
-          this.logger.info(`Binary init status: ${response.data.status}`);
-        } else {
-          throw new Error('Binary initialization failed after 3 attempts.');
-        }
-      } catch (err) {
-        if (attempt === 3) {
-          this.logger.warn('Binary initialization failed');
-          this.outputChannel.warn('🚨 Binary initialization failed.');
-          this.errorTrackingManager.trackGeneralError({
-            error: err,
-            errorType: 'BINARY_INIT_ERROR',
-            errorSource: 'BINARY',
-            repoPath: activeRepo,
-          });
-          this.setViewType('error');
-          throw err;
-        }
+      this.logger.info(`Binary init status: ${status}`);
+      this.outputChannel.info(`✅ Binary init status: ${status}`);
+
+      if (status === 'COMPLETED') {
+        this.outputChannel.info('Binary initialization completed successfully.');
+        this.logger.info('Binary initialization completed successfully.');
+      } else if (status === 'COMPLETED_WITHOUT_EMBEDDINGS') {
+        this.logger.info('Binary initialization completed without embeddings.');
+        this.outputChannel.info('⚠️ Binary initialization completed without embeddings.');
+        await this.context.workspaceState.update('enabled_embeddings', false);
+      } else {
+        this.logger.warn('Binary initialization failed.');
+        this.outputChannel.warn('🚨 Binary initialization failed.');
+        this.errorTrackingManager.trackGeneralError({
+          error: new Error(`Unexpected status: ${status}`),
+          errorType: 'BINARY_INIT_ERROR',
+          errorSource: 'BINARY',
+          repoPath: activeRepo,
+        });
+        this.setViewType('error');
       }
+    } catch (err: any) {
+      this.logger.error('❌ Binary initialization encountered an error', err);
+      this.outputChannel.error('❌ Binary initialization failed with error.');
+      this.errorTrackingManager.trackGeneralError({
+        error: err,
+        errorType: 'BINARY_INIT_ERROR',
+        errorSource: 'BINARY',
+        repoPath: activeRepo,
+      });
+      this.setViewType('error');
     }
-
-    if (response?.data?.status !== 'COMPLETED') return;
     // Start services regardless of activeRepo status
     this.startPollingMcpServers();
     this.syncMcpServers();
@@ -655,17 +654,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
 
     this.continueWorkspace.triggerAuthChange(true);
 
-    const params = { repo_path: activeRepo, sync: true };
-    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
-
     try {
-      const indexed_files = await this.indexingService.syncRepoIndex(params);
-      sendProgress({
-        task: 'INDEXING',
-        status: 'COMPLETED',
-        repo_path: activeRepo,
-        indexed_files: indexed_files,
-      });
+      const essentialConfigs = this.configManager.getAllConfigEssentials();
+      const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
+      const params = { repo_path: activeRepo, sync: true, enable_embeddings };
+      await this.indexingService.syncRepoIndex(params);
     } catch (error) {
       this.logger.warn('Indexing failed');
       this.outputChannel.warn('Indexing failed');
@@ -683,8 +676,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     if (!repoPath) {
       return;
     }
-    const params = { repo_path: repoPath, sync: true };
-    this.outputChannel.info(`📡 Sending WebSocket update: ${JSON.stringify(params)}`);
+    const essentialConfigs = this.configManager.getAllConfigEssentials();
+    const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
+    const params = { repo_path: repoPath, sync: true, enable_embeddings };
+    this.outputChannel.info(`Sending indexing update request: ${JSON.stringify(params)}`);
     try {
       await this.indexingService.syncRepoIndex(params);
     } catch (error) {
