@@ -285,14 +285,6 @@ export function killAllProcesses() {
   return callCommand('kill-all-terminal-processes', null);
 }
 
-export function setShellIntegrationTimeoutMessage(data: { key: string; value: unknown }) {
-  return callCommand('set-shell-integration-timeout', data);
-}
-
-export function setDisableShellIntegrationMessage(data: { key: string; value: unknown }) {
-  return callCommand('set-disable-shell-integration', data);
-}
-
 export function webviewInitialized() {
   return callCommand('webview-initialized', {});
 }

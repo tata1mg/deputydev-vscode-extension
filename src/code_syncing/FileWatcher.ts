@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { IndexingService, UpdateRepoIndexParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
+import { isEmbeddingsEnabled } from '../utilities/contextManager';
 export class WorkspaceFileWatcher {
   private readonly watcher: vscode.FileSystemWatcher | undefined;
   private readonly indexingService: IndexingService;
@@ -174,8 +175,7 @@ export class WorkspaceFileWatcher {
     if (this.pendingFileChanges.size > 0) {
       const fileListArray = Array.from(this.pendingFileChanges);
       // Construct request payload
-      const essentialConfigs = this.configManager.getAllConfigEssentials();
-      const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
+      const enable_embeddings = isEmbeddingsEnabled();
       const params: UpdateRepoIndexParams = {
         repo_path: this.activeRepoPath, // Send active repository path
         files_to_update: fileListArray, // Send updated file list

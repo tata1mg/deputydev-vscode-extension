@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { EmbeddingProgressData, IndexingProgressData } from '../types';
+import { IndexingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { arePathsEqual } from './path';
 
 // =====================================================================================
 // Module State
@@ -345,19 +346,10 @@ function normalizePath(p: string): string {
   return normalized;
 }
 
-export function arePathsEqual(path1?: string, path2?: string): boolean {
-  if (!path1 && !path2) {
-    return true;
-  }
-  if (!path1 || !path2) {
-    return false;
-  }
-
-  path1 = normalizePath(path1);
-  path2 = normalizePath(path2);
-
-  if (process.platform === 'win32') {
-    return path1.toLowerCase() === path2.toLowerCase();
-  }
-  return path1 === path2;
+export function isEmbeddingsEnabled(): boolean {
+  const configData: any = extensionContext?.workspaceState.get('essentialConfigData');
+  const isEmbeddingsEnabled = configData?.ENABLE_EXTENSION_EMBEDDINGS;
+  const isSemanticSearchEnabled = extensionContext?.globalState.get<boolean>('enable-semantic-search');
+  const isCompletedWithEmbeddings = extensionContext?.globalState.get<boolean>('completed_with_embeddings');
+  return isEmbeddingsEnabled && isSemanticSearchEnabled && isCompletedWithEmbeddings ? true : false;
 }

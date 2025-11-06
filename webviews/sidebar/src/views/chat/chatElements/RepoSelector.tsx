@@ -99,12 +99,11 @@ const RepoSelector = () => {
       switch (status) {
         case 'COMPLETED':
           return 'Indexing Completed';
+        case 'IDLE':
         case 'IN_PROGRESS':
           return 'Indexing in Progress';
         case 'FAILED':
           return 'Indexing Failed, Retry';
-        case 'IDLE':
-          return 'Ready to Index';
         default:
           return 'Indexed';
       }
@@ -181,11 +180,13 @@ const RepoSelector = () => {
             : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
         }`}
         whileTap={{ scale: 0.98 }}
-        data-tooltip-id="repo-selector-tooltip"
-        data-tooltip-content={getIndexingStatusForTooltip()}
-        data-tooltip-place="top-start"
-        data-tooltip-class-name="z-50"
-        data-tooltip-effect="solid"
+        {...(!isOpen && {
+          'data-tooltip-id': 'repo-selector-tooltip',
+          'data-tooltip-content': getIndexingStatusForTooltip(),
+          'data-tooltip-place': 'top-start',
+          'data-tooltip-class-name': 'z-50',
+          'data-tooltip-effect': 'solid',
+        })}
       >
         <IndexingStatusIcon />
         <div className="flex items-center gap-1">

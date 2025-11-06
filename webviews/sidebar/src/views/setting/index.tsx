@@ -30,8 +30,6 @@ import {
   createOrOpenFile,
   openFile,
   setGlobalState,
-  setShellIntegrationTimeoutMessage,
-  setDisableShellIntegrationMessage,
   hitIndexing,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
@@ -563,6 +561,8 @@ const Setting = () => {
     setCommandsToDeny,
     disableShellIntegration,
     setDisableShellIntegration,
+    enableSemanticSearch,
+    setEnableSemanticSearch,
   } = useSettingsStore();
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
   const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<string | null>(null);
@@ -630,13 +630,17 @@ const Setting = () => {
       key: 'terminal-command-timeout',
       value: shellCommandTimeout,
     });
-    setDisableShellIntegrationMessage({
+    setGlobalState({
       key: 'disable-shell-integration',
       value: disableShellIntegration,
     });
-    setShellIntegrationTimeoutMessage({
+    setGlobalState({
       key: 'terminal-shell-limit',
       value: shellIntegrationTimeout,
+    });
+    setGlobalState({
+      key: 'enable-semantic-search',
+      value: enableSemanticSearch,
     });
   }, [
     terminalOutputLimit,
@@ -645,6 +649,7 @@ const Setting = () => {
     isYoloModeOn,
     commandsToDeny,
     disableShellIntegration,
+    enableSemanticSearch,
   ]);
 
   useEffect(() => {
@@ -857,6 +862,14 @@ const Setting = () => {
             onChange={setShellCommandTimeout}
             postfix="s"
           />
+        </SettingsCard>
+        <SettingsCard
+          title="Enable Semantic Search"
+          description={
+            'Enable this to allow DeputyDev to use semantic search capabilities. This may improve search results but may also slow down performance.'
+          }
+        >
+          <Toggle checked={enableSemanticSearch} onChange={setEnableSemanticSearch} />
         </SettingsCard>
       </div>
       <div>

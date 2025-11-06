@@ -27,14 +27,13 @@ import { AgentPayload, ChatStatusMsg, NewReview } from '../types';
 import { ConfigManager } from '../utilities/ConfigManager';
 import {
   clearWorkspaceStorage,
-  deleteSessionId,
   getActiveRepo,
   getRepoAndRelativeFilePath,
   getSessionId,
-  sendProgress,
   setReviewId,
   setReviewSessionId,
   setSessionId,
+  isEmbeddingsEnabled,
 } from '../utilities/contextManager';
 import { getUri } from '../utilities/getUri';
 import { checkFileExists, fileExists, openFile } from '../utilities/path';
@@ -396,12 +395,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           this.outputChannel.info('Killing all terminal processes');
           this.chatService.killAllProcesses();
           break;
-        case 'set-shell-integration-timeout':
-          this.setGlobalState(data);
-          break;
-        case 'set-disable-shell-integration':
-          this.setGlobalState(data);
-          break;
 
         // diff
         case 'write-file': {
@@ -600,7 +593,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
           HOST: BINARY_DD_HOST,
         },
       },
-      enable_embeddings: essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false,
+      enable_embeddings: isEmbeddingsEnabled(),
     };
 
     const headers = {
@@ -617,10 +610,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       if (status === 'COMPLETED') {
         this.outputChannel.info('Binary initialization completed successfully.');
         this.logger.info('Binary initialization completed successfully.');
+        await this.context.workspaceState.update('completed_with_embeddings', true);
       } else if (status === 'COMPLETED_WITHOUT_EMBEDDINGS') {
         this.logger.info('Binary initialization completed without embeddings.');
         this.outputChannel.info('⚠️ Binary initialization completed without embeddings.');
-        await this.context.workspaceState.update('enabled_embeddings', false);
+        await this.context.workspaceState.update('completed_with_embeddings', false);
       } else {
         this.logger.warn('Binary initialization failed.');
         this.outputChannel.warn('🚨 Binary initialization failed.');
@@ -655,8 +649,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     this.continueWorkspace.triggerAuthChange(true);
 
     try {
-      const essentialConfigs = this.configManager.getAllConfigEssentials();
-      const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
+      const enable_embeddings = isEmbeddingsEnabled();
       const params = { repo_path: activeRepo, sync: true, enable_embeddings };
       await this.indexingService.syncRepoIndex(params);
     } catch (error) {
@@ -676,8 +669,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
     if (!repoPath) {
       return;
     }
-    const essentialConfigs = this.configManager.getAllConfigEssentials();
-    const enable_embeddings = essentialConfigs['ENABLE_EXTENSION_EMBEDDINGS'] || false;
+    const enable_embeddings = isEmbeddingsEnabled();
     const params = { repo_path: repoPath, sync: true, enable_embeddings };
     this.outputChannel.info(`Sending indexing update request: ${JSON.stringify(params)}`);
     try {

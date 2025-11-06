@@ -376,6 +376,9 @@ addCommandEventListener('initialize-settings-response', async ({ data }) => {
     disableShellIntegration: await getGlobalState({
       key: 'disable-shell-integration',
     }),
+    enableSemanticSearch: await getGlobalState({
+      key: 'enable-semantic-search',
+    }),
   });
 });
 

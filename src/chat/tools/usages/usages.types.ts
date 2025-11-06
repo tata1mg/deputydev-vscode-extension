@@ -51,6 +51,7 @@ export interface ResolveModuleResult {
 export type LocationInfo = {
   filePath: string;
   line: number;
+  snippet?: string;
 };
 
 /** Enriched info about the symbol itself (optional in result). */

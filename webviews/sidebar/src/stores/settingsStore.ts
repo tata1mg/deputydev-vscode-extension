@@ -12,6 +12,7 @@ interface SettingsStore {
   isYoloModeOn: boolean;
   commandsToDeny: string[];
   disableShellIntegration: boolean;
+  enableSemanticSearch: boolean;
   urls: URLListItem[];
 
   setTerminalOutputLimit: (value: number) => void;
@@ -20,6 +21,7 @@ interface SettingsStore {
   setIsYoloModeOn: (value: boolean) => void;
   setCommandsToDeny: (value: string[]) => void;
   setDisableShellIntegration: (value: boolean) => void;
+  setEnableSemanticSearch: (value: boolean) => void;
   setUrls: (value: URLListItem[]) => void;
 }
 
@@ -32,6 +34,7 @@ export const useSettingsStore = create<SettingsStore>()(
       isYoloModeOn: false,
       commandsToDeny: [],
       disableShellIntegration: false,
+      enableSemanticSearch: true,
       urls: [] as URLListItem[],
 
       setTerminalOutputLimit: (value) => set({ terminalOutputLimit: value }),
@@ -40,6 +43,7 @@ export const useSettingsStore = create<SettingsStore>()(
       setIsYoloModeOn: (value) => set({ isYoloModeOn: value }),
       setCommandsToDeny: (value) => set({ commandsToDeny: value }),
       setDisableShellIntegration: (value) => set({ disableShellIntegration: value }),
+      setEnableSemanticSearch: (value) => set({ enableSemanticSearch: value }),
       setUrls: (value: URLListItem[]) => set({ urls: value }),
     }),
     {

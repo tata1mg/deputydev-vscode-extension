@@ -4,6 +4,7 @@ import { ApiErrorHandler } from '../api/apiErrorHandler';
 import { SingletonLogger } from '../../utilities/Singleton-logger';
 import { ErrorTrackingManager } from '../../analyticsTracking/ErrorTrackingManager';
 import { sendProgress } from '../../utilities/contextManager';
+import { AuthService } from '../auth/AuthService';
 
 export interface UpdateRepoIndexParams {
   repo_path: string;
@@ -12,6 +13,12 @@ export interface UpdateRepoIndexParams {
   sync?: boolean;
   enable_embeddings: boolean;
 }
+
+const fetchAuthToken = async () => {
+  const authService = new AuthService();
+  const authToken = await authService.loadAuthToken();
+  return authToken;
+};
 
 export interface SyncRepoIndexParams {
   repo_path: string;
@@ -28,7 +35,14 @@ export class IndexingService {
   private errorTrackingManager = new ErrorTrackingManager();
   public async syncRepoIndex(params: SyncRepoIndexParams): Promise<string[]> {
     try {
-      const response = await binaryApi().post(API_ENDPOINTS.SYNC_REPO_INDEX, params);
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      const response = await binaryApi().post(API_ENDPOINTS.SYNC_REPO_INDEX, {
+        headers,
+        params,
+      });
       sendProgress({
         task: 'INDEXING',
         status: 'COMPLETED',
@@ -57,7 +71,14 @@ export class IndexingService {
     // console.log(`get focus chunks ${JSON.stringify(payload)}`)
     let response;
     try {
-      response = await binaryApi().post(API_ENDPOINTS.UPDATE_REPO_INDEX, params);
+      const authToken = await fetchAuthToken();
+      const headers = {
+        Authorization: `Bearer ${authToken}`,
+      };
+      response = await binaryApi().post(API_ENDPOINTS.UPDATE_REPO_INDEX, {
+        headers,
+        params,
+      });
       return response.data;
     } catch (error) {
       this.logger.error('Error fetching focus chunks');
