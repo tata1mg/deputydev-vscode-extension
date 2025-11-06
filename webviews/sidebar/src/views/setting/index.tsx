@@ -472,7 +472,7 @@ const IndexingArea: React.FC = () => {
         style={style}
         className="flex cursor-pointer items-center justify-between px-2 text-xs text-gray-400 hover:text-gray-200"
         onClick={() => openFile(file.file_path)}
-      > 
+      >
         <span className="truncate">{file.file_path}</span>
       </div>
     );

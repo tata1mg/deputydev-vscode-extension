@@ -75,14 +75,8 @@ export class QuerySolverService {
     let queryId: string | null = null;
 
     const handleMessage = (rawMessage: any): void => {
-      console.log('Yielding event:', rawMessage);
-
       const messageData = rawMessage.data;
       const messageId = rawMessage.message_id;
-      if (!messageData) {
-        this.logger.error('Received WebSocket message without data', JSON.stringify(rawMessage));
-        return;
-      }
 
       if (messageId) {
         lastMessageId = messageId;

@@ -130,6 +130,7 @@ const RepoSelector = () => {
 
     switch (currentIndexingProgressData?.status) {
       case 'IN_PROGRESS':
+      case 'IDLE':
         return (
           <div className="flex h-3 w-3 items-center justify-center pl-1">
             <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />

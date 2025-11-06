@@ -48,7 +48,6 @@ function updateTerminalApproval(tool_use_id: string, required: boolean) {
     }
     return msg;
   });
-  console.log('Updated terminal history with new approval status:', updatedHistory);
   // Only update state if changes were actually made (or potentially made)
   // A more robust check might compare old and new history arrays if performance is critical.
   state.updateCurrentChat({

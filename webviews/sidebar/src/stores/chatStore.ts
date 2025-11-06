@@ -1426,7 +1426,6 @@ export const getActiveChatCount = (groupedChangedFiles: ChangedFilesGroup[]) => 
   } else {
     disableChatInput = activeChatCount >= maxParallelChats;
   }
-  console.log('Active chat count:', activeChatCount, 'Disable chat input:', disableChatInput);
   return { activeChatCount, disableChatInput };
 };
 
