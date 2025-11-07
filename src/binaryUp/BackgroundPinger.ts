@@ -7,7 +7,6 @@ import { SidebarProvider } from '../panels/SidebarProvider';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { SingletonLogger } from '../utilities/Singleton-logger';
 import { AuthenticationManager } from '../auth/AuthenticationManager';
-import { IndexingService } from '../services/indexing/indexingService';
 import { SemanticSearchToolService } from '../services/tools/semanticSearchTool/SemanticSearchToolService';
 import { BinaryClient } from '../clients/binaryClient';
 import { sendNotVerified, sendVerified } from '../utilities/contextManager';
@@ -18,7 +17,6 @@ export class BackgroundPinger implements vscode.Disposable {
   private outputChannel: vscode.LogOutputChannel;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private configManager: ConfigManager;
-  private indexingService: IndexingService;
   private semanticSearchToolService: SemanticSearchToolService;
   private authenticationManager: AuthenticationManager;
   private interval: NodeJS.Timeout | null = null;
@@ -32,7 +30,6 @@ export class BackgroundPinger implements vscode.Disposable {
     outputChannel: vscode.LogOutputChannel,
     configManager: ConfigManager,
     authenticationManager: AuthenticationManager,
-    indexingService: IndexingService,
     semanticSearchToolService: SemanticSearchToolService,
   ) {
     this.logger = SingletonLogger.getInstance();
@@ -42,7 +39,6 @@ export class BackgroundPinger implements vscode.Disposable {
     this.outputChannel = outputChannel;
     this.configManager = configManager;
     this.authenticationManager = authenticationManager;
-    this.indexingService = indexingService;
     this.semanticSearchToolService = semanticSearchToolService;
   }
 
@@ -100,8 +96,6 @@ export class BackgroundPinger implements vscode.Disposable {
 
           if (serverStatus) {
             const binaryClient = new BinaryClient(getBinaryHost(), getBinaryWsHost());
-
-            this.indexingService.init(binaryClient);
             this.semanticSearchToolService.init(binaryClient);
 
             try {

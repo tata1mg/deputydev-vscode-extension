@@ -39,7 +39,6 @@ export class QuerySolverService {
     try {
       for await (const event of this._runQuerySolverAttempt(payload, payload.chatId, signal)) {
         firstAttemptYielded = true;
-
         yield event;
       }
     } catch (err) {
@@ -110,7 +109,7 @@ export class QuerySolverService {
             eventsQueue.push({ type: messageData.type, content: messageData.content });
         }
       } catch (error) {
-        this.logger.error('Error parsing querysolver WebSocket message', error);
+        this.logger.error('Error parsing querysolver WebSocket message', this.formatError(error));
       }
     };
 
@@ -322,6 +321,17 @@ export class QuerySolverService {
       // Fallback: return original (backend may still reject if >128 KB)
       return original;
     }
+  }
+  private formatError(err: unknown): string {
+    if (err instanceof Error) {
+      return `${err.name}: ${err.message}\n${err.stack ?? ''}`;
+    }
+
+    if (typeof err === 'object' && err !== null) {
+      return JSON.stringify(err, Object.getOwnPropertyNames(err));
+    }
+
+    return String(err);
   }
 }
 

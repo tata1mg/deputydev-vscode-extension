@@ -385,7 +385,6 @@ export class ServerManager {
       const existingPort = getBinaryPort();
 
       if (!existingPort) return false;
-
       const vscodePid = process.pid;
       const response = await binaryApi().get(API_ENDPOINTS.PING, {
         params: {

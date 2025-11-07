@@ -28,10 +28,9 @@ import {
   openBrowserPage,
   urlSearch,
   createOrOpenFile,
+  openFile,
   setGlobalState,
-  setShellIntegrationTimeoutMessage,
-  setDisableShellIntegrationMessage,
-  hitEmbedding,
+  hitIndexing,
 } from '@/commandApi';
 import { BarLoader } from 'react-spinners';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
@@ -69,8 +68,6 @@ interface SettingsCardProps {
 
 interface FileStatusType {
   file_path: string;
-  status: string;
-  // add more fields if needed
 }
 
 interface FileRowProps {
@@ -431,9 +428,6 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
           data-tooltip-id="indexing-tooltips"
           data-tooltip-content="Re-index"
           data-tooltip-place="top-start"
-          onClick={() => {
-            hitEmbedding(repoPath ?? '');
-          }}
         />
       );
     case 'IDLE':
@@ -444,7 +438,7 @@ const StatusIcon: React.FC<{ status: string; repoPath?: string }> = ({ status, r
           data-tooltip-content="Start Indexing"
           data-tooltip-place="top-start"
           onClick={() => {
-            hitEmbedding(repoPath ?? '');
+            hitIndexing(repoPath);
           }}
         />
       );
@@ -457,113 +451,96 @@ const IndexingArea: React.FC = () => {
   const { indexingProgressData } = useIndexingStore();
   const [expandedRepos, setExpandedRepos] = useState<Record<string, boolean>>({});
 
-  const toggleRepoExpand = (index: number) => {
+  const toggleRepoExpand = (repoPath: string) => {
     setExpandedRepos((prev) => ({
       ...prev,
-      [index]: !prev[index],
+      [repoPath]: !prev[repoPath],
     }));
   };
 
+  if (!indexingProgressData?.length) {
+    return <div className="italic text-gray-500">No repositories available</div>;
+  }
+
+  // ---- FileRow (memoized for performance) ----
   const FileRow = React.memo(function FileRow({ index, style, data }: FileRowProps) {
-    const status = data[index];
+    const file = data[index];
     return (
-      <div style={style} className="flex items-center justify-between text-sm">
-        <span className="truncate">{status.file_path}</span>
-        <div>
-          <StatusIcon status={status.status} />
-        </div>
+      <div
+        style={style}
+        className="flex cursor-pointer items-center justify-between px-2 text-xs text-gray-400 hover:text-gray-200"
+        onClick={() => openFile(file.file_path)}
+      >
+        <span className="truncate">{file.file_path}</span>
       </div>
     );
   });
   FileRow.displayName = 'FileRow';
 
   return (
-    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-y-auto">
-      {indexingProgressData && indexingProgressData.length > 0 ? (
-        <div className="space-y-2">
-          {indexingProgressData.map((progress, index) => {
-            const isExpanded = expandedRepos[index] || false;
-            const repoName = progress.repo_path?.split(/[/\\]/).pop();
-            const totalFiles = progress.indexing_status.length;
-            const completedFiles = progress.indexing_status.filter(
-              (file) => file.status === 'COMPLETED'
-            ).length;
+    <div className="no-scrollbar flex max-h-[300px] w-full flex-col gap-2 overflow-x-auto overflow-y-auto">
+      {indexingProgressData.map((repo) => {
+        const repoName = repo.repo_path.split(/[/\\]/).pop() ?? repo.repo_path;
+        const isExpanded = expandedRepos[repo.repo_path] || false;
 
-            return (
-              <div
-                key={index}
-                className="overflow-hidden rounded-md"
-                style={{ border: '1px solid var(--vscode-editorWidget-border)' }}
-              >
-                <div className="flex h-12 items-center justify-between p-2">
-                  <div className="flex min-w-0 flex-1 items-center gap-2">
-                    <FolderCode className="h-5 w-5 flex-shrink-0" />
-                    <div className="min-w-0 truncate">{repoName}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-col items-end">
-                      {progress.status === 'IN_PROGRESS' && (
-                        <span className="text-xs text-gray-500">Indexed</span>
-                      )}
-                      <span className="text-right text-xs text-gray-500 dark:text-gray-400">
-                        {progress.status === 'COMPLETED'
-                          ? 'Indexed'
-                          : progress.status === 'FAILED'
-                            ? 'Failed Indexing'
-                            : progress.status === 'IDLE'
-                              ? 'Index'
-                              : `${completedFiles}/${totalFiles} files`}
-                      </span>
-                      {progress.status === 'COMPLETED' && (
-                        <span className="text-xs text-gray-500">
-                          {completedFiles}/{totalFiles} files
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <StatusIcon status={progress.status} repoPath={progress.repo_path} />
-                    </div>
-                    {progress.status !== 'IDLE' && (
-                      <ChevronDown
-                        className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 focus:outline-none ${isExpanded ? 'rotate-180 transform' : ''}`}
-                        data-tooltip-id="indexing-tooltips"
-                        data-tooltip-content="Files Progress"
-                        data-tooltip-place="top-start"
-                        onClick={() => toggleRepoExpand(index)}
-                      />
-                    )}
-                  </div>
-                </div>
-                {isExpanded && (
-                  <div
-                    className="p-3 text-sm"
-                    style={{ borderTop: '1px solid var(--vscode-editorWidget-border)' }}
-                  >
-                    <div className="mb-2 font-medium">File Progress:</div>
-                    {progress.indexing_status && progress.indexing_status.length > 0 ? (
-                      <List
-                        height={160}
-                        itemCount={progress.indexing_status.length}
-                        itemSize={32}
-                        width="100%"
-                        itemData={progress.indexing_status as FileStatusType[]}
-                      >
-                        {FileRow}
-                      </List>
-                    ) : (
-                      <div className="italic text-gray-500">
-                        No file progress information available
-                      </div>
-                    )}
-                  </div>
+        // Convert plain string list to FileStatusType[]
+        const fileData = repo.indexed_files.map((file) => ({ file_path: file }));
+
+        return (
+          <div
+            key={repo.repo_path}
+            className="min-w-max rounded-md border border-[var(--vscode-editorWidget-border)]"
+          >
+            <div className="flex h-12 items-center justify-between p-2">
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <FolderCode className="h-5 w-5 flex-shrink-0" />
+                <div className="min-w-0 truncate">{repoName}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {repo.status === 'COMPLETED'
+                    ? ''
+                    : repo.status === 'IN_PROGRESS'
+                      ? 'Indexing...'
+                      : repo.status === 'FAILED'
+                        ? 'Indexing Failed'
+                        : 'Idle'}
+                </span>
+                <StatusIcon status={repo.status} repoPath={repo.repo_path} />
+                {fileData.length > 0 && (
+                  <ChevronDown
+                    className={`h-4 w-4 cursor-pointer text-gray-500 transition-transform duration-200 ${
+                      isExpanded ? 'rotate-180' : ''
+                    }`}
+                    onClick={() => toggleRepoExpand(repo.repo_path)}
+                    data-tooltip-id="indexing-tooltips"
+                    data-tooltip-content="View Indexed Files"
+                    data-tooltip-place="top-start"
+                  />
                 )}
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="italic text-gray-500">No repositories available</div>
-      )}
+            </div>
+
+            {isExpanded && fileData.length > 0 && (
+              <div
+                className="p-2 text-sm"
+                style={{ borderTop: '1px solid var(--vscode-editorWidget-border)' }}
+              >
+                <div className="mb-2 font-medium">Indexed Files:</div>
+                <List
+                  height={160}
+                  itemCount={fileData.length}
+                  itemSize={26}
+                  width="100%"
+                  itemData={fileData}
+                >
+                  {FileRow}
+                </List>
+              </div>
+            )}
+          </div>
+        );
+      })}
       <Tooltip id="indexing-tooltips" />
     </div>
   );
@@ -584,6 +561,8 @@ const Setting = () => {
     setCommandsToDeny,
     disableShellIntegration,
     setDisableShellIntegration,
+    enableSemanticSearch,
+    setEnableSemanticSearch,
   } = useSettingsStore();
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(null);
   const [confirmingDeleteIndex, setConfirmingDeleteIndex] = useState<string | null>(null);
@@ -651,13 +630,17 @@ const Setting = () => {
       key: 'terminal-command-timeout',
       value: shellCommandTimeout,
     });
-    setDisableShellIntegrationMessage({
+    setGlobalState({
       key: 'disable-shell-integration',
       value: disableShellIntegration,
     });
-    setShellIntegrationTimeoutMessage({
+    setGlobalState({
       key: 'terminal-shell-limit',
       value: shellIntegrationTimeout,
+    });
+    setGlobalState({
+      key: 'enable-semantic-search',
+      value: enableSemanticSearch,
     });
   }, [
     terminalOutputLimit,
@@ -666,6 +649,7 @@ const Setting = () => {
     isYoloModeOn,
     commandsToDeny,
     disableShellIntegration,
+    enableSemanticSearch,
   ]);
 
   useEffect(() => {
@@ -878,6 +862,14 @@ const Setting = () => {
             onChange={setShellCommandTimeout}
             postfix="s"
           />
+        </SettingsCard>
+        <SettingsCard
+          title="Enable Semantic Search"
+          description={
+            'Enable this to allow DeputyDev to use semantic search capabilities. This may improve search results but may also slow down performance.'
+          }
+        >
+          <Toggle checked={enableSemanticSearch} onChange={setEnableSemanticSearch} />
         </SettingsCard>
       </div>
       <div>

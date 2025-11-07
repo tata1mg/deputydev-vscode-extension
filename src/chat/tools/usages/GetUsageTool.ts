@@ -75,9 +75,9 @@ export class GetUsagesTool {
       ]);
 
       // Convert all buckets into wire-friendly shapes (ONLY line numbers)
-      const defInfos = defs.map((x) => toLocationInfo(x));
-      const refInfos = refs.map((x) => toLocationInfo(x));
-      const impInfos = imps.map((x) => toLocationInfo(x));
+      const defInfos = await Promise.all(defs.map((x) => toLocationInfo(x)));
+      const refInfos = await Promise.all(refs.map((x) => toLocationInfo(x)));
+      const impInfos = await Promise.all(imps.map((x) => toLocationInfo(x)));
 
       // 4) Try to enrich with symbol body (best-effort; ok to omit on failure)
       let symbolInfo: SymbolInfo | undefined = undefined;

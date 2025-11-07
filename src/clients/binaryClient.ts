@@ -26,7 +26,7 @@ export class BinaryClient extends BaseClient {
   }
 
   initEndpoints() {
-    this.updateVectorDB = this.createWebsocketEndpoint(API_ENDPOINTS.UPDATE_VECTOR_DB);
+    this.updateVectorDB = this.createWebsocketEndpoint(API_ENDPOINTS.SYNC_REPO_VECTOR_DB);
     this.semanticSearch = this.createWebsocketEndpoint(API_ENDPOINTS.SEMANTIC_SEARCH);
   }
 }

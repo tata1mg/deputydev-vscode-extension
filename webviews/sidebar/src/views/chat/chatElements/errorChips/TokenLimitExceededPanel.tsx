@@ -143,8 +143,6 @@ export function TokenLimitExceededPanel({
       llmModels.find((m) => m.name === modelToUse)?.display_name || modelToUse;
 
     try {
-      console.log('Starting fresh query with model:', modelToUse);
-
       // Set the new model as active
       setActiveModel(modelToUse);
 

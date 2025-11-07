@@ -13,7 +13,7 @@ import { SingletonLogger } from '../utilities/Singleton-logger';
 import { calculateDiffMetric } from '../utilities/calculateDiffLinesNo';
 import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
-import { getIsEmbeddingDoneForActiveRepo } from '../utilities/contextManager';
+import { getIsIndexingDoneForRepo } from '../utilities/contextManager';
 import { GetUsagesTool } from '../chat/tools/usages/GetUsageTool';
 import { GrepSearchTool } from '../chat/tools/GrepSearchTool';
 
@@ -24,7 +24,7 @@ interface InlineEditPayload {
   llm_model: string;
   search_web: boolean;
   is_lsp_ready: boolean;
-  is_embedding_done: boolean;
+  is_indexing_done: boolean;
   code_selection: {
     selected_text?: string;
     file_path?: string;
@@ -301,7 +301,7 @@ export class InlineChatEditManager {
         this.outputChannel.info(`Resolved repo path from thread: ${repoPath}`);
         const documentSymbols = await this.languageFeaturesService.getDocumentSymbols(docUri);
         const isLspReady = Array.isArray(documentSymbols) && documentSymbols.length > 0;
-        const isEmbeddingDone = getIsEmbeddingDoneForActiveRepo(repoPath);
+        const isIndexingDone = getIsIndexingDoneForRepo(repoPath);
         const fileName = path.basename(docUri.fsPath);
         const payloadForInlineEdit: InlineEditPayload = {
           llm_model: 'GPT_4_POINT_1',
@@ -309,7 +309,7 @@ export class InlineChatEditManager {
           query: reply.text,
           repo_path: repoPath,
           is_lsp_ready: isLspReady,
-          is_embedding_done: isEmbeddingDone,
+          is_indexing_done: isIndexingDone,
           relevant_chunks: [],
           code_selection: {
             selected_text: this.selected_text,

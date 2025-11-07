@@ -135,6 +135,7 @@ export async function activate(context: vscode.ExtensionContext) {
     errorTrackingManager,
     backendClient,
     semanticSearchToolService,
+    indexingService,
   );
 
   const continueNewWorkspace = new ContinueNewWorkspace(context, outputChannel);
@@ -193,7 +194,6 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
     configManager,
     authenticationManager,
-    indexingService,
     semanticSearchToolService,
   );
   context.subscriptions.push(pinger);
@@ -209,7 +209,6 @@ export async function activate(context: vscode.ExtensionContext) {
       getBinaryHost(), // This will be the binary host URL
       getBinaryWsHost(), // This will be the binary WebSocket host URL
     );
-    indexingService.init(binaryClient);
     semanticSearchToolService.init(binaryClient);
     if (!isLocalBinary) {
       pinger.start();

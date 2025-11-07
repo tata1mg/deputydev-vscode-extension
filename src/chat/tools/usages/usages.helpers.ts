@@ -237,15 +237,28 @@ export function locParts(loc: vscode.Location | vscode.LocationLink): { uri: vsc
   return { uri: loc.targetUri, range };
 }
 
-export function toLocationInfo(loc: vscode.Location | vscode.LocationLink): LocationInfo {
+export async function toLocationInfo(loc: vscode.Location | vscode.LocationLink): Promise<LocationInfo> {
   const { uri, range } = locParts(loc);
-  return toLocationInfoFromParts(uri, range);
+  return await toLocationInfoFromParts(uri, range);
 }
 
-export function toLocationInfoFromParts(uri: vscode.Uri, range: vscode.Range): LocationInfo {
+export async function toLocationInfoFromParts(uri: vscode.Uri, range: vscode.Range): Promise<LocationInfo> {
+  const absPath = absolutePathForUri(uri);
+  const lineNum = range.start.line;
+
+  let snippet: string | undefined;
+  try {
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const lineText = doc.lineAt(lineNum).text.trim();
+    snippet = lineText.length > 200 ? lineText.slice(0, 197) + '...' : lineText;
+  } catch {
+    // ignore errors (e.g. file not found, closed, or binary)
+  }
+
   return {
-    filePath: absolutePathForUri(uri),
-    line: range.start.line,
+    filePath: absPath,
+    line: lineNum,
+    ...(snippet ? { snippet } : {}),
   };
 }
 

@@ -1,4 +1,4 @@
-import { hitEmbedding, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
+import { hitIndexing, sendWorkspaceRepoChange, updateContextRepositories } from '@/commandApi';
 import { useIndexingStore } from '@/stores/indexingDataStore';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown, Info, RefreshCw, Square } from 'lucide-react';
@@ -88,24 +88,27 @@ const RepoSelector = () => {
   };
 
   const getIndexingStatusForTooltip = () => {
+    const repo = indexingProgressData.find((r) => r.repo_path === activeRepo);
+    const status = repo?.status;
+
     if (!isOpen) {
-      return disableRepoSelector
-        ? 'Create new chat to select new repo'
-        : `${Math.round(
-            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.progress ?? 0
-          )}% ${
-            indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-            'COMPLETED'
-              ? 'Indexing Completed'
-              : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                  'IN_PROGRESS'
-                ? 'Indexed'
-                : indexingProgressData.find((repo) => repo.repo_path === activeRepo)?.status ===
-                    'FAILED'
-                  ? 'Indexing Failed, Retry'
-                  : 'Indexed'
-          }`;
+      if (disableRepoSelector) {
+        return 'Create new chat to select new repo';
+      }
+
+      switch (status) {
+        case 'COMPLETED':
+          return 'Indexing Completed';
+        case 'IDLE':
+        case 'IN_PROGRESS':
+          return 'Indexing in Progress';
+        case 'FAILED':
+          return 'Indexing Failed, Retry';
+        default:
+          return 'Indexed';
+      }
     }
+
     return 'Indexed';
   };
 
@@ -126,6 +129,7 @@ const RepoSelector = () => {
 
     switch (currentIndexingProgressData?.status) {
       case 'IN_PROGRESS':
+      case 'IDLE':
         return (
           <div className="flex h-3 w-3 items-center justify-center pl-1">
             <div className="h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_2px_rgba(250,204,21,0.6)]" />
@@ -144,7 +148,7 @@ const RepoSelector = () => {
               className="inline-flex items-center justify-center"
               onClick={(e) => {
                 e.stopPropagation();
-                hitEmbedding(activeRepo ?? '');
+                hitIndexing(activeRepo);
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -176,11 +180,13 @@ const RepoSelector = () => {
             : 'cursor-pointer hover:bg-[var(--deputydev-input-background)]'
         }`}
         whileTap={{ scale: 0.98 }}
-        data-tooltip-id="repo-selector-tooltip"
-        data-tooltip-content={getIndexingStatusForTooltip()}
-        data-tooltip-place="top-start"
-        data-tooltip-class-name="z-50"
-        data-tooltip-effect="solid"
+        {...(!isOpen && {
+          'data-tooltip-id': 'repo-selector-tooltip',
+          'data-tooltip-content': getIndexingStatusForTooltip(),
+          'data-tooltip-place': 'top-start',
+          'data-tooltip-class-name': 'z-50',
+          'data-tooltip-effect': 'solid',
+        })}
       >
         <IndexingStatusIcon />
         <div className="flex items-center gap-1">

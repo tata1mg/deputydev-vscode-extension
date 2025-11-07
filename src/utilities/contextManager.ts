@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { EmbeddingProgressData } from '../types';
+import { IndexingProgressData } from '../types';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { arePathsEqual } from './path';
 
 // =====================================================================================
 // Module State
@@ -63,19 +64,6 @@ export function setReviewSessionId(value: number) {
   return;
 }
 
-export function sendEmbeddingDoneMessage(embeddingProgressData: {
-  task: string;
-  status: string;
-  repo_path: string;
-  progress: number;
-}) {
-  sidebarProvider?.sendMessageToSidebar({
-    id: uuidv4(),
-    command: 'embedding-progress',
-    data: embeddingProgressData,
-  });
-}
-
 export function getRepositoriesForContext(): { repoPath: string; repoName: string }[] | undefined {
   return extensionContext?.workspaceState.get<{ repoPath: string; repoName: string }[]>('contextRepositories');
 }
@@ -87,15 +75,14 @@ export function deleteSessionId() {
   return extensionContext?.workspaceState.update('sessionId', undefined);
 }
 
-export function getIsEmbeddingDoneForActiveRepo(repoPath: string): boolean {
+export function getIsIndexingDoneForRepo(repoPath: string): boolean {
   const indexingDataStorage = extensionContext?.workspaceState.get('indexing-data-storage') as string;
+  if (!indexingDataStorage) return false;
   const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
-  const embeddingProgressData = parsedIndexingDataStorage?.state?.embeddingProgressData as EmbeddingProgressData[];
-  const repoSpecificEmbeddingProgress = embeddingProgressData.find((progress) => progress.repo_path === repoPath);
-  if (repoSpecificEmbeddingProgress && repoSpecificEmbeddingProgress.status === 'COMPLETED') {
-    return true;
-  }
-  return false;
+  const indexingProgressData = parsedIndexingDataStorage?.state?.indexingProgressData as IndexingProgressData[];
+  if (!Array.isArray(indexingProgressData)) return false;
+  const repoProgress = indexingProgressData.find((p) => p.repo_path === repoPath);
+  return repoProgress?.status === 'COMPLETED';
 }
 
 export function getUserData() {
@@ -154,6 +141,7 @@ export async function clearWorkspaceStorage(isLogout: boolean = false) {
   await extensionContext.workspaceState.update('active-file-store', undefined);
   await extensionContext.workspaceState.update('contextRepositories', undefined);
   await extensionContext.workspaceState.update('code-review-storage', undefined);
+  await extensionContext.workspaceState.update('completed_with_embeddings', undefined);
 }
 
 // =====================================================================================
@@ -214,8 +202,7 @@ export function sendProgress(indexingProgressData: {
   task: string;
   status: string;
   repo_path: string;
-  progress: number;
-  indexing_status: { file_path: string; status: string }[];
+  indexed_files: string[];
 }) {
   sidebarProvider?.sendMessageToSidebar({
     id: uuidv4(),
@@ -360,19 +347,17 @@ function normalizePath(p: string): string {
   return normalized;
 }
 
-export function arePathsEqual(path1?: string, path2?: string): boolean {
-  if (!path1 && !path2) {
-    return true;
-  }
-  if (!path1 || !path2) {
-    return false;
+export function isEmbeddingsEnabled(): boolean {
+  const configData: any = extensionContext?.workspaceState.get('essentialConfigData');
+  const isEmbeddingsEnabled = configData?.ENABLE_EXTENSION_EMBEDDINGS;
+  const isSemanticSearchEnabled = extensionContext?.globalState.get<boolean>('enable-semantic-search');
+  const isCompletedWithEmbeddings = extensionContext?.globalState.get<boolean>('completed_with_embeddings');
+
+  if (isCompletedWithEmbeddings === undefined) {
+    // Ignore this flag if undefined
+    return !!(isEmbeddingsEnabled && isSemanticSearchEnabled);
   }
 
-  path1 = normalizePath(path1);
-  path2 = normalizePath(path2);
-
-  if (process.platform === 'win32') {
-    return path1.toLowerCase() === path2.toLowerCase();
-  }
-  return path1 === path2;
+  return !!(isEmbeddingsEnabled && isSemanticSearchEnabled && isCompletedWithEmbeddings);
 }
+

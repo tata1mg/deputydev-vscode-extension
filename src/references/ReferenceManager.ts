@@ -42,7 +42,7 @@ export class ReferenceManager {
     const repo_path = this.context.workspaceState.get<string>('activeRepo');
     payload = { ...payload, repo_path };
     this.outputChannel.info('keywordTypeSearch', payload);
-    const response = await this.referenceService.keywordTypeSearch(payload);
+    const response = await this.referenceService.keywordSearch(payload);
     this.outputChannel.info('keywordTypeSearch-response', response);
     sendMessage({
       id: uuidv4(),

@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { WorkspaceFileWatcher } from './FileWatcher';
 import { ConfigManager } from '../utilities/ConfigManager';
-import { UpdateVectorStoreParams, IndexingService } from '../services/indexing/indexingService';
+import { IndexingService, SyncRepoIndexParams } from '../services/indexing/indexingService';
 import { IndexingProgressData } from '../types';
 import { getIsLspReady } from '../languageServer/lspStatus';
 
@@ -205,40 +205,37 @@ export class WorkspaceManager {
     this.activeRepo = newActiveRepo;
     this.initializeFileWatcher();
     this.sendReposToSidebar();
-    this.sendWebSocketUpdate(); // ✅ Send WebSocket request on valid repo change
+    this.sendRepoIndexSync(); // ✅ Send WebSocket request on valid repo change
     getIsLspReady({ force: true, repoPath: newActiveRepo });
     this.outputChannel.info(`Active repo updated to: ${newActiveRepo}`);
   }
 
   /**
-   * Sends WebSocket request with the active repo path.
+   * Sends request with the active repo path.
    */
-  private async sendWebSocketUpdate(): Promise<void> {
+  private async sendRepoIndexSync(): Promise<void> {
     if (!this.activeRepo) return; // ✅ Prevent sending undefined
     const indexingDataStorage = this.context.workspaceState.get('indexing-data-storage') as string;
     const parsedIndexingDataStorage = JSON.parse(indexingDataStorage);
     const indexingProgressData = parsedIndexingDataStorage?.state?.indexingProgressData as IndexingProgressData[];
-
-    const repoSpecificIndexingProgress = indexingProgressData.find(
-      (progress) => progress.repo_path === this.activeRepo,
-    );
-    if (repoSpecificIndexingProgress) {
-      if (
-        repoSpecificIndexingProgress.status === 'IN_PROGRESS' ||
-        repoSpecificIndexingProgress.status === 'COMPLETED'
-      ) {
-        return;
-      }
+    if (!Array.isArray(indexingProgressData)) return;
+    const repoProgress = indexingProgressData.find((p) => p.repo_path === this.activeRepo);
+    if (repoProgress?.status === 'IN_PROGRESS' || repoProgress?.status === 'COMPLETED') {
+      this.outputChannel.info(`ℹ️ Repo "${this.activeRepo}" already ${repoProgress.status}. Skipping sync.`);
+      return;
     }
 
-    const params: UpdateVectorStoreParams = { repo_path: this.activeRepo };
-    this.outputChannel.info(`📡 📡📡 Sending WebSocket update via workspace manager: ${JSON.stringify(params)}`);
-    await this.indexingService
-      .updateVectorStore(params)
-      .then((response) => {})
-      .catch((error) => {
-        this.outputChannel.info('Embedding failed 3 times...');
-      });
+    const params: SyncRepoIndexParams = {
+      repo_path: this.activeRepo,
+      sync: true,
+    };
+    this.outputChannel.info(`📡 📡📡 Sending indexing update via workspace manager: ${JSON.stringify(params)}`);
+    try {
+      await this.indexingService.syncRepoIndex(params);
+      this.outputChannel.info(`✅ Index sync triggered for ${this.activeRepo}`);
+    } catch (error) {
+      this.outputChannel.error(`❌ Indexing failed for ${this.activeRepo}:`, error);
+    }
   }
 
   /**

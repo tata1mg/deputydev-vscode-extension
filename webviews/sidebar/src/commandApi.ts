@@ -247,9 +247,9 @@ export function showUserLogs() {
   return callCommand('show-logs', {});
 }
 
-export function hitEmbedding(repoPath: string) {
+export function hitIndexing(repoPath: string | null | undefined) {
   if (repoPath) {
-    return callCommand('hit-embedding', { repoPath });
+    return callCommand('hit-indexing', { repoPath });
   }
 }
 
@@ -283,14 +283,6 @@ export function killProcessById(tool_use_id: string) {
 }
 export function killAllProcesses() {
   return callCommand('kill-all-terminal-processes', null);
-}
-
-export function setShellIntegrationTimeoutMessage(data: { key: string; value: unknown }) {
-  return callCommand('set-shell-integration-timeout', data);
-}
-
-export function setDisableShellIntegrationMessage(data: { key: string; value: unknown }) {
-  return callCommand('set-disable-shell-integration', data);
 }
 
 export function webviewInitialized() {

@@ -14,4 +14,5 @@ export async function updateTerminalSettings(context: vscode.ExtensionContext) {
   await setDefaultGlobalStateValue('terminal-shell-limit', 5); // Restrict active shells
   await setDefaultGlobalStateValue('terminal-command-timeout', 15); // Prevent hanging commands
   await setDefaultGlobalStateValue('disable-shell-integration', false); // Enable shell integration by default
+  await setDefaultGlobalStateValue('enable-semantic-search', true); // Enable semantic search by default
 }

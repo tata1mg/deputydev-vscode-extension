@@ -12,7 +12,7 @@ export class FocusChunksService {
   private apiErrorHandler = new ApiErrorHandler();
   private errorTrackingManager = new ErrorTrackingManager();
   public async getFocusChunks(payload: unknown): Promise<any> {
-    // console.log(`get focus chunks ${JSON.stringify(payload)}`)
+    // console.log(`get focus chunks ${JSON.stringify(payload)}`);
     let response;
     try {
       response = await binaryApi().post(API_ENDPOINTS.FOCUS_CHUNKS, payload);

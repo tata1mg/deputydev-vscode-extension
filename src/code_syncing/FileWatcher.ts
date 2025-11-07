@@ -6,9 +6,10 @@ import * as fs from 'fs';
 import ignore from 'ignore';
 import { v4 as uuidv4 } from 'uuid';
 
-import { IndexingService, UpdateVectorStoreParams } from '../services/indexing/indexingService';
+import { IndexingService, UpdateRepoIndexParams } from '../services/indexing/indexingService';
 import { ConfigManager } from '../utilities/ConfigManager';
 import { SidebarProvider } from '../panels/SidebarProvider';
+import { isEmbeddingsEnabled } from '../utilities/contextManager';
 export class WorkspaceFileWatcher {
   private readonly watcher: vscode.FileSystemWatcher | undefined;
   private readonly indexingService: IndexingService;
@@ -164,7 +165,7 @@ export class WorkspaceFileWatcher {
     this.changeTimeout = setTimeout(() => {
       this.processFileUpdates();
       this.changeTimeout = null;
-    }, 500);
+    }, 10000);
   }
 
   /**
@@ -173,18 +174,15 @@ export class WorkspaceFileWatcher {
   private processFileUpdates(): void {
     if (this.pendingFileChanges.size > 0) {
       const fileListArray = Array.from(this.pendingFileChanges);
-      const fileList = fileListArray.join(', '); // Convert to string
       // Construct request payload
-      const params: UpdateVectorStoreParams = {
+      const enable_embeddings = isEmbeddingsEnabled();
+      const params: UpdateRepoIndexParams = {
         repo_path: this.activeRepoPath, // Send active repository path
-        chunkable_files: fileListArray, // Send updated file list
+        files_to_update: fileListArray, // Send updated file list
+        enable_embeddings: enable_embeddings,
       };
-      this.outputChannel.info(`Sending update to WebSocket: ${JSON.stringify(params)}`);
-
-      // Send update to WebSocket in fire-and-forget mode (no waiting for a response)
-      this.indexingService.updateVectorStore(params);
-
-      this.outputChannel.info(`Files updated with websockets: ${fileList}`);
+      this.outputChannel.info(`Sending update to the indexing service: ${JSON.stringify(params)}`);
+      this.indexingService.updateRepoIndex(params);
       this.pendingFileChanges.clear();
 
       // Notify the sidebar to refresh the review state

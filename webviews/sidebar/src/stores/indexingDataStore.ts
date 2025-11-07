@@ -1,24 +1,20 @@
+// store/indexingStore.ts
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { persistStorage } from './lib';
-import {
-  EmbeddingProgressData,
-  IndexingDataStorage,
-  IndexingProgressData,
-  ProgressStatus,
-} from '@/types';
+import { IndexingProgressData, ProgressStatus } from '@/types';
 
-export const useIndexingStore = create<
-  IndexingDataStorage & {
-    initializeRepos: (repoPaths: { repoPath: string }[]) => void;
-    updateOrAppendIndexingData: (data: IndexingProgressData) => void;
-    updateOrAppendEmbeddingData: (data: EmbeddingProgressData) => void;
-  }
->()(
+type IndexingStore = {
+  indexingProgressData: IndexingProgressData[];
+  initializeRepos: (repoPaths: { repoPath: string }[]) => void;
+  updateOrAppendIndexingData: (data: IndexingProgressData) => void;
+};
+
+export const useIndexingStore = create<IndexingStore>()(
   persist(
     (set, get) => ({
       indexingProgressData: [],
-      embeddingProgressData: [],
+
       initializeRepos: (repoPaths) => {
         const currentData = get().indexingProgressData;
         const existingPaths = new Set(currentData.map((item) => item.repo_path));
@@ -29,8 +25,7 @@ export const useIndexingStore = create<
             task: 'INDEXING',
             status: 'IDLE' as ProgressStatus,
             repo_path: repo.repoPath,
-            progress: 0,
-            indexing_status: [],
+            indexed_files: [],
           }));
 
         if (newRepos.length > 0) {
@@ -39,66 +34,36 @@ export const useIndexingStore = create<
           }));
         }
       },
+
       updateOrAppendIndexingData: (newData) => {
         set((state) => {
-          // Modified: Just update in place or append to the end
           const existingIndex = state.indexingProgressData.findIndex(
             (item) => item.repo_path === newData.repo_path
           );
 
           if (existingIndex >= 0) {
-            // Update in place
-            const updatedFiles = new Map(
-              newData.indexing_status?.map((file) => [file.file_path, file.status])
+            // Update existing entry
+            const existing = state.indexingProgressData[existingIndex];
+            const mergedFiles = Array.from(
+              new Set([...existing.indexed_files, ...newData.indexed_files])
             );
 
-            const item = state.indexingProgressData[existingIndex];
-            const updatedIndexingStatus =
-              item.indexing_status?.map((file) => ({
-                ...file,
-                status: updatedFiles.get(file.file_path) ?? file.status,
-              })) ?? [];
-            const newFiles = (newData.indexing_status || []).filter(
-              (file) => !item.indexing_status?.some((f) => f.file_path === file.file_path)
-            );
-            const newDataWithFiles = {
-              ...item,
+            const updatedItem: IndexingProgressData = {
+              ...existing,
               ...newData,
-              indexing_status: [...updatedIndexingStatus, ...newFiles],
+              indexed_files: mergedFiles,
             };
 
             const updatedData = [...state.indexingProgressData];
-            updatedData[existingIndex] = newDataWithFiles;
-            return {
-              indexingProgressData: updatedData,
-            };
-          } else {
-            // Append to the end
-            return {
-              indexingProgressData: [...state.indexingProgressData, newData],
-            };
-          }
-        });
-      },
-      updateOrAppendEmbeddingData: (newData) => {
-        set((state) => {
-          const existingIndex = state.embeddingProgressData.findIndex(
-            (item) => item.repo_path === newData.repo_path
-          );
+            updatedData[existingIndex] = updatedItem;
 
-          if (existingIndex >= 0) {
-            // Update in place
-            const updatedData = [...state.embeddingProgressData];
-            updatedData[existingIndex] = newData;
-            return {
-              embeddingProgressData: updatedData,
-            };
-          } else {
-            // Append to the end
-            return {
-              embeddingProgressData: [...state.embeddingProgressData, newData],
-            };
+            return { indexingProgressData: updatedData };
           }
+
+          // Append new entry if not found
+          return {
+            indexingProgressData: [...state.indexingProgressData, newData],
+          };
         });
       },
     }),
