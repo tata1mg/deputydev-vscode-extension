@@ -82,14 +82,13 @@ export class ChatManager {
     private readonly usageTrackingManager: UsageTrackingManager,
     private readonly errorTrackingManager: ErrorTrackingManager,
     private readonly backendClient: BackendClient,
-    semanticSearchToolService: SemanticSearchToolService,
     indexingService: IndexingService,
   ) {
     this.apiErrorHandler = new ApiErrorHandler();
     this.logger = SingletonLogger.getInstance();
     this.terminalExecutor = new TerminalExecutor(this.context, this.logger, this.onTerminalApprove, this.outputChannel);
     this.grepSearchTool = new GrepSearchTool(this.outputChannel, this.authService);
-    this.semanticSearchToolService = semanticSearchToolService;
+    this.semanticSearchToolService = new SemanticSearchToolService(this.outputChannel, this.authService);
     this.indexingService = indexingService;
   }
 
@@ -734,7 +733,7 @@ export class ChatManager {
 
       return result.relevant_chunks;
     } catch (error: any) {
-      this.logger.error('Failed to run related code searcher: ', error);
+      this.logger.error('Failed to run semantic code searcher: ', error);
       throw error;
     }
   }

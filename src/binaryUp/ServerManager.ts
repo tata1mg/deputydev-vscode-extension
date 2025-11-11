@@ -388,7 +388,7 @@ export class ServerManager {
       const vscodePid = process.pid;
       const response = await binaryApi().get(API_ENDPOINTS.PING, {
         params: {
-          vscodePid: vscodePid,
+          vscode_pid: vscodePid,
         },
       });
       if (response?.status === 200) {
