@@ -1,10 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as vscode from 'vscode';
-import { SemanticSearchToolService } from '../services/tools/semanticSearchTool/SemanticSearchToolService';
-import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
 import { v4 as uuidv4 } from 'uuid';
+import * as vscode from 'vscode';
+import { getEnvironmentDetails } from '../code_syncing/EnvironmentDetails';
+import { SemanticSearchToolService } from '../services/tools/semanticSearchTool/SemanticSearchToolService';
 
+import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
+import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
 import { SESSION_TYPE } from '../constants';
 import { DiffManager } from '../diff/diffManager';
 import { MCPManager } from '../mcp/mcpManager';
@@ -17,8 +19,6 @@ import { QuerySolverService, ThrottlingException, TokenLimitException } from '..
 import { FocusChunksService } from '../services/focusChunks/focusChunksService';
 import { getShell } from '../terminal/utils/shell';
 import { ChatPayload, ChunkCallback, ClientTool, SearchTerm, ToolRequest } from '../types';
-import { UsageTrackingManager } from '../analyticsTracking/UsageTrackingManager';
-import { ErrorTrackingManager } from '../analyticsTracking/ErrorTrackingManager';
 import { getIsIndexingDoneForRepo, getSessionId, setSessionId } from '../utilities/contextManager';
 import { getOSName } from '../utilities/osName';
 import { SingletonLogger } from '../utilities/Singleton-logger';
@@ -27,17 +27,17 @@ import { ReplaceInFile } from './tools/ReplaceInFileTool';
 import { GetUsagesTool } from './tools/usages/GetUsageTool';
 import { GetResolveModuleTool } from './tools/usages/ResolveModule';
 
+import { BackendClient } from '../clients/backendClient';
+import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
+import { getIsLspReady } from '../languageServer/lspStatus';
+import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
+import { IndexingService } from '../services/indexing/indexingService';
+import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
+import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
+import { resolveDirectoryRelative } from '../utilities/path';
+import { GrepSearchTool } from './tools/GrepSearchTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
-import { truncatePayloadValues } from '../utilities/errorTrackingHelper';
-import { BackendClient } from '../clients/backendClient';
-import { refreshCurrentToken } from '../services/refreshToken/refreshCurrentToken';
-import { resolveDirectoryRelative } from '../utilities/path';
-import { DirectoryStructureService } from '../services/focusChunks/directoryStructureService';
-import { getIsLspReady } from '../languageServer/lspStatus';
-import { LanguageFeaturesService } from '../languageServer/languageFeaturesService';
-import { GrepSearchTool } from './tools/GrepSearchTool';
-import { IndexingService } from '../services/indexing/indexingService';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -760,8 +760,13 @@ export class ChatManager {
       throw new Error("Missing 'search_terms' parameter for focused_snippets_searcher");
     }
     this.outputChannel.info(`Executing focused_snippets_searcher with ${searchTerms.length} terms.`);
-    // return this._fetchBatchChunksSearch(repoPath, searchTerms);
-    return this._fetchBatchChunksSearch(repo_path, searchTerms);
+
+    const formattedTerms = searchTerms.map((term) => ({
+      ...term,
+      type: term.type.toLowerCase(),
+    }));
+
+    return this._fetchBatchChunksSearch(repo_path, formattedTerms);
   }
 
   // File Path searcher

@@ -106,6 +106,7 @@ export interface ChatPayload {
 export interface SearchTerm {
   keyword: string;
   type: string;
+  file_path?: string;
 }
 
 export interface ToolRequest {
