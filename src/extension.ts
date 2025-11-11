@@ -112,7 +112,6 @@ export async function activate(context: vscode.ExtensionContext) {
   const apiErrorHandler = new ApiErrorHandler();
   const mcpService = new MCPService();
   const indexingService = new IndexingService();
-  const semanticSearchToolService = new SemanticSearchToolService();
   const reviewService = new ReviewService();
   const codeReviewDiffManager = new CodeReviewDiffManager();
   const commentHandler = new CommentHandler(context);
@@ -134,7 +133,6 @@ export async function activate(context: vscode.ExtensionContext) {
     usageTrackingManager,
     errorTrackingManager,
     backendClient,
-    semanticSearchToolService,
     indexingService,
   );
 
@@ -194,7 +192,6 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel,
     configManager,
     authenticationManager,
-    semanticSearchToolService,
   );
   context.subscriptions.push(pinger);
   (async () => {
@@ -205,11 +202,11 @@ export async function activate(context: vscode.ExtensionContext) {
     }
     outputChannel.info('this binary host now is ' + getBinaryHost());
 
-    const binaryClient = new BinaryClient(
-      getBinaryHost(), // This will be the binary host URL
-      getBinaryWsHost(), // This will be the binary WebSocket host URL
-    );
-    semanticSearchToolService.init(binaryClient);
+    // const binaryClient = new BinaryClient(
+    //   getBinaryHost(), // This will be the binary host URL
+    //   getBinaryWsHost(), // This will be the binary WebSocket host URL
+    // );
+    // semanticSearchToolService.init(binaryClient);
     if (!isLocalBinary) {
       pinger.start();
     }

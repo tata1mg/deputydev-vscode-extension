@@ -610,11 +610,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider, vscode.Dispo
       if (status === 'COMPLETED') {
         this.outputChannel.info('Binary initialization completed successfully.');
         this.logger.info('Binary initialization completed successfully.');
-        await this.context.workspaceState.update('completed_with_embeddings', true);
-      } else if (status === 'COMPLETED_WITHOUT_EMBEDDINGS') {
-        this.logger.info('Binary initialization completed without embeddings.');
-        this.outputChannel.info('⚠️ Binary initialization completed without embeddings.');
-        await this.context.workspaceState.update('completed_with_embeddings', false);
       } else {
         this.logger.warn('Binary initialization failed.');
         this.outputChannel.warn('🚨 Binary initialization failed.');

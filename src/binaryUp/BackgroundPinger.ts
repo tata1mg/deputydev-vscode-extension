@@ -17,7 +17,6 @@ export class BackgroundPinger implements vscode.Disposable {
   private outputChannel: vscode.LogOutputChannel;
   private logger: ReturnType<typeof SingletonLogger.getInstance>;
   private configManager: ConfigManager;
-  private semanticSearchToolService: SemanticSearchToolService;
   private authenticationManager: AuthenticationManager;
   private interval: NodeJS.Timeout | null = null;
   private failureCount: number = 0;
@@ -30,7 +29,6 @@ export class BackgroundPinger implements vscode.Disposable {
     outputChannel: vscode.LogOutputChannel,
     configManager: ConfigManager,
     authenticationManager: AuthenticationManager,
-    semanticSearchToolService: SemanticSearchToolService,
   ) {
     this.logger = SingletonLogger.getInstance();
     this.context = context;
@@ -39,7 +37,6 @@ export class BackgroundPinger implements vscode.Disposable {
     this.outputChannel = outputChannel;
     this.configManager = configManager;
     this.authenticationManager = authenticationManager;
-    this.semanticSearchToolService = semanticSearchToolService;
   }
 
   public start(): void {
@@ -61,7 +58,7 @@ export class BackgroundPinger implements vscode.Disposable {
         const vscodePid = process.pid;
         const response = await binaryApi().get(API_ENDPOINTS.PING, {
           params: {
-            vscodePid: vscodePid,
+            vscode_pid: vscodePid,
           },
         });
         if (response.status === 200) {
@@ -95,8 +92,8 @@ export class BackgroundPinger implements vscode.Disposable {
           const serverStatus = await this.serverManager.startServer();
 
           if (serverStatus) {
-            const binaryClient = new BinaryClient(getBinaryHost(), getBinaryWsHost());
-            this.semanticSearchToolService.init(binaryClient);
+            // const binaryClient = new BinaryClient(getBinaryHost(), getBinaryWsHost());
+            // this.semanticSearchToolService.init(binaryClient);
 
             try {
               const status = await this.authenticationManager.validateCurrentSession();

@@ -388,7 +388,7 @@ export class ServerManager {
       const vscodePid = process.pid;
       const response = await binaryApi().get(API_ENDPOINTS.PING, {
         params: {
-          vscodePid: vscodePid,
+          vscode_pid: vscodePid,
         },
       });
       if (response?.status === 200) {
@@ -496,7 +496,7 @@ export class ServerManager {
   private getSpawnArguments(port: number): string[] {
     const usePythonModule = this.isPythonModuleMode();
     return usePythonModule
-      ? ['-m', 'app.service', '127.0.0.1', port.toString()] // Python module mode
+      ? ['-m', 'app.main', '127.0.0.1', port.toString()] // Python module mode
       : ['127.0.0.1', port.toString()]; // Binary mode
   }
 

@@ -15,9 +15,9 @@ export function binaryApi() {
   return axios.create({
     baseURL: getBinaryHost(),
     headers: {
-      'Content-Type': 'application/json',
-      'X-Client': CLIENT,
-      'X-Client-Version': CLIENT_VERSION,
+      'content-type': 'application/json',
+      'x-client': CLIENT,
+      'x-client-version': CLIENT_VERSION,
     },
     withCredentials: false,
   });
