@@ -57,7 +57,6 @@ export type SearchResponseItem = {
 export type Chunk = {
   start_line: number;
   end_line: number;
-  chunk_hash: string;
   file_hash: string;
   file_path: string;
   meta_info?: any;
@@ -78,7 +77,6 @@ export type ChatReferenceItem = {
   path: string;
   chunks: Chunk[];
   value?: string;
-  noEdit?: boolean;
   url?: string;
 };
 

@@ -38,6 +38,7 @@ import { resolveDirectoryRelative } from '../utilities/path';
 import { GrepSearchTool } from './tools/GrepSearchTool';
 import { TerminalExecutor } from './tools/TerminalTool';
 import { WriteToFileTool } from './tools/WriteToFileTool';
+import { normalizeSearchTerms } from '../utilities/normalize';
 
 interface ToolUseApprovalStatus {
   approved: boolean;
@@ -213,12 +214,15 @@ export class ChatManager {
     const currentMCPTools = await this.mcpManager.getCurrentMCPTools();
 
     const clientTools: Array<ClientTool> = [];
+    function sanitizeToolName(name: string): string {
+      return name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
 
     // create a mapping mcpToolUniqueIds and mcpMetadata
     // the unique ID is the combination of serverId and tool name
     for (const server of currentMCPTools) {
       for (const tool of server.tools) {
-        const mcpToolUniqueId = `${server.serverId}-${tool.name}`;
+        const mcpToolUniqueId = sanitizeToolName(`${server.serverId}-${tool.name}`);
         clientTools.push({
           name: mcpToolUniqueId,
           description: tool.description ?? '',
@@ -795,11 +799,11 @@ export class ChatManager {
     },
   ): Promise<any> {
     const directory = await resolveDirectoryRelative(params.directory);
-    const searchTerms = params.search_terms; // Optional
+    const normalizedTerms = normalizeSearchTerms(params.search_terms);
     this.outputChannel.info(
-      `Executing file_path_searcher: directory="${directory}", terms="${searchTerms?.join(', ')}"`,
+      `Executing file_path_searcher: directory="${directory}", terms="${normalizedTerms?.join(', ')}"`,
     );
-    return this._fetchFilePathSearch(repo_path, directory || '', searchTerms);
+    return this._fetchFilePathSearch(repo_path, directory || '', normalizedTerms);
   }
 
   // Iterative File Reader Tool Implementation
@@ -1123,17 +1127,20 @@ export class ChatManager {
         toolRequest,
         detectedClientTool,
         toolRequest.accumulatedContent,
-        { error: error.message },
+        error,
         'error',
       );
     } else {
-      this._sendBuiltInToolChipResult(chunkCallback, toolRequest, { error: error.message }, 'error');
+      this._sendBuiltInToolChipResult(chunkCallback, toolRequest, error, 'error');
     }
   }
 
   // Utility Function For Parsing Tool Content
   private _parseToolContent(content: string): any {
     try {
+      if (!content || content.trim() === '') {
+        return {}; // tools with no arguments
+      }
       const parsed = JSON.parse(content);
       this.outputChannel.info(`Parsed tool parameters: ${JSON.stringify(parsed)}`);
       return parsed;
@@ -1359,7 +1366,15 @@ export class ChatManager {
       return { result: toolResponse, status: 'COMPLETED' };
     } catch (error: any) {
       const toolErrorResponse = this._formatErrorResponse(error);
-      await this._handleToolError(error, toolRequest, chatId, repoPath, sessionId, chunkCallback, clientTools);
+      await this._handleToolError(
+        toolErrorResponse,
+        toolRequest,
+        chatId,
+        repoPath,
+        sessionId,
+        chunkCallback,
+        clientTools,
+      );
       return { result: toolErrorResponse, status: 'FAILED' };
     }
   }

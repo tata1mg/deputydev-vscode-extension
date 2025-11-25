@@ -29,7 +29,6 @@ export type ChunkCallback = (data: { name: string; data: unknown }) => void;
 export type Chunk = {
   start_line: number;
   end_line: number;
-  chunk_hash: string;
   file_hash: string;
   file_path: string;
   meta_info?: any;

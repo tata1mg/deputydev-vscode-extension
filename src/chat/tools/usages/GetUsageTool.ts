@@ -7,6 +7,7 @@ import { SingletonLogger } from '../../../utilities/Singleton-logger';
 import { extractSymbolInfo, findDefinitionAnchor, toLocationInfo } from './usages.helpers';
 import { GetUsagesArgs, GetUsagesResult, SymbolInfo } from './usages.types';
 import { throwToolError, ToolError } from '../utils/ToolError';
+import { normalizeSearchTerms } from '../../../utilities/normalize';
 
 export class GetUsagesTool {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -36,7 +37,7 @@ export class GetUsagesTool {
       const allowedRoots = contextRepos.map((r) => path.resolve(r.repo_path));
 
       // 1) Resolve candidate file paths (fallback to workspace symbol search)
-      let filePaths = args.filePaths;
+      let filePaths = normalizeSearchTerms(args.filePaths);
 
       if (!filePaths || filePaths.length === 0) {
         const wsSymbols = await this.languageFeaturesService.getWorkspaceSymbols(symbolName);

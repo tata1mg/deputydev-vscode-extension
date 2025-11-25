@@ -454,7 +454,6 @@ addCommandEventListener('inline-chat-data', ({ data }) => {
     value: response.path.split(/[/\\]/).pop() || '',
     path: response.path,
     chunks: [response.chunk],
-    noEdit: true,
   };
   useChatStore
     .getState()

@@ -79,7 +79,7 @@ export class IndexingService {
       });
       return response.data;
     } catch (error) {
-      this.logger.error('Error fetching focus chunks');
+      this.logger.error('Error updating repo index');
       this.errorTrackingManager.trackGeneralError({
         error,
         errorType: 'INDEXING_SERVICE_ERROR',
