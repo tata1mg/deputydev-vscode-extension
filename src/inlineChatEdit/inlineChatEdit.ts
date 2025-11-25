@@ -187,10 +187,10 @@ export class InlineChatEditManager {
         keyword: fileName,
         path: relativePath,
         chunk: {
-          file_path: relativePath,
           start_line: startLine,
           end_line: endLine,
-          chunk_hash: `${relativePath}_${fileName}_${startLine}_${endLine}`,
+          file_path: relativePath,
+          file_hash: `${relativePath}_${fileName}_${startLine}_${endLine}`,
         },
       };
 
