@@ -208,26 +208,43 @@ export class QuerySolverService {
   ): Promise<void> {
     this.logger.info(`WebSocket closed for chat ${chatId}:`, event);
 
-    // Only attempt reconnection if the stream hasn't ended and there's no error
+    // ---- Case 1: Mid-stream closure without error => attempt reconnection ----
     if (!streamDone && !streamError) {
-      this.logger.warn('WebSocket closed unexpectedly. Attempting to reconnect...');
+      this.logger.warn(`WebSocket closed mid-stream for chat ${chatId}. Attempting to reconnect and resume...`);
 
       if (!queryId) {
-        this.logger.error('Cannot reconnect: query_id not available for resumption');
+        this.logger.error(`Cannot reconnect chat ${chatId}: query_id not available for resumption.`);
+        // Still cleanup so we don't keep a dead socket around
+        this.closeSocket(chatId);
         return;
       }
 
       try {
-        // Clean up the old connection
+        this.logger.info(`Closing old socket before reconnection for chat ${chatId}`);
         this.closeSocket(chatId);
 
-        // Create new connection and send resumption payload
+        this.logger.info(`Reconnecting WebSocket for chat ${chatId} and sending resumption payload...`);
         await setupSocketConnection(true);
+
+        this.logger.info(`Reconnection successful for chat ${chatId}`);
       } catch (err) {
-        this.logger.error('Failed to reconnect and send resumption payload', err);
-        // The error will be handled in the main loop
+        this.logger.error(`Failed to reconnect and send resumption payload for chat ${chatId}`, err);
       }
+
+      return;
     }
+
+    // ---- Case 2: Normal end (streamDone) or terminal error => cleanup only ----
+    if (streamDone) {
+      this.logger.info(`WebSocket closed after stream completion for chat ${chatId}. Cleaning up.`);
+    } else if (streamError) {
+      this.logger.info(`WebSocket closed after stream error for chat ${chatId}. Cleaning up.`);
+    } else {
+      // Fallback: should be rare, but still cleanup
+      this.logger.info(`WebSocket closed for chat ${chatId} with no active stream. Cleaning up.`);
+    }
+
+    this.closeSocket(chatId);
   }
 
   private async handleAuthenticationRetry(
