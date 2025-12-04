@@ -6,6 +6,7 @@ import { AgentPayload, ReviewEvent, PostProcessEvent } from '../../../types';
 import { getReviewSessionId } from '../../../utilities/contextManager';
 import { SESSION_TYPE } from '../../../constants';
 import { AuthService } from '../../auth/AuthService';
+import { refreshCurrentToken } from '../../refreshToken/refreshCurrentToken';
 
 export class CodeReviewWebsocketService {
   private readonly logger: ReturnType<typeof SingletonLogger.getInstance>;
@@ -50,6 +51,9 @@ export class CodeReviewWebsocketService {
       const handleMessage = (data: ReviewEvent): void => {
         messageData = data;
         try {
+          if (data.type === 'STREAM_START' && data.data?.new_session_data) {
+            refreshCurrentToken({ new_session_data: data.data.new_session_data });
+          }
           this.eventsQueue.push(data);
         } catch (error) {
           console.error('Error processing message:', error);
@@ -141,6 +145,9 @@ export class CodeReviewWebsocketService {
 
       const handleMessage = (data: PostProcessEvent): void => {
         try {
+          if (data.type === 'STREAM_START' && data.data.new_session_data) {
+            refreshCurrentToken({ new_session_data: data.data.new_session_data });
+          }
           this.postProcessEventQueue.push(data);
 
           // Close connection if STREAM_END or POST_PROCESS_ERROR is received
