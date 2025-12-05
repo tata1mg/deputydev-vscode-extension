@@ -253,21 +253,30 @@ export interface ReviewToolUseRequest {
   tool_use_id: string;
   tool_name: string;
   tool_input: GrepSearchInput | FilePathSearchInput | IterativeFileReaderInput;
+  new_session_data?: string;
 }
 
 export interface ReviewEvent {
-  type: 'REVIEW_FAIL' | 'AGENT_START' | 'AGENT_COMPLETE' | 'AGENT_FAIL' | 'TOOL_USE_REQUEST';
+  type:
+    | 'REVIEW_FAIL'
+    | 'AGENT_START'
+    | 'AGENT_COMPLETE'
+    | 'AGENT_FAIL'
+    | 'TOOL_USE_REQUEST'
+    | 'STREAM_START'
+    | 'STREAM_END';
   agent_id: number;
   data?: ReviewToolUseRequest;
 }
 
 export interface PostProcessEvent {
-  type: 'POST_PROCESS_ERROR' | 'POST_PROCESS_COMPLETE' | 'POST_PROCESS_START' | 'STREAM_END';
+  type: 'POST_PROCESS_ERROR' | 'POST_PROCESS_COMPLETE' | 'POST_PROCESS_START' | 'STREAM_END' | 'STREAM_START';
   agent_id: number | null;
   data: {
     message: string;
     result?: { status: string };
     progress?: number;
+    new_session_data?: string;
   };
   timestamp: string;
 }
