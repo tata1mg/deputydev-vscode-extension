@@ -144,8 +144,8 @@ export class GetResolveModuleTool {
       }
 
       // --- Convert to absolute module targets (line = start of target range) ---
-      const moduleTargets: LocationInfo[] = rawTargets.map((t) =>
-        toLocationInfoFromParts(locParts(t).uri, locParts(t).range),
+      const moduleTargets: LocationInfo[] = await Promise.all(
+        rawTargets.map((t) => toLocationInfoFromParts(locParts(t).uri, locParts(t).range)),
       );
 
       // --- For each target: try to extract a symbol body, otherwise a module preview ---

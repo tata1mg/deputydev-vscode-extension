@@ -53,7 +53,7 @@ export class IndexingService {
       this.logger.error('error syncing repo index');
       this.errorTrackingManager.trackGeneralError({
         error,
-        errorType: 'INDEXING_SERVICE_ERROR',
+        errorType: 'SYNC_INDEXING_SERVICE_ERROR',
         errorSource: 'BINARY',
       });
       sendProgress({
@@ -82,7 +82,7 @@ export class IndexingService {
       this.logger.error('Error updating repo index');
       this.errorTrackingManager.trackGeneralError({
         error,
-        errorType: 'INDEXING_SERVICE_ERROR',
+        errorType: 'UPDATE_INDEXING_SERVICE_ERROR',
         errorSource: 'BINARY',
       });
       this.apiErrorHandler.handleApiError(error);
