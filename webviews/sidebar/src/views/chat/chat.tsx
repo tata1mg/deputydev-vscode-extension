@@ -705,7 +705,8 @@ export function ChatUI() {
                     <AtSign className="h-4 w-4" />
                   </button>
 
-                  <button
+                  {/* Web Search Button - Disabled */}
+                  {/* <button
                     className={`flex items-center justify-center rounded p-1 ${
                       currentChat.search_web
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
@@ -717,7 +718,7 @@ export function ChatUI() {
                     data-tooltip-place="top-start"
                   >
                     <Globe className="h-4 w-4" />
-                  </button>
+                  </button> */}
 
                   <ImageUploadButton
                     imagePreviews={imagePreviews}
